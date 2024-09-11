@@ -1,10 +1,15 @@
-swagger: "2.0"
-info: {}
-paths: {}
 definitions:
-  models.Cliente:
-    title: Cliente
+  models.ApiResponse:
+    properties:
+      cause:
+        type: string
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
     type: object
+  models.Cliente:
     properties:
       APELLIDO:
         type: string
@@ -18,9 +23,133 @@ definitions:
         type: string
       PK_DOCUMENTO_CLIENTE:
         type: integer
-        format: int64
       TELEFONO:
         type: string
-  nil:
-    title: nil
     type: object
+info:
+  contact: {}
+paths:
+  /clientes:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los clientes registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de clientes
+          schema:
+            items:
+              $ref: '#/definitions/models.Cliente'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los clientes
+      tags:
+      - clientes
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo cliente en la base de datos.
+      parameters:
+      - description: Datos del cliente a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Cliente'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Cliente creado
+          schema:
+            $ref: '#/definitions/models.Cliente'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo cliente
+      tags:
+      - clientes
+  /clientes/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un cliente de la base de datos.
+      parameters:
+      - description: ID del Cliente
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Cliente eliminado
+        "404":
+          description: Cliente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un cliente
+      tags:
+      - clientes
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un cliente específico por ID.
+      parameters:
+      - description: ID del Cliente
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cliente encontrado
+          schema:
+            $ref: '#/definitions/models.Cliente'
+        "404":
+          description: Cliente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener cliente por ID
+      tags:
+      - clientes
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un cliente existente.
+      parameters:
+      - description: ID del Cliente
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos del cliente a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Cliente'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cliente actualizado
+          schema:
+            $ref: '#/definitions/models.Cliente'
+        "404":
+          description: Cliente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un cliente
+      tags:
+      - clientes
+swagger: "2.0"

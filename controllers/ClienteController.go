@@ -15,10 +15,14 @@ type ClienteController struct {
 }
 
 // @Title GetAll
-// @Description Obtener todos los clientes
+// @Summary Obtener todos los clientes
+// @Description Devuelve todos los clientes registrados en la base de datos.
+// @Tags clientes
+// @Accept json
+// @Produce json
 // @Success 200 {array} models.Cliente "Lista de clientes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @router /clientes [get]
+// @Router /clientes [get]
 func (c *ClienteController) GetAll() {
 	var clientes []models.Cliente
 	query := `SELECT "PK_DOCUMENTO_CLIENTE", "NOMBRE", "APELLIDO", "DIRECCION", "TELEFONO", "OBSERVACIONES", "PASSWORD" FROM "CLIENTE"`
@@ -71,11 +75,15 @@ func (c *ClienteController) GetAll() {
 }
 
 // @Title GetById
-// @Description Obtener cliente por ID
+// @Summary Obtener cliente por ID
+// @Description Devuelve un cliente específico por ID.
+// @Tags clientes
+// @Accept json
+// @Produce json
 // @Param   id     path    int     true        "ID del Cliente"
 // @Success 200 {object} models.Cliente "Cliente encontrado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @router /clientes/:id [get]
+// @Router /clientes/{id} [get]
 func (c *ClienteController) GetById() {
 	id := c.Ctx.Input.Param(":id")
 	query := `SELECT "PK_DOCUMENTO_CLIENTE", "NOMBRE", "APELLIDO", "DIRECCION", "TELEFONO", "OBSERVACIONES", "PASSWORD" FROM "CLIENTE" WHERE "PK_DOCUMENTO_CLIENTE" = $1`
@@ -103,11 +111,15 @@ func (c *ClienteController) GetById() {
 }
 
 // @Title Create
-// @Description Crear un nuevo cliente
+// @Summary Crear un nuevo cliente
+// @Description Crea un nuevo cliente en la base de datos.
+// @Tags clientes
+// @Accept json
+// @Produce json
 // @Param   body  body   models.Cliente true  "Datos del cliente a crear"
 // @Success 201 {object} models.Cliente "Cliente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
-// @router /clientes [post]
+// @Router /clientes [post]
 func (c *ClienteController) Post() {
 	var cliente models.Cliente
 	body := c.Ctx.Input.RequestBody
@@ -160,12 +172,16 @@ func (c *ClienteController) Post() {
 }
 
 // @Title Update
-// @Description Actualizar un cliente
+// @Summary Actualizar un cliente
+// @Description Actualiza los datos de un cliente existente.
+// @Tags clientes
+// @Accept json
+// @Produce json
 // @Param   id    path    int  true   "ID del Cliente"
 // @Param   body  body   models.Cliente true  "Datos del cliente a actualizar"
 // @Success 200 {object} models.Cliente "Cliente actualizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @router /clientes/:id [put]
+// @Router /clientes/{id} [put]
 func (c *ClienteController) Put() {
 	id := c.Ctx.Input.Param(":id")
 	var cliente models.Cliente
@@ -204,11 +220,15 @@ func (c *ClienteController) Put() {
 }
 
 // @Title Delete
-// @Description Eliminar un cliente
+// @Summary Eliminar un cliente
+// @Description Elimina un cliente de la base de datos.
+// @Tags clientes
+// @Accept json
+// @Produce json
 // @Param   id     path    int     true        "ID del Cliente"
 // @Success 204 {object} nil "Cliente eliminado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @router /clientes/:id [delete]
+// @Router /clientes/{id} [delete]
 func (c *ClienteController) Delete() {
 	id := c.Ctx.Input.Param(":id")
 
