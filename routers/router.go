@@ -7,10 +7,12 @@ import (
 )
 
 func init() {
-	beego.Router("/", &controllers.MainController{})
-	// Ruta para obtener todos los clientes
-	beego.Router("/clientes", &controllers.ClienteController{}, "get:GetAll;post:Post")
+	ns := beego.NewNamespace("/restaurante/v1",
+		beego.NSNamespace("/clientes",
+			beego.NSRouter("/", &controllers.ClienteController{}, "get:GetAll;post:Post"),
+			beego.NSRouter("/:id", &controllers.ClienteController{}, "get:GetById;put:Put;delete:Delete"),
+		),
+	)
 
-	// Ruta para obtener, actualizar y eliminar un cliente por ID
-	beego.Router("/clientes/:id", &controllers.ClienteController{}, "get:GetById;put:Put;delete:Delete")
+	beego.AddNamespace(ns)
 }

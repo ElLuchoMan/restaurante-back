@@ -29,7 +29,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /clientes:
+  /restaurante/v1/clientes:
     get:
       consumes:
       - application/json
@@ -75,7 +75,7 @@ paths:
       summary: Crear un nuevo cliente
       tags:
       - clientes
-  /clientes/{id}:
+  /restaurante/v1/clientes/{id}:
     delete:
       consumes:
       - application/json

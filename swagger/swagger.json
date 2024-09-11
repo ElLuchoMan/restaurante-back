@@ -3,6 +3,7 @@
     "info": {
         "contact": {}
     },
+    "basePath": "/restaurante/v1",
     "paths": null,
     "definitions": {
         "models.Cliente": {

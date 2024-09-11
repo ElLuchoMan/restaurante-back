@@ -1,5 +1,6 @@
 swagger: "2.0"
 info: {}
+basePath: /restaurante/v1
 paths: {}
 definitions:
   models.Cliente:

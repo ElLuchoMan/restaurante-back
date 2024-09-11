@@ -21,7 +21,7 @@ type ClienteController struct {
 // @Produce json
 // @Success 200 {array} models.Cliente "Lista de clientes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @Router /clientes [get]
+// @Router /restaurante/v1/clientes [get]
 func (c *ClienteController) GetAll() {
 	o := orm.NewOrm()
 	var clientes []models.Cliente
@@ -57,7 +57,7 @@ func (c *ClienteController) GetAll() {
 // @Param   id     path    int     true        "ID del Cliente"
 // @Success 200 {object} models.Cliente "Cliente encontrado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @Router /clientes/{id} [get]
+// @Router /restaurante/v1/clientes/{id} [get]
 func (c *ClienteController) GetById() {
 	o := orm.NewOrm()
 	id, _ := c.GetInt(":id")
@@ -92,7 +92,7 @@ func (c *ClienteController) GetById() {
 // @Param   body  body   models.Cliente true  "Datos del cliente a crear"
 // @Success 201 {object} models.Cliente "Cliente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
-// @Router /clientes [post]
+// @Router /restaurante/v1/clientes [post]
 func (c *ClienteController) Post() {
 	o := orm.NewOrm()
 	var cliente models.Cliente
@@ -139,7 +139,7 @@ func (c *ClienteController) Post() {
 // @Param   body  body   models.Cliente true  "Datos del cliente a actualizar"
 // @Success 200 {object} models.Cliente "Cliente actualizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @Router /clientes/{id} [put]
+// @Router /restaurante/v1/clientes/{id} [put]
 func (c *ClienteController) Put() {
 	o := orm.NewOrm()
 	id, _ := c.GetInt(":id")
@@ -197,7 +197,7 @@ func (c *ClienteController) Put() {
 // @Param   id     path    int     true        "ID del Cliente"
 // @Success 204 {object} nil "Cliente eliminado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @Router /clientes/{id} [delete]
+// @Router /restaurante/v1/clientes/{id} [delete]
 func (c *ClienteController) Delete() {
 	o := orm.NewOrm()
 	id, _ := c.GetInt(":id")

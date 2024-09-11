@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/clientes": {
+        "/restaurante/v1/clientes": {
             "get": {
                 "description": "Devuelve todos los clientes registrados en la base de datos.",
                 "consumes": [
@@ -85,7 +85,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/clientes/{id}": {
+        "/restaurante/v1/clientes/{id}": {
             "get": {
                 "description": "Devuelve un cliente específico por ID.",
                 "consumes": [
