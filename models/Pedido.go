@@ -1,10 +1,13 @@
 package models
 
 type Pedido struct {
-	ID        int     `json:"id"`
-	ClienteID int     `json:"cliente_id"`
-	Fecha     string  `json:"fecha"`
-	Estado    string  `json:"estado"`
-	Delivery  bool    `json:"delivery"`
-	Platos    []Plato `json:"platos"`
+	PK_ID_PEDIDO      int64  `orm:"pk" json:"PK_ID_PEDIDO"`
+	FECHA             string `json:"FECHA"`
+	HORA              string `json:"HORA"`
+	DELIVERY          bool   `json:"DELIVERY"`
+	ESTADO            string `json:"ESTADO"`
+	PK_ID_DOMICILIO   *int64 `orm:"null" json:"PK_ID_DOMICILIO"`
+	PK_ID_PAGO        *int64 `orm:"null" json:"PK_ID_PAGO"`
+	PK_ID_ITEM_PEDIDO *int64 `orm:"null" json:"PK_ID_ITEM_PEDIDO"`
+	PK_ID_RESTAURANTE *int64 `orm:"null" json:"PK_ID_RESTAURANTE"`
 }

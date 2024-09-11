@@ -1,10 +1,11 @@
 package models
 
 type Plato struct {
-	ID            int    `json:"id"`
-	Nombre        string `json:"nombre"`
-	Calorias      int    `json:"calorias"`
-	Descripcion   string `json:"descripcion"`
-	Precio        int    `json:"precio"`
-	Personalizado bool   `json:"personalizado"`
+	PK_ID_PLATO       int64   `orm:"pk" json:"PK_ID_PLATO"`
+	NOMBRE            string  `json:"NOMBRE"`
+	CALORIAS          *int64  `orm:"null" json:"CALORIAS"`
+	DESCRIPCION       *string `orm:"null" json:"DESCRIPCION"`
+	PRECIO            int64   `json:"PRECIO"`
+	PERSONALIZADO     bool    `json:"PERSONALIZADO"`
+	PK_ID_ITEM_PEDIDO *int64  `orm:"null" json:"PK_ID_ITEM_PEDIDO"`
 }

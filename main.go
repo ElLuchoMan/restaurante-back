@@ -1,25 +1,36 @@
 package main
 
 import (
-	"restaurante/database"
-	_ "restaurante/docs" // Importa la documentación generada de Swagger
+	"fmt"
+	_ "restaurante/docs"
 	_ "restaurante/routers"
 
+	"github.com/beego/beego/v2/client/orm"
 	beego "github.com/beego/beego/v2/server/web"
+	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func main() {
-	// Inicializar la base de datos
-	database.InitDB()
+func init() {
+	dbUser, _ := beego.AppConfig.String("db_user")
+	dbPass, _ := beego.AppConfig.String("db_pass")
+	dbHost, _ := beego.AppConfig.String("db_host")
+	dbPort, _ := beego.AppConfig.String("db_port")
+	dbName, _ := beego.AppConfig.String("db_name")
 
-	// Habilitar Swagger en modo de desarrollo
+	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
+		dbUser, dbPass, dbHost, dbPort, dbName)
+
+	err := orm.RegisterDataBase("default", "postgres", connStr)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func main() {
 	if beego.BConfig.RunMode == "dev" {
 		beego.BConfig.WebConfig.DirectoryIndex = true
-		// Configurar ruta para Swagger UI usando beego.Handler()
 		beego.Handler("/swagger/*", httpSwagger.WrapHandler)
 	}
-
-	// Ejecutar la aplicación Beego
 	beego.Run()
 }

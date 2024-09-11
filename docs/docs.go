@@ -221,25 +221,25 @@ const docTemplate = `{
         "models.Cliente": {
             "type": "object",
             "properties": {
-                "APELLIDO": {
+                "apellido": {
                     "type": "string"
                 },
-                "DIRECCION": {
+                "direccion": {
                     "type": "string"
                 },
-                "NOMBRE": {
+                "nombre": {
                     "type": "string"
                 },
-                "OBSERVACIONES": {
+                "observaciones": {
                     "type": "string"
                 },
-                "PASSWORD": {
+                "password": {
                     "type": "string"
                 },
-                "PK_DOCUMENTO_CLIENTE": {
+                "pk_DOCUMENTO_CLIENTE": {
                     "type": "integer"
                 },
-                "TELEFONO": {
+                "telefono": {
                     "type": "string"
                 }
             }

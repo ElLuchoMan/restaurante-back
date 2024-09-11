@@ -2,11 +2,10 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"restaurante/database"
 	"restaurante/models"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 )
 
@@ -24,42 +23,17 @@ type ClienteController struct {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /clientes [get]
 func (c *ClienteController) GetAll() {
+	o := orm.NewOrm()
 	var clientes []models.Cliente
-	query := `SELECT "PK_DOCUMENTO_CLIENTE", "NOMBRE", "APELLIDO", "DIRECCION", "TELEFONO", "OBSERVACIONES", "PASSWORD" FROM "CLIENTE"`
-	rows, err := database.DB.Query(query)
+
+	// Consulta todos los clientes
+	_, err := o.QueryTable(new(models.Cliente)).All(&clientes)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al obtener clientes de la base de datos",
 			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var cliente models.Cliente
-		err := rows.Scan(&cliente.PK_DOCUMENTO_CLIENTE, &cliente.NOMBRE, &cliente.APELLIDO, &cliente.DIRECCION, &cliente.TELEFONO, &cliente.OBSERVACIONES, &cliente.PASSWORD)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al escanear los datos: ",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-		clientes = append(clientes, cliente)
-	}
-
-	if len(clientes) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "No se encontraron clientes",
 		}
 		c.ServeJSON()
 		return
@@ -85,17 +59,16 @@ func (c *ClienteController) GetAll() {
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Router /clientes/{id} [get]
 func (c *ClienteController) GetById() {
-	id := c.Ctx.Input.Param(":id")
-	query := `SELECT "PK_DOCUMENTO_CLIENTE", "NOMBRE", "APELLIDO", "DIRECCION", "TELEFONO", "OBSERVACIONES", "PASSWORD" FROM "CLIENTE" WHERE "PK_DOCUMENTO_CLIENTE" = $1`
-	var cliente models.Cliente
-	err := database.DB.QueryRow(query, id).Scan(&cliente.PK_DOCUMENTO_CLIENTE, &cliente.NOMBRE, &cliente.APELLIDO, &cliente.DIRECCION, &cliente.TELEFONO, &cliente.OBSERVACIONES, &cliente.PASSWORD)
+	o := orm.NewOrm()
+	id, _ := c.GetInt(":id")
+	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
-	if err != nil {
+	err := o.Read(&cliente)
+	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
@@ -121,41 +94,26 @@ func (c *ClienteController) GetById() {
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /clientes [post]
 func (c *ClienteController) Post() {
+	o := orm.NewOrm()
 	var cliente models.Cliente
-	body := c.Ctx.Input.RequestBody
-	fmt.Println("Cuerpo recibido:", string(body))
 
-	if len(body) == 0 {
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &cliente); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El cuerpo de la solicitud está vacío",
-		}
-		c.ServeJSON()
-		return
-	}
-
-	err := json.Unmarshal(body, &cliente)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error parsing input data",
+			Message: "Error en la solicitud",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	query := `INSERT INTO "CLIENTE" ("PK_DOCUMENTO_CLIENTE", "NOMBRE", "APELLIDO", "DIRECCION", "TELEFONO", "OBSERVACIONES", "PASSWORD")
-			  VALUES ($1, $2, $3, $4, $5, $6, $7)`
-
-	_, err = database.DB.Exec(query, cliente.PK_DOCUMENTO_CLIENTE, cliente.NOMBRE, cliente.APELLIDO, cliente.DIRECCION, cliente.TELEFONO, cliente.OBSERVACIONES, cliente.PASSWORD)
+	_, err := o.Insert(&cliente)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error creando cliente",
+			Message: "Error al crear el cliente",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
@@ -183,40 +141,51 @@ func (c *ClienteController) Post() {
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Router /clientes/{id} [put]
 func (c *ClienteController) Put() {
-	id := c.Ctx.Input.Param(":id")
-	var cliente models.Cliente
-	err := json.Unmarshal(c.Ctx.Input.RequestBody, &cliente)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+	o := orm.NewOrm()
+	id, _ := c.GetInt(":id")
+	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
+
+	if o.Read(&cliente) == nil {
+		var updatedCliente models.Cliente
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedCliente); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Error en la solicitud",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+
+		updatedCliente.PK_DOCUMENTO_CLIENTE = id
+		_, err := o.Update(&updatedCliente)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al actualizar el cliente",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error parsing input data",
-			Cause:   err.Error(),
+			Code:    http.StatusOK,
+			Message: "Cliente actualizado",
+			Data:    updatedCliente,
 		}
 		c.ServeJSON()
-		return
-	}
-
-	query := `UPDATE "CLIENTE" SET "NOMBRE"=$1, "APELLIDO"=$2, "DIRECCION"=$3, "TELEFONO"=$4, "OBSERVACIONES"=$5, "PASSWORD"=$6 WHERE "PK_DOCUMENTO_CLIENTE"=$7`
-	_, err = database.DB.Exec(query, cliente.NOMBRE, cliente.APELLIDO, cliente.DIRECCION, cliente.TELEFONO, cliente.OBSERVACIONES, cliente.PASSWORD, id)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar el cliente",
-			Cause:   err.Error(),
+			Code:    http.StatusNotFound,
+			Message: "Cliente no encontrado",
 		}
 		c.ServeJSON()
-		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Cliente actualizado",
-		Data:    cliente,
-	}
-	c.ServeJSON()
 }
 
 // @Title Delete
@@ -230,25 +199,23 @@ func (c *ClienteController) Put() {
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Router /clientes/{id} [delete]
 func (c *ClienteController) Delete() {
-	id := c.Ctx.Input.Param(":id")
+	o := orm.NewOrm()
+	id, _ := c.GetInt(":id")
+	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
-	query := `DELETE FROM "CLIENTE" WHERE "PK_DOCUMENTO_CLIENTE"=$1`
-	_, err := database.DB.Exec(query, id)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+	if _, err := o.Delete(&cliente); err == nil {
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al eliminar el cliente",
-			Cause:   err.Error(),
+			Code:    http.StatusOK,
+			Message: "Cliente eliminado",
 		}
 		c.ServeJSON()
-		return
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusNotFound,
+			Message: "Cliente no encontrado",
+		}
+		c.ServeJSON()
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Cliente eliminado",
-	}
-	c.ServeJSON()
 }
