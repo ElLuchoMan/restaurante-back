@@ -62,7 +62,6 @@ func (c *ClienteController) GetAll() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron clientes",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
