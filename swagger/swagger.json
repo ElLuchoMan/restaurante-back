@@ -1,45 +1,143 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+      "description": "Descripción de tu API",
+      "title": "Título de tu API"
     },
-    "paths": null,
-    "definitions": {
-        "Cliente": {
-            "title": "Cliente",
-            "type": "object"
-        },
-        "models.Cliente": {
-            "title": "Cliente",
-            "type": "object",
-            "properties": {
-                "APELLIDO": {
-                    "type": "string"
-                },
-                "DIRECCION": {
-                    "type": "string"
-                },
-                "NOMBRE": {
-                    "type": "string"
-                },
-                "OBSERVACIONES": {
-                    "type": "string"
-                },
-                "PASSWORD": {
-                    "type": "string"
-                },
-                "PK_DOCUMENTO_CLIENTE": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "TELEFONO": {
-                    "type": "string"
-                }
+    "paths": {
+      "/clientes": {
+        "get": {
+          "tags": ["Cliente"],
+          "summary": "Obtener todos los clientes",
+          "responses": {
+            "200": {
+              "description": "Lista de clientes"
             }
+          }
         },
-        "nil": {
-            "title": "nil",
-            "type": "object"
+        "post": {
+          "tags": ["Cliente"],
+          "summary": "Crear un nuevo cliente",
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Datos del cliente",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/Cliente"
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Cliente creado"
+            },
+            "400": {
+              "description": "Error en la solicitud"
+            }
+          }
         }
+      },
+      "/clientes/{id}": {
+        "get": {
+          "tags": ["Cliente"],
+          "summary": "Obtener cliente por ID",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "type": "integer"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Cliente encontrado"
+            },
+            "404": {
+              "description": "Cliente no encontrado"
+            }
+          }
+        },
+        "put": {
+          "tags": ["Cliente"],
+          "summary": "Actualizar un cliente",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "type": "integer"
+            },
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Datos del cliente a actualizar",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/Cliente"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Cliente actualizado"
+            },
+            "404": {
+              "description": "Cliente no encontrado"
+            }
+          }
+        },
+        "delete": {
+          "tags": ["Cliente"],
+          "summary": "Eliminar un cliente",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "type": "integer"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Cliente eliminado"
+            },
+            "404": {
+              "description": "Cliente no encontrado"
+            }
+          }
+        }
+      }
+    },
+    "definitions": {
+      "Cliente": {
+        "type": "object",
+        "properties": {
+          "PK_DOCUMENTO_CLIENTE": {
+            "type": "integer"
+          },
+          "NOMBRE": {
+            "type": "string"
+          },
+          "APELLIDO": {
+            "type": "string"
+          },
+          "DIRECCION": {
+            "type": "string"
+          },
+          "TELEFONO": {
+            "type": "string"
+          },
+          "OBSERVACIONES": {
+            "type": "string"
+          },
+          "PASSWORD": {
+            "type": "string"
+          }
+        }
+      }
     }
-}
+  }
+  

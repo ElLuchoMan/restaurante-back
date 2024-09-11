@@ -16,16 +16,12 @@ type ClienteController struct {
 
 // @Title GetAll
 // @Description Obtener todos los clientes
-// @Success 200 {object} []Cliente
-// @Failure 500 Error en la base de datos
+// @Success 200 {array} models.Cliente "Lista de clientes"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @router /clientes [get]
 func (c *ClienteController) GetAll() {
 	var clientes []models.Cliente
-
-	// Consulta para obtener todos los clientes
 	query := `SELECT "PK_DOCUMENTO_CLIENTE", "NOMBRE", "APELLIDO", "DIRECCION", "TELEFONO", "OBSERVACIONES", "PASSWORD" FROM "CLIENTE"`
-
-	// Ejecutamos la consulta
 	rows, err := database.DB.Query(query)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -39,7 +35,6 @@ func (c *ClienteController) GetAll() {
 	}
 	defer rows.Close()
 
-	// Iteramos sobre los resultados
 	for rows.Next() {
 		var cliente models.Cliente
 		err := rows.Scan(&cliente.PK_DOCUMENTO_CLIENTE, &cliente.NOMBRE, &cliente.APELLIDO, &cliente.DIRECCION, &cliente.TELEFONO, &cliente.OBSERVACIONES, &cliente.PASSWORD)
@@ -56,7 +51,6 @@ func (c *ClienteController) GetAll() {
 		clientes = append(clientes, cliente)
 	}
 
-	// Si no hubo clientes, devolvemos un código 404
 	if len(clientes) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
@@ -67,7 +61,6 @@ func (c *ClienteController) GetAll() {
 		return
 	}
 
-	// Si todo sale bien, devolvemos la lista de clientes
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -80,8 +73,8 @@ func (c *ClienteController) GetAll() {
 // @Title GetById
 // @Description Obtener cliente por ID
 // @Param   id     path    int     true        "ID del Cliente"
-// @Success 200 {object} models.Cliente
-// @Failure 404 Cliente no encontrado
+// @Success 200 {object} models.Cliente "Cliente encontrado"
+// @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @router /clientes/:id [get]
 func (c *ClienteController) GetById() {
 	id := c.Ctx.Input.Param(":id")
@@ -111,14 +104,14 @@ func (c *ClienteController) GetById() {
 
 // @Title Create
 // @Description Crear un nuevo cliente
-// @Success 201 {object} models.Cliente
-// @Failure 400 Error en la solicitud
+// @Param   body  body   models.Cliente true  "Datos del cliente a crear"
+// @Success 201 {object} models.Cliente "Cliente creado"
+// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @router /clientes [post]
 func (c *ClienteController) Post() {
 	var cliente models.Cliente
-	// Mostrar el cuerpo de la solicitud recibido
 	body := c.Ctx.Input.RequestBody
-	fmt.Println("Cuerpo recibido:", string(body)) // Esto imprimirá el cuerpo recibido
+	fmt.Println("Cuerpo recibido:", string(body))
 
 	if len(body) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -129,10 +122,7 @@ func (c *ClienteController) Post() {
 		c.ServeJSON()
 		return
 	}
-	// Imprimir el cuerpo recibido para verificar
-	fmt.Println("Cuerpo recibido:", string(body))
 
-	// Intentar deserializar el cuerpo de la solicitud
 	err := json.Unmarshal(body, &cliente)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -145,7 +135,6 @@ func (c *ClienteController) Post() {
 		return
 	}
 
-	// Crear el cliente en la base de datos
 	query := `INSERT INTO "CLIENTE" ("PK_DOCUMENTO_CLIENTE", "NOMBRE", "APELLIDO", "DIRECCION", "TELEFONO", "OBSERVACIONES", "PASSWORD")
 			  VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
@@ -154,14 +143,13 @@ func (c *ClienteController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error creating cliente",
+			Message: "Error creando cliente",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Respuesta exitosa
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
@@ -173,9 +161,10 @@ func (c *ClienteController) Post() {
 
 // @Title Update
 // @Description Actualizar un cliente
-// @Param   id     path    int     true        "ID del Cliente"
-// @Success 200 {object} models.Cliente
-// @Failure 404 Cliente no encontrado
+// @Param   id    path    int  true   "ID del Cliente"
+// @Param   body  body   models.Cliente true  "Datos del cliente a actualizar"
+// @Success 200 {object} models.Cliente "Cliente actualizado"
+// @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @router /clientes/:id [put]
 func (c *ClienteController) Put() {
 	id := c.Ctx.Input.Param(":id")
@@ -217,8 +206,8 @@ func (c *ClienteController) Put() {
 // @Title Delete
 // @Description Eliminar un cliente
 // @Param   id     path    int     true        "ID del Cliente"
-// @Success 204 {object} nil
-// @Failure 404 Cliente no encontrado
+// @Success 204 {object} nil "Cliente eliminado"
+// @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @router /clientes/:id [delete]
 func (c *ClienteController) Delete() {
 	id := c.Ctx.Input.Param(":id")

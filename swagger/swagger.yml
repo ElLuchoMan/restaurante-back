@@ -2,9 +2,6 @@ swagger: "2.0"
 info: {}
 paths: {}
 definitions:
-  Cliente:
-    title: Cliente
-    type: object
   models.Cliente:
     title: Cliente
     type: object
