@@ -1,0 +1,29 @@
+swagger: "2.0"
+info: {}
+paths: {}
+definitions:
+  Cliente:
+    title: Cliente
+    type: object
+  models.Cliente:
+    title: Cliente
+    type: object
+    properties:
+      APELLIDO:
+        type: string
+      DIRECCION:
+        type: string
+      NOMBRE:
+        type: string
+      OBSERVACIONES:
+        type: string
+      PASSWORD:
+        type: string
+      PK_DOCUMENTO_CLIENTE:
+        type: integer
+        format: int64
+      TELEFONO:
+        type: string
+  nil:
+    title: nil
+    type: object
