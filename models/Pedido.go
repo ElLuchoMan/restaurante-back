@@ -1,5 +1,7 @@
 package models
 
+import "github.com/beego/beego/v2/client/orm"
+
 type Pedido struct {
 	PK_ID_PEDIDO      int64  `orm:"pk" json:"PK_ID_PEDIDO"`
 	FECHA             string `json:"FECHA"`
@@ -10,4 +12,12 @@ type Pedido struct {
 	PK_ID_PAGO        *int64 `orm:"null" json:"PK_ID_PAGO"`
 	PK_ID_ITEM_PEDIDO *int64 `orm:"null" json:"PK_ID_ITEM_PEDIDO"`
 	PK_ID_RESTAURANTE *int64 `orm:"null" json:"PK_ID_RESTAURANTE"`
+}
+
+func (c *Pedido) TableName() string {
+	return "PEDIDO"
+}
+
+func init() {
+	orm.RegisterModel(new(Pedido))
 }

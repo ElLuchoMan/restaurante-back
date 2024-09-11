@@ -1,5 +1,7 @@
 package models
 
+import "github.com/beego/beego/v2/client/orm"
+
 type Plato struct {
 	PK_ID_PLATO       int64   `orm:"pk" json:"PK_ID_PLATO"`
 	NOMBRE            string  `json:"NOMBRE"`
@@ -8,4 +10,12 @@ type Plato struct {
 	PRECIO            int64   `json:"PRECIO"`
 	PERSONALIZADO     bool    `json:"PERSONALIZADO"`
 	PK_ID_ITEM_PEDIDO *int64  `orm:"null" json:"PK_ID_ITEM_PEDIDO"`
+}
+
+func (c *Plato) TableName() string {
+	return "PLATO"
+}
+
+func init() {
+	orm.RegisterModel(new(Plato))
 }

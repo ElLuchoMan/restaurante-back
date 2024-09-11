@@ -5,13 +5,13 @@ import (
 )
 
 type Cliente struct {
-	PK_DOCUMENTO_CLIENTE int     `orm:"column(PK_DOCUMENTO_CLIENTE);pk"` // Clave primaria
-	NOMBRE               string  `orm:"column(NOMBRE)"`                  // Nombre
-	APELLIDO             string  `orm:"column(APELLIDO)"`                // Apellido
-	DIRECCION            string  `orm:"column(DIRECCION)"`               // Dirección
-	TELEFONO             string  `orm:"column(TELEFONO)"`                // Teléfono
-	OBSERVACIONES        *string `orm:"column(OBSERVACIONES);null"`      // Observaciones
-	PASSWORD             string  `orm:"column(PASSWORD)"`                // Contraseña
+	PK_DOCUMENTO_CLIENTE int     `orm:"column(PK_DOCUMENTO_CLIENTE);pk"`
+	NOMBRE               string  `orm:"column(NOMBRE)"`
+	APELLIDO             string  `orm:"column(APELLIDO)"`
+	DIRECCION            string  `orm:"column(DIRECCION)"`
+	TELEFONO             string  `orm:"column(TELEFONO)"`
+	OBSERVACIONES        *string `orm:"column(OBSERVACIONES);null"`
+	PASSWORD             string  `orm:"column(PASSWORD)"`
 }
 
 func (c *Cliente) TableName() string {

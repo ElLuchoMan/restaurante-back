@@ -10,32 +10,25 @@
             "type": "object",
             "properties": {
                 "APELLIDO": {
-                    "description": "Apellido",
                     "type": "string"
                 },
                 "DIRECCION": {
-                    "description": "Dirección",
                     "type": "string"
                 },
                 "NOMBRE": {
-                    "description": "Nombre",
                     "type": "string"
                 },
                 "OBSERVACIONES": {
-                    "description": "Observaciones",
                     "type": "string"
                 },
                 "PASSWORD": {
-                    "description": "Contraseña",
                     "type": "string"
                 },
                 "PK_DOCUMENTO_CLIENTE": {
-                    "description": "Clave primaria",
                     "type": "integer",
                     "format": "int64"
                 },
                 "TELEFONO": {
-                    "description": "Teléfono",
                     "type": "string"
                 }
             }
