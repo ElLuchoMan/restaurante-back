@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"restaurante/models"
+	"strconv"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -26,7 +27,6 @@ func (c *ClienteController) GetAll() {
 	o := orm.NewOrm()
 	var clientes []models.Cliente
 
-	// Consulta todos los clientes
 	_, err := o.QueryTable(new(models.Cliente)).All(&clientes)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -50,20 +50,31 @@ func (c *ClienteController) GetAll() {
 
 // @Title GetById
 // @Summary Obtener cliente por ID
-// @Description Devuelve un cliente específico por ID.
+// @Description Devuelve un cliente específico por ID utilizando query parameters.
 // @Tags clientes
 // @Accept json
 // @Produce json
-// @Param   id     path    int     true        "ID del Cliente"
+// @Param   id     query    int     true        "ID del Cliente"
 // @Success 200 {object} models.Cliente "Cliente encontrado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @Router /restaurante/v1/clientes/{id} [get]
+// @Router /restaurante/v1/clientes/search [get]
 func (c *ClienteController) GetById() {
 	o := orm.NewOrm()
-	id, _ := c.GetInt(":id")
+	id, err := c.GetInt("id")
+
+	if err != nil || id == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El parámetro 'id' es inválido o está ausente",
+		}
+		c.ServeJSON()
+		return
+	}
+
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
-	err := o.Read(&cliente)
+	err = o.Read(&cliente)
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
@@ -135,14 +146,27 @@ func (c *ClienteController) Post() {
 // @Tags clientes
 // @Accept json
 // @Produce json
-// @Param   id    path    int  true   "ID del Cliente"
+// @Param   id    query    int  true   "ID del Cliente"
 // @Param   body  body   models.Cliente true  "Datos del cliente a actualizar"
 // @Success 200 {object} models.Cliente "Cliente actualizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @Router /restaurante/v1/clientes/{id} [put]
+// @Router /restaurante/v1/clientes [put]
 func (c *ClienteController) Put() {
 	o := orm.NewOrm()
-	id, _ := c.GetInt(":id")
+
+	// Obtener el ID del query parameter
+	idStr := c.GetString("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El parámetro 'id' es inválido o está ausente",
+		}
+		c.ServeJSON()
+		return
+	}
+
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
 	if o.Read(&cliente) == nil {
@@ -194,13 +218,26 @@ func (c *ClienteController) Put() {
 // @Tags clientes
 // @Accept json
 // @Produce json
-// @Param   id     path    int     true        "ID del Cliente"
+// @Param   id     query    int     true        "ID del Cliente"
 // @Success 204 {object} nil "Cliente eliminado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
-// @Router /restaurante/v1/clientes/{id} [delete]
+// @Router /restaurante/v1/clientes [delete]
 func (c *ClienteController) Delete() {
 	o := orm.NewOrm()
-	id, _ := c.GetInt(":id")
+
+	// Obtener el ID del query parameter
+	idStr := c.GetString("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El parámetro 'id' es inválido o está ausente",
+		}
+		c.ServeJSON()
+		return
+	}
+
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
 	if _, err := o.Delete(&cliente); err == nil {

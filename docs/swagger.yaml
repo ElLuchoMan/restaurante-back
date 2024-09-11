@@ -30,6 +30,28 @@ info:
   contact: {}
 paths:
   /restaurante/v1/clientes:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un cliente de la base de datos.
+      parameters:
+      - description: ID del Cliente
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Cliente eliminado
+        "404":
+          description: Cliente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un cliente
+      tags:
+      - clientes
     get:
       consumes:
       - application/json
@@ -75,60 +97,13 @@ paths:
       summary: Crear un nuevo cliente
       tags:
       - clientes
-  /restaurante/v1/clientes/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Elimina un cliente de la base de datos.
-      parameters:
-      - description: ID del Cliente
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: Cliente eliminado
-        "404":
-          description: Cliente no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      summary: Eliminar un cliente
-      tags:
-      - clientes
-    get:
-      consumes:
-      - application/json
-      description: Devuelve un cliente específico por ID.
-      parameters:
-      - description: ID del Cliente
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Cliente encontrado
-          schema:
-            $ref: '#/definitions/models.Cliente'
-        "404":
-          description: Cliente no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      summary: Obtener cliente por ID
-      tags:
-      - clientes
     put:
       consumes:
       - application/json
       description: Actualiza los datos de un cliente existente.
       parameters:
       - description: ID del Cliente
-        in: path
+        in: query
         name: id
         required: true
         type: integer
@@ -150,6 +125,31 @@ paths:
           schema:
             $ref: '#/definitions/models.ApiResponse'
       summary: Actualizar un cliente
+      tags:
+      - clientes
+  /restaurante/v1/clientes/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un cliente específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Cliente
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cliente encontrado
+          schema:
+            $ref: '#/definitions/models.Cliente'
+        "404":
+          description: Cliente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener cliente por ID
       tags:
       - clientes
 swagger: "2.0"

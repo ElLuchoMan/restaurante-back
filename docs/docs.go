@@ -46,6 +46,51 @@ const docTemplate = `{
                     }
                 }
             },
+            "put": {
+                "description": "Actualiza los datos de un cliente existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "clientes"
+                ],
+                "summary": "Actualizar un cliente",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Cliente",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del cliente a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Cliente"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cliente actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Cliente"
+                        }
+                    },
+                    "404": {
+                        "description": "Cliente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Crea un nuevo cliente en la base de datos.",
                 "consumes": [
@@ -83,89 +128,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/restaurante/v1/clientes/{id}": {
-            "get": {
-                "description": "Devuelve un cliente específico por ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "clientes"
-                ],
-                "summary": "Obtener cliente por ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Cliente",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Cliente encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Cliente"
-                        }
-                    },
-                    "404": {
-                        "description": "Cliente no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Actualiza los datos de un cliente existente.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "clientes"
-                ],
-                "summary": "Actualizar un cliente",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Cliente",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Datos del cliente a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Cliente"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Cliente actualizado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Cliente"
-                        }
-                    },
-                    "404": {
-                        "description": "Cliente no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
             },
             "delete": {
                 "description": "Elimina un cliente de la base de datos.",
@@ -184,13 +146,51 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "ID del Cliente",
                         "name": "id",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
                 "responses": {
                     "204": {
                         "description": "Cliente eliminado"
+                    },
+                    "404": {
+                        "description": "Cliente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/restaurante/v1/clientes/search": {
+            "get": {
+                "description": "Devuelve un cliente específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "clientes"
+                ],
+                "summary": "Obtener cliente por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Cliente",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cliente encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Cliente"
+                        }
                     },
                     "404": {
                         "description": "Cliente no encontrado",
