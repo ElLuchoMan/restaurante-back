@@ -34,6 +34,25 @@
                 }
             }
         },
+        "models.Restaurante": {
+            "title": "Restaurante",
+            "type": "object",
+            "properties": {
+                "DIAS_LABORALES": {
+                    "type": "string"
+                },
+                "HORA_APERTURA": {
+                    "type": "string"
+                },
+                "NOMBRE_RESTAURANTE": {
+                    "type": "string"
+                },
+                "PK_ID_RESTAURANTE": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "nil": {
             "title": "nil",
             "type": "object"

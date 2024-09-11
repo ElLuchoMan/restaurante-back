@@ -67,6 +67,7 @@ func (c *ClienteController) GetById() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'id' es inválido o está ausente",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
@@ -80,6 +81,7 @@ func (c *ClienteController) GetById() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
@@ -162,6 +164,7 @@ func (c *ClienteController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'id' es inválido o está ausente",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
@@ -207,6 +210,7 @@ func (c *ClienteController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}
@@ -252,6 +256,7 @@ func (c *ClienteController) Delete() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}

@@ -7,10 +7,10 @@ import (
 )
 
 type Restaurante struct {
-	PK_ID_RESTAURANTE  int64  `orm:"pk" json:"PK_ID_RESTAURANTE"`
-	NOMBRE_RESTAURANTE string `json:"NOMBRE_RESTAURANTE"`
-	HORA_APERTURA      string `json:"HORA_APERTURA"`
-	DIAS_LABORALES     string `orm:"type(text)" json:"DIAS_LABORALES"`
+	PK_ID_RESTAURANTE  int    `orm:"column(PK_ID_RESTAURANTE);pk"`
+	NOMBRE_RESTAURANTE string `orm:"column(NOMBRE_RESTAURANTE)"`
+	HORA_APERTURA      string `orm:"column(HORA_APERTURA)"`
+	DIAS_LABORALES     string `orm:"column(DIAS_LABORALES);type(text)"`
 }
 
 func (c *Restaurante) TableName() string {

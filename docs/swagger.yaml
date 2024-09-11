@@ -26,6 +26,17 @@ definitions:
       telefono:
         type: string
     type: object
+  models.Restaurante:
+    properties:
+      dias_LABORALES:
+        type: string
+      hora_APERTURA:
+        type: string
+      nombre_RESTAURANTE:
+        type: string
+      pk_ID_RESTAURANTE:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
@@ -152,4 +163,127 @@ paths:
       summary: Obtener cliente por ID
       tags:
       - clientes
+  /restaurante/v1/restaurantes:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un restaurante de la base de datos.
+      parameters:
+      - description: ID del Restaurante
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Restaurante eliminado
+        "404":
+          description: Restaurante no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un restaurante
+      tags:
+      - restaurantes
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los restaurantes registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de restaurantes
+          schema:
+            items:
+              $ref: '#/definitions/models.Restaurante'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los restaurantes
+      tags:
+      - restaurantes
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo restaurante en la base de datos.
+      parameters:
+      - description: Datos del restaurante a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Restaurante'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Restaurante creado
+          schema:
+            $ref: '#/definitions/models.Restaurante'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo restaurante
+      tags:
+      - restaurantes
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un restaurante existente.
+      parameters:
+      - description: ID del Restaurante
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del restaurante a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Restaurante'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restaurante actualizado
+          schema:
+            $ref: '#/definitions/models.Restaurante'
+        "404":
+          description: Restaurante no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un restaurante
+      tags:
+      - restaurantes
+  /restaurante/v1/restaurantes/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un restaurante específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Restaurante
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restaurante encontrado
+          schema:
+            $ref: '#/definitions/models.Restaurante'
+        "404":
+          description: Restaurante no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener restaurante por ID
+      tags:
+      - restaurantes
 swagger: "2.0"

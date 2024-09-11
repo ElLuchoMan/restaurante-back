@@ -200,6 +200,192 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/restaurante/v1/restaurantes": {
+            "get": {
+                "description": "Devuelve todos los restaurantes registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "restaurantes"
+                ],
+                "summary": "Obtener todos los restaurantes",
+                "responses": {
+                    "200": {
+                        "description": "Lista de restaurantes",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Restaurante"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un restaurante existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "restaurantes"
+                ],
+                "summary": "Actualizar un restaurante",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Restaurante",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del restaurante a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Restaurante"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Restaurante actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Restaurante"
+                        }
+                    },
+                    "404": {
+                        "description": "Restaurante no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo restaurante en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "restaurantes"
+                ],
+                "summary": "Crear un nuevo restaurante",
+                "parameters": [
+                    {
+                        "description": "Datos del restaurante a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Restaurante"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Restaurante creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Restaurante"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un restaurante de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "restaurantes"
+                ],
+                "summary": "Eliminar un restaurante",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Restaurante",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Restaurante eliminado"
+                    },
+                    "404": {
+                        "description": "Restaurante no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/restaurante/v1/restaurantes/search": {
+            "get": {
+                "description": "Devuelve un restaurante específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "restaurantes"
+                ],
+                "summary": "Obtener restaurante por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Restaurante",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Restaurante encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Restaurante"
+                        }
+                    },
+                    "404": {
+                        "description": "Restaurante no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -241,6 +427,23 @@ const docTemplate = `{
                 },
                 "telefono": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Restaurante": {
+            "type": "object",
+            "properties": {
+                "dias_LABORALES": {
+                    "type": "string"
+                },
+                "hora_APERTURA": {
+                    "type": "string"
+                },
+                "nombre_RESTAURANTE": {
+                    "type": "string"
+                },
+                "pk_ID_RESTAURANTE": {
+                    "type": "integer"
                 }
             }
         }
