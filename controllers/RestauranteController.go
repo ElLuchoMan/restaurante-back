@@ -22,7 +22,7 @@ type RestauranteController struct {
 // @Produce json
 // @Success 200 {array} models.Restaurante "Lista de restaurantes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @Router /restaurante/v1/restaurantes [get]
+// @Router /restaurantes [get]
 func (c *RestauranteController) GetAll() {
 	o := orm.NewOrm()
 	var restaurantes []models.Restaurante
@@ -57,7 +57,7 @@ func (c *RestauranteController) GetAll() {
 // @Param   id     query    int     true        "ID del Restaurante"
 // @Success 200 {object} models.Restaurante "Restaurante encontrado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
-// @Router /restaurante/v1/restaurantes/search [get]
+// @Router /restaurantes/search [get]
 func (c *RestauranteController) GetById() {
 	o := orm.NewOrm()
 	id, err := c.GetInt("id")
@@ -105,7 +105,7 @@ func (c *RestauranteController) GetById() {
 // @Param   body  body   models.Restaurante true  "Datos del restaurante a crear"
 // @Success 201 {object} models.Restaurante "Restaurante creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
-// @Router /restaurante/v1/restaurantes [post]
+// @Router /restaurantes [post]
 func (c *RestauranteController) Post() {
 	o := orm.NewOrm()
 	var restaurante models.Restaurante
@@ -152,7 +152,7 @@ func (c *RestauranteController) Post() {
 // @Param   body  body   models.Restaurante true  "Datos del restaurante a actualizar"
 // @Success 200 {object} models.Restaurante "Restaurante actualizado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
-// @Router /restaurante/v1/restaurantes [put]
+// @Router /restaurantes [put]
 func (c *RestauranteController) Put() {
 	o := orm.NewOrm()
 
@@ -224,7 +224,7 @@ func (c *RestauranteController) Put() {
 // @Param   id     query    int     true        "ID del Restaurante"
 // @Success 204 {object} nil "Restaurante eliminado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
-// @Router /restaurante/v1/restaurantes [delete]
+// @Router /restaurantes [delete]
 func (c *RestauranteController) Delete() {
 	o := orm.NewOrm()
 

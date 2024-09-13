@@ -1,7 +1,6 @@
 {
     "schemes": [
-        "https",
-        "http"
+        "https"
     ],
     "swagger": "2.0",
     "info": {
@@ -15,7 +14,7 @@
     "host": "restaurante-back-production.up.railway.app",
     "basePath": "/restaurante/v1",
     "paths": {
-        "/restaurante/v1/clientes": {
+        "/clientes": {
             "get": {
                 "description": "Devuelve todos los clientes registrados en la base de datos.",
                 "consumes": [
@@ -163,7 +162,7 @@
                 }
             }
         },
-        "/restaurante/v1/clientes/search": {
+        "/clientes/search": {
             "get": {
                 "description": "Devuelve un cliente específico por ID utilizando query parameters.",
                 "consumes": [
@@ -201,7 +200,7 @@
                 }
             }
         },
-        "/restaurante/v1/restaurantes": {
+        "/restaurantes": {
             "get": {
                 "description": "Devuelve todos los restaurantes registrados en la base de datos.",
                 "consumes": [
@@ -349,7 +348,7 @@
                 }
             }
         },
-        "/restaurante/v1/restaurantes/search": {
+        "/restaurantes/search": {
             "get": {
                 "description": "Devuelve un restaurante específico por ID utilizando query parameters.",
                 "consumes": [

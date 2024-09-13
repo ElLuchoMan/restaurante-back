@@ -34,7 +34,7 @@ func init() {
 // @contact.email baluisto96@gmail.com
 // @host restaurante-back-production.up.railway.app
 // @basePath /restaurante/v1
-// @schemes https http
+// @schemes https
 func main() {
 	// Habilitar CORS para todas las rutas
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{

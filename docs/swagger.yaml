@@ -46,7 +46,7 @@ info:
   title: Restaurante API
   version: 0.0.1
 paths:
-  /restaurante/v1/clientes:
+  /clientes:
     delete:
       consumes:
       - application/json
@@ -144,7 +144,7 @@ paths:
       summary: Actualizar un cliente
       tags:
       - clientes
-  /restaurante/v1/clientes/search:
+  /clientes/search:
     get:
       consumes:
       - application/json
@@ -169,7 +169,7 @@ paths:
       summary: Obtener cliente por ID
       tags:
       - clientes
-  /restaurante/v1/restaurantes:
+  /restaurantes:
     delete:
       consumes:
       - application/json
@@ -267,7 +267,7 @@ paths:
       summary: Actualizar un restaurante
       tags:
       - restaurantes
-  /restaurante/v1/restaurantes/search:
+  /restaurantes/search:
     get:
       consumes:
       - application/json
@@ -294,5 +294,4 @@ paths:
       - restaurantes
 schemes:
 - https
-- http
 swagger: "2.0"

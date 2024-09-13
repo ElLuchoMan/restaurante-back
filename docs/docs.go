@@ -17,7 +17,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/restaurante/v1/clientes": {
+        "/clientes": {
             "get": {
                 "description": "Devuelve todos los clientes registrados en la base de datos.",
                 "consumes": [
@@ -165,7 +165,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/restaurante/v1/clientes/search": {
+        "/clientes/search": {
             "get": {
                 "description": "Devuelve un cliente específico por ID utilizando query parameters.",
                 "consumes": [
@@ -203,7 +203,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/restaurante/v1/restaurantes": {
+        "/restaurantes": {
             "get": {
                 "description": "Devuelve todos los restaurantes registrados en la base de datos.",
                 "consumes": [
@@ -351,7 +351,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/restaurante/v1/restaurantes/search": {
+        "/restaurantes/search": {
             "get": {
                 "description": "Devuelve un restaurante específico por ID utilizando query parameters.",
                 "consumes": [
@@ -457,7 +457,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "0.0.1",
 	Host:             "restaurante-back-production.up.railway.app",
 	BasePath:         "/restaurante/v1",
-	Schemes:          []string{"https", "http"},
+	Schemes:          []string{"https"},
 	Title:            "Restaurante API",
 	Description:      "API para gestionar el sistema de un restaurante para \"El fogón de María\"",
 	InfoInstanceName: "swagger",
