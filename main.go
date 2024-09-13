@@ -7,6 +7,7 @@ import (
 
 	"github.com/beego/beego/v2/client/orm"
 	beego "github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/filter/cors"
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -31,11 +32,23 @@ func init() {
 // @version 0.0.1
 // @description API para gestionar el sistema de un restaurante para "El fogón de María"
 // @contact.email baluisto96@gmail.com
-// @host https://restaurante-back-production.up.railway.app
+// @host restaurante-back-production.up.railway.app
 // @basePath /restaurante/v1
-// @schemes https
+// @schemes https http
 func main() {
+	// Habilitar CORS para todas las rutas
+	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
+		AllowAllOrigins:  true, // Permitir todas las solicitudes de todos los orígenes
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Content-Type", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
+	// Habilitar la documentación de Swagger
 	beego.BConfig.WebConfig.DirectoryIndex = true
 	beego.Handler("/swagger/*", httpSwagger.WrapHandler)
+
+	// Iniciar el servidor
 	beego.Run()
 }

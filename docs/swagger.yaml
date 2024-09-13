@@ -38,7 +38,7 @@ definitions:
       pk_ID_RESTAURANTE:
         type: integer
     type: object
-host: https://restaurante-back-production.up.railway.app
+host: restaurante-back-production.up.railway.app
 info:
   contact:
     email: baluisto96@gmail.com
@@ -294,4 +294,5 @@ paths:
       - restaurantes
 schemes:
 - https
+- http
 swagger: "2.0"

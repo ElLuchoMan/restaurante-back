@@ -455,9 +455,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "0.0.1",
-	Host:             "https://restaurante-back-production.up.railway.app",
+	Host:             "restaurante-back-production.up.railway.app",
 	BasePath:         "/restaurante/v1",
-	Schemes:          []string{"https"},
+	Schemes:          []string{"https", "http"},
 	Title:            "Restaurante API",
 	Description:      "API para gestionar el sistema de un restaurante para \"El fogón de María\"",
 	InfoInstanceName: "swagger",

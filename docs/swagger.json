@@ -1,6 +1,7 @@
 {
     "schemes": [
-        "https"
+        "https",
+        "http"
     ],
     "swagger": "2.0",
     "info": {
@@ -11,7 +12,7 @@
         },
         "version": "0.0.1"
     },
-    "host": "https://restaurante-back-production.up.railway.app",
+    "host": "restaurante-back-production.up.railway.app",
     "basePath": "/restaurante/v1",
     "paths": {
         "/restaurante/v1/clientes": {
