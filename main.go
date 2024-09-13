@@ -28,9 +28,7 @@ func init() {
 }
 
 func main() {
-	if beego.BConfig.RunMode == "dev" {
-		beego.BConfig.WebConfig.DirectoryIndex = true
-		beego.Handler("/swagger/*", httpSwagger.WrapHandler)
-	}
+	beego.BConfig.WebConfig.DirectoryIndex = true
+	beego.Handler("/swagger/*", httpSwagger.WrapHandler)
 	beego.Run()
 }
