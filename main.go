@@ -27,6 +27,13 @@ func init() {
 	}
 }
 
+// @title Restaurante API
+// @version 0.0.1
+// @description API para gestionar el sistema de un restaurante para "El fogón de María"
+// @contact.email baluisto96@gmail.com
+// @host https://restaurante-back-production.up.railway.app
+// @basePath /restaurante/v1
+// @schemes https
 func main() {
 	beego.BConfig.WebConfig.DirectoryIndex = true
 	beego.Handler("/swagger/*", httpSwagger.WrapHandler)

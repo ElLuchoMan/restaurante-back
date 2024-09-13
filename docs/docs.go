@@ -9,7 +9,9 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "contact": {
+            "email": "baluisto96@gmail.com"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -452,12 +454,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Version:          "0.0.1",
+	Host:             "https://restaurante-back-production.up.railway.app",
+	BasePath:         "/restaurante/v1",
+	Schemes:          []string{"https"},
+	Title:            "Restaurante API",
+	Description:      "API para gestionar el sistema de un restaurante para \"El fogón de María\"",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

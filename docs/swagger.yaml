@@ -1,3 +1,4 @@
+basePath: /restaurante/v1
 definitions:
   models.ApiResponse:
     properties:
@@ -37,8 +38,13 @@ definitions:
       pk_ID_RESTAURANTE:
         type: integer
     type: object
+host: https://restaurante-back-production.up.railway.app
 info:
-  contact: {}
+  contact:
+    email: baluisto96@gmail.com
+  description: API para gestionar el sistema de un restaurante para "El fogón de María"
+  title: Restaurante API
+  version: 0.0.1
 paths:
   /restaurante/v1/clientes:
     delete:
@@ -286,4 +292,6 @@ paths:
       summary: Obtener restaurante por ID
       tags:
       - restaurantes
+schemes:
+- https
 swagger: "2.0"
