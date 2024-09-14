@@ -9,7 +9,7 @@ import (
 type Restaurante struct {
 	PK_ID_RESTAURANTE  int    `orm:"column(PK_ID_RESTAURANTE);pk"`
 	NOMBRE_RESTAURANTE string `orm:"column(NOMBRE_RESTAURANTE)"`
-	HORA_APERTURA      string `orm:"column(HORA_APERTURA)"`
+	HORA_APERTURA      string `orm:"column(HORA_APERTURA);type(time)"`
 	DIAS_LABORALES     string `orm:"column(DIAS_LABORALES);type(text)"`
 }
 
