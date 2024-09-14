@@ -27,6 +27,27 @@ definitions:
       telefono:
         type: string
     type: object
+  models.Pedido:
+    properties:
+      delivery:
+        type: boolean
+      estado:
+        type: string
+      fecha:
+        type: string
+      hora:
+        type: string
+      pk_ID_DOMICILIO:
+        type: integer
+      pk_ID_ITEM_PEDIDO:
+        type: integer
+      pk_ID_PAGO:
+        type: integer
+      pk_ID_PEDIDO:
+        type: integer
+      pk_ID_RESTAURANTE:
+        type: integer
+    type: object
   models.Restaurante:
     properties:
       dias_LABORALES:
@@ -38,7 +59,7 @@ definitions:
       pk_ID_RESTAURANTE:
         type: integer
     type: object
-host: restaurante-back-production.up.railway.app
+host: localhost:8080
 info:
   contact:
     email: baluisto96@gmail.com
@@ -169,6 +190,129 @@ paths:
       summary: Obtener cliente por ID
       tags:
       - clientes
+  /pedidos:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un pedido de la base de datos.
+      parameters:
+      - description: ID del Pedido
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Pedido eliminado
+        "404":
+          description: Pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un pedido
+      tags:
+      - pedidos
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los pedidos registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de pedidos
+          schema:
+            items:
+              $ref: '#/definitions/models.Pedido'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los pedidos
+      tags:
+      - pedidos
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo pedido en la base de datos.
+      parameters:
+      - description: Datos del pedido a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Pedido'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Pedido creado
+          schema:
+            $ref: '#/definitions/models.Pedido'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo pedido
+      tags:
+      - pedidos
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un pedido existente.
+      parameters:
+      - description: ID del Pedido
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del pedido a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Pedido'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pedido actualizado
+          schema:
+            $ref: '#/definitions/models.Pedido'
+        "404":
+          description: Pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un pedido
+      tags:
+      - pedidos
+  /pedidos/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un pedido específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Pedido
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pedido encontrado
+          schema:
+            $ref: '#/definitions/models.Pedido'
+        "404":
+          description: Pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener pedido por ID
+      tags:
+      - pedidos
   /restaurantes:
     delete:
       consumes:

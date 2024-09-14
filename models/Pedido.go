@@ -1,20 +1,24 @@
 package models
 
-import "github.com/beego/beego/v2/client/orm"
+import (
+	"time"
+
+	"github.com/beego/beego/v2/client/orm"
+)
 
 type Pedido struct {
-	PK_ID_PEDIDO      int64  `orm:"pk" json:"PK_ID_PEDIDO"`
-	FECHA             string `json:"FECHA"`
-	HORA              string `json:"HORA"`
-	DELIVERY          bool   `json:"DELIVERY"`
-	ESTADO            string `json:"ESTADO"`
-	PK_ID_DOMICILIO   *int64 `orm:"null" json:"PK_ID_DOMICILIO"`
-	PK_ID_PAGO        *int64 `orm:"null" json:"PK_ID_PAGO"`
-	PK_ID_ITEM_PEDIDO *int64 `orm:"null" json:"PK_ID_ITEM_PEDIDO"`
-	PK_ID_RESTAURANTE *int64 `orm:"null" json:"PK_ID_RESTAURANTE"`
+	PK_ID_PEDIDO      int       `orm:"column(PK_ID_PEDIDO);pk"`
+	FECHA             time.Time `orm:"column(FECHA);type(date)"`
+	HORA              time.Time `orm:"column(HORA);type(time)"`
+	DELIVERY          bool      `orm:"column(DELIVERY)"`
+	ESTADO            string    `orm:"column(ESTADO)"`
+	PK_ID_DOMICILIO   *int      `orm:"column(PK_ID_DOMICILIO);null"`
+	PK_ID_PAGO        *int      `orm:"column(PK_ID_PAGO);null"`
+	PK_ID_ITEM_PEDIDO *int      `orm:"column(PK_ID_ITEM_PEDIDO);null"`
+	PK_ID_RESTAURANTE *int      `orm:"column(PK_ID_RESTAURANTE);null"`
 }
 
-func (c *Pedido) TableName() string {
+func (p *Pedido) TableName() string {
 	return "PEDIDO"
 }
 

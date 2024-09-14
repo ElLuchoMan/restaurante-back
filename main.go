@@ -33,6 +33,7 @@ func init() {
 // @description API para gestionar el sistema de un restaurante para "El fogón de María"
 // @contact.email baluisto96@gmail.com
 // @host restaurante-back-production.up.railway.app
+// @host localhost:8080
 // @basePath /restaurante/v1
 // @schemes https
 func main() {

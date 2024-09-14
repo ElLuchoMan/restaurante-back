@@ -203,6 +203,192 @@ const docTemplate = `{
                 }
             }
         },
+        "/pedidos": {
+            "get": {
+                "description": "Devuelve todos los pedidos registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedidos"
+                ],
+                "summary": "Obtener todos los pedidos",
+                "responses": {
+                    "200": {
+                        "description": "Lista de pedidos",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Pedido"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un pedido existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedidos"
+                ],
+                "summary": "Actualizar un pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Pedido",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del pedido a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Pedido"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pedido actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Pedido"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo pedido en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedidos"
+                ],
+                "summary": "Crear un nuevo pedido",
+                "parameters": [
+                    {
+                        "description": "Datos del pedido a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Pedido"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Pedido creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Pedido"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un pedido de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedidos"
+                ],
+                "summary": "Eliminar un pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Pedido",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Pedido eliminado"
+                    },
+                    "404": {
+                        "description": "Pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pedidos/search": {
+            "get": {
+                "description": "Devuelve un pedido específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedidos"
+                ],
+                "summary": "Obtener pedido por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Pedido",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pedido encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Pedido"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/restaurantes": {
             "get": {
                 "description": "Devuelve todos los restaurantes registrados en la base de datos.",
@@ -432,6 +618,38 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Pedido": {
+            "type": "object",
+            "properties": {
+                "delivery": {
+                    "type": "boolean"
+                },
+                "estado": {
+                    "type": "string"
+                },
+                "fecha": {
+                    "type": "string"
+                },
+                "hora": {
+                    "type": "string"
+                },
+                "pk_ID_DOMICILIO": {
+                    "type": "integer"
+                },
+                "pk_ID_ITEM_PEDIDO": {
+                    "type": "integer"
+                },
+                "pk_ID_PAGO": {
+                    "type": "integer"
+                },
+                "pk_ID_PEDIDO": {
+                    "type": "integer"
+                },
+                "pk_ID_RESTAURANTE": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Restaurante": {
             "type": "object",
             "properties": {
@@ -455,7 +673,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "0.0.1",
-	Host:             "restaurante-back-production.up.railway.app",
+	Host:             "localhost:8080",
 	BasePath:         "/restaurante/v1",
 	Schemes:          []string{"https"},
 	Title:            "Restaurante API",

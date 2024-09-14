@@ -22,6 +22,35 @@ definitions:
         format: int64
       TELEFONO:
         type: string
+  models.Pedido:
+    title: Pedido
+    type: object
+    properties:
+      DELIVERY:
+        type: boolean
+      ESTADO:
+        type: string
+      FECHA:
+        type: string
+        format: datetime
+      HORA:
+        type: string
+        format: datetime
+      PK_ID_DOMICILIO:
+        type: integer
+        format: int64
+      PK_ID_ITEM_PEDIDO:
+        type: integer
+        format: int64
+      PK_ID_PAGO:
+        type: integer
+        format: int64
+      PK_ID_PEDIDO:
+        type: integer
+        format: int64
+      PK_ID_RESTAURANTE:
+        type: integer
+        format: int64
   models.Restaurante:
     title: Restaurante
     type: object
