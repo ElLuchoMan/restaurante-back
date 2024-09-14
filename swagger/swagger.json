@@ -45,12 +45,10 @@
                     "type": "string"
                 },
                 "FECHA": {
-                    "type": "string",
-                    "format": "datetime"
+                    "type": "string"
                 },
                 "HORA": {
-                    "type": "string",
-                    "format": "datetime"
+                    "type": "string"
                 },
                 "PK_ID_DOMICILIO": {
                     "type": "integer",

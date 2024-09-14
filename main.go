@@ -33,13 +33,12 @@ func init() {
 // @description API para gestionar el sistema de un restaurante para "El fogón de María"
 // @contact.email baluisto96@gmail.com
 // @host restaurante-back-production.up.railway.app
-// @host localhost:8080
 // @basePath /restaurante/v1
 // @schemes https
 func main() {
 	// Habilitar CORS para todas las rutas
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowAllOrigins:  true, // Permitir todas las solicitudes de todos los orígenes
+		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Content-Type", "Accept"},
 		ExposeHeaders:    []string{"Content-Length"},

@@ -32,10 +32,8 @@ definitions:
         type: string
       FECHA:
         type: string
-        format: datetime
       HORA:
         type: string
-        format: datetime
       PK_ID_DOMICILIO:
         type: integer
         format: int64

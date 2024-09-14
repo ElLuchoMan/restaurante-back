@@ -59,7 +59,7 @@ definitions:
       pk_ID_RESTAURANTE:
         type: integer
     type: object
-host: localhost:8080
+host: restaurante-back-production.up.railway.app
 info:
   contact:
     email: baluisto96@gmail.com

@@ -11,7 +11,7 @@
         },
         "version": "0.0.1"
     },
-    "host": "localhost:8080",
+    "host": "restaurante-back-production.up.railway.app",
     "basePath": "/restaurante/v1",
     "paths": {
         "/clientes": {
