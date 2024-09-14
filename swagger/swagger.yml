@@ -22,6 +22,23 @@ definitions:
         format: int64
       TELEFONO:
         type: string
+  models.Domicilio:
+    title: Domicilio
+    type: object
+    properties:
+      DIRECCION:
+        type: string
+      ENTREGADO:
+        type: boolean
+      ESTADO_PAGO:
+        type: string
+      FECHA:
+        type: string
+      PK_ID_DOMICILIO:
+        type: integer
+        format: int64
+      TELEFONO:
+        type: string
   models.Pedido:
     title: Pedido
     type: object

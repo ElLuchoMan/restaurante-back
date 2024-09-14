@@ -27,6 +27,21 @@ definitions:
       telefono:
         type: string
     type: object
+  models.Domicilio:
+    properties:
+      direccion:
+        type: string
+      entregado:
+        type: boolean
+      estado_PAGO:
+        type: string
+      fecha:
+        type: string
+      pk_ID_DOMICILIO:
+        type: integer
+      telefono:
+        type: string
+    type: object
   models.Pedido:
     properties:
       delivery:
@@ -190,6 +205,129 @@ paths:
       summary: Obtener cliente por ID
       tags:
       - clientes
+  /domicilios:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un domicilio de la base de datos.
+      parameters:
+      - description: ID del Domicilio
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Domicilio eliminado
+        "404":
+          description: Domicilio no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un domicilio
+      tags:
+      - domicilios
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los domicilios registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de domicilios
+          schema:
+            items:
+              $ref: '#/definitions/models.Domicilio'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los domicilios
+      tags:
+      - domicilios
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo domicilio en la base de datos.
+      parameters:
+      - description: Datos del domicilio a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Domicilio'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Domicilio creado
+          schema:
+            $ref: '#/definitions/models.Domicilio'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo domicilio
+      tags:
+      - domicilios
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un domicilio existente.
+      parameters:
+      - description: ID del Domicilio
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del domicilio a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Domicilio'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Domicilio actualizado
+          schema:
+            $ref: '#/definitions/models.Domicilio'
+        "404":
+          description: Domicilio no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un domicilio
+      tags:
+      - domicilios
+  /domicilios/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un domicilio específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Domicilio
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Domicilio encontrado
+          schema:
+            $ref: '#/definitions/models.Domicilio'
+        "404":
+          description: Domicilio no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener domicilio por ID
+      tags:
+      - domicilios
   /pedidos:
     delete:
       consumes:

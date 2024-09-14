@@ -203,6 +203,192 @@ const docTemplate = `{
                 }
             }
         },
+        "/domicilios": {
+            "get": {
+                "description": "Devuelve todos los domicilios registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domicilios"
+                ],
+                "summary": "Obtener todos los domicilios",
+                "responses": {
+                    "200": {
+                        "description": "Lista de domicilios",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Domicilio"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un domicilio existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domicilios"
+                ],
+                "summary": "Actualizar un domicilio",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Domicilio",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del domicilio a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Domicilio"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Domicilio actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Domicilio"
+                        }
+                    },
+                    "404": {
+                        "description": "Domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo domicilio en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domicilios"
+                ],
+                "summary": "Crear un nuevo domicilio",
+                "parameters": [
+                    {
+                        "description": "Datos del domicilio a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Domicilio"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Domicilio creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Domicilio"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un domicilio de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domicilios"
+                ],
+                "summary": "Eliminar un domicilio",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Domicilio",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Domicilio eliminado"
+                    },
+                    "404": {
+                        "description": "Domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/domicilios/search": {
+            "get": {
+                "description": "Devuelve un domicilio específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domicilios"
+                ],
+                "summary": "Obtener domicilio por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Domicilio",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Domicilio encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Domicilio"
+                        }
+                    },
+                    "404": {
+                        "description": "Domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pedidos": {
             "get": {
                 "description": "Devuelve todos los pedidos registrados en la base de datos.",
@@ -611,6 +797,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "pk_DOCUMENTO_CLIENTE": {
+                    "type": "integer"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Domicilio": {
+            "type": "object",
+            "properties": {
+                "direccion": {
+                    "type": "string"
+                },
+                "entregado": {
+                    "type": "boolean"
+                },
+                "estado_PAGO": {
+                    "type": "string"
+                },
+                "fecha": {
+                    "type": "string"
+                },
+                "pk_ID_DOMICILIO": {
                     "type": "integer"
                 },
                 "telefono": {
