@@ -754,6 +754,192 @@
                 }
             }
         },
+        "/reservas": {
+            "get": {
+                "description": "Devuelve todas las reservas registradas en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Obtener todas las reservas",
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de una reserva existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Actualizar una reserva",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Reserva",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de la reserva a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Reserva"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva actualizada",
+                        "schema": {
+                            "$ref": "#/definitions/models.Reserva"
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea una nueva reserva en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Crear una nueva reserva",
+                "parameters": [
+                    {
+                        "description": "Datos de la reserva a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Reserva"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Reserva creada",
+                        "schema": {
+                            "$ref": "#/definitions/models.Reserva"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina una reserva de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Eliminar una reserva",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Reserva",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Reserva eliminada"
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/search": {
+            "get": {
+                "description": "Devuelve una reserva específica por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Obtener reserva por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Reserva",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.Reserva"
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/restaurantes": {
             "get": {
                 "description": "Devuelve todos los restaurantes registrados en la base de datos.",
@@ -1246,6 +1432,26 @@
                     "type": "integer"
                 },
                 "PRECIO": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Reserva": {
+            "type": "object",
+            "properties": {
+                "FECHA": {
+                    "type": "string"
+                },
+                "HORA": {
+                    "type": "string"
+                },
+                "PERSONAS": {
+                    "type": "integer"
+                },
+                "PK_ID_RESERVA": {
+                    "type": "integer"
+                },
+                "PK_ID_RESTAURANTE": {
                     "type": "integer"
                 }
             }

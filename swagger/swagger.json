@@ -128,6 +128,30 @@
                 }
             }
         },
+        "models.Reserva": {
+            "title": "Reserva",
+            "type": "object",
+            "properties": {
+                "FECHA": {
+                    "type": "string"
+                },
+                "HORA": {
+                    "type": "string"
+                },
+                "PERSONAS": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_RESERVA": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_RESTAURANTE": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Restaurante": {
             "title": "Restaurante",
             "type": "object",

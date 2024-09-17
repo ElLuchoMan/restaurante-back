@@ -80,6 +80,19 @@ definitions:
       PRECIO:
         type: integer
     type: object
+  models.Reserva:
+    properties:
+      FECHA:
+        type: string
+      HORA:
+        type: string
+      PERSONAS:
+        type: integer
+      PK_ID_RESERVA:
+        type: integer
+      PK_ID_RESTAURANTE:
+        type: integer
+    type: object
   models.Restaurante:
     properties:
       dias_LABORALES:
@@ -617,6 +630,129 @@ paths:
       summary: Obtener plato por ID
       tags:
       - platos
+  /reservas:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina una reserva de la base de datos.
+      parameters:
+      - description: ID de la Reserva
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Reserva eliminada
+        "404":
+          description: Reserva no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar una reserva
+      tags:
+      - reservas
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todas las reservas registradas en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de reservas
+          schema:
+            items:
+              $ref: '#/definitions/models.Reserva'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las reservas
+      tags:
+      - reservas
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva reserva en la base de datos.
+      parameters:
+      - description: Datos de la reserva a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Reserva'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Reserva creada
+          schema:
+            $ref: '#/definitions/models.Reserva'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear una nueva reserva
+      tags:
+      - reservas
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de una reserva existente.
+      parameters:
+      - description: ID de la Reserva
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos de la reserva a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Reserva'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reserva actualizada
+          schema:
+            $ref: '#/definitions/models.Reserva'
+        "404":
+          description: Reserva no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar una reserva
+      tags:
+      - reservas
+  /reservas/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve una reserva específica por ID utilizando query parameters.
+      parameters:
+      - description: ID de la Reserva
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reserva encontrada
+          schema:
+            $ref: '#/definitions/models.Reserva'
+        "404":
+          description: Reserva no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener reserva por ID
+      tags:
+      - reservas
   /restaurantes:
     delete:
       consumes:

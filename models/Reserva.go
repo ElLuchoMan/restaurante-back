@@ -3,14 +3,14 @@ package models
 import "github.com/beego/beego/v2/client/orm"
 
 type Reserva struct {
-	PK_ID_RESERVA     int64  `orm:"pk" json:"PK_ID_RESERVA"`
-	FECHA             string `json:"FECHA"`
-	HORA              string `json:"HORA"`
-	PERSONAS          int    `json:"PERSONAS"`
-	PK_ID_RESTAURANTE *int64 `orm:"null" json:"PK_ID_RESTAURANTE"`
+	PK_ID_RESERVA     int    `orm:"column(PK_ID_RESERVA);pk;auto" json:"PK_ID_RESERVA"`
+	FECHA             string `orm:"column(FECHA);type(date)" json:"FECHA"`
+	HORA              string `orm:"column(HORA);type(time)" json:"HORA"`
+	PERSONAS          int    `orm:"column(PERSONAS)" json:"PERSONAS"`
+	PK_ID_RESTAURANTE *int   `orm:"column(PK_ID_RESTAURANTE);null" json:"PK_ID_RESTAURANTE"`
 }
 
-func (c *Reserva) TableName() string {
+func (r *Reserva) TableName() string {
 	return "RESERVA"
 }
 
