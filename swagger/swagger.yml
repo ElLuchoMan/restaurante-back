@@ -79,6 +79,38 @@ definitions:
       PK_ID_RESTAURANTE:
         type: integer
         format: int64
+  models.Trabajador:
+    title: Trabajador
+    type: object
+    properties:
+      APELLIDO:
+        type: string
+      FECHA_INGRESO:
+        type: string
+      FECHA_NACIMIENTO:
+        type: string
+      FECHA_RETIRO:
+        type: string
+      NOMBRE:
+        type: string
+      NUEVO:
+        type: boolean
+      PASSWORD:
+        type: string
+      PK_DOCUMENTO_TRABAJADOR:
+        type: integer
+        format: int64
+      PK_ID_RESTAURANTE:
+        type: integer
+        format: int64
+      ROL:
+        type: string
+      SUELDO:
+        type: integer
+        format: int64
+      TELEFONO:
+        type: integer
+        format: int64
   nil:
     title: nil
     type: object

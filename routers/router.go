@@ -28,6 +28,11 @@ func init() {
 			beego.NSRouter("/", &controllers.DomicilioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.DomicilioController{}, "get:GetById"),
 		),
+		// Rutas para trabajadores
+		beego.NSNamespace("/trabajadores",
+			beego.NSRouter("/", &controllers.TrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.TrabajadorController{}, "get:GetById"),
+		),
 	)
 
 	beego.AddNamespace(ns)

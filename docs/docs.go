@@ -760,6 +760,192 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/trabajadores": {
+            "get": {
+                "description": "Devuelve todos los trabajadores registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trabajadores"
+                ],
+                "summary": "Obtener todos los trabajadores",
+                "responses": {
+                    "200": {
+                        "description": "Lista de trabajadores",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Trabajador"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un trabajador existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trabajadores"
+                ],
+                "summary": "Actualizar un trabajador",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Trabajador",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del trabajador a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Trabajador"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Trabajador actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Trabajador"
+                        }
+                    },
+                    "404": {
+                        "description": "Trabajador no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo trabajador en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trabajadores"
+                ],
+                "summary": "Crear un nuevo trabajador",
+                "parameters": [
+                    {
+                        "description": "Datos del trabajador a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Trabajador"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Trabajador creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Trabajador"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un trabajador de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trabajadores"
+                ],
+                "summary": "Eliminar un trabajador",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Trabajador",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Trabajador eliminado"
+                    },
+                    "404": {
+                        "description": "Trabajador no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/trabajadores/search": {
+            "get": {
+                "description": "Devuelve un trabajador específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trabajadores"
+                ],
+                "summary": "Obtener trabajador por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Trabajador",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Trabajador encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Trabajador"
+                        }
+                    },
+                    "404": {
+                        "description": "Trabajador no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -875,6 +1061,47 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        },
+        "models.Trabajador": {
+            "type": "object",
+            "properties": {
+                "APELLIDO": {
+                    "type": "string"
+                },
+                "FECHA_INGRESO": {
+                    "type": "string"
+                },
+                "FECHA_NACIMIENTO": {
+                    "type": "string"
+                },
+                "FECHA_RETIRO": {
+                    "type": "string"
+                },
+                "NOMBRE": {
+                    "type": "string"
+                },
+                "NUEVO": {
+                    "type": "boolean"
+                },
+                "PASSWORD": {
+                    "type": "string"
+                },
+                "PK_DOCUMENTO_TRABAJADOR": {
+                    "type": "integer"
+                },
+                "PK_ID_RESTAURANTE": {
+                    "type": "integer"
+                },
+                "ROL": {
+                    "type": "string"
+                },
+                "SUELDO": {
+                    "type": "integer"
+                },
+                "TELEFONO": {
+                    "type": "integer"
+                }
+            }
         }
     }
 }`
@@ -884,7 +1111,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "0.0.1",
 	Host:             "",
 	BasePath:         "/restaurante/v1",
-	Schemes:          []string{"https"},
+	Schemes:          []string{},
 	Title:            "Restaurante API",
 	Description:      "API para gestionar el sistema de un restaurante para \"El fogón de María\"",
 	InfoInstanceName: "swagger",

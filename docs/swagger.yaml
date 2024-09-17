@@ -74,6 +74,33 @@ definitions:
       pk_ID_RESTAURANTE:
         type: integer
     type: object
+  models.Trabajador:
+    properties:
+      APELLIDO:
+        type: string
+      FECHA_INGRESO:
+        type: string
+      FECHA_NACIMIENTO:
+        type: string
+      FECHA_RETIRO:
+        type: string
+      NOMBRE:
+        type: string
+      NUEVO:
+        type: boolean
+      PASSWORD:
+        type: string
+      PK_DOCUMENTO_TRABAJADOR:
+        type: integer
+      PK_ID_RESTAURANTE:
+        type: integer
+      ROL:
+        type: string
+      SUELDO:
+        type: integer
+      TELEFONO:
+        type: integer
+    type: object
 info:
   contact:
     email: baluisto96@gmail.com
@@ -573,6 +600,127 @@ paths:
       summary: Obtener restaurante por ID
       tags:
       - restaurantes
-schemes:
-- https
+  /trabajadores:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un trabajador de la base de datos.
+      parameters:
+      - description: ID del Trabajador
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Trabajador eliminado
+        "404":
+          description: Trabajador no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un trabajador
+      tags:
+      - trabajadores
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los trabajadores registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de trabajadores
+          schema:
+            items:
+              $ref: '#/definitions/models.Trabajador'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los trabajadores
+      tags:
+      - trabajadores
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo trabajador en la base de datos.
+      parameters:
+      - description: Datos del trabajador a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Trabajador'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Trabajador creado
+          schema:
+            $ref: '#/definitions/models.Trabajador'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo trabajador
+      tags:
+      - trabajadores
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un trabajador existente.
+      parameters:
+      - description: ID del Trabajador
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del trabajador a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Trabajador'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Trabajador actualizado
+          schema:
+            $ref: '#/definitions/models.Trabajador'
+        "404":
+          description: Trabajador no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un trabajador
+      tags:
+      - trabajadores
+  /trabajadores/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un trabajador específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Trabajador
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Trabajador encontrado
+          schema:
+            $ref: '#/definitions/models.Trabajador'
+        "404":
+          description: Trabajador no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener trabajador por ID
+      tags:
+      - trabajadores
 swagger: "2.0"
