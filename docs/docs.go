@@ -575,6 +575,192 @@ const docTemplate = `{
                 }
             }
         },
+        "/platos": {
+            "get": {
+                "description": "Devuelve todos los platos registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platos"
+                ],
+                "summary": "Obtener todos los platos",
+                "responses": {
+                    "200": {
+                        "description": "Lista de platos",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Plato"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un plato existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platos"
+                ],
+                "summary": "Actualizar un plato",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Plato",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del plato a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Plato"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Plato actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Plato"
+                        }
+                    },
+                    "404": {
+                        "description": "Plato no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo plato en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platos"
+                ],
+                "summary": "Crear un nuevo plato",
+                "parameters": [
+                    {
+                        "description": "Datos del plato a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Plato"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Plato creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Plato"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un plato de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platos"
+                ],
+                "summary": "Eliminar un plato",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Plato",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Plato eliminado"
+                    },
+                    "404": {
+                        "description": "Plato no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/platos/search": {
+            "get": {
+                "description": "Devuelve un plato específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platos"
+                ],
+                "summary": "Obtener plato por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Plato",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Plato encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Plato"
+                        }
+                    },
+                    "404": {
+                        "description": "Plato no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/restaurantes": {
             "get": {
                 "description": "Devuelve todos los restaurantes registrados en la base de datos.",
@@ -1041,6 +1227,32 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "pk_ID_RESTAURANTE": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Plato": {
+            "type": "object",
+            "properties": {
+                "CALORIAS": {
+                    "type": "integer"
+                },
+                "DESCRIPCION": {
+                    "type": "string"
+                },
+                "NOMBRE": {
+                    "type": "string"
+                },
+                "PERSONALIZADO": {
+                    "type": "boolean"
+                },
+                "PK_ID_ITEM_PEDIDO": {
+                    "type": "integer"
+                },
+                "PK_ID_PLATO": {
+                    "type": "integer"
+                },
+                "PRECIO": {
                     "type": "integer"
                 }
             }

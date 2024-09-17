@@ -97,6 +97,37 @@
                 }
             }
         },
+        "models.Plato": {
+            "title": "Plato",
+            "type": "object",
+            "properties": {
+                "CALORIAS": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DESCRIPCION": {
+                    "type": "string"
+                },
+                "NOMBRE": {
+                    "type": "string"
+                },
+                "PERSONALIZADO": {
+                    "type": "boolean"
+                },
+                "PK_ID_ITEM_PEDIDO": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_PLATO": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PRECIO": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Restaurante": {
             "title": "Restaurante",
             "type": "object",

@@ -63,6 +63,23 @@ definitions:
       pk_ID_RESTAURANTE:
         type: integer
     type: object
+  models.Plato:
+    properties:
+      CALORIAS:
+        type: integer
+      DESCRIPCION:
+        type: string
+      NOMBRE:
+        type: string
+      PERSONALIZADO:
+        type: boolean
+      PK_ID_ITEM_PEDIDO:
+        type: integer
+      PK_ID_PLATO:
+        type: integer
+      PRECIO:
+        type: integer
+    type: object
   models.Restaurante:
     properties:
       dias_LABORALES:
@@ -477,6 +494,129 @@ paths:
       summary: Obtener pedido por ID
       tags:
       - pedidos
+  /platos:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un plato de la base de datos.
+      parameters:
+      - description: ID del Plato
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Plato eliminado
+        "404":
+          description: Plato no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un plato
+      tags:
+      - platos
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los platos registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de platos
+          schema:
+            items:
+              $ref: '#/definitions/models.Plato'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los platos
+      tags:
+      - platos
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo plato en la base de datos.
+      parameters:
+      - description: Datos del plato a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Plato'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Plato creado
+          schema:
+            $ref: '#/definitions/models.Plato'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo plato
+      tags:
+      - platos
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un plato existente.
+      parameters:
+      - description: ID del Plato
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del plato a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Plato'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Plato actualizado
+          schema:
+            $ref: '#/definitions/models.Plato'
+        "404":
+          description: Plato no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un plato
+      tags:
+      - platos
+  /platos/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un plato específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Plato
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Plato encontrado
+          schema:
+            $ref: '#/definitions/models.Plato'
+        "404":
+          description: Plato no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener plato por ID
+      tags:
+      - platos
   /restaurantes:
     delete:
       consumes:
