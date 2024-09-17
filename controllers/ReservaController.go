@@ -209,7 +209,6 @@ func (c *ReservaController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Reserva no encontrada",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}
