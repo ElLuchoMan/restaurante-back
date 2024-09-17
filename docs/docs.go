@@ -882,7 +882,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "0.0.1",
-	Host:             "restaurante-back-production.up.railway.app",
+	Host:             "",
 	BasePath:         "/restaurante/v1",
 	Schemes:          []string{"https"},
 	Title:            "Restaurante API",
