@@ -210,7 +210,6 @@ func (c *ClienteController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}

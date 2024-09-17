@@ -209,7 +209,6 @@ func (c *DomicilioController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Domicilio no encontrado",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}

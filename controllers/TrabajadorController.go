@@ -210,7 +210,6 @@ func (c *TrabajadorController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Trabajador no encontrado",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}

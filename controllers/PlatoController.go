@@ -210,7 +210,6 @@ func (c *PlatoController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Plato no encontrado",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}
