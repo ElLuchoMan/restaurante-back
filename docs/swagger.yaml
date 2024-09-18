@@ -1672,7 +1672,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve todos los platos registrados en la base de datos.
+      description: Devuelve todos los platos registrados en la base de datos sin la
+        imagen (FOTO).
       produces:
       - application/json
       responses:
@@ -1794,7 +1795,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve un plato específico por ID utilizando query parameters.
+      description: Devuelve un plato específico por ID, incluyendo la imagen en formato
+        Base64.
       parameters:
       - description: ID del Plato
         in: query

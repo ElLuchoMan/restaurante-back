@@ -2139,7 +2139,7 @@ const docTemplate = `{
         },
         "/platos": {
             "get": {
-                "description": "Devuelve todos los platos registrados en la base de datos.",
+                "description": "Devuelve todos los platos registrados en la base de datos sin la imagen (FOTO).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2349,7 +2349,7 @@ const docTemplate = `{
         },
         "/platos/search": {
             "get": {
-                "description": "Devuelve un plato específico por ID utilizando query parameters.",
+                "description": "Devuelve un plato específico por ID, incluyendo la imagen en formato Base64.",
                 "consumes": [
                     "application/json"
                 ],

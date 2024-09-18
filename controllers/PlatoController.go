@@ -17,7 +17,7 @@ type PlatoController struct {
 
 // @Title GetAll
 // @Summary Obtener todos los platos
-// @Description Devuelve todos los platos registrados en la base de datos.
+// @Description Devuelve todos los platos registrados en la base de datos sin la imagen (FOTO).
 // @Tags platos
 // @Accept json
 // @Produce json
@@ -40,6 +40,11 @@ func (c *PlatoController) GetAll() {
 		return
 	}
 
+	// Excluir la foto (FOTO) de cada plato //TODO: Quitar
+	for i := range platos {
+		platos[i].FOTO = ""
+	}
+
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -51,7 +56,7 @@ func (c *PlatoController) GetAll() {
 
 // @Title GetById
 // @Summary Obtener plato por ID
-// @Description Devuelve un plato específico por ID utilizando query parameters.
+// @Description Devuelve un plato específico por ID, incluyendo la imagen en formato Base64.
 // @Tags platos
 // @Accept json
 // @Produce json
@@ -88,11 +93,12 @@ func (c *PlatoController) GetById() {
 		return
 	}
 
+	// Si todo está bien, devuelve el plato, incluyendo la imagen en Base64
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Plato encontrado",
-		Data:    plato,
+		Data:    plato, // Incluye la imagen en Base64
 	}
 	c.ServeJSON()
 }
@@ -116,8 +122,18 @@ func (c *PlatoController) Post() {
 	o := orm.NewOrm()
 	var plato models.Plato
 
-	// Obtener los campos del formulario
+	// Validar campos requeridos
 	plato.NOMBRE = c.GetString("NOMBRE")
+	if plato.NOMBRE == "" {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo 'NOMBRE' es requerido.",
+		}
+		c.ServeJSON()
+		return
+	}
+
 	calorias, _ := c.GetInt64("CALORIAS")
 	plato.CALORIAS = &calorias
 	plato.DESCRIPCION = c.GetString("DESCRIPCION")
@@ -125,14 +141,35 @@ func (c *PlatoController) Post() {
 	personalizado, _ := c.GetBool("PERSONALIZADO")
 	plato.PERSONALIZADO = personalizado
 
-	// Obtener el archivo de imagen y codificarlo en Base64
-	file, _, err := c.GetFile("FOTO")
+	// Manejar la imagen opcional
+	file, fileHeader, err := c.GetFile("FOTO")
 	if err == nil {
 		defer file.Close()
-		fileBytes, err := ioutil.ReadAll(file)
-		if err == nil {
-			plato.FOTO = base64.StdEncoding.EncodeToString(fileBytes) // Convertir a Base64
+
+		// Validar el tamaño del archivo (máximo 1MB)
+		if fileHeader.Size > 1024*1024 { // 1MB en bytes
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "La imagen no debe superar los 1MB.",
+			}
+			c.ServeJSON()
+			return
 		}
+
+		// Leer y convertir a Base64
+		fileBytes, err := ioutil.ReadAll(file)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Error al leer la imagen.",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		plato.FOTO = base64.StdEncoding.EncodeToString(fileBytes)
 	}
 
 	// Insertar el nuevo plato en la base de datos
@@ -141,7 +178,7 @@ func (c *PlatoController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el plato",
+			Message: "Error al crear el plato.",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
@@ -183,7 +220,7 @@ func (c *PlatoController) Put() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
+			Message: "El parámetro 'id' es inválido o está ausente.",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
@@ -193,7 +230,6 @@ func (c *PlatoController) Put() {
 	plato := models.Plato{PK_ID_PLATO: int64(id)}
 
 	if o.Read(&plato) == nil {
-		// Actualizar los campos del formulario
 		plato.NOMBRE = c.GetString("NOMBRE")
 		calorias, _ := c.GetInt64("CALORIAS")
 		plato.CALORIAS = &calorias
@@ -201,25 +237,48 @@ func (c *PlatoController) Put() {
 		plato.PRECIO, _ = c.GetInt64("PRECIO")
 		personalizado, _ := c.GetBool("PERSONALIZADO")
 		plato.PERSONALIZADO = personalizado
+		pkItemPedido, err := c.GetInt64("PK_ID_ITEM_PEDIDO")
+		if err == nil {
+			plato.PK_ID_ITEM_PEDIDO = &pkItemPedido
+		}
 
-		// Verificar si hay un archivo de imagen adjunto
-		file, _, err := c.GetFile("FOTO")
+		// Manejar la imagen opcional
+		file, fileHeader, err := c.GetFile("FOTO")
 		if err == nil {
 			defer file.Close()
-			// Leer el contenido del archivo
-			fileBytes, err := ioutil.ReadAll(file)
-			if err == nil {
-				plato.FOTO = base64.StdEncoding.EncodeToString(fileBytes) // Convertir a Base64
+
+			// Validar el tamaño del archivo (máximo 1MB)
+			if fileHeader.Size > 1024*1024 { // 1MB en bytes
+				c.Ctx.Output.SetStatus(http.StatusBadRequest)
+				c.Data["json"] = models.ApiResponse{
+					Code:    http.StatusBadRequest,
+					Message: "La imagen no debe superar los 1MB.",
+				}
+				c.ServeJSON()
+				return
 			}
+
+			fileBytes, err := ioutil.ReadAll(file)
+			if err != nil {
+				c.Ctx.Output.SetStatus(http.StatusBadRequest)
+				c.Data["json"] = models.ApiResponse{
+					Code:    http.StatusBadRequest,
+					Message: "Error al leer la imagen.",
+					Cause:   err.Error(),
+				}
+				c.ServeJSON()
+				return
+			}
+			plato.FOTO = base64.StdEncoding.EncodeToString(fileBytes)
 		}
 
 		// Actualizar el plato en la base de datos
-		_, err = o.Update(&plato) // Cambiar := por = aquí
+		_, err = o.Update(&plato)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
-				Message: "Error al actualizar el plato",
+				Message: "Error al actualizar el plato.",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
@@ -237,7 +296,7 @@ func (c *PlatoController) Put() {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
-			Message: "Plato no encontrado",
+			Message: "Plato no encontrado.",
 		}
 		c.ServeJSON()
 	}
