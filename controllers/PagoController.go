@@ -110,6 +110,7 @@ func (c *PagoController) Post() {
 	o := orm.NewOrm()
 	var pago models.Pago
 
+	// Deserializar JSON
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &pago); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -121,6 +122,27 @@ func (c *PagoController) Post() {
 		return
 	}
 
+	// Validar estado permitido
+	validStates := []string{"PENDIENTE", "COMPLETADO", "CANCELADO"}
+	isValidState := false
+	for _, state := range validStates {
+		if pago.ESTADO == state {
+			isValidState = true
+			break
+		}
+	}
+
+	if !isValidState {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Estado inválido. Los estados permitidos son: PENDIENTE, COMPLETADO, CANCELADO.",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Insertar el pago en la base de datos
 	_, err := o.Insert(&pago)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -184,7 +206,30 @@ func (c *PagoController) Put() {
 			return
 		}
 
+		// Validar estado permitido
+		validStates := []string{"PENDIENTE", "COMPLETADO", "CANCELADO"}
+		isValidState := false
+		for _, state := range validStates {
+			if updatedPago.ESTADO == state {
+				isValidState = true
+				break
+			}
+		}
+
+		if !isValidState {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Estado inválido. Los estados permitidos son: PENDIENTE, COMPLETADO, CANCELADO.",
+			}
+			c.ServeJSON()
+			return
+		}
+
+		// Asignar el ID del pago actualizado
 		updatedPago.PK_ID_PAGO = id
+
+		// Actualizar el pago en la base de datos
 		_, err := o.Update(&updatedPago)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
