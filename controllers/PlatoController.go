@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	"encoding/json"
+	"encoding/base64"
+	"io/ioutil"
 	"net/http"
 	"restaurante/models"
 	"strconv"
@@ -98,11 +99,16 @@ func (c *PlatoController) GetById() {
 
 // @Title Create
 // @Summary Crear un nuevo plato
-// @Description Crea un nuevo plato en la base de datos.
+// @Description Crea un nuevo plato en la base de datos, incluyendo una imagen en formato Base64.
 // @Tags platos
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param   body  body   models.Plato true  "Datos del plato a crear"
+// @Param   NOMBRE        formData  string  true   "Nombre del plato"
+// @Param   CALORIAS      formData  int     true   "Calorías del plato"
+// @Param   DESCRIPCION   formData  string  false  "Descripción del plato"
+// @Param   PRECIO        formData  int     true   "Precio del plato"
+// @Param   PERSONALIZADO formData  bool    true   "Indica si el plato es personalizado"
+// @Param   FOTO          formData  file    false  "Imagen del plato (opcional)"
 // @Success 201 {object} models.Plato "Plato creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /platos [post]
@@ -110,18 +116,27 @@ func (c *PlatoController) Post() {
 	o := orm.NewOrm()
 	var plato models.Plato
 
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &plato); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error en la solicitud",
-			Cause:   err.Error(),
+	// Obtener los campos del formulario
+	plato.NOMBRE = c.GetString("NOMBRE")
+	calorias, _ := c.GetInt64("CALORIAS")
+	plato.CALORIAS = &calorias
+	plato.DESCRIPCION = c.GetString("DESCRIPCION")
+	plato.PRECIO, _ = c.GetInt64("PRECIO")
+	personalizado, _ := c.GetBool("PERSONALIZADO")
+	plato.PERSONALIZADO = personalizado
+
+	// Obtener el archivo de imagen y codificarlo en Base64
+	file, _, err := c.GetFile("FOTO")
+	if err == nil {
+		defer file.Close()
+		fileBytes, err := ioutil.ReadAll(file)
+		if err == nil {
+			plato.FOTO = base64.StdEncoding.EncodeToString(fileBytes) // Convertir a Base64
 		}
-		c.ServeJSON()
-		return
 	}
 
-	_, err := o.Insert(&plato)
+	// Insertar el nuevo plato en la base de datos
+	_, err = o.Insert(&plato)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -144,12 +159,17 @@ func (c *PlatoController) Post() {
 
 // @Title Update
 // @Summary Actualizar un plato
-// @Description Actualiza los datos de un plato existente.
+// @Description Actualiza los datos de un plato existente, incluyendo una imagen en formato Base64.
 // @Tags platos
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param   id    query    int  true   "ID del Plato"
-// @Param   body  body   models.Plato true  "Datos del plato a actualizar"
+// @Param   id            query    int     true   "ID del Plato"
+// @Param   NOMBRE        formData  string  true   "Nombre del plato"
+// @Param   CALORIAS      formData  int     true   "Calorías del plato"
+// @Param   DESCRIPCION   formData  string  false  "Descripción del plato"
+// @Param   PRECIO        formData  int     true   "Precio del plato"
+// @Param   PERSONALIZADO formData  bool    true   "Indica si el plato es personalizado"
+// @Param   FOTO          formData  file    false  "Imagen del plato (opcional)"
 // @Success 200 {object} models.Plato "Plato actualizado"
 // @Failure 404 {object} models.ApiResponse "Plato no encontrado"
 // @Router /platos [put]
@@ -173,20 +193,28 @@ func (c *PlatoController) Put() {
 	plato := models.Plato{PK_ID_PLATO: int64(id)}
 
 	if o.Read(&plato) == nil {
-		var updatedPlato models.Plato
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedPlato); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Error en la solicitud",
-				Cause:   err.Error(),
+		// Actualizar los campos del formulario
+		plato.NOMBRE = c.GetString("NOMBRE")
+		calorias, _ := c.GetInt64("CALORIAS")
+		plato.CALORIAS = &calorias
+		plato.DESCRIPCION = c.GetString("DESCRIPCION")
+		plato.PRECIO, _ = c.GetInt64("PRECIO")
+		personalizado, _ := c.GetBool("PERSONALIZADO")
+		plato.PERSONALIZADO = personalizado
+
+		// Verificar si hay un archivo de imagen adjunto
+		file, _, err := c.GetFile("FOTO")
+		if err == nil {
+			defer file.Close()
+			// Leer el contenido del archivo
+			fileBytes, err := ioutil.ReadAll(file)
+			if err == nil {
+				plato.FOTO = base64.StdEncoding.EncodeToString(fileBytes) // Convertir a Base64
 			}
-			c.ServeJSON()
-			return
 		}
 
-		updatedPlato.PK_ID_PLATO = int64(id)
-		_, err := o.Update(&updatedPlato)
+		// Actualizar el plato en la base de datos
+		_, err = o.Update(&plato) // Cambiar := por = aquí
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
@@ -202,7 +230,7 @@ func (c *PlatoController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
 			Message: "Plato actualizado",
-			Data:    updatedPlato,
+			Data:    plato,
 		}
 		c.ServeJSON()
 	} else {

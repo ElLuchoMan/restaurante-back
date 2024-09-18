@@ -59,6 +59,8 @@ definitions:
       CALORIAS:
         type: integer
         format: int64
+      FOTO:
+        type: string
       NOMBRE:
         type: string
       PESO:
@@ -204,6 +206,9 @@ definitions:
         type: integer
         format: int64
       DESCRIPCION:
+        type: string
+      FOTO:
+        description: Cambiado a string para Base64
         type: string
       NOMBRE:
         type: string

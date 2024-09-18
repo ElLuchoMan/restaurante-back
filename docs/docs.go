@@ -423,7 +423,7 @@ const docTemplate = `{
             "put": {
                 "description": "Actualiza los datos de un ingrediente existente.",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -441,13 +441,38 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Datos del ingrediente a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Ingrediente"
-                        }
+                        "type": "string",
+                        "description": "Nombre del ingrediente",
+                        "name": "NOMBRE",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tipo del ingrediente",
+                        "name": "TIPO",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Peso del ingrediente",
+                        "name": "PESO",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Calorías del ingrediente",
+                        "name": "CALORIAS",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Imagen del ingrediente (opcional)",
+                        "name": "FOTO",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -468,7 +493,7 @@ const docTemplate = `{
             "post": {
                 "description": "Crea un nuevo ingrediente en la base de datos.",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -479,13 +504,38 @@ const docTemplate = `{
                 "summary": "Crear un nuevo ingrediente",
                 "parameters": [
                     {
-                        "description": "Datos del ingrediente a crear",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Ingrediente"
-                        }
+                        "type": "string",
+                        "description": "Nombre del ingrediente",
+                        "name": "NOMBRE",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tipo del ingrediente",
+                        "name": "TIPO",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Peso del ingrediente",
+                        "name": "PESO",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Calorías del ingrediente",
+                        "name": "CALORIAS",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Imagen del ingrediente (opcional)",
+                        "name": "FOTO",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -2119,9 +2169,9 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Actualiza los datos de un plato existente.",
+                "description": "Actualiza los datos de un plato existente, incluyendo una imagen en formato Base64.",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -2139,13 +2189,44 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Datos del plato a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Plato"
-                        }
+                        "type": "string",
+                        "description": "Nombre del plato",
+                        "name": "NOMBRE",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Calorías del plato",
+                        "name": "CALORIAS",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Descripción del plato",
+                        "name": "DESCRIPCION",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Precio del plato",
+                        "name": "PRECIO",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Indica si el plato es personalizado",
+                        "name": "PERSONALIZADO",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Imagen del plato (opcional)",
+                        "name": "FOTO",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -2164,9 +2245,9 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Crea un nuevo plato en la base de datos.",
+                "description": "Crea un nuevo plato en la base de datos, incluyendo una imagen en formato Base64.",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -2177,13 +2258,44 @@ const docTemplate = `{
                 "summary": "Crear un nuevo plato",
                 "parameters": [
                     {
-                        "description": "Datos del plato a crear",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Plato"
-                        }
+                        "type": "string",
+                        "description": "Nombre del plato",
+                        "name": "NOMBRE",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Calorías del plato",
+                        "name": "CALORIAS",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Descripción del plato",
+                        "name": "DESCRIPCION",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Precio del plato",
+                        "name": "PRECIO",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Indica si el plato es personalizado",
+                        "name": "PERSONALIZADO",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Imagen del plato (opcional)",
+                        "name": "FOTO",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -2903,6 +3015,9 @@ const docTemplate = `{
                 "CALORIAS": {
                     "type": "integer"
                 },
+                "FOTO": {
+                    "type": "string"
+                },
                 "NOMBRE": {
                     "type": "string"
                 },
@@ -3070,6 +3185,10 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "DESCRIPCION": {
+                    "type": "string"
+                },
+                "FOTO": {
+                    "description": "Cambiado a string para Base64",
                     "type": "string"
                 },
                 "NOMBRE": {

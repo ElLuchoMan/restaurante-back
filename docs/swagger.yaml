@@ -46,6 +46,8 @@ definitions:
     properties:
       CALORIAS:
         type: integer
+      FOTO:
+        type: string
       NOMBRE:
         type: string
       PESO:
@@ -155,6 +157,9 @@ definitions:
       CALORIAS:
         type: integer
       DESCRIPCION:
+        type: string
+      FOTO:
+        description: Cambiado a string para Base64
         type: string
       NOMBRE:
         type: string
@@ -529,15 +534,33 @@ paths:
       - ingredientes
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Crea un nuevo ingrediente en la base de datos.
       parameters:
-      - description: Datos del ingrediente a crear
-        in: body
-        name: body
+      - description: Nombre del ingrediente
+        in: formData
+        name: NOMBRE
         required: true
-        schema:
-          $ref: '#/definitions/models.Ingrediente'
+        type: string
+      - description: Tipo del ingrediente
+        in: formData
+        name: TIPO
+        required: true
+        type: string
+      - description: Peso del ingrediente
+        in: formData
+        name: PESO
+        required: true
+        type: integer
+      - description: Calorías del ingrediente
+        in: formData
+        name: CALORIAS
+        required: true
+        type: integer
+      - description: Imagen del ingrediente (opcional)
+        in: formData
+        name: FOTO
+        type: file
       produces:
       - application/json
       responses:
@@ -554,7 +577,7 @@ paths:
       - ingredientes
     put:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Actualiza los datos de un ingrediente existente.
       parameters:
       - description: ID del Ingrediente
@@ -562,12 +585,30 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos del ingrediente a actualizar
-        in: body
-        name: body
+      - description: Nombre del ingrediente
+        in: formData
+        name: NOMBRE
         required: true
-        schema:
-          $ref: '#/definitions/models.Ingrediente'
+        type: string
+      - description: Tipo del ingrediente
+        in: formData
+        name: TIPO
+        required: true
+        type: string
+      - description: Peso del ingrediente
+        in: formData
+        name: PESO
+        required: true
+        type: integer
+      - description: Calorías del ingrediente
+        in: formData
+        name: CALORIAS
+        required: true
+        type: integer
+      - description: Imagen del ingrediente (opcional)
+        in: formData
+        name: FOTO
+        type: file
       produces:
       - application/json
       responses:
@@ -1650,15 +1691,38 @@ paths:
       - platos
     post:
       consumes:
-      - application/json
-      description: Crea un nuevo plato en la base de datos.
+      - multipart/form-data
+      description: Crea un nuevo plato en la base de datos, incluyendo una imagen
+        en formato Base64.
       parameters:
-      - description: Datos del plato a crear
-        in: body
-        name: body
+      - description: Nombre del plato
+        in: formData
+        name: NOMBRE
         required: true
-        schema:
-          $ref: '#/definitions/models.Plato'
+        type: string
+      - description: Calorías del plato
+        in: formData
+        name: CALORIAS
+        required: true
+        type: integer
+      - description: Descripción del plato
+        in: formData
+        name: DESCRIPCION
+        type: string
+      - description: Precio del plato
+        in: formData
+        name: PRECIO
+        required: true
+        type: integer
+      - description: Indica si el plato es personalizado
+        in: formData
+        name: PERSONALIZADO
+        required: true
+        type: boolean
+      - description: Imagen del plato (opcional)
+        in: formData
+        name: FOTO
+        type: file
       produces:
       - application/json
       responses:
@@ -1675,20 +1739,43 @@ paths:
       - platos
     put:
       consumes:
-      - application/json
-      description: Actualiza los datos de un plato existente.
+      - multipart/form-data
+      description: Actualiza los datos de un plato existente, incluyendo una imagen
+        en formato Base64.
       parameters:
       - description: ID del Plato
         in: query
         name: id
         required: true
         type: integer
-      - description: Datos del plato a actualizar
-        in: body
-        name: body
+      - description: Nombre del plato
+        in: formData
+        name: NOMBRE
         required: true
-        schema:
-          $ref: '#/definitions/models.Plato'
+        type: string
+      - description: Calorías del plato
+        in: formData
+        name: CALORIAS
+        required: true
+        type: integer
+      - description: Descripción del plato
+        in: formData
+        name: DESCRIPCION
+        type: string
+      - description: Precio del plato
+        in: formData
+        name: PRECIO
+        required: true
+        type: integer
+      - description: Indica si el plato es personalizado
+        in: formData
+        name: PERSONALIZADO
+        required: true
+        type: boolean
+      - description: Imagen del plato (opcional)
+        in: formData
+        name: FOTO
+        type: file
       produces:
       - application/json
       responses:

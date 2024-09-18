@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"restaurante/models"
 	"strconv"
@@ -100,9 +100,13 @@ func (c *IngredienteController) GetById() {
 // @Summary Crear un nuevo ingrediente
 // @Description Crea un nuevo ingrediente en la base de datos.
 // @Tags ingredientes
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param   body  body   models.Ingrediente true  "Datos del ingrediente a crear"
+// @Param   NOMBRE        formData  string  true   "Nombre del ingrediente"
+// @Param   TIPO          formData  string  true   "Tipo del ingrediente"
+// @Param   PESO          formData  int     true   "Peso del ingrediente"
+// @Param   CALORIAS      formData  int     true   "Calorías del ingrediente"
+// @Param   FOTO          formData  file    false  "Imagen del ingrediente (opcional)"
 // @Success 201 {object} models.Ingrediente "Ingrediente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /ingredientes [post]
@@ -110,17 +114,24 @@ func (c *IngredienteController) Post() {
 	o := orm.NewOrm()
 	var ingrediente models.Ingrediente
 
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &ingrediente); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error en la solicitud",
-			Cause:   err.Error(),
+	// Obtener los campos del formulario
+	ingrediente.NOMBRE = c.GetString("NOMBRE")
+	ingrediente.TIPO = c.GetString("TIPO")
+	ingrediente.PESO, _ = c.GetInt64("PESO")
+	ingrediente.CALORIAS, _ = c.GetInt64("CALORIAS")
+
+	// Obtener el archivo de imagen
+	file, _, err := c.GetFile("FOTO")
+	if err == nil {
+		defer file.Close()
+		// Leer el contenido del archivo
+		fileBytes, err := ioutil.ReadAll(file)
+		if err == nil {
+			ingrediente.FOTO = string(fileBytes)
 		}
-		c.ServeJSON()
-		return
 	}
 
+	// Insertar el nuevo ingrediente en la base de datos
 	id, err := o.Insert(&ingrediente)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -148,16 +159,21 @@ func (c *IngredienteController) Post() {
 // @Summary Actualizar un ingrediente
 // @Description Actualiza los datos de un ingrediente existente.
 // @Tags ingredientes
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param   id    query    int  true   "ID del Ingrediente"
-// @Param   body  body   models.Ingrediente true  "Datos del ingrediente a actualizar"
+// @Param   id            query    int     true   "ID del Ingrediente"
+// @Param   NOMBRE        formData  string  true   "Nombre del ingrediente"
+// @Param   TIPO          formData  string  true   "Tipo del ingrediente"
+// @Param   PESO          formData  int     true   "Peso del ingrediente"
+// @Param   CALORIAS      formData  int     true   "Calorías del ingrediente"
+// @Param   FOTO          formData  file    false  "Imagen del ingrediente (opcional)"
 // @Success 200 {object} models.Ingrediente "Ingrediente actualizado"
 // @Failure 404 {object} models.ApiResponse "Ingrediente no encontrado"
 // @Router /ingredientes [put]
 func (c *IngredienteController) Put() {
 	o := orm.NewOrm()
 
+	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil || id == 0 {
@@ -174,20 +190,25 @@ func (c *IngredienteController) Put() {
 	ingrediente := models.Ingrediente{PK_ID_INGREDIENTE: id}
 
 	if o.Read(&ingrediente) == nil {
-		var updatedIngrediente models.Ingrediente
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedIngrediente); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Error en la solicitud",
-				Cause:   err.Error(),
+		// Actualizar los campos del formulario
+		ingrediente.NOMBRE = c.GetString("NOMBRE")
+		ingrediente.TIPO = c.GetString("TIPO")
+		ingrediente.PESO, _ = c.GetInt64("PESO")
+		ingrediente.CALORIAS, _ = c.GetInt64("CALORIAS")
+
+		// Obtener el archivo de imagen si fue enviado
+		file, _, err := c.GetFile("FOTO")
+		if err == nil {
+			defer file.Close()
+			// Leer el contenido del archivo
+			fileBytes, err := ioutil.ReadAll(file)
+			if err == nil {
+				ingrediente.FOTO = string(fileBytes)
 			}
-			c.ServeJSON()
-			return
 		}
 
-		updatedIngrediente.PK_ID_INGREDIENTE = id
-		_, err := o.Update(&updatedIngrediente)
+		// Actualizar el ingrediente en la base de datos
+		_, err = o.Update(&ingrediente)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
@@ -203,7 +224,7 @@ func (c *IngredienteController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
 			Message: "Ingrediente actualizado",
-			Data:    updatedIngrediente,
+			Data:    ingrediente,
 		}
 		c.ServeJSON()
 	} else {

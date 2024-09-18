@@ -86,6 +86,9 @@
                     "type": "integer",
                     "format": "int64"
                 },
+                "FOTO": {
+                    "type": "string"
+                },
                 "NOMBRE": {
                     "type": "string"
                 },
@@ -289,6 +292,10 @@
                     "format": "int64"
                 },
                 "DESCRIPCION": {
+                    "type": "string"
+                },
+                "FOTO": {
+                    "description": "Cambiado a string para Base64",
                     "type": "string"
                 },
                 "NOMBRE": {
