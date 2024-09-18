@@ -72,6 +72,15 @@ definitions:
       UNIDAD_MINIMA:
         type: integer
     type: object
+  models.ItemPedido:
+    properties:
+      CANTIDAD:
+        type: integer
+      PK_ID_ITEM_PEDIDO:
+        type: integer
+      PK_ID_PEDIDO:
+        type: integer
+    type: object
   models.MetodoPago:
     properties:
       DETALLE:
@@ -135,8 +144,6 @@ definitions:
   models.PedidoCliente:
     properties:
       PK_DOCUMENTO_CLIENTE:
-        type: integer
-      PK_ID_PEDIDO:
         type: integer
       PK_ID_PEDIDO_CLIENTE:
         type: integer
@@ -725,6 +732,131 @@ paths:
       summary: Obtener inventario por ID
       tags:
       - inventarios
+  /item_pedidos:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un ítem de pedido de la base de datos.
+      parameters:
+      - description: ID del Ítem de Pedido
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ítem de pedido eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Ítem de pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un ítem de pedido
+      tags:
+      - item_pedidos
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los ítems de pedido registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de ítems de pedido
+          schema:
+            items:
+              $ref: '#/definitions/models.ItemPedido'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los ítems de pedido
+      tags:
+      - item_pedidos
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo ítem de pedido en la base de datos.
+      parameters:
+      - description: Datos del ítem de pedido a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ItemPedido'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Ítem de pedido creado
+          schema:
+            $ref: '#/definitions/models.ItemPedido'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo ítem de pedido
+      tags:
+      - item_pedidos
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un ítem de pedido existente.
+      parameters:
+      - description: ID del Ítem de Pedido
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del ítem de pedido a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ItemPedido'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ítem de pedido actualizado
+          schema:
+            $ref: '#/definitions/models.ItemPedido'
+        "404":
+          description: Ítem de pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un ítem de pedido
+      tags:
+      - item_pedidos
+  /item_pedidos/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un ítem de pedido específico por ID.
+      parameters:
+      - description: ID del Ítem de Pedido
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ítem de pedido encontrado
+          schema:
+            $ref: '#/definitions/models.ItemPedido'
+        "404":
+          description: Ítem de pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener ítem de pedido por ID
+      tags:
+      - item_pedidos
   /metodos_pago:
     delete:
       consumes:

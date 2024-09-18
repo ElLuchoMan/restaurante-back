@@ -767,6 +767,195 @@ const docTemplate = `{
                 }
             }
         },
+        "/item_pedidos": {
+            "get": {
+                "description": "Devuelve todos los ítems de pedido registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "item_pedidos"
+                ],
+                "summary": "Obtener todos los ítems de pedido",
+                "responses": {
+                    "200": {
+                        "description": "Lista de ítems de pedido",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ItemPedido"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un ítem de pedido existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "item_pedidos"
+                ],
+                "summary": "Actualizar un ítem de pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Ítem de Pedido",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del ítem de pedido a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ItemPedido"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ítem de pedido actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ItemPedido"
+                        }
+                    },
+                    "404": {
+                        "description": "Ítem de pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo ítem de pedido en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "item_pedidos"
+                ],
+                "summary": "Crear un nuevo ítem de pedido",
+                "parameters": [
+                    {
+                        "description": "Datos del ítem de pedido a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ItemPedido"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Ítem de pedido creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ItemPedido"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un ítem de pedido de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "item_pedidos"
+                ],
+                "summary": "Eliminar un ítem de pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Ítem de Pedido",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ítem de pedido eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ítem de pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/item_pedidos/search": {
+            "get": {
+                "description": "Devuelve un ítem de pedido específico por ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "item_pedidos"
+                ],
+                "summary": "Obtener ítem de pedido por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Ítem de Pedido",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ítem de pedido encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ItemPedido"
+                        }
+                    },
+                    "404": {
+                        "description": "Ítem de pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/metodos_pago": {
             "get": {
                 "description": "Devuelve todos los métodos de pago registrados en la base de datos.",
@@ -2754,6 +2943,20 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ItemPedido": {
+            "type": "object",
+            "properties": {
+                "CANTIDAD": {
+                    "type": "integer"
+                },
+                "PK_ID_ITEM_PEDIDO": {
+                    "type": "integer"
+                },
+                "PK_ID_PEDIDO": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.MetodoPago": {
             "type": "object",
             "properties": {
@@ -2850,9 +3053,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "PK_DOCUMENTO_CLIENTE": {
-                    "type": "integer"
-                },
-                "PK_ID_PEDIDO": {
                     "type": "integer"
                 },
                 "PK_ID_PEDIDO_CLIENTE": {

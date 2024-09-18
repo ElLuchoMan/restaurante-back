@@ -93,6 +93,19 @@ definitions:
       UNIDAD_MINIMA:
         type: integer
         format: int64
+  models.ItemPedido:
+    title: ItemPedido
+    type: object
+    properties:
+      CANTIDAD:
+        type: integer
+        format: int64
+      PK_ID_ITEM_PEDIDO:
+        type: integer
+        format: int64
+      PK_ID_PEDIDO:
+        type: integer
+        format: int64
   models.MetodoPago:
     title: MetodoPago
     type: object
