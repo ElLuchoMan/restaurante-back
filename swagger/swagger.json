@@ -78,6 +78,34 @@
                 }
             }
         },
+        "models.Ingrediente": {
+            "title": "Ingrediente",
+            "type": "object",
+            "properties": {
+                "CALORIAS": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "NOMBRE": {
+                    "type": "string"
+                },
+                "PESO": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_INGREDIENTE": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_INVENTARIO": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "TIPO": {
+                    "type": "string"
+                }
+            }
+        },
         "models.MetodoPago": {
             "title": "MetodoPago",
             "type": "object",

@@ -209,7 +209,6 @@ func (c *PagoController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Pago no encontrado",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}

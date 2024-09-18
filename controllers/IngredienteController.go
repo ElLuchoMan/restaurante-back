@@ -10,29 +10,29 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type MetodoPagoController struct {
+type IngredienteController struct {
 	web.Controller
 }
 
 // @Title GetAll
-// @Summary Obtener todos los métodos de pago
-// @Description Devuelve todos los métodos de pago registrados en la base de datos.
-// @Tags metodos_pago
+// @Summary Obtener todos los ingredientes
+// @Description Devuelve todos los ingredientes registrados en la base de datos.
+// @Tags ingredientes
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.MetodoPago "Lista de métodos de pago"
+// @Success 200 {array} models.Ingrediente "Lista de ingredientes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @Router /metodos_pago [get]
-func (c *MetodoPagoController) GetAll() {
+// @Router /ingredientes [get]
+func (c *IngredienteController) GetAll() {
 	o := orm.NewOrm()
-	var metodos []models.MetodoPago
+	var ingredientes []models.Ingrediente
 
-	_, err := o.QueryTable(new(models.MetodoPago)).All(&metodos)
+	_, err := o.QueryTable(new(models.Ingrediente)).All(&ingredientes)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener métodos de pago de la base de datos",
+			Message: "Error al obtener ingredientes de la base de datos",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
@@ -42,25 +42,25 @@ func (c *MetodoPagoController) GetAll() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Métodos de pago obtenidos exitosamente",
-		Data:    metodos,
+		Message: "Ingredientes obtenidos exitosamente",
+		Data:    ingredientes,
 	}
 	c.ServeJSON()
 }
 
 // @Title GetById
-// @Summary Obtener método de pago por ID
-// @Description Devuelve un método de pago específico por ID utilizando query parameters.
-// @Tags metodos_pago
+// @Summary Obtener ingrediente por ID
+// @Description Devuelve un ingrediente específico por ID utilizando query parameters.
+// @Tags ingredientes
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID del Método de Pago"
-// @Success 200 {object} models.MetodoPago "Método de pago encontrado"
-// @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
-// @Router /metodos_pago/search [get]
-func (c *MetodoPagoController) GetById() {
+// @Param   id     query    int     true        "ID del Ingrediente"
+// @Success 200 {object} models.Ingrediente "Ingrediente encontrado"
+// @Failure 404 {object} models.ApiResponse "Ingrediente no encontrado"
+// @Router /ingredientes/search [get]
+func (c *IngredienteController) GetById() {
 	o := orm.NewOrm()
-	id, err := c.GetInt("id")
+	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -73,14 +73,14 @@ func (c *MetodoPagoController) GetById() {
 		return
 	}
 
-	metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
+	ingrediente := models.Ingrediente{PK_ID_INGREDIENTE: id}
 
-	err = o.Read(&metodo)
+	err = o.Read(&ingrediente)
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
-			Message: "Método de pago no encontrado",
+			Message: "Ingrediente no encontrado",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
@@ -90,27 +90,27 @@ func (c *MetodoPagoController) GetById() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Método de pago encontrado",
-		Data:    metodo,
+		Message: "Ingrediente encontrado",
+		Data:    ingrediente,
 	}
 	c.ServeJSON()
 }
 
 // @Title Create
-// @Summary Crear un nuevo método de pago
-// @Description Crea un nuevo método de pago en la base de datos.
-// @Tags metodos_pago
+// @Summary Crear un nuevo ingrediente
+// @Description Crea un nuevo ingrediente en la base de datos.
+// @Tags ingredientes
 // @Accept json
 // @Produce json
-// @Param   body  body   models.MetodoPago true  "Datos del método de pago a crear"
-// @Success 201 {object} models.MetodoPago "Método de pago creado"
+// @Param   body  body   models.Ingrediente true  "Datos del ingrediente a crear"
+// @Success 201 {object} models.Ingrediente "Ingrediente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
-// @Router /metodos_pago [post]
-func (c *MetodoPagoController) Post() {
+// @Router /ingredientes [post]
+func (c *IngredienteController) Post() {
 	o := orm.NewOrm()
-	var metodo models.MetodoPago
+	var ingrediente models.Ingrediente
 
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &metodo); err != nil {
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &ingrediente); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -121,44 +121,45 @@ func (c *MetodoPagoController) Post() {
 		return
 	}
 
-	_, err := o.Insert(&metodo)
+	id, err := o.Insert(&ingrediente)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el método de pago",
+			Message: "Error al crear el ingrediente",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
+	ingrediente.PK_ID_INGREDIENTE = id
+
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
-		Message: "Método de pago creado correctamente",
-		Data:    metodo,
+		Message: "Ingrediente creado correctamente",
+		Data:    ingrediente,
 	}
 	c.ServeJSON()
 }
 
 // @Title Update
-// @Summary Actualizar un método de pago
-// @Description Actualiza los datos de un método de pago existente.
-// @Tags metodos_pago
+// @Summary Actualizar un ingrediente
+// @Description Actualiza los datos de un ingrediente existente.
+// @Tags ingredientes
 // @Accept json
 // @Produce json
-// @Param   id    query    int  true   "ID del Método de Pago"
-// @Param   body  body   models.MetodoPago true  "Datos del método de pago a actualizar"
-// @Success 200 {object} models.MetodoPago "Método de pago actualizado"
-// @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
-// @Router /metodos_pago [put]
-func (c *MetodoPagoController) Put() {
+// @Param   id    query    int  true   "ID del Ingrediente"
+// @Param   body  body   models.Ingrediente true  "Datos del ingrediente a actualizar"
+// @Success 200 {object} models.Ingrediente "Ingrediente actualizado"
+// @Failure 404 {object} models.ApiResponse "Ingrediente no encontrado"
+// @Router /ingredientes [put]
+func (c *IngredienteController) Put() {
 	o := orm.NewOrm()
 
-	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -170,11 +171,11 @@ func (c *MetodoPagoController) Put() {
 		return
 	}
 
-	metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
+	ingrediente := models.Ingrediente{PK_ID_INGREDIENTE: id}
 
-	if o.Read(&metodo) == nil {
-		var updatedMetodo models.MetodoPago
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedMetodo); err != nil {
+	if o.Read(&ingrediente) == nil {
+		var updatedIngrediente models.Ingrediente
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedIngrediente); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
@@ -185,13 +186,13 @@ func (c *MetodoPagoController) Put() {
 			return
 		}
 
-		updatedMetodo.PK_ID_METODO_PAGO = id
-		_, err := o.Update(&updatedMetodo)
+		updatedIngrediente.PK_ID_INGREDIENTE = id
+		_, err := o.Update(&updatedIngrediente)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
-				Message: "Error al actualizar el método de pago",
+				Message: "Error al actualizar el ingrediente",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
@@ -201,36 +202,35 @@ func (c *MetodoPagoController) Put() {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
-			Message: "Método de pago actualizado",
-			Data:    updatedMetodo,
+			Message: "Ingrediente actualizado",
+			Data:    updatedIngrediente,
 		}
 		c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
-			Message: "Método de pago no encontrado",
+			Message: "Ingrediente no encontrado",
 		}
 		c.ServeJSON()
 	}
 }
 
 // @Title Delete
-// @Summary Eliminar un método de pago
-// @Description Elimina un método de pago de la base de datos.
-// @Tags metodos_pago
+// @Summary Eliminar un ingrediente
+// @Description Elimina un ingrediente de la base de datos.
+// @Tags ingredientes
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID del Método de Pago"
-// @Success 200 {object} models.ApiResponse "Método de pago eliminado"
-// @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
-// @Router /metodos_pago [delete]
-func (c *MetodoPagoController) Delete() {
+// @Param   id     query    int     true        "ID del Ingrediente"
+// @Success 200 {object} models.ApiResponse "Ingrediente eliminado"
+// @Failure 404 {object} models.ApiResponse "Ingrediente no encontrado"
+// @Router /ingredientes [delete]
+func (c *IngredienteController) Delete() {
 	o := orm.NewOrm()
 
-	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -242,20 +242,20 @@ func (c *MetodoPagoController) Delete() {
 		return
 	}
 
-	metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
+	ingrediente := models.Ingrediente{PK_ID_INGREDIENTE: id}
 
-	if _, err := o.Delete(&metodo); err == nil {
+	if _, err := o.Delete(&ingrediente); err == nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
-			Message: "Método de pago eliminado",
+			Message: "Ingrediente eliminado",
 		}
 		c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
-			Message: "Método de pago no encontrado",
+			Message: "Ingrediente no encontrado",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()

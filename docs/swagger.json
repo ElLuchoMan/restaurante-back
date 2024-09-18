@@ -382,6 +382,195 @@
                 }
             }
         },
+        "/ingredientes": {
+            "get": {
+                "description": "Devuelve todos los ingredientes registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingredientes"
+                ],
+                "summary": "Obtener todos los ingredientes",
+                "responses": {
+                    "200": {
+                        "description": "Lista de ingredientes",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Ingrediente"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un ingrediente existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingredientes"
+                ],
+                "summary": "Actualizar un ingrediente",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Ingrediente",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del ingrediente a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Ingrediente"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ingrediente actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Ingrediente"
+                        }
+                    },
+                    "404": {
+                        "description": "Ingrediente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo ingrediente en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingredientes"
+                ],
+                "summary": "Crear un nuevo ingrediente",
+                "parameters": [
+                    {
+                        "description": "Datos del ingrediente a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Ingrediente"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Ingrediente creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Ingrediente"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un ingrediente de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingredientes"
+                ],
+                "summary": "Eliminar un ingrediente",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Ingrediente",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ingrediente eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ingrediente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ingredientes/search": {
+            "get": {
+                "description": "Devuelve un ingrediente específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingredientes"
+                ],
+                "summary": "Obtener ingrediente por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Ingrediente",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ingrediente encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Ingrediente"
+                        }
+                    },
+                    "404": {
+                        "description": "Ingrediente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/metodos_pago": {
             "get": {
                 "description": "Devuelve todos los métodos de pago registrados en la base de datos.",
@@ -1752,6 +1941,29 @@
                     "type": "integer"
                 },
                 "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Ingrediente": {
+            "type": "object",
+            "properties": {
+                "CALORIAS": {
+                    "type": "integer"
+                },
+                "NOMBRE": {
+                    "type": "string"
+                },
+                "PESO": {
+                    "type": "integer"
+                },
+                "PK_ID_INGREDIENTE": {
+                    "type": "integer"
+                },
+                "PK_ID_INVENTARIO": {
+                    "type": "integer"
+                },
+                "TIPO": {
                     "type": "string"
                 }
             }

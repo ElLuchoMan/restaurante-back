@@ -42,6 +42,21 @@ definitions:
       telefono:
         type: string
     type: object
+  models.Ingrediente:
+    properties:
+      CALORIAS:
+        type: integer
+      NOMBRE:
+        type: string
+      PESO:
+        type: integer
+      PK_ID_INGREDIENTE:
+        type: integer
+      PK_ID_INVENTARIO:
+        type: integer
+      TIPO:
+        type: string
+    type: object
   models.MetodoPago:
     properties:
       DETALLE:
@@ -410,6 +425,131 @@ paths:
       summary: Obtener domicilio por ID
       tags:
       - domicilios
+  /ingredientes:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un ingrediente de la base de datos.
+      parameters:
+      - description: ID del Ingrediente
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ingrediente eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Ingrediente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un ingrediente
+      tags:
+      - ingredientes
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los ingredientes registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de ingredientes
+          schema:
+            items:
+              $ref: '#/definitions/models.Ingrediente'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los ingredientes
+      tags:
+      - ingredientes
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo ingrediente en la base de datos.
+      parameters:
+      - description: Datos del ingrediente a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Ingrediente'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Ingrediente creado
+          schema:
+            $ref: '#/definitions/models.Ingrediente'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo ingrediente
+      tags:
+      - ingredientes
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un ingrediente existente.
+      parameters:
+      - description: ID del Ingrediente
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del ingrediente a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Ingrediente'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ingrediente actualizado
+          schema:
+            $ref: '#/definitions/models.Ingrediente'
+        "404":
+          description: Ingrediente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un ingrediente
+      tags:
+      - ingredientes
+  /ingredientes/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un ingrediente específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Ingrediente
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ingrediente encontrado
+          schema:
+            $ref: '#/definitions/models.Ingrediente'
+        "404":
+          description: Ingrediente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener ingrediente por ID
+      tags:
+      - ingredientes
   /metodos_pago:
     delete:
       consumes:
