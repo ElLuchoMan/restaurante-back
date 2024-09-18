@@ -368,16 +368,16 @@
             "title": "Restaurante",
             "type": "object",
             "properties": {
-                "DIAS_LABORALES": {
+                "dias_laborales": {
                     "type": "string"
                 },
-                "HORA_APERTURA": {
+                "hora_apertura": {
                     "type": "string"
                 },
-                "NOMBRE_RESTAURANTE": {
+                "nombre_restaurante": {
                     "type": "string"
                 },
-                "PK_ID_RESTAURANTE": {
+                "pk_id_restaurante": {
                     "type": "integer",
                     "format": "int64"
                 }

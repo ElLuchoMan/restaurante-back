@@ -110,6 +110,7 @@ func (c *RestauranteController) Post() {
 	o := orm.NewOrm()
 	var restaurante models.Restaurante
 
+	// Deserializar el JSON del cuerpo de la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &restaurante); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -119,6 +120,14 @@ func (c *RestauranteController) Post() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	// Si se envían los días laborales como array de strings, usar SetDiasLaborales
+	if len(restaurante.DIAS_LABORALES) > 0 {
+		var dias []string
+		if err := json.Unmarshal([]byte(restaurante.DIAS_LABORALES), &dias); err == nil {
+			restaurante.SetDiasLaborales(dias)
+		}
 	}
 
 	_, err := o.Insert(&restaurante)
@@ -185,7 +194,17 @@ func (c *RestauranteController) Put() {
 			return
 		}
 
+		// Asignar el ID original al modelo actualizado
 		updatedRestaurante.PK_ID_RESTAURANTE = id
+
+		// Si se envían los días laborales como array de strings, usar SetDiasLaborales
+		if len(updatedRestaurante.DIAS_LABORALES) > 0 {
+			var dias []string
+			if err := json.Unmarshal([]byte(updatedRestaurante.DIAS_LABORALES), &dias); err == nil {
+				updatedRestaurante.SetDiasLaborales(dias)
+			}
+		}
+
 		_, err := o.Update(&updatedRestaurante)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
