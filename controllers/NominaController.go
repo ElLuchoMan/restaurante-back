@@ -248,7 +248,7 @@ func (c *NominaController) Delete() {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
-			Message: "Nómina eliminada",
+			Message: "Nómina eliminada correctamente",
 		}
 		c.ServeJSON()
 	} else {
