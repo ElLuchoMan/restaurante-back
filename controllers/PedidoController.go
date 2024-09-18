@@ -110,6 +110,7 @@ func (c *PedidoController) Post() {
 	o := orm.NewOrm()
 	var pedido models.Pedido
 
+	// Deserializar el cuerpo de la solicitud primero
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &pedido); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -121,6 +122,27 @@ func (c *PedidoController) Post() {
 		return
 	}
 
+	// Validar el campo ESTADO
+	validStates := []string{"INICIADO", "TERMINADO", "CANCELADO"}
+	isValidState := false
+	for _, state := range validStates {
+		if pedido.ESTADO == state {
+			isValidState = true
+			break
+		}
+	}
+
+	if !isValidState {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Estado inválido. Los estados permitidos son: INICIADO, TERMINADO, CANCELADO.",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Insertar el nuevo pedido en la base de datos
 	_, err := o.Insert(&pedido)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -156,62 +178,88 @@ func (c *PedidoController) Post() {
 func (c *PedidoController) Put() {
 	o := orm.NewOrm()
 
+	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
+			Message: "El parámetro 'id' es inválido o está ausente.",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
+	// Leer el pedido actual por ID
 	pedido := models.Pedido{PK_ID_PEDIDO: id}
-
-	if o.Read(&pedido) == nil {
-		var updatedPedido models.Pedido
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedPedido); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Error en la solicitud",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-
-		updatedPedido.PK_ID_PEDIDO = id
-		_, err := o.Update(&updatedPedido)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al actualizar el pedido",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Pedido actualizado",
-			Data:    updatedPedido,
-		}
-		c.ServeJSON()
-	} else {
+	if o.Read(&pedido) != nil {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
-			Message: "Pedido no encontrado",
+			Message: "Pedido no encontrado.",
 		}
 		c.ServeJSON()
+		return
 	}
+
+	// Deserializar los datos del pedido que vienen en el cuerpo de la solicitud
+	var updatedPedido models.Pedido
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedPedido); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Error en la solicitud.",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Validar el campo ESTADO
+	validStates := []string{"INICIADO", "TERMINADO", "CANCELADO"}
+	isValidState := false
+	for _, state := range validStates {
+		if updatedPedido.ESTADO == state {
+			isValidState = true
+			break
+		}
+	}
+
+	if !isValidState {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Estado inválido. Los estados permitidos son: INICIADO, TERMINADO, CANCELADO.",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Asignar el ID original al pedido actualizado
+	updatedPedido.PK_ID_PEDIDO = id
+
+	// Actualizar el pedido en la base de datos
+	if _, err := o.Update(&updatedPedido); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al actualizar el pedido.",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Enviar la respuesta exitosa
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Pedido actualizado.",
+		Data:    updatedPedido,
+	}
+	c.ServeJSON()
 }
 
 // @Title Delete
