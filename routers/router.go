@@ -63,11 +63,16 @@ func init() {
 			beego.NSRouter("/", &controllers.InventarioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.InventarioController{}, "get:GetById"),
 		),
-				// Rutas para nóminas
-				beego.NSNamespace("/nominas",
-				beego.NSRouter("/", &controllers.NominaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-				beego.NSRouter("/search", &controllers.NominaController{}, "get:GetById"),
-			),
+		// Rutas para nóminas
+		beego.NSNamespace("/nominas",
+			beego.NSRouter("/", &controllers.NominaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.NominaController{}, "get:GetById"),
+		),
+		// Rutas para plato_ingredientes
+		beego.NSNamespace("/plato_ingredientes",
+			beego.NSRouter("/", &controllers.PlatoIngredienteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.PlatoIngredienteController{}, "get:GetById"),
+		),
 	)
 
 	beego.AddNamespace(ns)

@@ -192,6 +192,22 @@ definitions:
       PRECIO:
         type: integer
         format: int64
+  models.PlatoIngrediente:
+    title: PlatoIngrediente
+    type: object
+    properties:
+      CANTIDAD:
+        type: integer
+        format: int64
+      PK_ID_INGREDIENTE:
+        type: integer
+        format: int64
+      PK_ID_PLATO:
+        type: integer
+        format: int64
+      PK_ID_PLATO_INGREDIENTE:
+        type: integer
+        format: int64
   models.Reserva:
     title: Reserva
     type: object
