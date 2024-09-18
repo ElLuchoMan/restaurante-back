@@ -244,6 +244,24 @@
                 }
             }
         },
+        "models.PedidoCliente": {
+            "title": "PedidoCliente",
+            "type": "object",
+            "properties": {
+                "PK_DOCUMENTO_CLIENTE": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_PEDIDO_CLIENTE": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_RESTAURANTE": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Plato": {
             "title": "Plato",
             "type": "object",

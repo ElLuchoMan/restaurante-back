@@ -211,7 +211,6 @@ func (c *PlatoIngredienteController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Relación no encontrada",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}

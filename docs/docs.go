@@ -1334,6 +1334,195 @@ const docTemplate = `{
                 }
             }
         },
+        "/pedido_clientes": {
+            "get": {
+                "description": "Devuelve todas las relaciones entre pedidos y clientes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido_clientes"
+                ],
+                "summary": "Obtener todas las relaciones pedido-cliente",
+                "responses": {
+                    "200": {
+                        "description": "Lista de relaciones",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.PedidoCliente"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de una relación existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido_clientes"
+                ],
+                "summary": "Actualizar una relación pedido-cliente",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Relación",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de la relación a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PedidoCliente"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relación actualizada",
+                        "schema": {
+                            "$ref": "#/definitions/models.PedidoCliente"
+                        }
+                    },
+                    "404": {
+                        "description": "Relación no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea una nueva relación entre un pedido y un cliente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido_clientes"
+                ],
+                "summary": "Crear una nueva relación pedido-cliente",
+                "parameters": [
+                    {
+                        "description": "Datos de la relación a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PedidoCliente"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Relación creada",
+                        "schema": {
+                            "$ref": "#/definitions/models.PedidoCliente"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina una relación de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido_clientes"
+                ],
+                "summary": "Eliminar una relación pedido-cliente",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Relación",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relación eliminada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Relación no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pedido_clientes/search": {
+            "get": {
+                "description": "Devuelve una relación específica por ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido_clientes"
+                ],
+                "summary": "Obtener relación por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Relación",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relación encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.PedidoCliente"
+                        }
+                    },
+                    "404": {
+                        "description": "Relación no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pedidos": {
             "get": {
                 "description": "Devuelve todos los pedidos registrados en la base de datos.",
@@ -1513,6 +1702,195 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/plato_ingredientes": {
+            "get": {
+                "description": "Devuelve todas las relaciones entre platos e ingredientes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plato_ingredientes"
+                ],
+                "summary": "Obtener todas las relaciones plato-ingrediente",
+                "responses": {
+                    "200": {
+                        "description": "Lista de relaciones",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.PlatoIngrediente"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de una relación existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plato_ingredientes"
+                ],
+                "summary": "Actualizar una relación plato-ingrediente",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Relación",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de la relación a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PlatoIngrediente"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relación actualizada",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlatoIngrediente"
+                        }
+                    },
+                    "404": {
+                        "description": "Relación no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea una nueva relación entre un plato y un ingrediente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plato_ingredientes"
+                ],
+                "summary": "Crear una nueva relación plato-ingrediente",
+                "parameters": [
+                    {
+                        "description": "Datos de la relación a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PlatoIngrediente"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Relación creada",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlatoIngrediente"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina una relación de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plato_ingredientes"
+                ],
+                "summary": "Eliminar una relación plato-ingrediente",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Relación",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relación eliminada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Relación no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/plato_ingredientes/search": {
+            "get": {
+                "description": "Devuelve una relación específica por ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "plato_ingredientes"
+                ],
+                "summary": "Obtener relación por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Relación",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relación encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlatoIngrediente"
+                        }
+                    },
+                    "404": {
+                        "description": "Relación no encontrada",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2468,6 +2846,23 @@ const docTemplate = `{
                 }
             }
         },
+        "models.PedidoCliente": {
+            "type": "object",
+            "properties": {
+                "PK_DOCUMENTO_CLIENTE": {
+                    "type": "integer"
+                },
+                "PK_ID_PEDIDO": {
+                    "type": "integer"
+                },
+                "PK_ID_PEDIDO_CLIENTE": {
+                    "type": "integer"
+                },
+                "PK_ID_RESTAURANTE": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Plato": {
             "type": "object",
             "properties": {
@@ -2490,6 +2885,23 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "PRECIO": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PlatoIngrediente": {
+            "type": "object",
+            "properties": {
+                "CANTIDAD": {
+                    "type": "integer"
+                },
+                "PK_ID_INGREDIENTE": {
+                    "type": "integer"
+                },
+                "PK_ID_PLATO": {
+                    "type": "integer"
+                },
+                "PK_ID_PLATO_INGREDIENTE": {
                     "type": "integer"
                 }
             }
