@@ -42,6 +42,32 @@ definitions:
       telefono:
         type: string
     type: object
+  models.MetodoPago:
+    properties:
+      DETALLE:
+        type: string
+      PK_ID_METODO_PAGO:
+        type: integer
+      PK_ID_PAGO:
+        type: integer
+      TIPO:
+        type: string
+    type: object
+  models.Pago:
+    properties:
+      ESTADO:
+        type: string
+      FECHA:
+        type: string
+      HORA:
+        type: string
+      MONTO:
+        type: integer
+      PK_ID_METODO_PAGO:
+        type: integer
+      PK_ID_PAGO:
+        type: integer
+    type: object
   models.Pedido:
     properties:
       delivery:
@@ -384,6 +410,256 @@ paths:
       summary: Obtener domicilio por ID
       tags:
       - domicilios
+  /metodos_pago:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un método de pago de la base de datos.
+      parameters:
+      - description: ID del Método de Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Método de pago eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Método de pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un método de pago
+      tags:
+      - metodos_pago
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los métodos de pago registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de métodos de pago
+          schema:
+            items:
+              $ref: '#/definitions/models.MetodoPago'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los métodos de pago
+      tags:
+      - metodos_pago
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo método de pago en la base de datos.
+      parameters:
+      - description: Datos del método de pago a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.MetodoPago'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Método de pago creado
+          schema:
+            $ref: '#/definitions/models.MetodoPago'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo método de pago
+      tags:
+      - metodos_pago
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un método de pago existente.
+      parameters:
+      - description: ID del Método de Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del método de pago a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.MetodoPago'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Método de pago actualizado
+          schema:
+            $ref: '#/definitions/models.MetodoPago'
+        "404":
+          description: Método de pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un método de pago
+      tags:
+      - metodos_pago
+  /metodos_pago/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un método de pago específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Método de Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Método de pago encontrado
+          schema:
+            $ref: '#/definitions/models.MetodoPago'
+        "404":
+          description: Método de pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener método de pago por ID
+      tags:
+      - metodos_pago
+  /pagos:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un pago de la base de datos.
+      parameters:
+      - description: ID del Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pago eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un pago
+      tags:
+      - pagos
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los pagos registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de pagos
+          schema:
+            items:
+              $ref: '#/definitions/models.Pago'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los pagos
+      tags:
+      - pagos
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo pago en la base de datos.
+      parameters:
+      - description: Datos del pago a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Pago'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Pago creado
+          schema:
+            $ref: '#/definitions/models.Pago'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo pago
+      tags:
+      - pagos
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un pago existente.
+      parameters:
+      - description: ID del Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del pago a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Pago'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pago actualizado
+          schema:
+            $ref: '#/definitions/models.Pago'
+        "404":
+          description: Pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un pago
+      tags:
+      - pagos
+  /pagos/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un pago específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pago encontrado
+          schema:
+            $ref: '#/definitions/models.Pago'
+        "404":
+          description: Pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener pago por ID
+      tags:
+      - pagos
   /pedidos:
     delete:
       consumes:

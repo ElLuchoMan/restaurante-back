@@ -382,6 +382,384 @@
                 }
             }
         },
+        "/metodos_pago": {
+            "get": {
+                "description": "Devuelve todos los métodos de pago registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metodos_pago"
+                ],
+                "summary": "Obtener todos los métodos de pago",
+                "responses": {
+                    "200": {
+                        "description": "Lista de métodos de pago",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.MetodoPago"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un método de pago existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metodos_pago"
+                ],
+                "summary": "Actualizar un método de pago",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Método de Pago",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del método de pago a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.MetodoPago"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Método de pago actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.MetodoPago"
+                        }
+                    },
+                    "404": {
+                        "description": "Método de pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo método de pago en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metodos_pago"
+                ],
+                "summary": "Crear un nuevo método de pago",
+                "parameters": [
+                    {
+                        "description": "Datos del método de pago a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.MetodoPago"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Método de pago creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.MetodoPago"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un método de pago de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metodos_pago"
+                ],
+                "summary": "Eliminar un método de pago",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Método de Pago",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Método de pago eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Método de pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/metodos_pago/search": {
+            "get": {
+                "description": "Devuelve un método de pago específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metodos_pago"
+                ],
+                "summary": "Obtener método de pago por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Método de Pago",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Método de pago encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.MetodoPago"
+                        }
+                    },
+                    "404": {
+                        "description": "Método de pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pagos": {
+            "get": {
+                "description": "Devuelve todos los pagos registrados en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pagos"
+                ],
+                "summary": "Obtener todos los pagos",
+                "responses": {
+                    "200": {
+                        "description": "Lista de pagos",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Pago"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un pago existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pagos"
+                ],
+                "summary": "Actualizar un pago",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Pago",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del pago a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Pago"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pago actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Pago"
+                        }
+                    },
+                    "404": {
+                        "description": "Pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo pago en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pagos"
+                ],
+                "summary": "Crear un nuevo pago",
+                "parameters": [
+                    {
+                        "description": "Datos del pago a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Pago"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Pago creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Pago"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un pago de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pagos"
+                ],
+                "summary": "Eliminar un pago",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Pago",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pago eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pagos/search": {
+            "get": {
+                "description": "Devuelve un pago específico por ID utilizando query parameters.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pagos"
+                ],
+                "summary": "Obtener pago por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Pago",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pago encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Pago"
+                        }
+                    },
+                    "404": {
+                        "description": "Pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pedidos": {
             "get": {
                 "description": "Devuelve todos los pedidos registrados en la base de datos.",
@@ -1375,6 +1753,46 @@
                 },
                 "telefono": {
                     "type": "string"
+                }
+            }
+        },
+        "models.MetodoPago": {
+            "type": "object",
+            "properties": {
+                "DETALLE": {
+                    "type": "string"
+                },
+                "PK_ID_METODO_PAGO": {
+                    "type": "integer"
+                },
+                "PK_ID_PAGO": {
+                    "type": "integer"
+                },
+                "TIPO": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Pago": {
+            "type": "object",
+            "properties": {
+                "ESTADO": {
+                    "type": "string"
+                },
+                "FECHA": {
+                    "type": "string"
+                },
+                "HORA": {
+                    "type": "string"
+                },
+                "MONTO": {
+                    "type": "integer"
+                },
+                "PK_ID_METODO_PAGO": {
+                    "type": "integer"
+                },
+                "PK_ID_PAGO": {
+                    "type": "integer"
                 }
             }
         },

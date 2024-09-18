@@ -3,6 +3,19 @@ info: {}
 basePath: /restaurante/v1
 paths: {}
 definitions:
+  models.ApiResponse:
+    title: ApiResponse
+    type: object
+    properties:
+      cause:
+        type: string
+      code:
+        type: integer
+        format: int64
+      data:
+        $ref: '#/definitions/models.any'
+      message:
+        type: string
   models.Cliente:
     title: Cliente
     type: object
@@ -39,6 +52,39 @@ definitions:
         format: int64
       TELEFONO:
         type: string
+  models.MetodoPago:
+    title: MetodoPago
+    type: object
+    properties:
+      DETALLE:
+        type: string
+      PK_ID_METODO_PAGO:
+        type: integer
+        format: int64
+      PK_ID_PAGO:
+        type: integer
+        format: int64
+      TIPO:
+        type: string
+  models.Pago:
+    title: Pago
+    type: object
+    properties:
+      ESTADO:
+        type: string
+      FECHA:
+        type: string
+      HORA:
+        type: string
+      MONTO:
+        type: integer
+        format: int64
+      PK_ID_METODO_PAGO:
+        type: integer
+        format: int64
+      PK_ID_PAGO:
+        type: integer
+        format: int64
   models.Pedido:
     title: Pedido
     type: object
@@ -150,6 +196,9 @@ definitions:
       TELEFONO:
         type: integer
         format: int64
+  models.any:
+    title: any
+    type: object
   nil:
     title: nil
     type: object
