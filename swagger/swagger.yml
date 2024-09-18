@@ -28,8 +28,6 @@ definitions:
         type: string
       OBSERVACIONES:
         type: string
-      PASSWORD:
-        type: string
       PK_DOCUMENTO_CLIENTE:
         type: integer
         format: int64

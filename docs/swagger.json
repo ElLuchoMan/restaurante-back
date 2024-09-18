@@ -146,8 +146,11 @@
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Cliente eliminado"
+                    "200": {
+                        "description": "Cliente eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     },
                     "404": {
                         "description": "Cliente no encontrado",
@@ -2339,7 +2342,7 @@
                 }
             },
             "delete": {
-                "description": "Elimina un plato de la base de datos.",
+                "description": "Desactiva un plato en la base de datos (borrado lógico).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2349,7 +2352,7 @@
                 "tags": [
                     "platos"
                 ],
-                "summary": "Eliminar un plato",
+                "summary": "Desactivar un plato",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2361,7 +2364,7 @@
                 ],
                 "responses": {
                     "204": {
-                        "description": "Plato eliminado"
+                        "description": "Plato desactivado"
                     },
                     "404": {
                         "description": "Plato no encontrado",
@@ -3033,9 +3036,6 @@
                     "type": "string"
                 },
                 "observaciones": {
-                    "type": "string"
-                },
-                "password": {
                     "type": "string"
                 },
                 "pk_DOCUMENTO_CLIENTE": {

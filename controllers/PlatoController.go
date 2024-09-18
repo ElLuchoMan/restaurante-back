@@ -342,13 +342,13 @@ func (c *PlatoController) Put() {
 }
 
 // @Title Delete
-// @Summary Eliminar un plato
-// @Description Elimina un plato de la base de datos.
+// @Summary Desactivar un plato
+// @Description Desactiva un plato en la base de datos (borrado lógico).
 // @Tags platos
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Plato"
-// @Success 204 {object} nil "Plato eliminado"
+// @Success 204 {object} nil "Plato desactivado"
 // @Failure 404 {object} models.ApiResponse "Plato no encontrado"
 // @Router /platos [delete]
 func (c *PlatoController) Delete() {
@@ -367,20 +367,33 @@ func (c *PlatoController) Delete() {
 		return
 	}
 
+	// Buscar el plato
 	plato := models.Plato{PK_ID_PLATO: int64(id)}
-
-	if _, err := o.Delete(&plato); err == nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Plato eliminado",
-		}
-		c.ServeJSON()
-	} else {
+	if err := o.Read(&plato); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Plato no encontrado",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Realizar el borrado lógico
+	plato.ACTIVO = false
+	if _, err := o.Update(&plato); err == nil {
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusOK,
+			Message: "Plato desactivado",
+		}
+		c.ServeJSON()
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al desactivar el plato",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()

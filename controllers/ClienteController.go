@@ -8,6 +8,7 @@ import (
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type ClienteController struct {
@@ -37,6 +38,11 @@ func (c *ClienteController) GetAll() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	// Excluir las contraseñas de la respuesta
+	for i := range clientes {
+		clientes[i].PASSWORD = ""
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -81,11 +87,13 @@ func (c *ClienteController) GetById() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
+
+	// Excluir la contraseña de la respuesta
+	cliente.PASSWORD = ""
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -114,14 +122,29 @@ func (c *ClienteController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "Error en la solicitud",
+			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	_, err := o.Insert(&cliente)
+	// Hash de la contraseña antes de insertar
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(cliente.PASSWORD), bcrypt.DefaultCost)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al procesar la contraseña",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+	cliente.PASSWORD = string(hashedPassword)
+
+	// Inserción en la base de datos
+	_, err = o.Insert(&cliente)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -132,6 +155,9 @@ func (c *ClienteController) Post() {
 		c.ServeJSON()
 		return
 	}
+
+	// Excluir la contraseña de la respuesta
+	cliente.PASSWORD = ""
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
@@ -170,49 +196,86 @@ func (c *ClienteController) Put() {
 		return
 	}
 
+	// Verificar si el cliente existe
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
-
-	if o.Read(&cliente) == nil {
-		var updatedCliente models.Cliente
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedCliente); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+	if err := o.Read(&cliente); err != nil {
+		if err == orm.ErrNoRows {
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Error en la solicitud",
+				Code:    http.StatusNotFound,
+				Message: "Cliente no encontrado",
+			}
+			c.ServeJSON()
+		} else {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al buscar el cliente",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
-			return
 		}
+		return
+	}
 
-		updatedCliente.PK_DOCUMENTO_CLIENTE = id
-		_, err := o.Update(&updatedCliente)
+	// Decodificar los datos actualizados
+	var updatedCliente models.Cliente
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedCliente); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Error al decodificar la solicitud",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Mantener el ID original
+	updatedCliente.PK_DOCUMENTO_CLIENTE = cliente.PK_DOCUMENTO_CLIENTE
+
+	// Si se proporciona una nueva contraseña, hashéala
+	if updatedCliente.PASSWORD != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(updatedCliente.PASSWORD), bcrypt.DefaultCost)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
-				Message: "Error al actualizar el cliente",
+				Message: "Error al procesar la contraseña",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
 			return
 		}
-
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Cliente actualizado",
-			Data:    updatedCliente,
-		}
-		c.ServeJSON()
+		updatedCliente.PASSWORD = string(hashedPassword)
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		// Mantener la contraseña existente
+		updatedCliente.PASSWORD = cliente.PASSWORD
+	}
+
+	// Actualizar en la base de datos
+	_, err = o.Update(&updatedCliente)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Cliente no encontrado",
+			Code:    http.StatusInternalServerError,
+			Message: "Error al actualizar el cliente",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
+		return
 	}
+
+	// Excluir la contraseña de la respuesta
+	updatedCliente.PASSWORD = ""
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Cliente actualizado",
+		Data:    updatedCliente,
+	}
+	c.ServeJSON()
 }
 
 // @Title Delete
@@ -222,7 +285,7 @@ func (c *ClienteController) Put() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Cliente"
-// @Success 204 {object} nil "Cliente eliminado"
+// @Success 200 {object} models.ApiResponse "Cliente eliminado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Router /clientes [delete]
 func (c *ClienteController) Delete() {

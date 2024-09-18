@@ -354,34 +354,38 @@ func (c *IngredienteController) Delete() {
 		return
 	}
 
+	// Buscar el ingrediente en la base de datos
 	ingrediente := models.Ingrediente{PK_ID_INGREDIENTE: id}
-
-	if o.Read(&ingrediente) == nil {
-		ingrediente.ACTIVO = false
-		_, err := o.Update(&ingrediente)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al desactivar el ingrediente.",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Ingrediente desactivado",
-		}
-		c.ServeJSON()
-	} else {
+	if err := o.Read(&ingrediente); err != nil {
+		// Si no se encuentra el ingrediente, retorna un error 404
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Ingrediente no encontrado.",
 		}
 		c.ServeJSON()
+		return
 	}
+
+	// Marcar el ingrediente como inactivo (borrado lógico)
+	ingrediente.ACTIVO = false
+	if _, err := o.Update(&ingrediente); err != nil {
+		// Si ocurre un error al actualizar, responde con un 500
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al desactivar el ingrediente.",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Ingrediente desactivado correctamente
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Ingrediente desactivado.",
+	}
+	c.ServeJSON()
 }

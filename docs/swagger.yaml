@@ -20,8 +20,6 @@ definitions:
         type: string
       observaciones:
         type: string
-      password:
-        type: string
       pk_DOCUMENTO_CLIENTE:
         type: integer
       telefono:
@@ -258,8 +256,10 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
+        "200":
           description: Cliente eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Cliente no encontrado
           schema:
@@ -1678,7 +1678,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Elimina un plato de la base de datos.
+      description: Desactiva un plato en la base de datos (borrado lógico).
       parameters:
       - description: ID del Plato
         in: query
@@ -1689,12 +1689,12 @@ paths:
       - application/json
       responses:
         "204":
-          description: Plato eliminado
+          description: Plato desactivado
         "404":
           description: Plato no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Eliminar un plato
+      summary: Desactivar un plato
       tags:
       - platos
     get:
