@@ -72,6 +72,27 @@ definitions:
         format: int64
       TIPO:
         type: string
+  models.Inventario:
+    title: Inventario
+    type: object
+    properties:
+      CANTIDAD:
+        type: integer
+        format: int64
+      FECHA:
+        type: string
+      PK_ID_INGREDIENTE:
+        type: integer
+        format: int64
+      PK_ID_INVENTARIO:
+        type: integer
+        format: int64
+      UNIDAD:
+        type: integer
+        format: int64
+      UNIDAD_MINIMA:
+        type: integer
+        format: int64
   models.MetodoPago:
     title: MetodoPago
     type: object

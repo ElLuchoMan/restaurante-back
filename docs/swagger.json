@@ -571,6 +571,195 @@
                 }
             }
         },
+        "/inventarios": {
+            "get": {
+                "description": "Devuelve todos los registros de inventario.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventarios"
+                ],
+                "summary": "Obtener todos los inventarios",
+                "responses": {
+                    "200": {
+                        "description": "Lista de inventarios",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Inventario"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de un inventario existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventarios"
+                ],
+                "summary": "Actualizar un inventario",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Inventario",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del inventario a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Inventario"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Inventario actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Inventario"
+                        }
+                    },
+                    "404": {
+                        "description": "Inventario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo registro de inventario.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventarios"
+                ],
+                "summary": "Crear un nuevo inventario",
+                "parameters": [
+                    {
+                        "description": "Datos del inventario a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Inventario"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Inventario creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Inventario"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina un registro de inventario de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventarios"
+                ],
+                "summary": "Eliminar un inventario",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Inventario",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Inventario eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Inventario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/inventarios/search": {
+            "get": {
+                "description": "Devuelve un registro de inventario específico por ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventarios"
+                ],
+                "summary": "Obtener inventario por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del Inventario",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Inventario encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.Inventario"
+                        }
+                    },
+                    "404": {
+                        "description": "Inventario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/metodos_pago": {
             "get": {
                 "description": "Devuelve todos los métodos de pago registrados en la base de datos.",
@@ -1965,6 +2154,29 @@
                 },
                 "TIPO": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Inventario": {
+            "type": "object",
+            "properties": {
+                "CANTIDAD": {
+                    "type": "integer"
+                },
+                "FECHA": {
+                    "type": "string"
+                },
+                "PK_ID_INGREDIENTE": {
+                    "type": "integer"
+                },
+                "PK_ID_INVENTARIO": {
+                    "type": "integer"
+                },
+                "UNIDAD": {
+                    "type": "integer"
+                },
+                "UNIDAD_MINIMA": {
+                    "type": "integer"
                 }
             }
         },

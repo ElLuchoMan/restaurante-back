@@ -57,6 +57,21 @@ definitions:
       TIPO:
         type: string
     type: object
+  models.Inventario:
+    properties:
+      CANTIDAD:
+        type: integer
+      FECHA:
+        type: string
+      PK_ID_INGREDIENTE:
+        type: integer
+      PK_ID_INVENTARIO:
+        type: integer
+      UNIDAD:
+        type: integer
+      UNIDAD_MINIMA:
+        type: integer
+    type: object
   models.MetodoPago:
     properties:
       DETALLE:
@@ -550,6 +565,131 @@ paths:
       summary: Obtener ingrediente por ID
       tags:
       - ingredientes
+  /inventarios:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un registro de inventario de la base de datos.
+      parameters:
+      - description: ID del Inventario
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inventario eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Inventario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un inventario
+      tags:
+      - inventarios
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los registros de inventario.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de inventarios
+          schema:
+            items:
+              $ref: '#/definitions/models.Inventario'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los inventarios
+      tags:
+      - inventarios
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo registro de inventario.
+      parameters:
+      - description: Datos del inventario a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Inventario'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Inventario creado
+          schema:
+            $ref: '#/definitions/models.Inventario'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo inventario
+      tags:
+      - inventarios
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un inventario existente.
+      parameters:
+      - description: ID del Inventario
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del inventario a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Inventario'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inventario actualizado
+          schema:
+            $ref: '#/definitions/models.Inventario'
+        "404":
+          description: Inventario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un inventario
+      tags:
+      - inventarios
+  /inventarios/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un registro de inventario específico por ID.
+      parameters:
+      - description: ID del Inventario
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inventario encontrado
+          schema:
+            $ref: '#/definitions/models.Inventario'
+        "404":
+          description: Inventario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener inventario por ID
+      tags:
+      - inventarios
   /metodos_pago:
     delete:
       consumes:
