@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"restaurante/models"
 	"strconv"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -12,6 +13,14 @@ import (
 
 type ReservaController struct {
 	web.Controller
+}
+
+// Estados permitidos para la reserva
+var estadosPermitidos = map[string]bool{
+	"PENDIENTE": true,
+	"REALIZADO": true,
+	"CANCELADO": true,
+	"APLAZADO":  true,
 }
 
 // @Title GetAll
@@ -121,7 +130,32 @@ func (c *ReservaController) Post() {
 		return
 	}
 
-	_, err := o.Insert(&reserva)
+	// Validar la hora en formato HH:mm:ss
+	_, err := time.Parse("15:04:05", reserva.HORA)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Error en la solicitud",
+			Cause:   "Formato de hora incorrecto, debe ser HH:mm:ss",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Validar el estado de la reserva
+	if !estadosPermitidos[reserva.ESTADO] {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Estado de reserva inválido",
+			Cause:   "El estado debe ser uno de los siguientes: PENDIENTE, REALIZADO, CANCELADO, APLAZADO",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	_, err = o.Insert(&reserva)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -179,6 +213,18 @@ func (c *ReservaController) Put() {
 				Code:    http.StatusBadRequest,
 				Message: "Error en la solicitud",
 				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+
+		// Validar el estado de la reserva
+		if !estadosPermitidos[updatedReserva.ESTADO] {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Estado de reserva inválido",
+				Cause:   "El estado debe ser uno de los siguientes: PENDIENTE, REALIZADO, CANCELADO, APLAZADO",
 			}
 			c.ServeJSON()
 			return

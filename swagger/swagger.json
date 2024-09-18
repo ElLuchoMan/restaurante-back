@@ -344,21 +344,25 @@
             "title": "Reserva",
             "type": "object",
             "properties": {
-                "FECHA": {
+                "estado": {
                     "type": "string"
                 },
-                "HORA": {
+                "fecha": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "hora": {
                     "type": "string"
                 },
-                "PERSONAS": {
+                "personas": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_RESERVA": {
+                "pk_id_reserva": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_RESTAURANTE": {
+                "pk_id_restaurante": {
                     "type": "integer",
                     "format": "int64"
                 }

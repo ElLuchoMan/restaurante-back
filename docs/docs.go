@@ -3231,19 +3231,22 @@ const docTemplate = `{
         "models.Reserva": {
             "type": "object",
             "properties": {
-                "FECHA": {
+                "estado": {
                     "type": "string"
                 },
-                "HORA": {
+                "fecha": {
                     "type": "string"
                 },
-                "PERSONAS": {
+                "hora": {
+                    "type": "string"
+                },
+                "personas": {
                     "type": "integer"
                 },
-                "PK_ID_RESERVA": {
+                "pk_id_reserva": {
                     "type": "integer"
                 },
-                "PK_ID_RESTAURANTE": {
+                "pk_id_restaurante": {
                     "type": "integer"
                 }
             }
@@ -3251,16 +3254,16 @@ const docTemplate = `{
         "models.Restaurante": {
             "type": "object",
             "properties": {
-                "dias_LABORALES": {
+                "dias_laborales": {
                     "type": "string"
                 },
-                "hora_APERTURA": {
+                "hora_apertura": {
                     "type": "string"
                 },
-                "nombre_RESTAURANTE": {
+                "nombre_restaurante": {
                     "type": "string"
                 },
-                "pk_ID_RESTAURANTE": {
+                "pk_id_restaurante": {
                     "type": "integer"
                 }
             }
