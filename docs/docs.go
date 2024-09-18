@@ -391,7 +391,7 @@ const docTemplate = `{
         },
         "/ingredientes": {
             "get": {
-                "description": "Devuelve todos los ingredientes registrados en la base de datos.",
+                "description": "Devuelve todos los ingredientes registrados en la base de datos, independientemente de su estado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -404,7 +404,7 @@ const docTemplate = `{
                 "summary": "Obtener todos los ingredientes",
                 "responses": {
                     "200": {
-                        "description": "Lista de ingredientes",
+                        "description": "Lista de todos los ingredientes",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -421,7 +421,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Actualiza los datos de un ingrediente existente.",
+                "description": "Actualiza los datos de un ingrediente existente, incluyendo una imagen en formato Base64.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -491,7 +491,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Crea un nuevo ingrediente en la base de datos.",
+                "description": "Crea un nuevo ingrediente en la base de datos, incluyendo una imagen en formato Base64.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -554,7 +554,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Elimina un ingrediente de la base de datos.",
+                "description": "Marca un ingrediente como inactivo (borrado lógico).",
                 "consumes": [
                     "application/json"
                 ],
@@ -564,7 +564,7 @@ const docTemplate = `{
                 "tags": [
                     "ingredientes"
                 ],
-                "summary": "Eliminar un ingrediente",
+                "summary": "Desactivar un ingrediente",
                 "parameters": [
                     {
                         "type": "integer",
@@ -576,7 +576,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Ingrediente eliminado",
+                        "description": "Ingrediente desactivado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -590,9 +590,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/ingredientes/active": {
+            "get": {
+                "description": "Devuelve solo los ingredientes que están activos (ACTIVO = TRUE).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ingredientes"
+                ],
+                "summary": "Obtener todos los ingredientes activos",
+                "responses": {
+                    "200": {
+                        "description": "Lista de ingredientes activos",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Ingrediente"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ingredientes/search": {
             "get": {
-                "description": "Devuelve un ingrediente específico por ID utilizando query parameters.",
+                "description": "Devuelve un ingrediente específico por ID, incluyendo la imagen en formato Base64.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2152,7 +2184,7 @@ const docTemplate = `{
                 "summary": "Obtener todos los platos",
                 "responses": {
                     "200": {
-                        "description": "Lista de platos",
+                        "description": "Lista de todos los platos",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -2340,6 +2372,38 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Plato no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/platos/active": {
+            "get": {
+                "description": "Devuelve solo los platos que están activos (ACTIVO = TRUE).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platos"
+                ],
+                "summary": "Obtener todos los platos activos",
+                "responses": {
+                    "200": {
+                        "description": "Lista de platos activos",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Plato"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3015,6 +3079,9 @@ const docTemplate = `{
         "models.Ingrediente": {
             "type": "object",
             "properties": {
+                "ACTIVO": {
+                    "type": "boolean"
+                },
                 "CALORIAS": {
                     "type": "integer"
                 },
@@ -3184,6 +3251,9 @@ const docTemplate = `{
         "models.Plato": {
             "type": "object",
             "properties": {
+                "ACTIVO": {
+                    "type": "boolean"
+                },
                 "CALORIAS": {
                     "type": "integer"
                 },
@@ -3191,7 +3261,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "FOTO": {
-                    "description": "Cambiado a string para Base64",
                     "type": "string"
                 },
                 "NOMBRE": {

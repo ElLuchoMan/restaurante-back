@@ -44,6 +44,8 @@ definitions:
     type: object
   models.Ingrediente:
     properties:
+      ACTIVO:
+        type: boolean
       CALORIAS:
         type: integer
       FOTO:
@@ -154,12 +156,13 @@ definitions:
     type: object
   models.Plato:
     properties:
+      ACTIVO:
+        type: boolean
       CALORIAS:
         type: integer
       DESCRIPCION:
         type: string
       FOTO:
-        description: Cambiado a string para Base64
         type: string
       NOMBRE:
         type: string
@@ -491,7 +494,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Elimina un ingrediente de la base de datos.
+      description: Marca un ingrediente como inactivo (borrado lógico).
       parameters:
       - description: ID del Ingrediente
         in: query
@@ -502,25 +505,26 @@ paths:
       - application/json
       responses:
         "200":
-          description: Ingrediente eliminado
+          description: Ingrediente desactivado
           schema:
             $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Ingrediente no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Eliminar un ingrediente
+      summary: Desactivar un ingrediente
       tags:
       - ingredientes
     get:
       consumes:
       - application/json
-      description: Devuelve todos los ingredientes registrados en la base de datos.
+      description: Devuelve todos los ingredientes registrados en la base de datos,
+        independientemente de su estado.
       produces:
       - application/json
       responses:
         "200":
-          description: Lista de ingredientes
+          description: Lista de todos los ingredientes
           schema:
             items:
               $ref: '#/definitions/models.Ingrediente'
@@ -535,7 +539,8 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Crea un nuevo ingrediente en la base de datos.
+      description: Crea un nuevo ingrediente en la base de datos, incluyendo una imagen
+        en formato Base64.
       parameters:
       - description: Nombre del ingrediente
         in: formData
@@ -578,7 +583,8 @@ paths:
     put:
       consumes:
       - multipart/form-data
-      description: Actualiza los datos de un ingrediente existente.
+      description: Actualiza los datos de un ingrediente existente, incluyendo una
+        imagen en formato Base64.
       parameters:
       - description: ID del Ingrediente
         in: query
@@ -623,11 +629,33 @@ paths:
       summary: Actualizar un ingrediente
       tags:
       - ingredientes
+  /ingredientes/active:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve solo los ingredientes que están activos (ACTIVO = TRUE).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de ingredientes activos
+          schema:
+            items:
+              $ref: '#/definitions/models.Ingrediente'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los ingredientes activos
+      tags:
+      - ingredientes
   /ingredientes/search:
     get:
       consumes:
       - application/json
-      description: Devuelve un ingrediente específico por ID utilizando query parameters.
+      description: Devuelve un ingrediente específico por ID, incluyendo la imagen
+        en formato Base64.
       parameters:
       - description: ID del Ingrediente
         in: query
@@ -1678,7 +1706,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Lista de platos
+          description: Lista de todos los platos
           schema:
             items:
               $ref: '#/definitions/models.Plato'
@@ -1789,6 +1817,27 @@ paths:
           schema:
             $ref: '#/definitions/models.ApiResponse'
       summary: Actualizar un plato
+      tags:
+      - platos
+  /platos/active:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve solo los platos que están activos (ACTIVO = TRUE).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de platos activos
+          schema:
+            items:
+              $ref: '#/definitions/models.Plato'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los platos activos
       tags:
       - platos
   /platos/search:

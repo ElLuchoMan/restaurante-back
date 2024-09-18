@@ -21,7 +21,7 @@ type PlatoController struct {
 // @Tags platos
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Plato "Lista de platos"
+// @Success 200 {array} models.Plato "Lista de todos los platos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /platos [get]
 func (c *PlatoController) GetAll() {
@@ -40,7 +40,7 @@ func (c *PlatoController) GetAll() {
 		return
 	}
 
-	// Excluir la foto (FOTO) de cada plato //TODO: Quitar
+	// Excluir la foto (FOTO) de cada plato
 	for i := range platos {
 		platos[i].FOTO = ""
 	}
@@ -49,6 +49,45 @@ func (c *PlatoController) GetAll() {
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Platos obtenidos exitosamente",
+		Data:    platos,
+	}
+	c.ServeJSON()
+}
+
+// @Title GetAllActive
+// @Summary Obtener todos los platos activos
+// @Description Devuelve solo los platos que están activos (ACTIVO = TRUE).
+// @Tags platos
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.Plato "Lista de platos activos"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Router /platos/active [get]
+func (c *PlatoController) GetAllActive() {
+	o := orm.NewOrm()
+	var platos []models.Plato
+
+	_, err := o.QueryTable(new(models.Plato)).Filter("ACTIVO", true).All(&platos)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al obtener platos activos de la base de datos",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Excluir la foto (FOTO) de cada plato
+	for i := range platos {
+		platos[i].FOTO = ""
+	}
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Platos activos obtenidos exitosamente",
 		Data:    platos,
 	}
 	c.ServeJSON()

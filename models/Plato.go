@@ -9,7 +9,8 @@ type Plato struct {
 	DESCRIPCION       string `orm:"column(DESCRIPCION);null" json:"DESCRIPCION"`
 	PRECIO            int64  `orm:"column(PRECIO)" json:"PRECIO"`
 	PERSONALIZADO     bool   `orm:"column(PERSONALIZADO)" json:"PERSONALIZADO"`
-	FOTO              string `orm:"column(FOTO);null" json:"FOTO"` // Cambiado a string para Base64
+	FOTO              string `orm:"column(FOTO);null" json:"FOTO"`
+	ACTIVO            bool   `orm:"column(ACTIVO);default(true)" json:"ACTIVO"`
 	PK_ID_ITEM_PEDIDO *int64 `orm:"column(PK_ID_ITEM_PEDIDO);null" json:"PK_ID_ITEM_PEDIDO"`
 }
 

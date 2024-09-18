@@ -56,6 +56,8 @@ definitions:
     title: Ingrediente
     type: object
     properties:
+      ACTIVO:
+        type: boolean
       CALORIAS:
         type: integer
         format: int64
@@ -202,13 +204,14 @@ definitions:
     title: Plato
     type: object
     properties:
+      ACTIVO:
+        type: boolean
       CALORIAS:
         type: integer
         format: int64
       DESCRIPCION:
         type: string
       FOTO:
-        description: Cambiado a string para Base64
         type: string
       NOMBRE:
         type: string

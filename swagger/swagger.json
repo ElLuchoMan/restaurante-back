@@ -82,6 +82,9 @@
             "title": "Ingrediente",
             "type": "object",
             "properties": {
+                "ACTIVO": {
+                    "type": "boolean"
+                },
                 "CALORIAS": {
                     "type": "integer",
                     "format": "int64"
@@ -287,6 +290,9 @@
             "title": "Plato",
             "type": "object",
             "properties": {
+                "ACTIVO": {
+                    "type": "boolean"
+                },
                 "CALORIAS": {
                     "type": "integer",
                     "format": "int64"
@@ -295,7 +301,6 @@
                     "type": "string"
                 },
                 "FOTO": {
-                    "description": "Cambiado a string para Base64",
                     "type": "string"
                 },
                 "NOMBRE": {
