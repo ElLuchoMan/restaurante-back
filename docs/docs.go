@@ -2893,8 +2893,11 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Trabajador eliminado"
+                    "200": {
+                        "description": "Trabajador eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     },
                     "404": {
                         "description": "Trabajador no encontrado",
@@ -3265,41 +3268,38 @@ const docTemplate = `{
         "models.Trabajador": {
             "type": "object",
             "properties": {
-                "APELLIDO": {
+                "apellido": {
                     "type": "string"
                 },
-                "FECHA_INGRESO": {
+                "fecha_ingreso": {
                     "type": "string"
                 },
-                "FECHA_NACIMIENTO": {
+                "fecha_nacimiento": {
                     "type": "string"
                 },
-                "FECHA_RETIRO": {
+                "fecha_retiro": {
                     "type": "string"
                 },
-                "NOMBRE": {
+                "nombre": {
                     "type": "string"
                 },
-                "NUEVO": {
+                "nuevo": {
                     "type": "boolean"
                 },
-                "PASSWORD": {
+                "pk_documento_trabajador": {
+                    "type": "integer"
+                },
+                "pk_id_restaurante": {
+                    "type": "integer"
+                },
+                "rol": {
                     "type": "string"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
+                "sueldo": {
                     "type": "integer"
                 },
-                "PK_ID_RESTAURANTE": {
-                    "type": "integer"
-                },
-                "ROL": {
+                "telefono": {
                     "type": "string"
-                },
-                "SUELDO": {
-                    "type": "integer"
-                },
-                "TELEFONO": {
-                    "type": "integer"
                 }
             }
         }

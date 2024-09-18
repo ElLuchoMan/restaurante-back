@@ -8,6 +8,7 @@ import (
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type TrabajadorController struct {
@@ -37,6 +38,11 @@ func (c *TrabajadorController) GetAll() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	// Excluir la contraseña de la respuesta
+	for i := range trabajadores {
+		trabajadores[i].PASSWORD = ""
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -76,16 +82,28 @@ func (c *TrabajadorController) GetById() {
 	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
 
 	err = o.Read(&trabajador)
-	if err == orm.ErrNoRows {
+	if err == orm.ErrNoRows || err == orm.ErrMissPK {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Trabajador no encontrado",
+			Cause:   "No existe un trabajador con el ID proporcionado",
+		}
+		c.ServeJSON()
+		return
+	} else if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al buscar el trabajador",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
+
+	// Excluir la contraseña de la respuesta
+	trabajador.PASSWORD = ""
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -114,14 +132,41 @@ func (c *TrabajadorController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "Error en la solicitud",
+			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	_, err := o.Insert(&trabajador)
+	// Validación de campos obligatorios
+	if trabajador.PK_DOCUMENTO_TRABAJADOR == 0 || trabajador.NOMBRE == "" || trabajador.APELLIDO == "" {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Faltan campos obligatorios",
+			Cause:   " Los campos: Documento, Nombre y Apellido son obligatorios",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Hash de la contraseña antes de insertar
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(trabajador.PASSWORD), bcrypt.DefaultCost)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al procesar la contraseña",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+	trabajador.PASSWORD = string(hashedPassword)
+
+	// Inserción en la base de datos
+	_, err = o.Insert(&trabajador)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -132,6 +177,9 @@ func (c *TrabajadorController) Post() {
 		c.ServeJSON()
 		return
 	}
+
+	// Excluir la contraseña de la respuesta
+	trabajador.PASSWORD = ""
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
@@ -164,55 +212,92 @@ func (c *TrabajadorController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'id' es inválido o está ausente",
+			Cause:   "Se requiere un ID numérico válido en el parámetro 'id'",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Verificar si el trabajador existe
+	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
+	if err := o.Read(&trabajador); err != nil {
+		if err == orm.ErrNoRows {
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusNotFound,
+				Message: "Trabajador no encontrado",
+			}
+			c.ServeJSON()
+		} else {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al buscar el trabajador",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+		}
+		return
+	}
+
+	// Decodificar los datos actualizados
+	var updatedTrabajador models.Trabajador
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedTrabajador); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
+	// Mantener el ID original
+	updatedTrabajador.PK_DOCUMENTO_TRABAJADOR = trabajador.PK_DOCUMENTO_TRABAJADOR
 
-	if o.Read(&trabajador) == nil {
-		var updatedTrabajador models.Trabajador
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedTrabajador); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Error en la solicitud",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-
-		updatedTrabajador.PK_DOCUMENTO_TRABAJADOR = int64(id)
-		_, err := o.Update(&updatedTrabajador)
+	// Si se proporciona una nueva contraseña, hashéala
+	if updatedTrabajador.PASSWORD != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(updatedTrabajador.PASSWORD), bcrypt.DefaultCost)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
-				Message: "Error al actualizar el trabajador",
+				Message: "Error al procesar la contraseña",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
 			return
 		}
-
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Trabajador actualizado",
-			Data:    updatedTrabajador,
-		}
-		c.ServeJSON()
+		updatedTrabajador.PASSWORD = string(hashedPassword)
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		// Mantener la contraseña existente
+		updatedTrabajador.PASSWORD = trabajador.PASSWORD
+	}
+
+	// Actualizar en la base de datos
+	_, err = o.Update(&updatedTrabajador)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Trabajador no encontrado",
+			Code:    http.StatusInternalServerError,
+			Message: "Error al actualizar el trabajador",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
+		return
 	}
+
+	// Excluir la contraseña de la respuesta
+	updatedTrabajador.PASSWORD = ""
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Trabajador actualizado",
+		Data:    updatedTrabajador,
+	}
+	c.ServeJSON()
 }
 
 // @Title Delete
@@ -222,7 +307,7 @@ func (c *TrabajadorController) Put() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Trabajador"
-// @Success 204 {object} nil "Trabajador eliminado"
+// @Success 200 {object} models.ApiResponse "Trabajador eliminado"
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
 // @Router /trabajadores [delete]
 func (c *TrabajadorController) Delete() {
@@ -236,6 +321,7 @@ func (c *TrabajadorController) Delete() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'id' es inválido o está ausente",
+			Cause:   "Se requiere un ID numérico válido en el parámetro 'id'",
 		}
 		c.ServeJSON()
 		return
@@ -243,18 +329,27 @@ func (c *TrabajadorController) Delete() {
 
 	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
 
-	if _, err := o.Delete(&trabajador); err == nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Trabajador eliminado",
+	if num, err := o.Delete(&trabajador); err == nil {
+		if num > 0 {
+			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusOK,
+				Message: "Trabajador eliminado",
+			}
+			c.ServeJSON()
+		} else {
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusNotFound,
+				Message: "Trabajador no encontrado",
+			}
+			c.ServeJSON()
 		}
-		c.ServeJSON()
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Trabajador no encontrado",
+			Code:    http.StatusInternalServerError,
+			Message: "Error al eliminar el trabajador",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()

@@ -6,7 +6,7 @@ import (
 
 type Pedido struct {
 	PK_ID_PEDIDO      int    `orm:"column(PK_ID_PEDIDO);pk"`
-	FECHA             string `orm:"column(FECHA)"`
+	FECHA             string `orm:"column(FECHA);type(date)"`
 	HORA              string `orm:"column(HORA);type(time)"`
 	DELIVERY          bool   `orm:"column(DELIVERY)"`
 	ESTADO            string `orm:"column(ESTADO)"`

@@ -387,45 +387,44 @@
             "title": "Trabajador",
             "type": "object",
             "properties": {
-                "APELLIDO": {
+                "apellido": {
                     "type": "string"
                 },
-                "FECHA_INGRESO": {
+                "fecha_ingreso": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "fecha_nacimiento": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "fecha_retiro": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "nombre": {
                     "type": "string"
                 },
-                "FECHA_NACIMIENTO": {
-                    "type": "string"
-                },
-                "FECHA_RETIRO": {
-                    "type": "string"
-                },
-                "NOMBRE": {
-                    "type": "string"
-                },
-                "NUEVO": {
+                "nuevo": {
                     "type": "boolean"
                 },
-                "PASSWORD": {
+                "pk_documento_trabajador": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "pk_id_restaurante": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "rol": {
                     "type": "string"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
+                "sueldo": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_RESTAURANTE": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "ROL": {
+                "telefono": {
                     "type": "string"
-                },
-                "SUELDO": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "TELEFONO": {
-                    "type": "integer",
-                    "format": "int64"
                 }
             }
         },
