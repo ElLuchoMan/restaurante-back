@@ -211,7 +211,6 @@ func (c *InventarioController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Inventario no encontrado",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 	}

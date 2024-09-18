@@ -83,6 +83,19 @@ definitions:
       TIPO:
         type: string
     type: object
+  models.Nomina:
+    properties:
+      ESTADO:
+        type: string
+      FECHA:
+        type: string
+      MONTO:
+        type: integer
+      PK_ID_NOMINA:
+        type: integer
+      PK_ID_RESTAURANTE:
+        type: integer
+    type: object
   models.Pago:
     properties:
       ESTADO:
@@ -815,6 +828,131 @@ paths:
       summary: Obtener método de pago por ID
       tags:
       - metodos_pago
+  /nominas:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina una nómina de la base de datos.
+      parameters:
+      - description: ID de la Nómina
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Nómina eliminada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Nómina no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar una nómina
+      tags:
+      - nominas
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todas las nóminas registradas en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de nóminas
+          schema:
+            items:
+              $ref: '#/definitions/models.Nomina'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las nóminas
+      tags:
+      - nominas
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva nómina en la base de datos.
+      parameters:
+      - description: Datos de la nómina a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Nomina'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Nómina creada
+          schema:
+            $ref: '#/definitions/models.Nomina'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear una nueva nómina
+      tags:
+      - nominas
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de una nómina existente.
+      parameters:
+      - description: ID de la Nómina
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos de la nómina a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Nomina'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Nómina actualizada
+          schema:
+            $ref: '#/definitions/models.Nomina'
+        "404":
+          description: Nómina no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar una nómina
+      tags:
+      - nominas
+  /nominas/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve una nómina específica por ID.
+      parameters:
+      - description: ID de la Nómina
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Nómina encontrada
+          schema:
+            $ref: '#/definitions/models.Nomina'
+        "404":
+          description: Nómina no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener nómina por ID
+      tags:
+      - nominas
   /pagos:
     delete:
       consumes:

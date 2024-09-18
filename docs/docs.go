@@ -956,6 +956,195 @@ const docTemplate = `{
                 }
             }
         },
+        "/nominas": {
+            "get": {
+                "description": "Devuelve todas las nóminas registradas en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nominas"
+                ],
+                "summary": "Obtener todas las nóminas",
+                "responses": {
+                    "200": {
+                        "description": "Lista de nóminas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Nomina"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Actualiza los datos de una nómina existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nominas"
+                ],
+                "summary": "Actualizar una nómina",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Nómina",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de la nómina a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Nomina"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nómina actualizada",
+                        "schema": {
+                            "$ref": "#/definitions/models.Nomina"
+                        }
+                    },
+                    "404": {
+                        "description": "Nómina no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea una nueva nómina en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nominas"
+                ],
+                "summary": "Crear una nueva nómina",
+                "parameters": [
+                    {
+                        "description": "Datos de la nómina a crear",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Nomina"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Nómina creada",
+                        "schema": {
+                            "$ref": "#/definitions/models.Nomina"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Elimina una nómina de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nominas"
+                ],
+                "summary": "Eliminar una nómina",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Nómina",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nómina eliminada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Nómina no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nominas/search": {
+            "get": {
+                "description": "Devuelve una nómina específica por ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nominas"
+                ],
+                "summary": "Obtener nómina por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Nómina",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nómina encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.Nomina"
+                        }
+                    },
+                    "404": {
+                        "description": "Nómina no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pagos": {
             "get": {
                 "description": "Devuelve todos los pagos registrados en la base de datos.",
@@ -2201,6 +2390,26 @@ const docTemplate = `{
                 },
                 "TIPO": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Nomina": {
+            "type": "object",
+            "properties": {
+                "ESTADO": {
+                    "type": "string"
+                },
+                "FECHA": {
+                    "type": "string"
+                },
+                "MONTO": {
+                    "type": "integer"
+                },
+                "PK_ID_NOMINA": {
+                    "type": "integer"
+                },
+                "PK_ID_RESTAURANTE": {
+                    "type": "integer"
                 }
             }
         },

@@ -155,6 +155,30 @@
                 }
             }
         },
+        "models.Nomina": {
+            "title": "Nomina",
+            "type": "object",
+            "properties": {
+                "ESTADO": {
+                    "type": "string"
+                },
+                "FECHA": {
+                    "type": "string"
+                },
+                "MONTO": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_NOMINA": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_RESTAURANTE": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Pago": {
             "title": "Pago",
             "type": "object",
