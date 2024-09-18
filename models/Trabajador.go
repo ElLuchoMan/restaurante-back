@@ -17,7 +17,7 @@ type Trabajador struct {
 	ROL                     string     `orm:"column(ROL)" json:"rol"`
 	FECHA_INGRESO           time.Time  `orm:"column(FECHA_INGRESO);type(date)" json:"fecha_ingreso"`
 	FECHA_RETIRO            *time.Time `orm:"column(FECHA_RETIRO);type(date);null" json:"fecha_retiro"`
-	PASSWORD                string     `orm:"column(PASSWORD)" json:"-"`
+	PASSWORD                string     `orm:"column(PASSWORD)" json:"PASSWORD"`
 	PK_ID_RESTAURANTE       *int64     `orm:"column(PK_ID_RESTAURANTE);null" json:"pk_id_restaurante"`
 }
 

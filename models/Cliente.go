@@ -11,7 +11,7 @@ type Cliente struct {
 	DIRECCION            string  `orm:"column(DIRECCION)"`
 	TELEFONO             string  `orm:"column(TELEFONO)"`
 	OBSERVACIONES        *string `orm:"column(OBSERVACIONES);null"`
-	PASSWORD             string  `orm:"column(PASSWORD)" json:"-"`
+	PASSWORD             string  `orm:"column(PASSWORD)" json:"PASSWORD"`
 }
 
 func (c *Cliente) TableName() string {

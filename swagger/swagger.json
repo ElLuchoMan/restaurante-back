@@ -41,6 +41,9 @@
                 "OBSERVACIONES": {
                     "type": "string"
                 },
+                "PASSWORD": {
+                    "type": "string"
+                },
                 "PK_DOCUMENTO_CLIENTE": {
                     "type": "integer",
                     "format": "int64"
@@ -153,6 +156,19 @@
                 "PK_ID_PEDIDO": {
                     "type": "integer",
                     "format": "int64"
+                }
+            }
+        },
+        "models.LoginRequest": {
+            "title": "LoginRequest",
+            "type": "object",
+            "properties": {
+                "documento": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "password": {
+                    "type": "string"
                 }
             }
         },
@@ -393,6 +409,9 @@
             "title": "Trabajador",
             "type": "object",
             "properties": {
+                "PASSWORD": {
+                    "type": "string"
+                },
                 "apellido": {
                     "type": "string"
                 },
