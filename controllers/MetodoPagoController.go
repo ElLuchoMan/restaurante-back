@@ -22,6 +22,7 @@ type MetodoPagoController struct {
 // @Produce json
 // @Success 200 {array} models.MetodoPago "Lista de métodos de pago"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /metodos_pago [get]
 func (c *MetodoPagoController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *MetodoPagoController) GetAll() {
 // @Param   id     query    int     true        "ID del Método de Pago"
 // @Success 200 {object} models.MetodoPago "Método de pago encontrado"
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
+// @Security BearerAuth
 // @Router /metodos_pago/search [get]
 func (c *MetodoPagoController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *MetodoPagoController) GetById() {
 // @Param   body  body   models.MetodoPago true  "Datos del método de pago a crear"
 // @Success 201 {object} models.MetodoPago "Método de pago creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /metodos_pago [post]
 func (c *MetodoPagoController) Post() {
 	o := orm.NewOrm()
@@ -152,6 +155,7 @@ func (c *MetodoPagoController) Post() {
 // @Param   body  body   models.MetodoPago true  "Datos del método de pago a actualizar"
 // @Success 200 {object} models.MetodoPago "Método de pago actualizado"
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
+// @Security BearerAuth
 // @Router /metodos_pago [put]
 func (c *MetodoPagoController) Put() {
 	o := orm.NewOrm()
@@ -224,6 +228,7 @@ func (c *MetodoPagoController) Put() {
 // @Param   id     query    int     true        "ID del Método de Pago"
 // @Success 200 {object} models.ApiResponse "Método de pago eliminado"
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
+// @Security BearerAuth
 // @Router /metodos_pago [delete]
 func (c *MetodoPagoController) Delete() {
 	o := orm.NewOrm()

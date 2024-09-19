@@ -22,6 +22,7 @@ type InventarioController struct {
 // @Produce json
 // @Success 200 {array} models.Inventario "Lista de inventarios"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /inventarios [get]
 func (c *InventarioController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *InventarioController) GetAll() {
 // @Param   id     query    int     true        "ID del Inventario"
 // @Success 200 {object} models.Inventario "Inventario encontrado"
 // @Failure 404 {object} models.ApiResponse "Inventario no encontrado"
+// @Security BearerAuth
 // @Router /inventarios/search [get]
 func (c *InventarioController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *InventarioController) GetById() {
 // @Param   body  body   models.Inventario true  "Datos del inventario a crear"
 // @Success 201 {object} models.Inventario "Inventario creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /inventarios [post]
 func (c *InventarioController) Post() {
 	o := orm.NewOrm()
@@ -154,6 +157,7 @@ func (c *InventarioController) Post() {
 // @Param   body  body   models.Inventario true  "Datos del inventario a actualizar"
 // @Success 200 {object} models.Inventario "Inventario actualizado"
 // @Failure 404 {object} models.ApiResponse "Inventario no encontrado"
+// @Security BearerAuth
 // @Router /inventarios [put]
 func (c *InventarioController) Put() {
 	o := orm.NewOrm()
@@ -225,6 +229,7 @@ func (c *InventarioController) Put() {
 // @Param   id     query    int     true        "ID del Inventario"
 // @Success 200 {object} models.ApiResponse "Inventario eliminado"
 // @Failure 404 {object} models.ApiResponse "Inventario no encontrado"
+// @Security BearerAuth
 // @Router /inventarios [delete]
 func (c *InventarioController) Delete() {
 	o := orm.NewOrm()

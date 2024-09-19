@@ -22,6 +22,7 @@ type RestauranteController struct {
 // @Produce json
 // @Success 200 {array} models.Restaurante "Lista de restaurantes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /restaurantes [get]
 func (c *RestauranteController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *RestauranteController) GetAll() {
 // @Param   id     query    int     true        "ID del Restaurante"
 // @Success 200 {object} models.Restaurante "Restaurante encontrado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
+// @Security BearerAuth
 // @Router /restaurantes/search [get]
 func (c *RestauranteController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *RestauranteController) GetById() {
 // @Param   body  body   models.Restaurante true  "Datos del restaurante a crear"
 // @Success 201 {object} models.Restaurante "Restaurante creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /restaurantes [post]
 func (c *RestauranteController) Post() {
 	o := orm.NewOrm()
@@ -161,6 +164,7 @@ func (c *RestauranteController) Post() {
 // @Param   body  body   models.Restaurante true  "Datos del restaurante a actualizar"
 // @Success 200 {object} models.Restaurante "Restaurante actualizado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
+// @Security BearerAuth
 // @Router /restaurantes [put]
 func (c *RestauranteController) Put() {
 	o := orm.NewOrm()
@@ -243,6 +247,7 @@ func (c *RestauranteController) Put() {
 // @Param   id     query    int     true        "ID del Restaurante"
 // @Success 204 {object} nil "Restaurante eliminado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
+// @Security BearerAuth
 // @Router /restaurantes [delete]
 func (c *RestauranteController) Delete() {
 	o := orm.NewOrm()

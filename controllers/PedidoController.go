@@ -22,6 +22,7 @@ type PedidoController struct {
 // @Produce json
 // @Success 200 {array} models.Pedido "Lista de pedidos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /pedidos [get]
 func (c *PedidoController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *PedidoController) GetAll() {
 // @Param   id     query    int     true        "ID del Pedido"
 // @Success 200 {object} models.Pedido "Pedido encontrado"
 // @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Security BearerAuth
 // @Router /pedidos/search [get]
 func (c *PedidoController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *PedidoController) GetById() {
 // @Param   body  body   models.Pedido true  "Datos del pedido a crear"
 // @Success 201 {object} models.Pedido "Pedido creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /pedidos [post]
 func (c *PedidoController) Post() {
 	o := orm.NewOrm()
@@ -174,6 +177,7 @@ func (c *PedidoController) Post() {
 // @Param   body  body   models.Pedido true  "Datos del pedido a actualizar"
 // @Success 200 {object} models.Pedido "Pedido actualizado"
 // @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Security BearerAuth
 // @Router /pedidos [put]
 func (c *PedidoController) Put() {
 	o := orm.NewOrm()
@@ -271,6 +275,7 @@ func (c *PedidoController) Put() {
 // @Param   id     query    int     true        "ID del Pedido"
 // @Success 204 {object} nil "Pedido eliminado"
 // @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Security BearerAuth
 // @Router /pedidos [delete]
 func (c *PedidoController) Delete() {
 	o := orm.NewOrm()

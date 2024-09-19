@@ -19,6 +19,11 @@ const docTemplate = `{
     "paths": {
         "/clientes": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los clientes registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -49,6 +54,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un cliente existente.",
                 "consumes": [
                     "application/json"
@@ -94,6 +104,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo cliente en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -132,6 +147,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un cliente de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -170,6 +190,11 @@ const docTemplate = `{
         },
         "/clientes/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un cliente específico por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"
@@ -208,6 +233,11 @@ const docTemplate = `{
         },
         "/domicilios": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los domicilios registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -238,6 +268,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un domicilio existente.",
                 "consumes": [
                     "application/json"
@@ -283,6 +318,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo domicilio en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -321,6 +361,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un domicilio de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -356,6 +401,11 @@ const docTemplate = `{
         },
         "/domicilios/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un domicilio específico por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"
@@ -394,6 +444,11 @@ const docTemplate = `{
         },
         "/ingredientes": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los ingredientes registrados en la base de datos, independientemente de su estado.",
                 "consumes": [
                     "application/json"
@@ -424,6 +479,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un ingrediente existente, incluyendo una imagen en formato Base64.",
                 "consumes": [
                     "multipart/form-data"
@@ -494,6 +554,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo ingrediente en la base de datos, incluyendo una imagen en formato Base64.",
                 "consumes": [
                     "multipart/form-data"
@@ -557,6 +622,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Marca un ingrediente como inactivo (borrado lógico).",
                 "consumes": [
                     "application/json"
@@ -595,6 +665,11 @@ const docTemplate = `{
         },
         "/ingredientes/active": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve solo los ingredientes que están activos (ACTIVO = TRUE).",
                 "consumes": [
                     "application/json"
@@ -627,6 +702,11 @@ const docTemplate = `{
         },
         "/ingredientes/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un ingrediente específico por ID, incluyendo la imagen en formato Base64.",
                 "consumes": [
                     "application/json"
@@ -665,6 +745,11 @@ const docTemplate = `{
         },
         "/inventarios": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los registros de inventario.",
                 "consumes": [
                     "application/json"
@@ -695,6 +780,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un inventario existente.",
                 "consumes": [
                     "application/json"
@@ -740,6 +830,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo registro de inventario.",
                 "consumes": [
                     "application/json"
@@ -778,6 +873,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un registro de inventario de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -816,6 +916,11 @@ const docTemplate = `{
         },
         "/inventarios/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un registro de inventario específico por ID.",
                 "consumes": [
                     "application/json"
@@ -854,6 +959,11 @@ const docTemplate = `{
         },
         "/item_pedidos": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los ítems de pedido registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -884,6 +994,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un ítem de pedido existente.",
                 "consumes": [
                     "application/json"
@@ -929,6 +1044,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo ítem de pedido en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -967,6 +1087,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un ítem de pedido de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1005,6 +1130,11 @@ const docTemplate = `{
         },
         "/item_pedidos/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un ítem de pedido específico por ID.",
                 "consumes": [
                     "application/json"
@@ -1041,8 +1171,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/login": {
+            "post": {
+                "description": "Permite iniciar sesión utilizando el documento y la contraseña, devuelve un JWT con el rol.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "login"
+                ],
+                "summary": "Iniciar sesión para clientes o trabajadores",
+                "parameters": [
+                    {
+                        "description": "Documento y Contraseña",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Inicio de sesión exitoso con token JWT",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud incorrecta",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Credenciales inválidas",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/metodos_pago": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los métodos de pago registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1073,6 +1254,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un método de pago existente.",
                 "consumes": [
                     "application/json"
@@ -1118,6 +1304,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo método de pago en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1156,6 +1347,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un método de pago de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1194,6 +1390,11 @@ const docTemplate = `{
         },
         "/metodos_pago/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un método de pago específico por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"
@@ -1232,6 +1433,11 @@ const docTemplate = `{
         },
         "/nominas": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todas las nóminas registradas en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1262,6 +1468,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de una nómina existente.",
                 "consumes": [
                     "application/json"
@@ -1307,6 +1518,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea una nueva nómina en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1345,6 +1561,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina una nómina de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1383,6 +1604,11 @@ const docTemplate = `{
         },
         "/nominas/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve una nómina específica por ID.",
                 "consumes": [
                     "application/json"
@@ -1421,6 +1647,11 @@ const docTemplate = `{
         },
         "/pagos": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los pagos registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1451,6 +1682,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un pago existente.",
                 "consumes": [
                     "application/json"
@@ -1496,6 +1732,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo pago en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1534,6 +1775,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un pago de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1572,6 +1818,11 @@ const docTemplate = `{
         },
         "/pagos/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un pago específico por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"
@@ -1610,6 +1861,11 @@ const docTemplate = `{
         },
         "/pedido_clientes": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todas las relaciones entre pedidos y clientes.",
                 "consumes": [
                     "application/json"
@@ -1640,6 +1896,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de una relación existente.",
                 "consumes": [
                     "application/json"
@@ -1685,6 +1946,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea una nueva relación entre un pedido y un cliente.",
                 "consumes": [
                     "application/json"
@@ -1723,6 +1989,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina una relación de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1761,6 +2032,11 @@ const docTemplate = `{
         },
         "/pedido_clientes/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve una relación específica por ID.",
                 "consumes": [
                     "application/json"
@@ -1799,6 +2075,11 @@ const docTemplate = `{
         },
         "/pedidos": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los pedidos registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1829,6 +2110,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un pedido existente.",
                 "consumes": [
                     "application/json"
@@ -1874,6 +2160,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo pedido en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1912,6 +2203,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un pedido de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -1947,6 +2243,11 @@ const docTemplate = `{
         },
         "/pedidos/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un pedido específico por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"
@@ -1985,6 +2286,11 @@ const docTemplate = `{
         },
         "/plato_ingredientes": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todas las relaciones entre platos e ingredientes.",
                 "consumes": [
                     "application/json"
@@ -2015,6 +2321,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de una relación existente.",
                 "consumes": [
                     "application/json"
@@ -2060,6 +2371,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea una nueva relación entre un plato y un ingrediente.",
                 "consumes": [
                     "application/json"
@@ -2098,6 +2414,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina una relación de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -2136,6 +2457,11 @@ const docTemplate = `{
         },
         "/plato_ingredientes/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve una relación específica por ID.",
                 "consumes": [
                     "application/json"
@@ -2640,6 +2966,11 @@ const docTemplate = `{
         },
         "/restaurantes": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los restaurantes registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -2670,6 +3001,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un restaurante existente.",
                 "consumes": [
                     "application/json"
@@ -2715,6 +3051,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo restaurante en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -2753,6 +3094,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un restaurante de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -2788,6 +3134,11 @@ const docTemplate = `{
         },
         "/restaurantes/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un restaurante específico por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"
@@ -2826,6 +3177,11 @@ const docTemplate = `{
         },
         "/trabajadores": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve todos los trabajadores registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -2856,6 +3212,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un trabajador existente.",
                 "consumes": [
                     "application/json"
@@ -2901,6 +3262,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo trabajador en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -2939,6 +3305,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un trabajador de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -2977,6 +3348,11 @@ const docTemplate = `{
         },
         "/trabajadores/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve un trabajador específico por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"
@@ -3033,6 +3409,9 @@ const docTemplate = `{
         "models.Cliente": {
             "type": "object",
             "properties": {
+                "PASSWORD": {
+                    "type": "string"
+                },
                 "apellido": {
                     "type": "string"
                 },
@@ -3139,6 +3518,17 @@ const docTemplate = `{
                 },
                 "PK_ID_PEDIDO": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "documento": {
+                    "type": "integer"
+                },
+                "password": {
+                    "type": "string"
                 }
             }
         },
@@ -3340,6 +3730,9 @@ const docTemplate = `{
         "models.Trabajador": {
             "type": "object",
             "properties": {
+                "PASSWORD": {
+                    "type": "string"
+                },
                 "apellido": {
                     "type": "string"
                 },
@@ -3374,6 +3767,13 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

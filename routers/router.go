@@ -8,28 +8,36 @@ import (
 
 func init() {
 	ns := beego.NewNamespace("/restaurante/v1",
+		// Ruta para login
+		beego.NSRouter("/login", &controllers.LoginController{}, "post:Login"),
+
 		// Rutas para clientes
 		beego.NSNamespace("/clientes",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.ClienteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.ClienteController{}, "get:GetById"),
 		),
 		// Rutas para restaurantes
 		beego.NSNamespace("/restaurantes",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.RestauranteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.RestauranteController{}, "get:GetById"),
 		),
 		// Rutas para pedidos
 		beego.NSNamespace("/pedidos",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.PedidoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.PedidoController{}, "get:GetById"),
 		),
 		// Rutas para domicilios
 		beego.NSNamespace("/domicilios",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.DomicilioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.DomicilioController{}, "get:GetById"),
 		),
 		// Rutas para trabajadores
 		beego.NSNamespace("/trabajadores",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.TrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.TrabajadorController{}, "get:GetById"),
 		),
@@ -46,42 +54,50 @@ func init() {
 		),
 		// Rutas para métodos de pago
 		beego.NSNamespace("/metodos_pago",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.MetodoPagoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.MetodoPagoController{}, "get:GetById"),
 		),
 		// Rutas para pagos
 		beego.NSNamespace("/pagos",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.PagoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.PagoController{}, "get:GetById"),
 		),
 		// Rutas para ingredientes
 		beego.NSNamespace("/ingredientes",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.IngredienteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.IngredienteController{}, "get:GetById"),
 			beego.NSRouter("/active", &controllers.IngredienteController{}, "get:GetAllActive"),
 		),
 		// Rutas para inventarios
 		beego.NSNamespace("/inventarios",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.InventarioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.InventarioController{}, "get:GetById"),
 		),
 		// Rutas para nóminas
 		beego.NSNamespace("/nominas",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.NominaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.NominaController{}, "get:GetById"),
 		),
 		// Rutas para plato_ingredientes
 		beego.NSNamespace("/plato_ingredientes",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.PlatoIngredienteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.PlatoIngredienteController{}, "get:GetById"),
 		),
 		// Rutas para pedido_clientes
 		beego.NSNamespace("/pedido_clientes",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.PedidoClienteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.PedidoClienteController{}, "get:GetById"),
 		),
 		// Rutas para item_pedidos
 		beego.NSNamespace("/item_pedidos",
+			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.ItemPedidoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.ItemPedidoController{}, "get:GetById"),
 		),

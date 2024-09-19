@@ -22,6 +22,7 @@ type PedidoClienteController struct {
 // @Produce json
 // @Success 200 {array} models.PedidoCliente "Lista de relaciones"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /pedido_clientes [get]
 func (c *PedidoClienteController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *PedidoClienteController) GetAll() {
 // @Param   id     query    int     true        "ID de la Relación"
 // @Success 200 {object} models.PedidoCliente "Relación encontrada"
 // @Failure 404 {object} models.ApiResponse "Relación no encontrada"
+// @Security BearerAuth
 // @Router /pedido_clientes/search [get]
 func (c *PedidoClienteController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *PedidoClienteController) GetById() {
 // @Param   body  body   models.PedidoCliente true  "Datos de la relación a crear"
 // @Success 201 {object} models.PedidoCliente "Relación creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /pedido_clientes [post]
 func (c *PedidoClienteController) Post() {
 	o := orm.NewOrm()
@@ -154,6 +157,7 @@ func (c *PedidoClienteController) Post() {
 // @Param   body  body   models.PedidoCliente true  "Datos de la relación a actualizar"
 // @Success 200 {object} models.PedidoCliente "Relación actualizada"
 // @Failure 404 {object} models.ApiResponse "Relación no encontrada"
+// @Security BearerAuth
 // @Router /pedido_clientes [put]
 func (c *PedidoClienteController) Put() {
 	o := orm.NewOrm()
@@ -225,6 +229,7 @@ func (c *PedidoClienteController) Put() {
 // @Param   id     query    int     true        "ID de la Relación"
 // @Success 200 {object} models.ApiResponse "Relación eliminada"
 // @Failure 404 {object} models.ApiResponse "Relación no encontrada"
+// @Security BearerAuth
 // @Router /pedido_clientes [delete]
 func (c *PedidoClienteController) Delete() {
 	o := orm.NewOrm()

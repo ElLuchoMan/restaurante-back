@@ -23,6 +23,7 @@ type IngredienteController struct {
 // @Produce json
 // @Success 200 {array} models.Ingrediente "Lista de todos los ingredientes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /ingredientes [get]
 func (c *IngredienteController) GetAll() {
 	o := orm.NewOrm()
@@ -62,6 +63,7 @@ func (c *IngredienteController) GetAll() {
 // @Produce json
 // @Success 200 {array} models.Ingrediente "Lista de ingredientes activos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /ingredientes/active [get]
 func (c *IngredienteController) GetAllActive() {
 	o := orm.NewOrm()
@@ -102,6 +104,7 @@ func (c *IngredienteController) GetAllActive() {
 // @Param   id     query    int     true        "ID del Ingrediente"
 // @Success 200 {object} models.Ingrediente "Ingrediente encontrado"
 // @Failure 404 {object} models.ApiResponse "Ingrediente no encontrado"
+// @Security BearerAuth
 // @Router /ingredientes/search [get]
 func (c *IngredienteController) GetById() {
 	o := orm.NewOrm()
@@ -154,6 +157,7 @@ func (c *IngredienteController) GetById() {
 // @Param   FOTO          formData  file    false  "Imagen del ingrediente (opcional)"
 // @Success 201 {object} models.Ingrediente "Ingrediente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /ingredientes [post]
 func (c *IngredienteController) Post() {
 	o := orm.NewOrm()
@@ -242,6 +246,7 @@ func (c *IngredienteController) Post() {
 // @Param   FOTO          formData  file    false  "Imagen del ingrediente (opcional)"
 // @Success 200 {object} models.Ingrediente "Ingrediente actualizado"
 // @Failure 404 {object} models.ApiResponse "Ingrediente no encontrado"
+// @Security BearerAuth
 // @Router /ingredientes [put]
 func (c *IngredienteController) Put() {
 	o := orm.NewOrm()
@@ -337,6 +342,7 @@ func (c *IngredienteController) Put() {
 // @Param   id     query    int     true        "ID del Ingrediente"
 // @Success 200 {object} models.ApiResponse "Ingrediente desactivado"
 // @Failure 404 {object} models.ApiResponse "Ingrediente no encontrado"
+// @Security BearerAuth
 // @Router /ingredientes [delete]
 func (c *IngredienteController) Delete() {
 	o := orm.NewOrm()

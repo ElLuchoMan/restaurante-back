@@ -23,6 +23,7 @@ type ClienteController struct {
 // @Produce json
 // @Success 200 {array} models.Cliente "Lista de clientes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /clientes [get]
 func (c *ClienteController) GetAll() {
 	o := orm.NewOrm()
@@ -63,6 +64,7 @@ func (c *ClienteController) GetAll() {
 // @Param   id     query    int     true        "ID del Cliente"
 // @Success 200 {object} models.Cliente "Cliente encontrado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
+// @Security BearerAuth
 // @Router /clientes/search [get]
 func (c *ClienteController) GetById() {
 	o := orm.NewOrm()
@@ -113,6 +115,7 @@ func (c *ClienteController) GetById() {
 // @Param   body  body   models.Cliente true  "Datos del cliente a crear"
 // @Success 201 {object} models.Cliente "Cliente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /clientes [post]
 func (c *ClienteController) Post() {
 	o := orm.NewOrm()
@@ -178,6 +181,7 @@ func (c *ClienteController) Post() {
 // @Param   body  body   models.Cliente true  "Datos del cliente a actualizar"
 // @Success 200 {object} models.Cliente "Cliente actualizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
+// @Security BearerAuth
 // @Router /clientes [put]
 func (c *ClienteController) Put() {
 	o := orm.NewOrm()
@@ -287,6 +291,7 @@ func (c *ClienteController) Put() {
 // @Param   id     query    int     true        "ID del Cliente"
 // @Success 200 {object} models.ApiResponse "Cliente eliminado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
+// @Security BearerAuth
 // @Router /clientes [delete]
 func (c *ClienteController) Delete() {
 	o := orm.NewOrm()

@@ -33,6 +33,10 @@ func init() {
 // @description API para gestionar el sistema de un restaurante para "El fogón de María"
 // @contact.email baluisto96@gmail.com
 // @basePath /restaurante/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @Security BearerAuth
 func main() {
 	// Habilitar CORS para todas las rutas
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{

@@ -22,6 +22,7 @@ type DomicilioController struct {
 // @Produce json
 // @Success 200 {array} models.Domicilio "Lista de domicilios"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /domicilios [get]
 func (c *DomicilioController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *DomicilioController) GetAll() {
 // @Param   id     query    int     true        "ID del Domicilio"
 // @Success 200 {object} models.Domicilio "Domicilio encontrado"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
+// @Security BearerAuth
 // @Router /domicilios/search [get]
 func (c *DomicilioController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *DomicilioController) GetById() {
 // @Param   body  body   models.Domicilio true  "Datos del domicilio a crear"
 // @Success 201 {object} models.Domicilio "Domicilio creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /domicilios [post]
 func (c *DomicilioController) Post() {
 	o := orm.NewOrm()
@@ -152,6 +155,7 @@ func (c *DomicilioController) Post() {
 // @Param   body  body   models.Domicilio true  "Datos del domicilio a actualizar"
 // @Success 200 {object} models.Domicilio "Domicilio actualizado"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
+// @Security BearerAuth
 // @Router /domicilios [put]
 func (c *DomicilioController) Put() {
 	o := orm.NewOrm()
@@ -223,6 +227,7 @@ func (c *DomicilioController) Put() {
 // @Param   id     query    int     true        "ID del Domicilio"
 // @Success 204 {object} nil "Domicilio eliminado"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
+// @Security BearerAuth
 // @Router /domicilios [delete]
 func (c *DomicilioController) Delete() {
 	o := orm.NewOrm()

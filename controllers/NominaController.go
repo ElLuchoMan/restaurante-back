@@ -22,6 +22,7 @@ type NominaController struct {
 // @Produce json
 // @Success 200 {array} models.Nomina "Lista de nóminas"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /nominas [get]
 func (c *NominaController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *NominaController) GetAll() {
 // @Param   id     query    int     true        "ID de la Nómina"
 // @Success 200 {object} models.Nomina "Nómina encontrada"
 // @Failure 404 {object} models.ApiResponse "Nómina no encontrada"
+// @Security BearerAuth
 // @Router /nominas/search [get]
 func (c *NominaController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *NominaController) GetById() {
 // @Param   body  body   models.Nomina true  "Datos de la nómina a crear"
 // @Success 201 {object} models.Nomina "Nómina creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /nominas [post]
 func (c *NominaController) Post() {
 	o := orm.NewOrm()
@@ -154,6 +157,7 @@ func (c *NominaController) Post() {
 // @Param   body  body   models.Nomina true  "Datos de la nómina a actualizar"
 // @Success 200 {object} models.Nomina "Nómina actualizada"
 // @Failure 404 {object} models.ApiResponse "Nómina no encontrada"
+// @Security BearerAuth
 // @Router /nominas [put]
 func (c *NominaController) Put() {
 	o := orm.NewOrm()
@@ -225,6 +229,7 @@ func (c *NominaController) Put() {
 // @Param   id     query    int     true        "ID de la Nómina"
 // @Success 200 {object} models.ApiResponse "Nómina eliminada"
 // @Failure 404 {object} models.ApiResponse "Nómina no encontrada"
+// @Security BearerAuth
 // @Router /nominas [delete]
 func (c *NominaController) Delete() {
 	o := orm.NewOrm()

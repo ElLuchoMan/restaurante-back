@@ -22,6 +22,7 @@ type ItemPedidoController struct {
 // @Produce json
 // @Success 200 {array} models.ItemPedido "Lista de ítems de pedido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /item_pedidos [get]
 func (c *ItemPedidoController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *ItemPedidoController) GetAll() {
 // @Param   id     query    int     true        "ID del Ítem de Pedido"
 // @Success 200 {object} models.ItemPedido "Ítem de pedido encontrado"
 // @Failure 404 {object} models.ApiResponse "Ítem de pedido no encontrado"
+// @Security BearerAuth
 // @Router /item_pedidos/search [get]
 func (c *ItemPedidoController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *ItemPedidoController) GetById() {
 // @Param   body  body   models.ItemPedido true  "Datos del ítem de pedido a crear"
 // @Success 201 {object} models.ItemPedido "Ítem de pedido creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /item_pedidos [post]
 func (c *ItemPedidoController) Post() {
 	o := orm.NewOrm()
@@ -154,6 +157,7 @@ func (c *ItemPedidoController) Post() {
 // @Param   body  body   models.ItemPedido true  "Datos del ítem de pedido a actualizar"
 // @Success 200 {object} models.ItemPedido "Ítem de pedido actualizado"
 // @Failure 404 {object} models.ApiResponse "Ítem de pedido no encontrado"
+// @Security BearerAuth
 // @Router /item_pedidos [put]
 func (c *ItemPedidoController) Put() {
 	o := orm.NewOrm()
@@ -225,6 +229,7 @@ func (c *ItemPedidoController) Put() {
 // @Param   id     query    int     true        "ID del Ítem de Pedido"
 // @Success 200 {object} models.ApiResponse "Ítem de pedido eliminado"
 // @Failure 404 {object} models.ApiResponse "Ítem de pedido no encontrado"
+// @Security BearerAuth
 // @Router /item_pedidos [delete]
 func (c *ItemPedidoController) Delete() {
 	o := orm.NewOrm()

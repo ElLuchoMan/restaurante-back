@@ -22,6 +22,7 @@ type PagoController struct {
 // @Produce json
 // @Success 200 {array} models.Pago "Lista de pagos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /pagos [get]
 func (c *PagoController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *PagoController) GetAll() {
 // @Param   id     query    int     true        "ID del Pago"
 // @Success 200 {object} models.Pago "Pago encontrado"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
+// @Security BearerAuth
 // @Router /pagos/search [get]
 func (c *PagoController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *PagoController) GetById() {
 // @Param   body  body   models.Pago true  "Datos del pago a crear"
 // @Success 201 {object} models.Pago "Pago creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /pagos [post]
 func (c *PagoController) Post() {
 	o := orm.NewOrm()
@@ -174,6 +177,7 @@ func (c *PagoController) Post() {
 // @Param   body  body   models.Pago true  "Datos del pago a actualizar"
 // @Success 200 {object} models.Pago "Pago actualizado"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
+// @Security BearerAuth
 // @Router /pagos [put]
 func (c *PagoController) Put() {
 	o := orm.NewOrm()
@@ -268,6 +272,7 @@ func (c *PagoController) Put() {
 // @Param   id     query    int     true        "ID del Pago"
 // @Success 200 {object} models.ApiResponse "Pago eliminado"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
+// @Security BearerAuth
 // @Router /pagos [delete]
 func (c *PagoController) Delete() {
 	o := orm.NewOrm()

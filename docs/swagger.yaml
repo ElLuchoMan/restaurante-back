@@ -12,6 +12,8 @@ definitions:
     type: object
   models.Cliente:
     properties:
+      PASSWORD:
+        type: string
       apellido:
         type: string
       direccion:
@@ -82,6 +84,13 @@ definitions:
         type: integer
       PK_ID_PEDIDO:
         type: integer
+    type: object
+  models.LoginRequest:
+    properties:
+      documento:
+        type: integer
+      password:
+        type: string
     type: object
   models.MetodoPago:
     properties:
@@ -212,6 +221,8 @@ definitions:
     type: object
   models.Trabajador:
     properties:
+      PASSWORD:
+        type: string
       apellido:
         type: string
       fecha_ingreso:
@@ -264,6 +275,8 @@ paths:
           description: Cliente no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un cliente
       tags:
       - clientes
@@ -284,6 +297,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los clientes
       tags:
       - clientes
@@ -309,6 +324,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo cliente
       tags:
       - clientes
@@ -339,6 +356,8 @@ paths:
           description: Cliente no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un cliente
       tags:
       - clientes
@@ -364,6 +383,8 @@ paths:
           description: Cliente no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener cliente por ID
       tags:
       - clientes
@@ -387,6 +408,8 @@ paths:
           description: Domicilio no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un domicilio
       tags:
       - domicilios
@@ -407,6 +430,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los domicilios
       tags:
       - domicilios
@@ -432,6 +457,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo domicilio
       tags:
       - domicilios
@@ -462,6 +489,8 @@ paths:
           description: Domicilio no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un domicilio
       tags:
       - domicilios
@@ -487,6 +516,8 @@ paths:
           description: Domicilio no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener domicilio por ID
       tags:
       - domicilios
@@ -512,6 +543,8 @@ paths:
           description: Ingrediente no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Desactivar un ingrediente
       tags:
       - ingredientes
@@ -533,6 +566,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los ingredientes
       tags:
       - ingredientes
@@ -577,6 +612,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo ingrediente
       tags:
       - ingredientes
@@ -626,6 +663,8 @@ paths:
           description: Ingrediente no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un ingrediente
       tags:
       - ingredientes
@@ -647,6 +686,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los ingredientes activos
       tags:
       - ingredientes
@@ -673,6 +714,8 @@ paths:
           description: Ingrediente no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener ingrediente por ID
       tags:
       - ingredientes
@@ -698,6 +741,8 @@ paths:
           description: Inventario no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un inventario
       tags:
       - inventarios
@@ -718,6 +763,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los inventarios
       tags:
       - inventarios
@@ -743,6 +790,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo inventario
       tags:
       - inventarios
@@ -773,6 +822,8 @@ paths:
           description: Inventario no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un inventario
       tags:
       - inventarios
@@ -798,6 +849,8 @@ paths:
           description: Inventario no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener inventario por ID
       tags:
       - inventarios
@@ -823,6 +876,8 @@ paths:
           description: Ítem de pedido no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un ítem de pedido
       tags:
       - item_pedidos
@@ -843,6 +898,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los ítems de pedido
       tags:
       - item_pedidos
@@ -868,6 +925,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo ítem de pedido
       tags:
       - item_pedidos
@@ -898,6 +957,8 @@ paths:
           description: Ítem de pedido no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un ítem de pedido
       tags:
       - item_pedidos
@@ -923,9 +984,42 @@ paths:
           description: Ítem de pedido no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener ítem de pedido por ID
       tags:
       - item_pedidos
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Permite iniciar sesión utilizando el documento y la contraseña,
+        devuelve un JWT con el rol.
+      parameters:
+      - description: Documento y Contraseña
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inicio de sesión exitoso con token JWT
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Solicitud incorrecta
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "401":
+          description: Credenciales inválidas
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Iniciar sesión para clientes o trabajadores
+      tags:
+      - login
   /metodos_pago:
     delete:
       consumes:
@@ -948,6 +1042,8 @@ paths:
           description: Método de pago no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un método de pago
       tags:
       - metodos_pago
@@ -968,6 +1064,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los métodos de pago
       tags:
       - metodos_pago
@@ -993,6 +1091,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo método de pago
       tags:
       - metodos_pago
@@ -1023,6 +1123,8 @@ paths:
           description: Método de pago no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un método de pago
       tags:
       - metodos_pago
@@ -1048,6 +1150,8 @@ paths:
           description: Método de pago no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener método de pago por ID
       tags:
       - metodos_pago
@@ -1073,6 +1177,8 @@ paths:
           description: Nómina no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar una nómina
       tags:
       - nominas
@@ -1093,6 +1199,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todas las nóminas
       tags:
       - nominas
@@ -1118,6 +1226,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear una nueva nómina
       tags:
       - nominas
@@ -1148,6 +1258,8 @@ paths:
           description: Nómina no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar una nómina
       tags:
       - nominas
@@ -1173,6 +1285,8 @@ paths:
           description: Nómina no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener nómina por ID
       tags:
       - nominas
@@ -1198,6 +1312,8 @@ paths:
           description: Pago no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un pago
       tags:
       - pagos
@@ -1218,6 +1334,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los pagos
       tags:
       - pagos
@@ -1243,6 +1361,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo pago
       tags:
       - pagos
@@ -1273,6 +1393,8 @@ paths:
           description: Pago no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un pago
       tags:
       - pagos
@@ -1298,6 +1420,8 @@ paths:
           description: Pago no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener pago por ID
       tags:
       - pagos
@@ -1323,6 +1447,8 @@ paths:
           description: Relación no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar una relación pedido-cliente
       tags:
       - pedido_clientes
@@ -1343,6 +1469,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todas las relaciones pedido-cliente
       tags:
       - pedido_clientes
@@ -1368,6 +1496,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear una nueva relación pedido-cliente
       tags:
       - pedido_clientes
@@ -1398,6 +1528,8 @@ paths:
           description: Relación no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar una relación pedido-cliente
       tags:
       - pedido_clientes
@@ -1423,6 +1555,8 @@ paths:
           description: Relación no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener relación por ID
       tags:
       - pedido_clientes
@@ -1446,6 +1580,8 @@ paths:
           description: Pedido no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un pedido
       tags:
       - pedidos
@@ -1466,6 +1602,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los pedidos
       tags:
       - pedidos
@@ -1491,6 +1629,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo pedido
       tags:
       - pedidos
@@ -1521,6 +1661,8 @@ paths:
           description: Pedido no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un pedido
       tags:
       - pedidos
@@ -1546,6 +1688,8 @@ paths:
           description: Pedido no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener pedido por ID
       tags:
       - pedidos
@@ -1571,6 +1715,8 @@ paths:
           description: Relación no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar una relación plato-ingrediente
       tags:
       - plato_ingredientes
@@ -1591,6 +1737,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todas las relaciones plato-ingrediente
       tags:
       - plato_ingredientes
@@ -1616,6 +1764,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear una nueva relación plato-ingrediente
       tags:
       - plato_ingredientes
@@ -1646,6 +1796,8 @@ paths:
           description: Relación no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar una relación plato-ingrediente
       tags:
       - plato_ingredientes
@@ -1671,6 +1823,8 @@ paths:
           description: Relación no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener relación por ID
       tags:
       - plato_ingredientes
@@ -2009,6 +2163,8 @@ paths:
           description: Restaurante no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un restaurante
       tags:
       - restaurantes
@@ -2029,6 +2185,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los restaurantes
       tags:
       - restaurantes
@@ -2054,6 +2212,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo restaurante
       tags:
       - restaurantes
@@ -2084,6 +2244,8 @@ paths:
           description: Restaurante no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un restaurante
       tags:
       - restaurantes
@@ -2109,6 +2271,8 @@ paths:
           description: Restaurante no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener restaurante por ID
       tags:
       - restaurantes
@@ -2134,6 +2298,8 @@ paths:
           description: Trabajador no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un trabajador
       tags:
       - trabajadores
@@ -2154,6 +2320,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los trabajadores
       tags:
       - trabajadores
@@ -2179,6 +2347,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo trabajador
       tags:
       - trabajadores
@@ -2209,6 +2379,8 @@ paths:
           description: Trabajador no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un trabajador
       tags:
       - trabajadores
@@ -2234,7 +2406,14 @@ paths:
           description: Trabajador no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener trabajador por ID
       tags:
       - trabajadores
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

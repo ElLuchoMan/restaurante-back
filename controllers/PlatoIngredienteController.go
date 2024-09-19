@@ -22,6 +22,7 @@ type PlatoIngredienteController struct {
 // @Produce json
 // @Success 200 {array} models.PlatoIngrediente "Lista de relaciones"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /plato_ingredientes [get]
 func (c *PlatoIngredienteController) GetAll() {
 	o := orm.NewOrm()
@@ -57,6 +58,7 @@ func (c *PlatoIngredienteController) GetAll() {
 // @Param   id     query    int     true        "ID de la Relación"
 // @Success 200 {object} models.PlatoIngrediente "Relación encontrada"
 // @Failure 404 {object} models.ApiResponse "Relación no encontrada"
+// @Security BearerAuth
 // @Router /plato_ingredientes/search [get]
 func (c *PlatoIngredienteController) GetById() {
 	o := orm.NewOrm()
@@ -105,6 +107,7 @@ func (c *PlatoIngredienteController) GetById() {
 // @Param   body  body   models.PlatoIngrediente true  "Datos de la relación a crear"
 // @Success 201 {object} models.PlatoIngrediente "Relación creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /plato_ingredientes [post]
 func (c *PlatoIngredienteController) Post() {
 	o := orm.NewOrm()
@@ -154,6 +157,7 @@ func (c *PlatoIngredienteController) Post() {
 // @Param   body  body   models.PlatoIngrediente true  "Datos de la relación a actualizar"
 // @Success 200 {object} models.PlatoIngrediente "Relación actualizada"
 // @Failure 404 {object} models.ApiResponse "Relación no encontrada"
+// @Security BearerAuth
 // @Router /plato_ingredientes [put]
 func (c *PlatoIngredienteController) Put() {
 	o := orm.NewOrm()
@@ -225,6 +229,7 @@ func (c *PlatoIngredienteController) Put() {
 // @Param   id     query    int     true        "ID de la Relación"
 // @Success 200 {object} models.ApiResponse "Relación eliminada"
 // @Failure 404 {object} models.ApiResponse "Relación no encontrada"
+// @Security BearerAuth
 // @Router /plato_ingredientes [delete]
 func (c *PlatoIngredienteController) Delete() {
 	o := orm.NewOrm()

@@ -23,6 +23,7 @@ type TrabajadorController struct {
 // @Produce json
 // @Success 200 {array} models.Trabajador "Lista de trabajadores"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /trabajadores [get]
 func (c *TrabajadorController) GetAll() {
 	o := orm.NewOrm()
@@ -63,6 +64,7 @@ func (c *TrabajadorController) GetAll() {
 // @Param   id     query    int     true        "ID del Trabajador"
 // @Success 200 {object} models.Trabajador "Trabajador encontrado"
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
+// @Security BearerAuth
 // @Router /trabajadores/search [get]
 func (c *TrabajadorController) GetById() {
 	o := orm.NewOrm()
@@ -123,6 +125,7 @@ func (c *TrabajadorController) GetById() {
 // @Param   body  body   models.Trabajador true  "Datos del trabajador a crear"
 // @Success 201 {object} models.Trabajador "Trabajador creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /trabajadores [post]
 func (c *TrabajadorController) Post() {
 	o := orm.NewOrm()
@@ -200,6 +203,7 @@ func (c *TrabajadorController) Post() {
 // @Param   body  body   models.Trabajador true  "Datos del trabajador a actualizar"
 // @Success 200 {object} models.Trabajador "Trabajador actualizado"
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
+// @Security BearerAuth
 // @Router /trabajadores [put]
 func (c *TrabajadorController) Put() {
 	o := orm.NewOrm()
@@ -309,6 +313,7 @@ func (c *TrabajadorController) Put() {
 // @Param   id     query    int     true        "ID del Trabajador"
 // @Success 200 {object} models.ApiResponse "Trabajador eliminado"
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
+// @Security BearerAuth
 // @Router /trabajadores [delete]
 func (c *TrabajadorController) Delete() {
 	o := orm.NewOrm()
