@@ -251,7 +251,7 @@ info:
     email: baluisto96@gmail.com
   description: API para gestionar el sistema de un restaurante para "El fogón de María"
   title: Restaurante API
-  version: 0.0.1
+  version: 1.0.0
 paths:
   /clientes:
     delete:
