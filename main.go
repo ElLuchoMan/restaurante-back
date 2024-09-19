@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	_ "restaurante/docs"
 	_ "restaurante/routers"
+	"time"
 
+	whatsapp "github.com/Rhymen/go-whatsapp"
 	"github.com/beego/beego/v2/client/orm"
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/filter/cors"
@@ -52,5 +55,48 @@ func main() {
 	beego.Handler("/swagger/*", httpSwagger.WrapHandler)
 
 	// Iniciar el servidor
+	go func() {
+		err := sendWhatsAppMessage("573042449339@s.whatsapp.net", "Hola, este es un mensaje desde go-whatsapp!")
+		if err != nil {
+			log.Fatalf("Error enviando mensaje de WhatsApp: %v", err)
+		}
+	}()
+
 	beego.Run()
+}
+
+func sendWhatsAppMessage(recipient string, text string) error {
+	// Crear una nueva instancia de WhatsApp
+	wac, err := whatsapp.NewConn(5 * time.Second)
+	if err != nil {
+		return fmt.Errorf("error creando conexión de WhatsApp: %v", err)
+	}
+
+	// Escanear el código QR para iniciar sesión en WhatsApp Web
+	qr := make(chan string)
+	go func() {
+		fmt.Printf("Escanea este código QR en tu WhatsApp Web:\n%s\n", <-qr)
+	}()
+
+	session, err := wac.Login(qr)
+	if err != nil {
+		return fmt.Errorf("error iniciando sesión en WhatsApp: %v", err)
+	}
+
+	fmt.Println("Inicio de sesión exitoso", session.Wid)
+
+	// Enviar el mensaje
+	msg := whatsapp.TextMessage{
+		Info: whatsapp.MessageInfo{
+			RemoteJid: recipient,
+		},
+		Text: text,
+	}
+
+	_, err = wac.Send(msg)
+	if err != nil {
+		return fmt.Errorf("error enviando mensaje: %v", err)
+	}
+
+	return nil
 }
