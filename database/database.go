@@ -1,15 +1,13 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 	_ "github.com/lib/pq"
 )
-
-var DB *sql.DB
 
 func InitDB() {
 	dbHost, _ := web.AppConfig.String("db_host")
@@ -18,18 +16,12 @@ func InitDB() {
 	dbPass, _ := web.AppConfig.String("db_pass")
 	dbName, _ := web.AppConfig.String("db_name")
 
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPass, dbName)
+	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
+		dbUser, dbPass, dbHost, dbPort, dbName)
 
-	var err error
-	DB, err = sql.Open("postgres", connStr)
+	err := orm.RegisterDataBase("default", "postgres", connStr)
 	if err != nil {
 		log.Fatal("Error al conectar a la base de datos:", err)
-	}
-
-	err = DB.Ping()
-	if err != nil {
-		log.Fatal("No se pudo conectar a la base de datos:", err)
 	}
 
 	fmt.Println("Conexión a la base de datos exitosa!")
