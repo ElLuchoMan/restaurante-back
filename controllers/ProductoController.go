@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"restaurante/models"
@@ -16,19 +17,32 @@ type ProductoController struct {
 }
 
 // @Title GetAll
-// @Summary Obtener todos los productos
-// @Description Devuelve todos los productos registrados en la base de datos sin la imagen (IMAGEN).
+// @Summary Obtener productos
+// @Description Devuelve todos los productos registrados en la base de datos. Puedes incluir o excluir las imágenes con el parámetro `includeImage` y filtrar los productos activos con `onlyActive`.
 // @Tags productos
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Producto "Lista de todos los productos"
+// @Param   includeImage  query    bool   false  "Incluir imágenes Base64 en la respuesta (true o false, por defecto es false)"
+// @Param   onlyActive    query    bool   false  "Filtrar solo productos disponibles (true o false, por defecto es false)"
+// @Success 200 {array} models.Producto "Lista de productos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [get]
 func (c *ProductoController) GetAll() {
 	o := orm.NewOrm()
 	var productos []models.Producto
 
-	_, err := o.QueryTable(new(models.Producto)).All(&productos)
+	// Obtener valores de los parámetros
+	includeImage, _ := c.GetBool("includeImage", false)
+	onlyActive, _ := c.GetBool("onlyActive", false)
+
+	// Construir la consulta con filtros
+	query := o.QueryTable(new(models.Producto))
+	if onlyActive {
+		query = query.Filter("ESTADO_PRODUCTO", "DISPONIBLE")
+	}
+
+	// Ejecutar la consulta
+	_, err := query.All(&productos)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -40,54 +54,19 @@ func (c *ProductoController) GetAll() {
 		return
 	}
 
-	// Excluir la foto (IMAGEN) de cada producto
+	// Manejar imágenes según el parámetro includeImage
 	for i := range productos {
-		productos[i].IMAGEN = ""
+		if !includeImage {
+			productos[i].IMAGEN = "" // Excluir imágenes
+		} else if productos[i].IMAGEN != "" {
+			productos[i].IMAGEN = "data:image/jpeg;base64," + productos[i].IMAGEN
+		}
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Productos obtenidos exitosamente",
-		Data:    productos,
-	}
-	c.ServeJSON()
-}
-
-// @Title GetAllActive
-// @Summary Obtener todos los productos activos
-// @Description Devuelve solo los productos que están activos (ACTIVO = TRUE).
-// @Tags productos
-// @Accept json
-// @Produce json
-// @Success 200 {array} models.Producto "Lista de productos activos"
-// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @Router /productos/active [get]
-func (c *ProductoController) GetAllActive() {
-	o := orm.NewOrm()
-	var productos []models.Producto
-
-	_, err := o.QueryTable(new(models.Producto)).Filter("ACTIVO", true).All(&productos)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener productos activos de la base de datos",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Excluir la foto (IMAGEN) de cada producto
-	for i := range productos {
-		productos[i].IMAGEN = ""
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Productos activos obtenidos exitosamente",
 		Data:    productos,
 	}
 	c.ServeJSON()
@@ -118,26 +97,22 @@ func (c *ProductoController) GetById() {
 		return
 	}
 
-	producto := models.Producto{PK_ID_PRODUCTO: int64(id)}
-
-	err = o.Read(&producto)
-	if err == orm.ErrNoRows {
+	producto, err := getProductoByID(int64(id), o)
+	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
-			Message: "Producto no encontrado",
-			Cause:   err.Error(),
+			Message: err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Si todo está bien, devuelve el producto, incluyendo la imagen en Base64
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Producto encontrado",
-		Data:    producto, // Incluye la imagen en Base64
+		Data:    producto,
 	}
 	c.ServeJSON()
 }
@@ -149,11 +124,12 @@ func (c *ProductoController) GetById() {
 // @Accept multipart/form-data
 // @Produce json
 // @Param   NOMBRE        formData  string  true   "Nombre del producto"
-// @Param   CALORIAS      formData  int     true   "Calorías del producto"
+// @Param   CALORIAS      formData  int     false   "Calorías del producto"
 // @Param   DESCRIPCION   formData  string  false  "Descripción del producto"
+// @Param   ESTADO_PRODUCTO formData  string    true   "Estado del producto"
 // @Param   PRECIO        formData  int     true   "Precio del producto"
-// @Param   PERSONALIZADO formData  bool    true   "Indica si el producto es personalizado"
-// @Param   IMAGEN          formData  file    false  "Imagen del producto (opcional)"
+// @Param   IMAGEN        formData  file    false  "Imagen del producto (opcional)"
+// @Param   CANTIDAD        formData  int     false   "Cantidad del producto"
 // @Success 201 {object} models.Producto "Producto creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /productos [post]
@@ -161,61 +137,45 @@ func (c *ProductoController) Post() {
 	o := orm.NewOrm()
 	var producto models.Producto
 
-	// Validar campos requeridos
+	// Validar campos obligatorios
 	producto.NOMBRE = c.GetString("NOMBRE")
-	if producto.NOMBRE == "" {
+	producto.ESTADO_PRODUCTO = c.GetString("ESTADO_PRODUCTO")
+	calorias, _ := c.GetInt64("CALORIAS")
+	producto.CALORIAS = &calorias
+	producto.DESCRIPCION = c.GetString("DESCRIPCION")
+	producto.PRECIO, _ = c.GetInt64("PRECIO")
+	producto.CANTIDAD, _ = c.GetInt("CANTIDAD")
+
+	if err := validateProducto(&producto); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo 'NOMBRE' es requerido.",
+			Message: err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	calorias, _ := c.GetInt64("CALORIAS")
-	producto.CALORIAS = &calorias
-	producto.DESCRIPCION = c.GetString("DESCRIPCION")
-	producto.PRECIO, _ = c.GetInt64("PRECIO")
-
 	// Manejar la imagen opcional
-	file, fileHeader, err := c.GetFile("IMAGEN")
-	if err == nil {
-		defer file.Close()
-
-		// Validar el tamaño del archivo (máximo 1MB)
-		if fileHeader.Size > 1024*1024 { // 1MB en bytes
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "La imagen no debe superar los 1MB.",
-			}
-			c.ServeJSON()
-			return
+	imagen, err := handleImageUpload(&c.Controller)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
 		}
-
-		// Leer y convertir a Base64
-		fileBytes, err := ioutil.ReadAll(file)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Error al leer la imagen.",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-		producto.IMAGEN = base64.StdEncoding.EncodeToString(fileBytes)
+		c.ServeJSON()
+		return
 	}
+	producto.IMAGEN = imagen
 
-	// Insertar el nuevo producto en la base de datos
+	// Insertar en la base de datos
 	_, err = o.Insert(&producto)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el producto.",
+			Message: "Error al crear el producto",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
@@ -239,11 +199,12 @@ func (c *ProductoController) Post() {
 // @Produce json
 // @Param   id            query    int     true   "ID del Producto"
 // @Param   NOMBRE        formData  string  true   "Nombre del producto"
-// @Param   CALORIAS      formData  int     true   "Calorías del producto"
+// @Param   CALORIAS      formData  int     false   "Calorías del producto"
 // @Param   DESCRIPCION   formData  string  false  "Descripción del producto"
+// @Param   ESTADO_PRODUCTO formData  string    true   "Estado del producto"
 // @Param   PRECIO        formData  int     true   "Precio del producto"
-// @Param   PERSONALIZADO formData  bool    true   "Indica si el producto es personalizado"
-// @Param   IMAGEN          formData  file    false  "Imagen del producto (opcional)"
+// @Param   IMAGEN        formData  file    false  "Imagen del producto (opcional)"
+// @Param   CANTIDAD        formData  int     false   "Cantidad del producto"
 // @Success 200 {object} models.Producto "Producto actualizado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos [put]
@@ -267,45 +228,57 @@ func (c *ProductoController) Put() {
 	producto := models.Producto{PK_ID_PRODUCTO: int64(id)}
 
 	if o.Read(&producto) == nil {
+		// Copiar los valores actuales para comparación
+		original := producto
+
+		// Actualizar los campos
 		producto.NOMBRE = c.GetString("NOMBRE")
 		calorias, _ := c.GetInt64("CALORIAS")
 		producto.CALORIAS = &calorias
 		producto.DESCRIPCION = c.GetString("DESCRIPCION")
 		producto.PRECIO, _ = c.GetInt64("PRECIO")
+		producto.ESTADO_PRODUCTO = c.GetString("ESTADO_PRODUCTO")
+		producto.CANTIDAD, _ = c.GetInt("CANTIDAD")
 
-		// Manejar la imagen opcional
-		file, fileHeader, err := c.GetFile("IMAGEN")
-		if err == nil {
-			defer file.Close()
-
-			// Validar el tamaño del archivo (máximo 1MB)
-			if fileHeader.Size > 1024*1024 { // 1MB en bytes
-				c.Ctx.Output.SetStatus(http.StatusBadRequest)
-				c.Data["json"] = models.ApiResponse{
-					Code:    http.StatusBadRequest,
-					Message: "La imagen no debe superar los 1MB.",
-				}
-				c.ServeJSON()
-				return
+		// Validar datos
+		if err := validateProducto(&producto); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
 			}
-
-			fileBytes, err := ioutil.ReadAll(file)
-			if err != nil {
-				c.Ctx.Output.SetStatus(http.StatusBadRequest)
-				c.Data["json"] = models.ApiResponse{
-					Code:    http.StatusBadRequest,
-					Message: "Error al leer la imagen.",
-					Cause:   err.Error(),
-				}
-				c.ServeJSON()
-				return
-			}
-			producto.IMAGEN = base64.StdEncoding.EncodeToString(fileBytes)
+			c.ServeJSON()
+			return
 		}
 
-		// Actualizar el producto en la base de datos
-		_, err = o.Update(&producto)
+		// Manejar imagen opcional
+		imagen, err := handleImageUpload(&c.Controller)
 		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		if imagen != "" {
+			producto.IMAGEN = imagen
+		}
+
+		// Verificar si hubo cambios
+		if producto == original {
+			c.Ctx.Output.SetStatus(http.StatusNotModified)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusNotModified,
+				Message: "No se realizaron cambios en el producto",
+			}
+			c.ServeJSON()
+			return
+		}
+
+		// Actualizar en base de datos
+		if _, err = o.Update(&producto); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -331,6 +304,7 @@ func (c *ProductoController) Put() {
 		}
 		c.ServeJSON()
 	}
+
 }
 
 // @Title Delete
@@ -340,8 +314,9 @@ func (c *ProductoController) Put() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Producto"
-// @Success 204 {object} nil "Producto desactivado"
+// @Success 200 {object} models.ApiResponse "Producto desactivado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [delete]
 func (c *ProductoController) Delete() {
 	o := orm.NewOrm()
@@ -353,41 +328,99 @@ func (c *ProductoController) Delete() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
+			Message: "El parámetro 'id' es inválido o está ausente.",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
 	// Buscar el producto
-	producto := models.Producto{PK_ID_PRODUCTO: int64(id)}
-	if err := o.Read(&producto); err != nil {
+	producto, err := getProductoByID(int64(id), o)
+	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
-			Message: "Producto no encontrado",
+			Message: err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+	if producto.ESTADO_PRODUCTO == "NO DISPONIBLE" {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El producto ya está desactivado.",
+		}
+		c.ServeJSON()
+		return
+	}
+	// Cambiar el estado del producto a "NO DISPONIBLE" para el borrado lógico
+	producto.ESTADO_PRODUCTO = "NO DISPONIBLE"
+	if _, err := o.Update(producto, "ESTADO_PRODUCTO"); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al desactivar el producto.",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Realizar el borrado lógico
-	producto.ESTADO_PRODUCTO = "DISPONIBLE"
-	if _, err := o.Update(&producto); err == nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Producto no disponible",
-		}
-		c.ServeJSON()
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al desactivar el producto",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Producto desactivado correctamente.",
 	}
+	c.ServeJSON()
+}
+
+// Funciones auxiliares
+func handleImageUpload(c *web.Controller) (string, error) {
+	file, fileHeader, err := c.GetFile("IMAGEN")
+	if err != nil {
+		if err == http.ErrMissingFile {
+			return "", nil
+		}
+		return "", fmt.Errorf("error al obtener la imagen: %v", err)
+	}
+	defer file.Close()
+
+	if fileHeader.Size > 1024*1024 {
+		return "", fmt.Errorf("la imagen no debe superar los 1MB")
+	}
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("error al leer la imagen: %v", err)
+	}
+	return base64.StdEncoding.EncodeToString(fileBytes), nil
+}
+
+func validateProducto(producto *models.Producto) error {
+	if producto.NOMBRE == "" {
+		return fmt.Errorf("el campo 'NOMBRE' es obligatorio")
+	}
+	if producto.PRECIO <= 0 {
+		return fmt.Errorf("el campo 'PRECIO' debe ser un número mayor a 0")
+	}
+	if producto.CALORIAS != nil && *producto.CALORIAS < 0 {
+		return fmt.Errorf("el campo 'CALORIAS' debe ser un número positivo")
+	}
+	if producto.ESTADO_PRODUCTO != "DISPONIBLE" && producto.ESTADO_PRODUCTO != "NO DISPONIBLE" {
+		return fmt.Errorf("el campo 'ESTADO_PRODUCTO' debe ser 'DISPONIBLE' o 'NO DISPONIBLE'")
+	}
+	return nil
+}
+
+func getProductoByID(id int64, o orm.Ormer) (*models.Producto, error) {
+	producto := &models.Producto{PK_ID_PRODUCTO: id}
+	if err := o.Read(producto); err != nil {
+		if err == orm.ErrNoRows {
+			return nil, fmt.Errorf("producto no encontrado")
+		}
+		return nil, fmt.Errorf("error al buscar el producto: %v", err)
+	}
+	return producto, nil
 }

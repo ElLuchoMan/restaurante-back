@@ -1557,7 +1557,7 @@ const docTemplate = `{
         },
         "/productos": {
             "get": {
-                "description": "Devuelve todos los productos registrados en la base de datos sin la imagen (IMAGEN).",
+                "description": "Devuelve todos los productos registrados en la base de datos. Puedes incluir o excluir las imágenes con el parámetro ` + "`" + `includeImage` + "`" + ` y filtrar los productos activos con ` + "`" + `onlyActive` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1567,10 +1567,24 @@ const docTemplate = `{
                 "tags": [
                     "productos"
                 ],
-                "summary": "Obtener todos los productos",
+                "summary": "Obtener productos",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Incluir imágenes Base64 en la respuesta (true o false, por defecto es false)",
+                        "name": "includeImage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filtrar solo productos disponibles (true o false, por defecto es false)",
+                        "name": "onlyActive",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Lista de todos los productos",
+                        "description": "Lista de productos",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -1617,14 +1631,20 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Calorías del producto",
                         "name": "CALORIAS",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
                         "description": "Descripción del producto",
                         "name": "DESCRIPCION",
                         "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Estado del producto",
+                        "name": "ESTADO_PRODUCTO",
+                        "in": "formData",
+                        "required": true
                     },
                     {
                         "type": "integer",
@@ -1634,16 +1654,15 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "boolean",
-                        "description": "Indica si el producto es personalizado",
-                        "name": "PERSONALIZADO",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
                         "type": "file",
                         "description": "Imagen del producto (opcional)",
                         "name": "IMAGEN",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Cantidad del producto",
+                        "name": "CANTIDAD",
                         "in": "formData"
                     }
                 ],
@@ -1686,14 +1705,20 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Calorías del producto",
                         "name": "CALORIAS",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
                         "description": "Descripción del producto",
                         "name": "DESCRIPCION",
                         "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Estado del producto",
+                        "name": "ESTADO_PRODUCTO",
+                        "in": "formData",
+                        "required": true
                     },
                     {
                         "type": "integer",
@@ -1703,16 +1728,15 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "boolean",
-                        "description": "Indica si el producto es personalizado",
-                        "name": "PERSONALIZADO",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
                         "type": "file",
                         "description": "Imagen del producto (opcional)",
                         "name": "IMAGEN",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Cantidad del producto",
+                        "name": "CANTIDAD",
                         "in": "formData"
                     }
                 ],
@@ -1753,39 +1777,16 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Producto desactivado"
+                    "200": {
+                        "description": "Producto desactivado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     },
                     "404": {
                         "description": "Producto no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/productos/active": {
-            "get": {
-                "description": "Devuelve solo los productos que están activos (ACTIVO = TRUE).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "productos"
-                ],
-                "summary": "Obtener todos los productos activos",
-                "responses": {
-                    "200": {
-                        "description": "Lista de productos activos",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Producto"
-                            }
                         }
                     },
                     "500": {
@@ -2645,7 +2646,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "CANTIDAD": {
-                    "type": "boolean"
+                    "type": "integer"
                 },
                 "DESCRIPCION": {
                     "type": "string"

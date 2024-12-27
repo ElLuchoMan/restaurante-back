@@ -129,7 +129,7 @@ definitions:
       CALORIAS:
         type: integer
       CANTIDAD:
-        type: boolean
+        type: integer
       DESCRIPCION:
         type: string
       ESTADO_PRODUCTO:
@@ -1202,10 +1202,16 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
+        "200":
           description: Producto desactivado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Producto no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
       summary: Desactivar un producto
@@ -1214,13 +1220,25 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve todos los productos registrados en la base de datos sin
-        la imagen (IMAGEN).
+      description: Devuelve todos los productos registrados en la base de datos. Puedes
+        incluir o excluir las imágenes con el parámetro `includeImage` y filtrar los
+        productos activos con `onlyActive`.
+      parameters:
+      - description: Incluir imágenes Base64 en la respuesta (true o false, por defecto
+          es false)
+        in: query
+        name: includeImage
+        type: boolean
+      - description: Filtrar solo productos disponibles (true o false, por defecto
+          es false)
+        in: query
+        name: onlyActive
+        type: boolean
       produces:
       - application/json
       responses:
         "200":
-          description: Lista de todos los productos
+          description: Lista de productos
           schema:
             items:
               $ref: '#/definitions/models.Producto'
@@ -1229,7 +1247,7 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Obtener todos los productos
+      summary: Obtener productos
       tags:
       - productos
     post:
@@ -1246,26 +1264,29 @@ paths:
       - description: Calorías del producto
         in: formData
         name: CALORIAS
-        required: true
         type: integer
       - description: Descripción del producto
         in: formData
         name: DESCRIPCION
+        type: string
+      - description: Estado del producto
+        in: formData
+        name: ESTADO_PRODUCTO
+        required: true
         type: string
       - description: Precio del producto
         in: formData
         name: PRECIO
         required: true
         type: integer
-      - description: Indica si el producto es personalizado
-        in: formData
-        name: PERSONALIZADO
-        required: true
-        type: boolean
       - description: Imagen del producto (opcional)
         in: formData
         name: IMAGEN
         type: file
+      - description: Cantidad del producto
+        in: formData
+        name: CANTIDAD
+        type: integer
       produces:
       - application/json
       responses:
@@ -1299,26 +1320,29 @@ paths:
       - description: Calorías del producto
         in: formData
         name: CALORIAS
-        required: true
         type: integer
       - description: Descripción del producto
         in: formData
         name: DESCRIPCION
+        type: string
+      - description: Estado del producto
+        in: formData
+        name: ESTADO_PRODUCTO
+        required: true
         type: string
       - description: Precio del producto
         in: formData
         name: PRECIO
         required: true
         type: integer
-      - description: Indica si el producto es personalizado
-        in: formData
-        name: PERSONALIZADO
-        required: true
-        type: boolean
       - description: Imagen del producto (opcional)
         in: formData
         name: IMAGEN
         type: file
+      - description: Cantidad del producto
+        in: formData
+        name: CANTIDAD
+        type: integer
       produces:
       - application/json
       responses:
@@ -1331,27 +1355,6 @@ paths:
           schema:
             $ref: '#/definitions/models.ApiResponse'
       summary: Actualizar un producto
-      tags:
-      - productos
-  /productos/active:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve solo los productos que están activos (ACTIVO = TRUE).
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lista de productos activos
-          schema:
-            items:
-              $ref: '#/definitions/models.Producto'
-            type: array
-        "500":
-          description: Error en la base de datos
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      summary: Obtener todos los productos activos
       tags:
       - productos
   /productos/search:
