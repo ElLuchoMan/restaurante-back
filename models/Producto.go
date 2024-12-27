@@ -10,7 +10,7 @@ type Producto struct {
 	PRECIO          int64  `orm:"column(PRECIO)" json:"PRECIO"`
 	ESTADO_PRODUCTO string `orm:"column(ESTADO_PRODUCTO)" json:"ESTADO_PRODUCTO"`
 	IMAGEN          string `orm:"column(IMAGEN);null" json:"IMAGEN"`
-	CANTIDAD        int    `orm:"column(CANTIDAD);default(true)" json:"CANTIDAD"`
+	CANTIDAD        int    `orm:"column(CANTIDAD);null" json:"CANTIDAD"`
 }
 
 func (p *Producto) TableName() string {

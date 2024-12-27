@@ -163,7 +163,8 @@ definitions:
         type: integer
         format: int64
       CANTIDAD:
-        type: boolean
+        type: integer
+        format: int64
       DESCRIPCION:
         type: string
       ESTADO_PRODUCTO:
