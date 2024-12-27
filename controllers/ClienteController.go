@@ -16,18 +16,24 @@ type ClienteController struct {
 }
 
 // @Title GetAll
-// @Summary Obtener todos los clientes
-// @Description Devuelve todos los clientes registrados en la base de datos.
+// @Summary Obtener todos los clientes con opción de filtrar campos
+// @Description Devuelve todos los clientes registrados en la base de datos, con opción de retornar solo nombre completo y teléfono.
 // @Tags clientes
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Cliente "Lista de clientes"
+// @Param   limit  query    int     false  "Cantidad de resultados por página (por defecto es 10)"
+// @Param   offset query    int     false  "Número de registros a omitir desde el inicio (por defecto es 0)"
+// @Param   fields  query    string  false  "Especifica los campos a incluir en la respuesta (opciones: 'nombre_completo_telefono')"
+// @Success 200 {array} interface{} "Lista de clientes con los campos especificados"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /clientes [get]
 func (c *ClienteController) GetAll() {
 	o := orm.NewOrm()
 	var clientes []models.Cliente
+
+	// Obtener el valor del parámetro fields
+	fields := c.GetString("fields")
 
 	_, err := o.QueryTable(new(models.Cliente)).All(&clientes)
 	if err != nil {
@@ -41,7 +47,27 @@ func (c *ClienteController) GetAll() {
 		return
 	}
 
-	// Excluir las contraseñas de la respuesta
+	// Manejar la respuesta basada en el parámetro fields
+	if fields == "nombre_completo_telefono" {
+		var filteredClientes []map[string]string
+		for _, cliente := range clientes {
+			filteredClientes = append(filteredClientes, map[string]string{
+				"nombre_completo": cliente.NOMBRE + " " + cliente.APELLIDO,
+				"telefono":        cliente.TELEFONO,
+			})
+		}
+
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusOK,
+			Message: "Clientes obtenidos exitosamente",
+			Data:    filteredClientes,
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Respuesta completa por defecto, excluyendo las contraseñas
 	for i := range clientes {
 		clientes[i].PASSWORD = ""
 	}

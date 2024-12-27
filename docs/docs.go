@@ -24,7 +24,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los clientes registrados en la base de datos.",
+                "description": "Devuelve todos los clientes registrados en la base de datos, con opción de retornar solo nombre completo y teléfono.",
                 "consumes": [
                     "application/json"
                 ],
@@ -34,14 +34,22 @@ const docTemplate = `{
                 "tags": [
                     "clientes"
                 ],
-                "summary": "Obtener todos los clientes",
+                "summary": "Obtener todos los clientes con opción de filtrar campos",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Especifica los campos a incluir en la respuesta (opciones: 'nombre_completo_telefono')",
+                        "name": "fields",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Lista de clientes",
+                        "description": "Lista de clientes con los campos especificados",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Cliente"
+                                "type": "object"
                             }
                         }
                     },
@@ -2467,25 +2475,25 @@ const docTemplate = `{
         "models.Cliente": {
             "type": "object",
             "properties": {
+                "APELLIDO": {
+                    "type": "string"
+                },
+                "DIRECCION": {
+                    "type": "string"
+                },
+                "NOMBRE": {
+                    "type": "string"
+                },
+                "OBSERVACIONES": {
+                    "type": "string"
+                },
                 "PASSWORD": {
                     "type": "string"
                 },
-                "apellido": {
-                    "type": "string"
-                },
-                "direccion": {
-                    "type": "string"
-                },
-                "nombre": {
-                    "type": "string"
-                },
-                "observaciones": {
-                    "type": "string"
-                },
-                "pk_DOCUMENTO_CLIENTE": {
+                "PK_DOCUMENTO_CLIENTE": {
                     "type": "integer"
                 },
-                "telefono": {
+                "TELEFONO": {
                     "type": "string"
                 }
             }

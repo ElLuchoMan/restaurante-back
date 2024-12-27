@@ -6,6 +6,10 @@
     "basePath": "/restaurante/v1",
     "paths": null,
     "definitions": {
+        "interface{}": {
+            "title": "interface{}",
+            "type": "object"
+        },
         "models.ApiResponse": {
             "title": "ApiResponse",
             "type": "object",

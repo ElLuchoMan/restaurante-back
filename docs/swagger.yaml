@@ -12,19 +12,19 @@ definitions:
     type: object
   models.Cliente:
     properties:
+      APELLIDO:
+        type: string
+      DIRECCION:
+        type: string
+      NOMBRE:
+        type: string
+      OBSERVACIONES:
+        type: string
       PASSWORD:
         type: string
-      apellido:
-        type: string
-      direccion:
-        type: string
-      nombre:
-        type: string
-      observaciones:
-        type: string
-      pk_DOCUMENTO_CLIENTE:
+      PK_DOCUMENTO_CLIENTE:
         type: integer
-      telefono:
+      TELEFONO:
         type: string
     type: object
   models.Domicilio:
@@ -246,15 +246,21 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve todos los clientes registrados en la base de datos.
+      description: Devuelve todos los clientes registrados en la base de datos, con
+        opción de retornar solo nombre completo y teléfono.
+      parameters:
+      - description: 'Especifica los campos a incluir en la respuesta (opciones: ''nombre_completo_telefono'')'
+        in: query
+        name: fields
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Lista de clientes
+          description: Lista de clientes con los campos especificados
           schema:
             items:
-              $ref: '#/definitions/models.Cliente'
+              type: object
             type: array
         "500":
           description: Error en la base de datos
@@ -262,7 +268,7 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener todos los clientes
+      summary: Obtener todos los clientes con opción de filtrar campos
       tags:
       - clientes
     post:
