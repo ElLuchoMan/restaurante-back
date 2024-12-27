@@ -442,735 +442,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/ingredientes": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve todos los ingredientes registrados en la base de datos, independientemente de su estado.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingredientes"
-                ],
-                "summary": "Obtener todos los ingredientes",
-                "responses": {
-                    "200": {
-                        "description": "Lista de todos los ingredientes",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Ingrediente"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Error en la base de datos",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Actualiza los datos de un ingrediente existente, incluyendo una imagen en formato Base64.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingredientes"
-                ],
-                "summary": "Actualizar un ingrediente",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Ingrediente",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Nombre del ingrediente",
-                        "name": "NOMBRE",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Tipo del ingrediente",
-                        "name": "TIPO",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Peso del ingrediente",
-                        "name": "PESO",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Calorías del ingrediente",
-                        "name": "CALORIAS",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "Imagen del ingrediente (opcional)",
-                        "name": "FOTO",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Ingrediente actualizado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Ingrediente"
-                        }
-                    },
-                    "404": {
-                        "description": "Ingrediente no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Crea un nuevo ingrediente en la base de datos, incluyendo una imagen en formato Base64.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingredientes"
-                ],
-                "summary": "Crear un nuevo ingrediente",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Nombre del ingrediente",
-                        "name": "NOMBRE",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Tipo del ingrediente",
-                        "name": "TIPO",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Peso del ingrediente",
-                        "name": "PESO",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Calorías del ingrediente",
-                        "name": "CALORIAS",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "Imagen del ingrediente (opcional)",
-                        "name": "FOTO",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Ingrediente creado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Ingrediente"
-                        }
-                    },
-                    "400": {
-                        "description": "Error en la solicitud",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Marca un ingrediente como inactivo (borrado lógico).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingredientes"
-                ],
-                "summary": "Desactivar un ingrediente",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Ingrediente",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Ingrediente desactivado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Ingrediente no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/ingredientes/active": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve solo los ingredientes que están activos (ACTIVO = TRUE).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingredientes"
-                ],
-                "summary": "Obtener todos los ingredientes activos",
-                "responses": {
-                    "200": {
-                        "description": "Lista de ingredientes activos",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Ingrediente"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Error en la base de datos",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/ingredientes/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve un ingrediente específico por ID, incluyendo la imagen en formato Base64.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ingredientes"
-                ],
-                "summary": "Obtener ingrediente por ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Ingrediente",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Ingrediente encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Ingrediente"
-                        }
-                    },
-                    "404": {
-                        "description": "Ingrediente no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/inventarios": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve todos los registros de inventario.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "inventarios"
-                ],
-                "summary": "Obtener todos los inventarios",
-                "responses": {
-                    "200": {
-                        "description": "Lista de inventarios",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Inventario"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Error en la base de datos",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Actualiza los datos de un inventario existente.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "inventarios"
-                ],
-                "summary": "Actualizar un inventario",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Inventario",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "description": "Datos del inventario a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Inventario"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Inventario actualizado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Inventario"
-                        }
-                    },
-                    "404": {
-                        "description": "Inventario no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Crea un nuevo registro de inventario.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "inventarios"
-                ],
-                "summary": "Crear un nuevo inventario",
-                "parameters": [
-                    {
-                        "description": "Datos del inventario a crear",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Inventario"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Inventario creado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Inventario"
-                        }
-                    },
-                    "400": {
-                        "description": "Error en la solicitud",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Elimina un registro de inventario de la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "inventarios"
-                ],
-                "summary": "Eliminar un inventario",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Inventario",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Inventario eliminado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Inventario no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/inventarios/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve un registro de inventario específico por ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "inventarios"
-                ],
-                "summary": "Obtener inventario por ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Inventario",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Inventario encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Inventario"
-                        }
-                    },
-                    "404": {
-                        "description": "Inventario no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/item_pedidos": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve todos los ítems de pedido registrados en la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "item_pedidos"
-                ],
-                "summary": "Obtener todos los ítems de pedido",
-                "responses": {
-                    "200": {
-                        "description": "Lista de ítems de pedido",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.ItemPedido"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Error en la base de datos",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Actualiza los datos de un ítem de pedido existente.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "item_pedidos"
-                ],
-                "summary": "Actualizar un ítem de pedido",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Ítem de Pedido",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "description": "Datos del ítem de pedido a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.ItemPedido"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Ítem de pedido actualizado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ItemPedido"
-                        }
-                    },
-                    "404": {
-                        "description": "Ítem de pedido no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Crea un nuevo ítem de pedido en la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "item_pedidos"
-                ],
-                "summary": "Crear un nuevo ítem de pedido",
-                "parameters": [
-                    {
-                        "description": "Datos del ítem de pedido a crear",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.ItemPedido"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Ítem de pedido creado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ItemPedido"
-                        }
-                    },
-                    "400": {
-                        "description": "Error en la solicitud",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Elimina un ítem de pedido de la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "item_pedidos"
-                ],
-                "summary": "Eliminar un ítem de pedido",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Ítem de Pedido",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Ítem de pedido eliminado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Ítem de pedido no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/item_pedidos/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve un ítem de pedido específico por ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "item_pedidos"
-                ],
-                "summary": "Obtener ítem de pedido por ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Ítem de Pedido",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Ítem de pedido encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ItemPedido"
-                        }
-                    },
-                    "404": {
-                        "description": "Ítem de pedido no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/login": {
             "post": {
                 "description": "Permite iniciar sesión utilizando el documento y la contraseña, devuelve un JWT con el rol.",
@@ -2284,14 +1555,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/plato_ingredientes": {
+        "/productos": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve todas las relaciones entre platos e ingredientes.",
+                "description": "Devuelve todos los productos registrados en la base de datos sin la imagen (IMAGEN).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2299,221 +1565,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "plato_ingredientes"
+                    "productos"
                 ],
-                "summary": "Obtener todas las relaciones plato-ingrediente",
+                "summary": "Obtener todos los productos",
                 "responses": {
                     "200": {
-                        "description": "Lista de relaciones",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.PlatoIngrediente"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Error en la base de datos",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Actualiza los datos de una relación existente.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plato_ingredientes"
-                ],
-                "summary": "Actualizar una relación plato-ingrediente",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID de la Relación",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "description": "Datos de la relación a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.PlatoIngrediente"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Relación actualizada",
-                        "schema": {
-                            "$ref": "#/definitions/models.PlatoIngrediente"
-                        }
-                    },
-                    "404": {
-                        "description": "Relación no encontrada",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Crea una nueva relación entre un plato y un ingrediente.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plato_ingredientes"
-                ],
-                "summary": "Crear una nueva relación plato-ingrediente",
-                "parameters": [
-                    {
-                        "description": "Datos de la relación a crear",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.PlatoIngrediente"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Relación creada",
-                        "schema": {
-                            "$ref": "#/definitions/models.PlatoIngrediente"
-                        }
-                    },
-                    "400": {
-                        "description": "Error en la solicitud",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Elimina una relación de la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plato_ingredientes"
-                ],
-                "summary": "Eliminar una relación plato-ingrediente",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID de la Relación",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Relación eliminada",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Relación no encontrada",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/plato_ingredientes/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve una relación específica por ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "plato_ingredientes"
-                ],
-                "summary": "Obtener relación por ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID de la Relación",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Relación encontrada",
-                        "schema": {
-                            "$ref": "#/definitions/models.PlatoIngrediente"
-                        }
-                    },
-                    "404": {
-                        "description": "Relación no encontrada",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/platos": {
-            "get": {
-                "description": "Devuelve todos los platos registrados en la base de datos sin la imagen (FOTO).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "platos"
-                ],
-                "summary": "Obtener todos los platos",
-                "responses": {
-                    "200": {
-                        "description": "Lista de todos los platos",
+                        "description": "Lista de todos los productos",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -2530,7 +1587,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Actualiza los datos de un plato existente, incluyendo una imagen en formato Base64.",
+                "description": "Actualiza los datos de un producto existente, incluyendo una imagen en formato Base64.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2538,9 +1595,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "platos"
+                    "productos"
                 ],
-                "summary": "Actualizar un plato",
+                "summary": "Actualizar un producto",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2551,42 +1608,42 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Nombre del plato",
+                        "description": "Nombre del producto",
                         "name": "NOMBRE",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "Calorías del plato",
+                        "description": "Calorías del producto",
                         "name": "CALORIAS",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Descripción del plato",
+                        "description": "Descripción del producto",
                         "name": "DESCRIPCION",
                         "in": "formData"
                     },
                     {
                         "type": "integer",
-                        "description": "Precio del plato",
+                        "description": "Precio del producto",
                         "name": "PRECIO",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "boolean",
-                        "description": "Indica si el plato es personalizado",
+                        "description": "Indica si el producto es personalizado",
                         "name": "PERSONALIZADO",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "Imagen del plato (opcional)",
-                        "name": "FOTO",
+                        "description": "Imagen del producto (opcional)",
+                        "name": "IMAGEN",
                         "in": "formData"
                     }
                 ],
@@ -2606,7 +1663,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Crea un nuevo plato en la base de datos, incluyendo una imagen en formato Base64.",
+                "description": "Crea un nuevo producto en la base de datos, incluyendo una imagen en formato Base64.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2614,48 +1671,48 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "platos"
+                    "productos"
                 ],
-                "summary": "Crear un nuevo plato",
+                "summary": "Crear un nuevo producto",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Nombre del plato",
+                        "description": "Nombre del producto",
                         "name": "NOMBRE",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "Calorías del plato",
+                        "description": "Calorías del producto",
                         "name": "CALORIAS",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Descripción del plato",
+                        "description": "Descripción del producto",
                         "name": "DESCRIPCION",
                         "in": "formData"
                     },
                     {
                         "type": "integer",
-                        "description": "Precio del plato",
+                        "description": "Precio del producto",
                         "name": "PRECIO",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "boolean",
-                        "description": "Indica si el plato es personalizado",
+                        "description": "Indica si el producto es personalizado",
                         "name": "PERSONALIZADO",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "Imagen del plato (opcional)",
-                        "name": "FOTO",
+                        "description": "Imagen del producto (opcional)",
+                        "name": "IMAGEN",
                         "in": "formData"
                     }
                 ],
@@ -2675,7 +1732,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Desactiva un plato en la base de datos (borrado lógico).",
+                "description": "Desactiva un producto en la base de datos (borrado lógico).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2683,9 +1740,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "platos"
+                    "productos"
                 ],
-                "summary": "Desactivar un plato",
+                "summary": "Desactivar un producto",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2708,9 +1765,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/platos/active": {
+        "/productos/active": {
             "get": {
-                "description": "Devuelve solo los platos que están activos (ACTIVO = TRUE).",
+                "description": "Devuelve solo los productos que están activos (ACTIVO = TRUE).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2718,12 +1775,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "platos"
+                    "productos"
                 ],
-                "summary": "Obtener todos los platos activos",
+                "summary": "Obtener todos los productos activos",
                 "responses": {
                     "200": {
-                        "description": "Lista de platos activos",
+                        "description": "Lista de productos activos",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -2740,9 +1797,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/platos/search": {
+        "/productos/search": {
             "get": {
-                "description": "Devuelve un plato específico por ID, incluyendo la imagen en formato Base64.",
+                "description": "Devuelve un producto específico por ID, incluyendo la imagen en formato Base64.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2750,9 +1807,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "platos"
+                    "productos"
                 ],
-                "summary": "Obtener plato por ID",
+                "summary": "Obtener producto por ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -3447,77 +2504,14 @@ const docTemplate = `{
                 "fecha": {
                     "type": "string"
                 },
+                "observaciones": {
+                    "type": "string"
+                },
                 "pk_ID_DOMICILIO": {
                     "type": "integer"
                 },
                 "telefono": {
                     "type": "string"
-                }
-            }
-        },
-        "models.Ingrediente": {
-            "type": "object",
-            "properties": {
-                "ACTIVO": {
-                    "type": "boolean"
-                },
-                "CALORIAS": {
-                    "type": "integer"
-                },
-                "FOTO": {
-                    "type": "string"
-                },
-                "NOMBRE": {
-                    "type": "string"
-                },
-                "PESO": {
-                    "type": "integer"
-                },
-                "PK_ID_INGREDIENTE": {
-                    "type": "integer"
-                },
-                "PK_ID_INVENTARIO": {
-                    "type": "integer"
-                },
-                "TIPO": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Inventario": {
-            "type": "object",
-            "properties": {
-                "CANTIDAD": {
-                    "type": "integer"
-                },
-                "FECHA": {
-                    "type": "string"
-                },
-                "PK_ID_INGREDIENTE": {
-                    "type": "integer"
-                },
-                "PK_ID_INVENTARIO": {
-                    "type": "integer"
-                },
-                "UNIDAD": {
-                    "type": "integer"
-                },
-                "UNIDAD_MINIMA": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.ItemPedido": {
-            "type": "object",
-            "properties": {
-                "CANTIDAD": {
-                    "type": "integer"
-                },
-                "PK_ID_ITEM_PEDIDO": {
-                    "type": "integer"
-                },
-                "PK_ID_PEDIDO": {
-                    "type": "integer"
                 }
             }
         },
@@ -3563,16 +2557,13 @@ const docTemplate = `{
                 },
                 "PK_ID_NOMINA": {
                     "type": "integer"
-                },
-                "PK_ID_RESTAURANTE": {
-                    "type": "integer"
                 }
             }
         },
         "models.Pago": {
             "type": "object",
             "properties": {
-                "ESTADO": {
+                "ESTADO_PAGO": {
                     "type": "string"
                 },
                 "FECHA": {
@@ -3589,16 +2580,28 @@ const docTemplate = `{
                 },
                 "PK_ID_PAGO": {
                     "type": "integer"
+                },
+                "UPDATED_AT": {
+                    "type": "string"
+                },
+                "UPDATED_BY": {
+                    "type": "string"
                 }
             }
         },
         "models.Pedido": {
             "type": "object",
             "properties": {
+                "UPDATED_AT": {
+                    "type": "string"
+                },
+                "UPDATED_BY": {
+                    "type": "string"
+                },
                 "delivery": {
                     "type": "boolean"
                 },
-                "estado": {
+                "estado_PEDIDO": {
                     "type": "string"
                 },
                 "fecha": {
@@ -3608,9 +2611,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "pk_ID_DOMICILIO": {
-                    "type": "integer"
-                },
-                "pk_ID_ITEM_PEDIDO": {
                     "type": "integer"
                 },
                 "pk_ID_PAGO": {
@@ -3630,10 +2630,10 @@ const docTemplate = `{
                 "PK_DOCUMENTO_CLIENTE": {
                     "type": "integer"
                 },
-                "PK_ID_PEDIDO_CLIENTE": {
+                "PK_ID_PEDIDO": {
                     "type": "integer"
                 },
-                "PK_ID_RESTAURANTE": {
+                "PK_ID_PEDIDO_CLIENTE": {
                     "type": "integer"
                 }
             }
@@ -3641,28 +2641,25 @@ const docTemplate = `{
         "models.Plato": {
             "type": "object",
             "properties": {
-                "ACTIVO": {
-                    "type": "boolean"
-                },
                 "CALORIAS": {
                     "type": "integer"
+                },
+                "CANTIDAD": {
+                    "type": "boolean"
                 },
                 "DESCRIPCION": {
                     "type": "string"
                 },
-                "FOTO": {
+                "ESTADO_PRODUCTO": {
+                    "type": "string"
+                },
+                "IMAGEN": {
                     "type": "string"
                 },
                 "NOMBRE": {
                     "type": "string"
                 },
-                "PERSONALIZADO": {
-                    "type": "boolean"
-                },
-                "PK_ID_ITEM_PEDIDO": {
-                    "type": "integer"
-                },
-                "PK_ID_PLATO": {
+                "PK_ID_PRODUCTO": {
                     "type": "integer"
                 },
                 "PRECIO": {
@@ -3670,49 +2667,48 @@ const docTemplate = `{
                 }
             }
         },
-        "models.PlatoIngrediente": {
-            "type": "object",
-            "properties": {
-                "CANTIDAD": {
-                    "type": "integer"
-                },
-                "PK_ID_INGREDIENTE": {
-                    "type": "integer"
-                },
-                "PK_ID_PLATO": {
-                    "type": "integer"
-                },
-                "PK_ID_PLATO_INGREDIENTE": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.Reserva": {
             "type": "object",
             "properties": {
-                "estado": {
+                "CREATED_AT": {
                     "type": "string"
                 },
-                "fecha": {
+                "ESTADO_RESERVA": {
                     "type": "string"
                 },
-                "hora": {
+                "FECHA": {
                     "type": "string"
                 },
-                "personas": {
+                "HORA": {
+                    "type": "string"
+                },
+                "INDICACIONES": {
+                    "type": "string"
+                },
+                "PERSONAS": {
                     "type": "integer"
                 },
-                "pk_id_reserva": {
+                "PK_ID_RESERVA": {
                     "type": "integer"
                 },
-                "pk_id_restaurante": {
-                    "type": "integer"
+                "UPDATED_AT": {
+                    "type": "string"
+                },
+                "UPDATED_BY": {
+                    "type": "string"
                 }
             }
         },
         "models.Restaurante": {
             "type": "object",
             "properties": {
+                "PK_ID_CAMBIO_HORARIO": {
+                    "type": "integer"
+                },
+                "PK_ID_RESERVA": {
+                    "description": "TODO: ESTÁ AL REVÉS",
+                    "type": "integer"
+                },
                 "dias_laborales": {
                     "type": "string"
                 },
@@ -3730,40 +2726,43 @@ const docTemplate = `{
         "models.Trabajador": {
             "type": "object",
             "properties": {
+                "APELLIDO": {
+                    "type": "string"
+                },
+                "FECHA_INGRESO": {
+                    "type": "string"
+                },
+                "FECHA_NACIMIENTO": {
+                    "type": "string"
+                },
+                "FECHA_RETIRO": {
+                    "type": "string"
+                },
+                "HORARIO": {
+                    "type": "string"
+                },
+                "NOMBRE": {
+                    "type": "string"
+                },
+                "NUEVO": {
+                    "type": "boolean"
+                },
                 "PASSWORD": {
                     "type": "string"
                 },
-                "apellido": {
-                    "type": "string"
-                },
-                "fecha_ingreso": {
-                    "type": "string"
-                },
-                "fecha_nacimiento": {
-                    "type": "string"
-                },
-                "fecha_retiro": {
-                    "type": "string"
-                },
-                "nombre": {
-                    "type": "string"
-                },
-                "nuevo": {
-                    "type": "boolean"
-                },
-                "pk_documento_trabajador": {
+                "PK_DOCUMENTO_TRABAJADOR": {
                     "type": "integer"
                 },
-                "pk_id_restaurante": {
+                "PK_ID_RESTAURANTE": {
                     "type": "integer"
                 },
-                "rol": {
+                "ROL": {
                     "type": "string"
                 },
-                "sueldo": {
+                "SUELDO": {
                     "type": "integer"
                 },
-                "telefono": {
+                "TELEFONO": {
                     "type": "string"
                 }
             }
@@ -3780,7 +2779,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0.0",
+	Version:          "2.0.0",
 	Host:             "",
 	BasePath:         "/restaurante/v1",
 	Schemes:          []string{},

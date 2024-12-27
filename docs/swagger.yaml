@@ -37,53 +37,12 @@ definitions:
         type: string
       fecha:
         type: string
+      observaciones:
+        type: string
       pk_ID_DOMICILIO:
         type: integer
       telefono:
         type: string
-    type: object
-  models.Ingrediente:
-    properties:
-      ACTIVO:
-        type: boolean
-      CALORIAS:
-        type: integer
-      FOTO:
-        type: string
-      NOMBRE:
-        type: string
-      PESO:
-        type: integer
-      PK_ID_INGREDIENTE:
-        type: integer
-      PK_ID_INVENTARIO:
-        type: integer
-      TIPO:
-        type: string
-    type: object
-  models.Inventario:
-    properties:
-      CANTIDAD:
-        type: integer
-      FECHA:
-        type: string
-      PK_ID_INGREDIENTE:
-        type: integer
-      PK_ID_INVENTARIO:
-        type: integer
-      UNIDAD:
-        type: integer
-      UNIDAD_MINIMA:
-        type: integer
-    type: object
-  models.ItemPedido:
-    properties:
-      CANTIDAD:
-        type: integer
-      PK_ID_ITEM_PEDIDO:
-        type: integer
-      PK_ID_PEDIDO:
-        type: integer
     type: object
   models.LoginRequest:
     properties:
@@ -113,12 +72,10 @@ definitions:
         type: integer
       PK_ID_NOMINA:
         type: integer
-      PK_ID_RESTAURANTE:
-        type: integer
     type: object
   models.Pago:
     properties:
-      ESTADO:
+      ESTADO_PAGO:
         type: string
       FECHA:
         type: string
@@ -130,20 +87,26 @@ definitions:
         type: integer
       PK_ID_PAGO:
         type: integer
+      UPDATED_AT:
+        type: string
+      UPDATED_BY:
+        type: string
     type: object
   models.Pedido:
     properties:
+      UPDATED_AT:
+        type: string
+      UPDATED_BY:
+        type: string
       delivery:
         type: boolean
-      estado:
+      estado_PEDIDO:
         type: string
       fecha:
         type: string
       hora:
         type: string
       pk_ID_DOMICILIO:
-        type: integer
-      pk_ID_ITEM_PEDIDO:
         type: integer
       pk_ID_PAGO:
         type: integer
@@ -156,60 +119,58 @@ definitions:
     properties:
       PK_DOCUMENTO_CLIENTE:
         type: integer
-      PK_ID_PEDIDO_CLIENTE:
+      PK_ID_PEDIDO:
         type: integer
-      PK_ID_RESTAURANTE:
+      PK_ID_PEDIDO_CLIENTE:
         type: integer
     type: object
   models.Plato:
     properties:
-      ACTIVO:
-        type: boolean
       CALORIAS:
         type: integer
+      CANTIDAD:
+        type: boolean
       DESCRIPCION:
         type: string
-      FOTO:
+      ESTADO_PRODUCTO:
+        type: string
+      IMAGEN:
         type: string
       NOMBRE:
         type: string
-      PERSONALIZADO:
-        type: boolean
-      PK_ID_ITEM_PEDIDO:
-        type: integer
-      PK_ID_PLATO:
+      PK_ID_PRODUCTO:
         type: integer
       PRECIO:
         type: integer
     type: object
-  models.PlatoIngrediente:
-    properties:
-      CANTIDAD:
-        type: integer
-      PK_ID_INGREDIENTE:
-        type: integer
-      PK_ID_PLATO:
-        type: integer
-      PK_ID_PLATO_INGREDIENTE:
-        type: integer
-    type: object
   models.Reserva:
     properties:
-      estado:
+      CREATED_AT:
         type: string
-      fecha:
+      ESTADO_RESERVA:
         type: string
-      hora:
+      FECHA:
         type: string
-      personas:
+      HORA:
+        type: string
+      INDICACIONES:
+        type: string
+      PERSONAS:
         type: integer
-      pk_id_reserva:
+      PK_ID_RESERVA:
         type: integer
-      pk_id_restaurante:
-        type: integer
+      UPDATED_AT:
+        type: string
+      UPDATED_BY:
+        type: string
     type: object
   models.Restaurante:
     properties:
+      PK_ID_CAMBIO_HORARIO:
+        type: integer
+      PK_ID_RESERVA:
+        description: 'TODO: ESTÁ AL REVÉS'
+        type: integer
       dias_laborales:
         type: string
       hora_apertura:
@@ -221,29 +182,31 @@ definitions:
     type: object
   models.Trabajador:
     properties:
+      APELLIDO:
+        type: string
+      FECHA_INGRESO:
+        type: string
+      FECHA_NACIMIENTO:
+        type: string
+      FECHA_RETIRO:
+        type: string
+      HORARIO:
+        type: string
+      NOMBRE:
+        type: string
+      NUEVO:
+        type: boolean
       PASSWORD:
         type: string
-      apellido:
-        type: string
-      fecha_ingreso:
-        type: string
-      fecha_nacimiento:
-        type: string
-      fecha_retiro:
-        type: string
-      nombre:
-        type: string
-      nuevo:
-        type: boolean
-      pk_documento_trabajador:
+      PK_DOCUMENTO_TRABAJADOR:
         type: integer
-      pk_id_restaurante:
+      PK_ID_RESTAURANTE:
         type: integer
-      rol:
+      ROL:
         type: string
-      sueldo:
+      SUELDO:
         type: integer
-      telefono:
+      TELEFONO:
         type: string
     type: object
 info:
@@ -251,7 +214,7 @@ info:
     email: baluisto96@gmail.com
   description: API para gestionar el sistema de un restaurante para "El fogón de María"
   title: Restaurante API
-  version: 1.0.0
+  version: 2.0.0
 paths:
   /clientes:
     delete:
@@ -521,474 +484,6 @@ paths:
       summary: Obtener domicilio por ID
       tags:
       - domicilios
-  /ingredientes:
-    delete:
-      consumes:
-      - application/json
-      description: Marca un ingrediente como inactivo (borrado lógico).
-      parameters:
-      - description: ID del Ingrediente
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Ingrediente desactivado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-        "404":
-          description: Ingrediente no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Desactivar un ingrediente
-      tags:
-      - ingredientes
-    get:
-      consumes:
-      - application/json
-      description: Devuelve todos los ingredientes registrados en la base de datos,
-        independientemente de su estado.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lista de todos los ingredientes
-          schema:
-            items:
-              $ref: '#/definitions/models.Ingrediente'
-            type: array
-        "500":
-          description: Error en la base de datos
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener todos los ingredientes
-      tags:
-      - ingredientes
-    post:
-      consumes:
-      - multipart/form-data
-      description: Crea un nuevo ingrediente en la base de datos, incluyendo una imagen
-        en formato Base64.
-      parameters:
-      - description: Nombre del ingrediente
-        in: formData
-        name: NOMBRE
-        required: true
-        type: string
-      - description: Tipo del ingrediente
-        in: formData
-        name: TIPO
-        required: true
-        type: string
-      - description: Peso del ingrediente
-        in: formData
-        name: PESO
-        required: true
-        type: integer
-      - description: Calorías del ingrediente
-        in: formData
-        name: CALORIAS
-        required: true
-        type: integer
-      - description: Imagen del ingrediente (opcional)
-        in: formData
-        name: FOTO
-        type: file
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Ingrediente creado
-          schema:
-            $ref: '#/definitions/models.Ingrediente'
-        "400":
-          description: Error en la solicitud
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Crear un nuevo ingrediente
-      tags:
-      - ingredientes
-    put:
-      consumes:
-      - multipart/form-data
-      description: Actualiza los datos de un ingrediente existente, incluyendo una
-        imagen en formato Base64.
-      parameters:
-      - description: ID del Ingrediente
-        in: query
-        name: id
-        required: true
-        type: integer
-      - description: Nombre del ingrediente
-        in: formData
-        name: NOMBRE
-        required: true
-        type: string
-      - description: Tipo del ingrediente
-        in: formData
-        name: TIPO
-        required: true
-        type: string
-      - description: Peso del ingrediente
-        in: formData
-        name: PESO
-        required: true
-        type: integer
-      - description: Calorías del ingrediente
-        in: formData
-        name: CALORIAS
-        required: true
-        type: integer
-      - description: Imagen del ingrediente (opcional)
-        in: formData
-        name: FOTO
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Ingrediente actualizado
-          schema:
-            $ref: '#/definitions/models.Ingrediente'
-        "404":
-          description: Ingrediente no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Actualizar un ingrediente
-      tags:
-      - ingredientes
-  /ingredientes/active:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve solo los ingredientes que están activos (ACTIVO = TRUE).
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lista de ingredientes activos
-          schema:
-            items:
-              $ref: '#/definitions/models.Ingrediente'
-            type: array
-        "500":
-          description: Error en la base de datos
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener todos los ingredientes activos
-      tags:
-      - ingredientes
-  /ingredientes/search:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve un ingrediente específico por ID, incluyendo la imagen
-        en formato Base64.
-      parameters:
-      - description: ID del Ingrediente
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Ingrediente encontrado
-          schema:
-            $ref: '#/definitions/models.Ingrediente'
-        "404":
-          description: Ingrediente no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener ingrediente por ID
-      tags:
-      - ingredientes
-  /inventarios:
-    delete:
-      consumes:
-      - application/json
-      description: Elimina un registro de inventario de la base de datos.
-      parameters:
-      - description: ID del Inventario
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Inventario eliminado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-        "404":
-          description: Inventario no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Eliminar un inventario
-      tags:
-      - inventarios
-    get:
-      consumes:
-      - application/json
-      description: Devuelve todos los registros de inventario.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lista de inventarios
-          schema:
-            items:
-              $ref: '#/definitions/models.Inventario'
-            type: array
-        "500":
-          description: Error en la base de datos
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener todos los inventarios
-      tags:
-      - inventarios
-    post:
-      consumes:
-      - application/json
-      description: Crea un nuevo registro de inventario.
-      parameters:
-      - description: Datos del inventario a crear
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.Inventario'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Inventario creado
-          schema:
-            $ref: '#/definitions/models.Inventario'
-        "400":
-          description: Error en la solicitud
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Crear un nuevo inventario
-      tags:
-      - inventarios
-    put:
-      consumes:
-      - application/json
-      description: Actualiza los datos de un inventario existente.
-      parameters:
-      - description: ID del Inventario
-        in: query
-        name: id
-        required: true
-        type: integer
-      - description: Datos del inventario a actualizar
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.Inventario'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Inventario actualizado
-          schema:
-            $ref: '#/definitions/models.Inventario'
-        "404":
-          description: Inventario no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Actualizar un inventario
-      tags:
-      - inventarios
-  /inventarios/search:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve un registro de inventario específico por ID.
-      parameters:
-      - description: ID del Inventario
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Inventario encontrado
-          schema:
-            $ref: '#/definitions/models.Inventario'
-        "404":
-          description: Inventario no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener inventario por ID
-      tags:
-      - inventarios
-  /item_pedidos:
-    delete:
-      consumes:
-      - application/json
-      description: Elimina un ítem de pedido de la base de datos.
-      parameters:
-      - description: ID del Ítem de Pedido
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Ítem de pedido eliminado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-        "404":
-          description: Ítem de pedido no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Eliminar un ítem de pedido
-      tags:
-      - item_pedidos
-    get:
-      consumes:
-      - application/json
-      description: Devuelve todos los ítems de pedido registrados en la base de datos.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lista de ítems de pedido
-          schema:
-            items:
-              $ref: '#/definitions/models.ItemPedido'
-            type: array
-        "500":
-          description: Error en la base de datos
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener todos los ítems de pedido
-      tags:
-      - item_pedidos
-    post:
-      consumes:
-      - application/json
-      description: Crea un nuevo ítem de pedido en la base de datos.
-      parameters:
-      - description: Datos del ítem de pedido a crear
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.ItemPedido'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Ítem de pedido creado
-          schema:
-            $ref: '#/definitions/models.ItemPedido'
-        "400":
-          description: Error en la solicitud
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Crear un nuevo ítem de pedido
-      tags:
-      - item_pedidos
-    put:
-      consumes:
-      - application/json
-      description: Actualiza los datos de un ítem de pedido existente.
-      parameters:
-      - description: ID del Ítem de Pedido
-        in: query
-        name: id
-        required: true
-        type: integer
-      - description: Datos del ítem de pedido a actualizar
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.ItemPedido'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Ítem de pedido actualizado
-          schema:
-            $ref: '#/definitions/models.ItemPedido'
-        "404":
-          description: Ítem de pedido no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Actualizar un ítem de pedido
-      tags:
-      - item_pedidos
-  /item_pedidos/search:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve un ítem de pedido específico por ID.
-      parameters:
-      - description: ID del Ítem de Pedido
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Ítem de pedido encontrado
-          schema:
-            $ref: '#/definitions/models.ItemPedido'
-        "404":
-          description: Ítem de pedido no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener ítem de pedido por ID
-      tags:
-      - item_pedidos
   /login:
     post:
       consumes:
@@ -1693,146 +1188,11 @@ paths:
       summary: Obtener pedido por ID
       tags:
       - pedidos
-  /plato_ingredientes:
+  /productos:
     delete:
       consumes:
       - application/json
-      description: Elimina una relación de la base de datos.
-      parameters:
-      - description: ID de la Relación
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Relación eliminada
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-        "404":
-          description: Relación no encontrada
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Eliminar una relación plato-ingrediente
-      tags:
-      - plato_ingredientes
-    get:
-      consumes:
-      - application/json
-      description: Devuelve todas las relaciones entre platos e ingredientes.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lista de relaciones
-          schema:
-            items:
-              $ref: '#/definitions/models.PlatoIngrediente'
-            type: array
-        "500":
-          description: Error en la base de datos
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener todas las relaciones plato-ingrediente
-      tags:
-      - plato_ingredientes
-    post:
-      consumes:
-      - application/json
-      description: Crea una nueva relación entre un plato y un ingrediente.
-      parameters:
-      - description: Datos de la relación a crear
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.PlatoIngrediente'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Relación creada
-          schema:
-            $ref: '#/definitions/models.PlatoIngrediente'
-        "400":
-          description: Error en la solicitud
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Crear una nueva relación plato-ingrediente
-      tags:
-      - plato_ingredientes
-    put:
-      consumes:
-      - application/json
-      description: Actualiza los datos de una relación existente.
-      parameters:
-      - description: ID de la Relación
-        in: query
-        name: id
-        required: true
-        type: integer
-      - description: Datos de la relación a actualizar
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.PlatoIngrediente'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Relación actualizada
-          schema:
-            $ref: '#/definitions/models.PlatoIngrediente'
-        "404":
-          description: Relación no encontrada
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Actualizar una relación plato-ingrediente
-      tags:
-      - plato_ingredientes
-  /plato_ingredientes/search:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve una relación específica por ID.
-      parameters:
-      - description: ID de la Relación
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Relación encontrada
-          schema:
-            $ref: '#/definitions/models.PlatoIngrediente'
-        "404":
-          description: Relación no encontrada
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener relación por ID
-      tags:
-      - plato_ingredientes
-  /platos:
-    delete:
-      consumes:
-      - application/json
-      description: Desactiva un plato en la base de datos (borrado lógico).
+      description: Desactiva un producto en la base de datos (borrado lógico).
       parameters:
       - description: ID del Plato
         in: query
@@ -1848,19 +1208,19 @@ paths:
           description: Plato no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Desactivar un plato
+      summary: Desactivar un producto
       tags:
-      - platos
+      - productos
     get:
       consumes:
       - application/json
-      description: Devuelve todos los platos registrados en la base de datos sin la
-        imagen (FOTO).
+      description: Devuelve todos los productos registrados en la base de datos sin
+        la imagen (IMAGEN).
       produces:
       - application/json
       responses:
         "200":
-          description: Lista de todos los platos
+          description: Lista de todos los productos
           schema:
             items:
               $ref: '#/definitions/models.Plato'
@@ -1869,42 +1229,42 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Obtener todos los platos
+      summary: Obtener todos los productos
       tags:
-      - platos
+      - productos
     post:
       consumes:
       - multipart/form-data
-      description: Crea un nuevo plato en la base de datos, incluyendo una imagen
+      description: Crea un nuevo producto en la base de datos, incluyendo una imagen
         en formato Base64.
       parameters:
-      - description: Nombre del plato
+      - description: Nombre del producto
         in: formData
         name: NOMBRE
         required: true
         type: string
-      - description: Calorías del plato
+      - description: Calorías del producto
         in: formData
         name: CALORIAS
         required: true
         type: integer
-      - description: Descripción del plato
+      - description: Descripción del producto
         in: formData
         name: DESCRIPCION
         type: string
-      - description: Precio del plato
+      - description: Precio del producto
         in: formData
         name: PRECIO
         required: true
         type: integer
-      - description: Indica si el plato es personalizado
+      - description: Indica si el producto es personalizado
         in: formData
         name: PERSONALIZADO
         required: true
         type: boolean
-      - description: Imagen del plato (opcional)
+      - description: Imagen del producto (opcional)
         in: formData
-        name: FOTO
+        name: IMAGEN
         type: file
       produces:
       - application/json
@@ -1917,13 +1277,13 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Crear un nuevo plato
+      summary: Crear un nuevo producto
       tags:
-      - platos
+      - productos
     put:
       consumes:
       - multipart/form-data
-      description: Actualiza los datos de un plato existente, incluyendo una imagen
+      description: Actualiza los datos de un producto existente, incluyendo una imagen
         en formato Base64.
       parameters:
       - description: ID del Plato
@@ -1931,33 +1291,33 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Nombre del plato
+      - description: Nombre del producto
         in: formData
         name: NOMBRE
         required: true
         type: string
-      - description: Calorías del plato
+      - description: Calorías del producto
         in: formData
         name: CALORIAS
         required: true
         type: integer
-      - description: Descripción del plato
+      - description: Descripción del producto
         in: formData
         name: DESCRIPCION
         type: string
-      - description: Precio del plato
+      - description: Precio del producto
         in: formData
         name: PRECIO
         required: true
         type: integer
-      - description: Indica si el plato es personalizado
+      - description: Indica si el producto es personalizado
         in: formData
         name: PERSONALIZADO
         required: true
         type: boolean
-      - description: Imagen del plato (opcional)
+      - description: Imagen del producto (opcional)
         in: formData
-        name: FOTO
+        name: IMAGEN
         type: file
       produces:
       - application/json
@@ -1970,19 +1330,19 @@ paths:
           description: Plato no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Actualizar un plato
+      summary: Actualizar un producto
       tags:
-      - platos
-  /platos/active:
+      - productos
+  /productos/active:
     get:
       consumes:
       - application/json
-      description: Devuelve solo los platos que están activos (ACTIVO = TRUE).
+      description: Devuelve solo los productos que están activos (ACTIVO = TRUE).
       produces:
       - application/json
       responses:
         "200":
-          description: Lista de platos activos
+          description: Lista de productos activos
           schema:
             items:
               $ref: '#/definitions/models.Plato'
@@ -1991,15 +1351,15 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Obtener todos los platos activos
+      summary: Obtener todos los productos activos
       tags:
-      - platos
-  /platos/search:
+      - productos
+  /productos/search:
     get:
       consumes:
       - application/json
-      description: Devuelve un plato específico por ID, incluyendo la imagen en formato
-        Base64.
+      description: Devuelve un producto específico por ID, incluyendo la imagen en
+        formato Base64.
       parameters:
       - description: ID del Plato
         in: query
@@ -2017,9 +1377,9 @@ paths:
           description: Plato no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Obtener plato por ID
+      summary: Obtener producto por ID
       tags:
-      - platos
+      - productos
   /reservas:
     delete:
       consumes:
