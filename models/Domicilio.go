@@ -11,6 +11,7 @@ type Domicilio struct {
 	ESTADO_PAGO     string `orm:"column(ESTADO_PAGO)"`
 	ENTREGADO       bool   `orm:"column(ENTREGADO)"`
 	FECHA           string `orm:"column(FECHA);type(date)"`
+	OBSERVACIONES   string `orm:"column(OBSERVACIONES)"`
 }
 
 func (d *Domicilio) TableName() string {

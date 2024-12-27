@@ -69,93 +69,15 @@
                 "FECHA": {
                     "type": "string"
                 },
+                "OBSERVACIONES": {
+                    "type": "string"
+                },
                 "PK_ID_DOMICILIO": {
                     "type": "integer",
                     "format": "int64"
                 },
                 "TELEFONO": {
                     "type": "string"
-                }
-            }
-        },
-        "models.Ingrediente": {
-            "title": "Ingrediente",
-            "type": "object",
-            "properties": {
-                "ACTIVO": {
-                    "type": "boolean"
-                },
-                "CALORIAS": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "FOTO": {
-                    "type": "string"
-                },
-                "NOMBRE": {
-                    "type": "string"
-                },
-                "PESO": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_INGREDIENTE": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_INVENTARIO": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "TIPO": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Inventario": {
-            "title": "Inventario",
-            "type": "object",
-            "properties": {
-                "CANTIDAD": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "FECHA": {
-                    "type": "string"
-                },
-                "PK_ID_INGREDIENTE": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_INVENTARIO": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "UNIDAD": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "UNIDAD_MINIMA": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
-        "models.ItemPedido": {
-            "title": "ItemPedido",
-            "type": "object",
-            "properties": {
-                "CANTIDAD": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_ITEM_PEDIDO": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_PEDIDO": {
-                    "type": "integer",
-                    "format": "int64"
                 }
             }
         },
@@ -209,10 +131,6 @@
                 "PK_ID_NOMINA": {
                     "type": "integer",
                     "format": "int64"
-                },
-                "PK_ID_RESTAURANTE": {
-                    "type": "integer",
-                    "format": "int64"
                 }
             }
         },
@@ -220,7 +138,7 @@
             "title": "Pago",
             "type": "object",
             "properties": {
-                "ESTADO": {
+                "ESTADO_PAGO": {
                     "type": "string"
                 },
                 "FECHA": {
@@ -240,6 +158,12 @@
                 "PK_ID_PAGO": {
                     "type": "integer",
                     "format": "int64"
+                },
+                "UPDATED_AT": {
+                    "type": "string"
+                },
+                "UPDATED_BY": {
+                    "type": "string"
                 }
             }
         },
@@ -250,7 +174,7 @@
                 "DELIVERY": {
                     "type": "boolean"
                 },
-                "ESTADO": {
+                "ESTADO_PEDIDO": {
                     "type": "string"
                 },
                 "FECHA": {
@@ -260,10 +184,6 @@
                     "type": "string"
                 },
                 "PK_ID_DOMICILIO": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_ITEM_PEDIDO": {
                     "type": "integer",
                     "format": "int64"
                 },
@@ -278,6 +198,12 @@
                 "PK_ID_RESTAURANTE": {
                     "type": "integer",
                     "format": "int64"
+                },
+                "UPDATED_AT": {
+                    "type": "string"
+                },
+                "UPDATED_BY": {
+                    "type": "string"
                 }
             }
         },
@@ -289,11 +215,11 @@
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_PEDIDO_CLIENTE": {
+                "PK_ID_PEDIDO": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_RESTAURANTE": {
+                "PK_ID_PEDIDO_CLIENTE": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -303,30 +229,26 @@
             "title": "Plato",
             "type": "object",
             "properties": {
-                "ACTIVO": {
-                    "type": "boolean"
-                },
                 "CALORIAS": {
                     "type": "integer",
                     "format": "int64"
                 },
+                "CANTIDAD": {
+                    "type": "boolean"
+                },
                 "DESCRIPCION": {
                     "type": "string"
                 },
-                "FOTO": {
+                "ESTADO_PRODUCTO": {
+                    "type": "string"
+                },
+                "IMAGEN": {
                     "type": "string"
                 },
                 "NOMBRE": {
                     "type": "string"
                 },
-                "PERSONALIZADO": {
-                    "type": "boolean"
-                },
-                "PK_ID_ITEM_PEDIDO": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_PLATO": {
+                "PK_ID_PRODUCTO": {
                     "type": "integer",
                     "format": "int64"
                 },
@@ -336,53 +258,39 @@
                 }
             }
         },
-        "models.PlatoIngrediente": {
-            "title": "PlatoIngrediente",
-            "type": "object",
-            "properties": {
-                "CANTIDAD": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_INGREDIENTE": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_PLATO": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_PLATO_INGREDIENTE": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
         "models.Reserva": {
             "title": "Reserva",
             "type": "object",
             "properties": {
-                "estado": {
+                "CREATED_AT": {
                     "type": "string"
                 },
-                "fecha": {
+                "ESTADO_RESERVA": {
+                    "type": "string"
+                },
+                "FECHA": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "hora": {
+                "HORA": {
                     "type": "string"
                 },
-                "personas": {
+                "INDICACIONES": {
+                    "type": "string"
+                },
+                "PERSONAS": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "pk_id_reserva": {
+                "PK_ID_RESERVA": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "pk_id_restaurante": {
-                    "type": "integer",
-                    "format": "int64"
+                "UPDATED_AT": {
+                    "type": "string"
+                },
+                "UPDATED_BY": {
+                    "type": "string"
                 }
             }
         },
@@ -390,6 +298,15 @@
             "title": "Restaurante",
             "type": "object",
             "properties": {
+                "PK_ID_CAMBIO_HORARIO": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_RESERVA": {
+                    "description": "TODO: ESTÁ AL REVÉS",
+                    "type": "integer",
+                    "format": "int64"
+                },
                 "dias_laborales": {
                     "type": "string"
                 },
@@ -409,46 +326,49 @@
             "title": "Trabajador",
             "type": "object",
             "properties": {
+                "APELLIDO": {
+                    "type": "string"
+                },
+                "FECHA_INGRESO": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FECHA_NACIMIENTO": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FECHA_RETIRO": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "HORARIO": {
+                    "type": "string"
+                },
+                "NOMBRE": {
+                    "type": "string"
+                },
+                "NUEVO": {
+                    "type": "boolean"
+                },
                 "PASSWORD": {
                     "type": "string"
                 },
-                "apellido": {
-                    "type": "string"
-                },
-                "fecha_ingreso": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "fecha_nacimiento": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "fecha_retiro": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "nombre": {
-                    "type": "string"
-                },
-                "nuevo": {
-                    "type": "boolean"
-                },
-                "pk_documento_trabajador": {
+                "PK_DOCUMENTO_TRABAJADOR": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "pk_id_restaurante": {
+                "PK_ID_RESTAURANTE": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "rol": {
+                "ROL": {
                     "type": "string"
                 },
-                "sueldo": {
+                "SUELDO": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "telefono": {
+                "TELEFONO": {
                     "type": "string"
                 }
             }

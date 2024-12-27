@@ -16,93 +16,93 @@ type PlatoController struct {
 }
 
 // @Title GetAll
-// @Summary Obtener todos los platos
-// @Description Devuelve todos los platos registrados en la base de datos sin la imagen (FOTO).
-// @Tags platos
+// @Summary Obtener todos los productos
+// @Description Devuelve todos los productos registrados en la base de datos sin la imagen (IMAGEN).
+// @Tags productos
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Plato "Lista de todos los platos"
+// @Success 200 {array} models.Plato "Lista de todos los productos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @Router /platos [get]
+// @Router /productos [get]
 func (c *PlatoController) GetAll() {
 	o := orm.NewOrm()
-	var platos []models.Plato
+	var productos []models.Plato
 
-	_, err := o.QueryTable(new(models.Plato)).All(&platos)
+	_, err := o.QueryTable(new(models.Plato)).All(&productos)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener platos de la base de datos",
+			Message: "Error al obtener productos de la base de datos",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Excluir la foto (FOTO) de cada plato
-	for i := range platos {
-		platos[i].FOTO = ""
+	// Excluir la foto (IMAGEN) de cada producto
+	for i := range productos {
+		productos[i].IMAGEN = ""
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Platos obtenidos exitosamente",
-		Data:    platos,
+		Message: "Productos obtenidos exitosamente",
+		Data:    productos,
 	}
 	c.ServeJSON()
 }
 
 // @Title GetAllActive
-// @Summary Obtener todos los platos activos
-// @Description Devuelve solo los platos que están activos (ACTIVO = TRUE).
-// @Tags platos
+// @Summary Obtener todos los productos activos
+// @Description Devuelve solo los productos que están activos (ACTIVO = TRUE).
+// @Tags productos
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Plato "Lista de platos activos"
+// @Success 200 {array} models.Plato "Lista de productos activos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @Router /platos/active [get]
+// @Router /productos/active [get]
 func (c *PlatoController) GetAllActive() {
 	o := orm.NewOrm()
-	var platos []models.Plato
+	var productos []models.Plato
 
-	_, err := o.QueryTable(new(models.Plato)).Filter("ACTIVO", true).All(&platos)
+	_, err := o.QueryTable(new(models.Plato)).Filter("ACTIVO", true).All(&productos)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener platos activos de la base de datos",
+			Message: "Error al obtener productos activos de la base de datos",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Excluir la foto (FOTO) de cada plato
-	for i := range platos {
-		platos[i].FOTO = ""
+	// Excluir la foto (IMAGEN) de cada producto
+	for i := range productos {
+		productos[i].IMAGEN = ""
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Platos activos obtenidos exitosamente",
-		Data:    platos,
+		Message: "Productos activos obtenidos exitosamente",
+		Data:    productos,
 	}
 	c.ServeJSON()
 }
 
 // @Title GetById
-// @Summary Obtener plato por ID
-// @Description Devuelve un plato específico por ID, incluyendo la imagen en formato Base64.
-// @Tags platos
+// @Summary Obtener producto por ID
+// @Description Devuelve un producto específico por ID, incluyendo la imagen en formato Base64.
+// @Tags productos
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Plato"
 // @Success 200 {object} models.Plato "Plato encontrado"
 // @Failure 404 {object} models.ApiResponse "Plato no encontrado"
-// @Router /platos/search [get]
+// @Router /productos/search [get]
 func (c *PlatoController) GetById() {
 	o := orm.NewOrm()
 	id, err := c.GetInt("id")
@@ -118,9 +118,9 @@ func (c *PlatoController) GetById() {
 		return
 	}
 
-	plato := models.Plato{PK_ID_PLATO: int64(id)}
+	producto := models.Plato{PK_ID_PRODUCTO: int64(id)}
 
-	err = o.Read(&plato)
+	err = o.Read(&producto)
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
@@ -132,38 +132,38 @@ func (c *PlatoController) GetById() {
 		return
 	}
 
-	// Si todo está bien, devuelve el plato, incluyendo la imagen en Base64
+	// Si todo está bien, devuelve el producto, incluyendo la imagen en Base64
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Plato encontrado",
-		Data:    plato, // Incluye la imagen en Base64
+		Data:    producto, // Incluye la imagen en Base64
 	}
 	c.ServeJSON()
 }
 
 // @Title Create
-// @Summary Crear un nuevo plato
-// @Description Crea un nuevo plato en la base de datos, incluyendo una imagen en formato Base64.
-// @Tags platos
+// @Summary Crear un nuevo producto
+// @Description Crea un nuevo producto en la base de datos, incluyendo una imagen en formato Base64.
+// @Tags productos
 // @Accept multipart/form-data
 // @Produce json
-// @Param   NOMBRE        formData  string  true   "Nombre del plato"
-// @Param   CALORIAS      formData  int     true   "Calorías del plato"
-// @Param   DESCRIPCION   formData  string  false  "Descripción del plato"
-// @Param   PRECIO        formData  int     true   "Precio del plato"
-// @Param   PERSONALIZADO formData  bool    true   "Indica si el plato es personalizado"
-// @Param   FOTO          formData  file    false  "Imagen del plato (opcional)"
+// @Param   NOMBRE        formData  string  true   "Nombre del producto"
+// @Param   CALORIAS      formData  int     true   "Calorías del producto"
+// @Param   DESCRIPCION   formData  string  false  "Descripción del producto"
+// @Param   PRECIO        formData  int     true   "Precio del producto"
+// @Param   PERSONALIZADO formData  bool    true   "Indica si el producto es personalizado"
+// @Param   IMAGEN          formData  file    false  "Imagen del producto (opcional)"
 // @Success 201 {object} models.Plato "Plato creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
-// @Router /platos [post]
+// @Router /productos [post]
 func (c *PlatoController) Post() {
 	o := orm.NewOrm()
-	var plato models.Plato
+	var producto models.Plato
 
 	// Validar campos requeridos
-	plato.NOMBRE = c.GetString("NOMBRE")
-	if plato.NOMBRE == "" {
+	producto.NOMBRE = c.GetString("NOMBRE")
+	if producto.NOMBRE == "" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -174,14 +174,12 @@ func (c *PlatoController) Post() {
 	}
 
 	calorias, _ := c.GetInt64("CALORIAS")
-	plato.CALORIAS = &calorias
-	plato.DESCRIPCION = c.GetString("DESCRIPCION")
-	plato.PRECIO, _ = c.GetInt64("PRECIO")
-	personalizado, _ := c.GetBool("PERSONALIZADO")
-	plato.PERSONALIZADO = personalizado
+	producto.CALORIAS = &calorias
+	producto.DESCRIPCION = c.GetString("DESCRIPCION")
+	producto.PRECIO, _ = c.GetInt64("PRECIO")
 
 	// Manejar la imagen opcional
-	file, fileHeader, err := c.GetFile("FOTO")
+	file, fileHeader, err := c.GetFile("IMAGEN")
 	if err == nil {
 		defer file.Close()
 
@@ -208,16 +206,16 @@ func (c *PlatoController) Post() {
 			c.ServeJSON()
 			return
 		}
-		plato.FOTO = base64.StdEncoding.EncodeToString(fileBytes)
+		producto.IMAGEN = base64.StdEncoding.EncodeToString(fileBytes)
 	}
 
-	// Insertar el nuevo plato en la base de datos
-	_, err = o.Insert(&plato)
+	// Insertar el nuevo producto en la base de datos
+	_, err = o.Insert(&producto)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el plato.",
+			Message: "Error al crear el producto.",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
@@ -228,27 +226,27 @@ func (c *PlatoController) Post() {
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
 		Message: "Plato creado correctamente",
-		Data:    plato,
+		Data:    producto,
 	}
 	c.ServeJSON()
 }
 
 // @Title Update
-// @Summary Actualizar un plato
-// @Description Actualiza los datos de un plato existente, incluyendo una imagen en formato Base64.
-// @Tags platos
+// @Summary Actualizar un producto
+// @Description Actualiza los datos de un producto existente, incluyendo una imagen en formato Base64.
+// @Tags productos
 // @Accept multipart/form-data
 // @Produce json
 // @Param   id            query    int     true   "ID del Plato"
-// @Param   NOMBRE        formData  string  true   "Nombre del plato"
-// @Param   CALORIAS      formData  int     true   "Calorías del plato"
-// @Param   DESCRIPCION   formData  string  false  "Descripción del plato"
-// @Param   PRECIO        formData  int     true   "Precio del plato"
-// @Param   PERSONALIZADO formData  bool    true   "Indica si el plato es personalizado"
-// @Param   FOTO          formData  file    false  "Imagen del plato (opcional)"
+// @Param   NOMBRE        formData  string  true   "Nombre del producto"
+// @Param   CALORIAS      formData  int     true   "Calorías del producto"
+// @Param   DESCRIPCION   formData  string  false  "Descripción del producto"
+// @Param   PRECIO        formData  int     true   "Precio del producto"
+// @Param   PERSONALIZADO formData  bool    true   "Indica si el producto es personalizado"
+// @Param   IMAGEN          formData  file    false  "Imagen del producto (opcional)"
 // @Success 200 {object} models.Plato "Plato actualizado"
 // @Failure 404 {object} models.ApiResponse "Plato no encontrado"
-// @Router /platos [put]
+// @Router /productos [put]
 func (c *PlatoController) Put() {
 	o := orm.NewOrm()
 
@@ -266,23 +264,17 @@ func (c *PlatoController) Put() {
 		return
 	}
 
-	plato := models.Plato{PK_ID_PLATO: int64(id)}
+	producto := models.Plato{PK_ID_PRODUCTO: int64(id)}
 
-	if o.Read(&plato) == nil {
-		plato.NOMBRE = c.GetString("NOMBRE")
+	if o.Read(&producto) == nil {
+		producto.NOMBRE = c.GetString("NOMBRE")
 		calorias, _ := c.GetInt64("CALORIAS")
-		plato.CALORIAS = &calorias
-		plato.DESCRIPCION = c.GetString("DESCRIPCION")
-		plato.PRECIO, _ = c.GetInt64("PRECIO")
-		personalizado, _ := c.GetBool("PERSONALIZADO")
-		plato.PERSONALIZADO = personalizado
-		pkItemPedido, err := c.GetInt64("PK_ID_ITEM_PEDIDO")
-		if err == nil {
-			plato.PK_ID_ITEM_PEDIDO = &pkItemPedido
-		}
+		producto.CALORIAS = &calorias
+		producto.DESCRIPCION = c.GetString("DESCRIPCION")
+		producto.PRECIO, _ = c.GetInt64("PRECIO")
 
 		// Manejar la imagen opcional
-		file, fileHeader, err := c.GetFile("FOTO")
+		file, fileHeader, err := c.GetFile("IMAGEN")
 		if err == nil {
 			defer file.Close()
 
@@ -308,16 +300,16 @@ func (c *PlatoController) Put() {
 				c.ServeJSON()
 				return
 			}
-			plato.FOTO = base64.StdEncoding.EncodeToString(fileBytes)
+			producto.IMAGEN = base64.StdEncoding.EncodeToString(fileBytes)
 		}
 
-		// Actualizar el plato en la base de datos
-		_, err = o.Update(&plato)
+		// Actualizar el producto en la base de datos
+		_, err = o.Update(&producto)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
-				Message: "Error al actualizar el plato.",
+				Message: "Error al actualizar el producto.",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
@@ -328,7 +320,7 @@ func (c *PlatoController) Put() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
 			Message: "Plato actualizado",
-			Data:    plato,
+			Data:    producto,
 		}
 		c.ServeJSON()
 	} else {
@@ -342,15 +334,15 @@ func (c *PlatoController) Put() {
 }
 
 // @Title Delete
-// @Summary Desactivar un plato
-// @Description Desactiva un plato en la base de datos (borrado lógico).
-// @Tags platos
+// @Summary Desactivar un producto
+// @Description Desactiva un producto en la base de datos (borrado lógico).
+// @Tags productos
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Plato"
 // @Success 204 {object} nil "Plato desactivado"
 // @Failure 404 {object} models.ApiResponse "Plato no encontrado"
-// @Router /platos [delete]
+// @Router /productos [delete]
 func (c *PlatoController) Delete() {
 	o := orm.NewOrm()
 
@@ -367,9 +359,9 @@ func (c *PlatoController) Delete() {
 		return
 	}
 
-	// Buscar el plato
-	plato := models.Plato{PK_ID_PLATO: int64(id)}
-	if err := o.Read(&plato); err != nil {
+	// Buscar el producto
+	producto := models.Plato{PK_ID_PRODUCTO: int64(id)}
+	if err := o.Read(&producto); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -381,19 +373,19 @@ func (c *PlatoController) Delete() {
 	}
 
 	// Realizar el borrado lógico
-	plato.ACTIVO = false
-	if _, err := o.Update(&plato); err == nil {
+	producto.ESTADO_PRODUCTO = "DISPONIBLE"
+	if _, err := o.Update(&producto); err == nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
-			Message: "Plato desactivado",
+			Message: "Plato no disponible",
 		}
 		c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al desactivar el plato",
+			Message: "Error al desactivar el producto",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()

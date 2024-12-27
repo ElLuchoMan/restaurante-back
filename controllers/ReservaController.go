@@ -144,7 +144,7 @@ func (c *ReservaController) Post() {
 	}
 
 	// Validar el estado de la reserva
-	if !estadosPermitidos[reserva.ESTADO] {
+	if !estadosPermitidos[reserva.ESTADO_RESERVA] {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -219,7 +219,7 @@ func (c *ReservaController) Put() {
 		}
 
 		// Validar el estado de la reserva
-		if !estadosPermitidos[updatedReserva.ESTADO] {
+		if !estadosPermitidos[updatedReserva.ESTADO_RESERVA] {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,

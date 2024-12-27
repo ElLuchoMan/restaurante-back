@@ -9,11 +9,12 @@ type Pedido struct {
 	FECHA             string `orm:"column(FECHA);type(date)"`
 	HORA              string `orm:"column(HORA);type(time)"`
 	DELIVERY          bool   `orm:"column(DELIVERY)"`
-	ESTADO            string `orm:"column(ESTADO)"`
+	ESTADO_PEDIDO     string `orm:"column(ESTADO_PEDIDO)"`
 	PK_ID_DOMICILIO   *int   `orm:"column(PK_ID_DOMICILIO);null"`
 	PK_ID_PAGO        *int   `orm:"column(PK_ID_PAGO);null"`
-	PK_ID_ITEM_PEDIDO *int   `orm:"column(PK_ID_ITEM_PEDIDO);null"`
 	PK_ID_RESTAURANTE *int   `orm:"column(PK_ID_RESTAURANTE);null"`
+	UPDATED_AT        string `orm:"column(UPDATED_AT);type(date)" json:"UPDATED_AT"`
+	UPDATED_BY        string `orm:"column(UPDATED_BY)" json:"UPDATED_BY"`
 }
 
 func (p *Pedido) TableName() string {

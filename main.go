@@ -17,7 +17,7 @@ func init() {
 }
 
 // @title Restaurante API
-// @version 1.0.0
+// @version 2.0.0
 // @description API para gestionar el sistema de un restaurante para "El fogón de María"
 // @contact.email baluisto96@gmail.com
 // @basePath /restaurante/v1

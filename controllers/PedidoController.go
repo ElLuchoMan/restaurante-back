@@ -129,7 +129,7 @@ func (c *PedidoController) Post() {
 	validStates := []string{"INICIADO", "TERMINADO", "CANCELADO"}
 	isValidState := false
 	for _, state := range validStates {
-		if pedido.ESTADO == state {
+		if pedido.ESTADO_PEDIDO == state {
 			isValidState = true
 			break
 		}
@@ -225,7 +225,7 @@ func (c *PedidoController) Put() {
 	validStates := []string{"INICIADO", "TERMINADO", "CANCELADO"}
 	isValidState := false
 	for _, state := range validStates {
-		if updatedPedido.ESTADO == state {
+		if updatedPedido.ESTADO_PEDIDO == state {
 			isValidState = true
 			break
 		}

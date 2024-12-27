@@ -7,10 +7,12 @@ import (
 )
 
 type Restaurante struct {
-	PK_ID_RESTAURANTE  int    `orm:"column(PK_ID_RESTAURANTE);pk" json:"pk_id_restaurante"`
-	NOMBRE_RESTAURANTE string `orm:"column(NOMBRE_RESTAURANTE)" json:"nombre_restaurante"`
-	HORA_APERTURA      string `orm:"column(HORA_APERTURA);type(time)" json:"hora_apertura"`
-	DIAS_LABORALES     string `orm:"column(DIAS_LABORALES)" json:"dias_laborales"`
+	PK_ID_RESTAURANTE    int    `orm:"column(PK_ID_RESTAURANTE);pk" json:"pk_id_restaurante"`
+	NOMBRE_RESTAURANTE   string `orm:"column(NOMBRE_RESTAURANTE)" json:"nombre_restaurante"`
+	HORA_APERTURA        string `orm:"column(HORA_APERTURA);type(time)" json:"hora_apertura"`
+	DIAS_LABORALES       string `orm:"column(DIAS_LABORALES)" json:"dias_laborales"`
+	PK_ID_CAMBIO_HORARIO *int   `orm:"column(PK_ID_CAMBIO_HORARIO);null" json:"PK_ID_CAMBIO_HORARIO"`
+	PK_ID_RESERVA        *int   `orm:"column(PK_ID_RESERVA);null" json:"PK_ID_RESERVA"` //TODO: ESTÁ AL REVÉS
 }
 
 func (t *Restaurante) TableName() string {

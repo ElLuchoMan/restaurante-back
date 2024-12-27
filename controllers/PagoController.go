@@ -129,7 +129,7 @@ func (c *PagoController) Post() {
 	validStates := []string{"PENDIENTE", "COMPLETADO", "CANCELADO"}
 	isValidState := false
 	for _, state := range validStates {
-		if pago.ESTADO == state {
+		if pago.ESTADO_PAGO == state {
 			isValidState = true
 			break
 		}
@@ -214,7 +214,7 @@ func (c *PagoController) Put() {
 		validStates := []string{"PENDIENTE", "COMPLETADO", "CANCELADO"}
 		isValidState := false
 		for _, state := range validStates {
-			if updatedPago.ESTADO == state {
+			if updatedPago.ESTADO_PAGO == state {
 				isValidState = true
 				break
 			}
