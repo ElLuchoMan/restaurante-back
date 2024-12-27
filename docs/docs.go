@@ -1574,7 +1574,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Plato"
+                                "$ref": "#/definitions/models.Producto"
                             }
                         }
                     },
@@ -1601,7 +1601,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Plato",
+                        "description": "ID del Producto",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -1649,13 +1649,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Plato actualizado",
+                        "description": "Producto actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.Plato"
+                            "$ref": "#/definitions/models.Producto"
                         }
                     },
                     "404": {
-                        "description": "Plato no encontrado",
+                        "description": "Producto no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1718,9 +1718,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Plato creado",
+                        "description": "Producto creado",
                         "schema": {
-                            "$ref": "#/definitions/models.Plato"
+                            "$ref": "#/definitions/models.Producto"
                         }
                     },
                     "400": {
@@ -1746,7 +1746,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Plato",
+                        "description": "ID del Producto",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -1754,10 +1754,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "Plato desactivado"
+                        "description": "Producto desactivado"
                     },
                     "404": {
-                        "description": "Plato no encontrado",
+                        "description": "Producto no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1784,7 +1784,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Plato"
+                                "$ref": "#/definitions/models.Producto"
                             }
                         }
                     },
@@ -1813,7 +1813,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Plato",
+                        "description": "ID del Producto",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -1821,13 +1821,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Plato encontrado",
+                        "description": "Producto encontrado",
                         "schema": {
-                            "$ref": "#/definitions/models.Plato"
+                            "$ref": "#/definitions/models.Producto"
                         }
                     },
                     "404": {
-                        "description": "Plato no encontrado",
+                        "description": "Producto no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2638,7 +2638,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Plato": {
+        "models.Producto": {
             "type": "object",
             "properties": {
                 "CALORIAS": {

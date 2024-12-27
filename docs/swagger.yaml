@@ -124,7 +124,7 @@ definitions:
       PK_ID_PEDIDO_CLIENTE:
         type: integer
     type: object
-  models.Plato:
+  models.Producto:
     properties:
       CALORIAS:
         type: integer
@@ -1194,7 +1194,7 @@ paths:
       - application/json
       description: Desactiva un producto en la base de datos (borrado lógico).
       parameters:
-      - description: ID del Plato
+      - description: ID del Producto
         in: query
         name: id
         required: true
@@ -1203,9 +1203,9 @@ paths:
       - application/json
       responses:
         "204":
-          description: Plato desactivado
+          description: Producto desactivado
         "404":
-          description: Plato no encontrado
+          description: Producto no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
       summary: Desactivar un producto
@@ -1223,7 +1223,7 @@ paths:
           description: Lista de todos los productos
           schema:
             items:
-              $ref: '#/definitions/models.Plato'
+              $ref: '#/definitions/models.Producto'
             type: array
         "500":
           description: Error en la base de datos
@@ -1270,9 +1270,9 @@ paths:
       - application/json
       responses:
         "201":
-          description: Plato creado
+          description: Producto creado
           schema:
-            $ref: '#/definitions/models.Plato'
+            $ref: '#/definitions/models.Producto'
         "400":
           description: Error en la solicitud
           schema:
@@ -1286,7 +1286,7 @@ paths:
       description: Actualiza los datos de un producto existente, incluyendo una imagen
         en formato Base64.
       parameters:
-      - description: ID del Plato
+      - description: ID del Producto
         in: query
         name: id
         required: true
@@ -1323,11 +1323,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: Plato actualizado
+          description: Producto actualizado
           schema:
-            $ref: '#/definitions/models.Plato'
+            $ref: '#/definitions/models.Producto'
         "404":
-          description: Plato no encontrado
+          description: Producto no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
       summary: Actualizar un producto
@@ -1345,7 +1345,7 @@ paths:
           description: Lista de productos activos
           schema:
             items:
-              $ref: '#/definitions/models.Plato'
+              $ref: '#/definitions/models.Producto'
             type: array
         "500":
           description: Error en la base de datos
@@ -1361,7 +1361,7 @@ paths:
       description: Devuelve un producto específico por ID, incluyendo la imagen en
         formato Base64.
       parameters:
-      - description: ID del Plato
+      - description: ID del Producto
         in: query
         name: id
         required: true
@@ -1370,11 +1370,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: Plato encontrado
+          description: Producto encontrado
           schema:
-            $ref: '#/definitions/models.Plato'
+            $ref: '#/definitions/models.Producto'
         "404":
-          description: Plato no encontrado
+          description: Producto no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
       summary: Obtener producto por ID
