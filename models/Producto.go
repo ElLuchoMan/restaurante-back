@@ -2,7 +2,7 @@ package models
 
 import "github.com/beego/beego/v2/client/orm"
 
-type Plato struct {
+type Producto struct {
 	PK_ID_PRODUCTO  int64  `orm:"column(PK_ID_PRODUCTO);pk;auto" json:"PK_ID_PRODUCTO"`
 	NOMBRE          string `orm:"column(NOMBRE)" json:"NOMBRE"`
 	CALORIAS        *int64 `orm:"column(CALORIAS);null" json:"CALORIAS"`
@@ -13,10 +13,10 @@ type Plato struct {
 	CANTIDAD        bool   `orm:"column(CANTIDAD);default(true)" json:"CANTIDAD"`
 }
 
-func (p *Plato) TableName() string {
+func (p *Producto) TableName() string {
 	return "PRODUCTO"
 }
 
 func init() {
-	orm.RegisterModel(new(Plato))
+	orm.RegisterModel(new(Producto))
 }

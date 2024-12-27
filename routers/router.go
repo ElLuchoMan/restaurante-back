@@ -42,10 +42,10 @@ func init() {
 			beego.NSRouter("/search", &controllers.TrabajadorController{}, "get:GetById"),
 		),
 		// Rutas para platos
-		beego.NSNamespace("/platos",
-			beego.NSRouter("/", &controllers.PlatoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-			beego.NSRouter("/search", &controllers.PlatoController{}, "get:GetById"),
-			beego.NSRouter("/active", &controllers.PlatoController{}, "get:GetAllActive"),
+		beego.NSNamespace("/productos",
+			beego.NSRouter("/", &controllers.ProductoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.ProductoController{}, "get:GetById"),
+			beego.NSRouter("/active", &controllers.ProductoController{}, "get:GetAllActive"),
 		),
 		// Rutas para reservas
 		beego.NSNamespace("/reservas",

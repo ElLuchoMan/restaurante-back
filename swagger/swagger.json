@@ -225,8 +225,8 @@
                 }
             }
         },
-        "models.Plato": {
-            "title": "Plato",
+        "models.Producto": {
+            "title": "Producto",
             "type": "object",
             "properties": {
                 "CALORIAS": {

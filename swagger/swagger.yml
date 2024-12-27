@@ -155,8 +155,8 @@ definitions:
       PK_ID_PEDIDO_CLIENTE:
         type: integer
         format: int64
-  models.Plato:
-    title: Plato
+  models.Producto:
+    title: Producto
     type: object
     properties:
       CALORIAS:
