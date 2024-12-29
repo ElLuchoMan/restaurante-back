@@ -16,7 +16,7 @@ func InitDB() {
 	dbPass, _ := web.AppConfig.String("db_pass")
 	dbName, _ := web.AppConfig.String("db_name")
 
-	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable TimeZone=America/Bogota",
+	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
 	err := orm.RegisterDataBase("default", "postgres", connStr)

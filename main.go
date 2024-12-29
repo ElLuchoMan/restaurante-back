@@ -4,7 +4,6 @@ import (
 	"restaurante/database"
 	_ "restaurante/docs"
 	_ "restaurante/routers"
-	"time"
 
 	"github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/filter/cors"
@@ -13,12 +12,6 @@ import (
 )
 
 func init() {
-	// Configurar el timezone global para Bogotá
-	location, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		panic("Error al cargar el timezone: " + err.Error())
-	}
-	time.Local = location
 	// Inicializar la base de datos
 	database.InitDB()
 }
