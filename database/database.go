@@ -36,6 +36,6 @@ func InitTimezone() {
 	BogotaZone, err = time.LoadLocation("America/Bogota")
 	if err != nil {
 		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
-		BogotaZone = time.FixedZone("UTC-5", -5*60*60) // Fallback manual
+		BogotaZone = time.FixedZone("UTC-5", -5*60*60)
 	}
 }

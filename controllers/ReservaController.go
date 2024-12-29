@@ -24,8 +24,6 @@ var estadosPermitidos = map[string]bool{
 	"CUMPLIDA":   true,
 }
 
-var location, _ = time.LoadLocation("America/Lima")
-
 // @Title GetAll
 // @Summary Obtener todas las reservas
 // @Description Devuelve todas las reservas registradas en la base de datos.
