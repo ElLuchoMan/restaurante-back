@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"restaurante/models"
 	"strconv"
@@ -22,8 +23,6 @@ var estadosPermitidos = map[string]bool{
 	"CANCELADA":  true,
 	"CUMPLIDA":   true,
 }
-
-var location, _ = time.LoadLocation("America/Bogota")
 
 // @Title GetAll
 // @Summary Obtener todas las reservas
@@ -50,28 +49,8 @@ func (c *ReservaController) GetAll() {
 		return
 	}
 
-	// Configurar la ubicación para Bogotá
-	location, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al cargar la zona horaria",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Ajustar las fechas y horas al formato y zona horaria correcta
 	for i := range reservas {
-		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(location)
-		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(location)
-		reservas[i].FECHA = reservas[i].FECHA.In(location)
-
-		if len(reservas[i].HORA) >= 8 {
-			reservas[i].HORA = reservas[i].HORA[:8] // Asegurar formato HH:MM:SS
-		}
+		adjustTimezoneFields(&reservas[i])
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -121,12 +100,8 @@ func (c *ReservaController) GetById() {
 		c.ServeJSON()
 		return
 	}
-	reserva.FECHA = reserva.FECHA.In(location)
-	reserva.CREATED_AT = reserva.CREATED_AT.In(location)
-	reserva.UPDATED_AT = reserva.UPDATED_AT.In(location)
-	if len(reserva.HORA) >= 8 {
-		reserva.HORA = reserva.HORA[:8] // Formato HH:MM:SS
-	}
+
+	adjustTimezoneFields(&reserva)
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -150,6 +125,7 @@ func (c *ReservaController) GetById() {
 func (c *ReservaController) Post() {
 	o := orm.NewOrm()
 	var input map[string]interface{}
+	var reserva models.Reserva
 
 	// Decodificar la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
@@ -163,93 +139,16 @@ func (c *ReservaController) Post() {
 		return
 	}
 
-	// Validar y procesar los campos requeridos
-	var reserva models.Reserva
-
-	// Procesar FECHA
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-		reserva.FECHA = parsedDate
-	} else {
+	// Validar y procesar los campos de entrada
+	if err := validateAndParseFields(input, &reserva); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo FECHA no puede estar vacío",
+			Message: "Error en los datos de entrada",
+			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
-	}
-
-	// Procesar HORA
-	if horaStr, ok := input["HORA"].(string); ok && horaStr != "" {
-		_, err := time.Parse("15:04:05", horaStr)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de hora inválido",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-		reserva.HORA = horaStr
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo HORA no puede estar vacío",
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Procesar PERSONAS
-	if personas, ok := input["PERSONAS"].(float64); ok {
-		reserva.PERSONAS = int(personas)
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo PERSONAS debe ser un número mayor a 0",
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Procesar ESTADO_RESERVA si existe
-	if estado, ok := input["ESTADO_RESERVA"].(string); ok && estado != "" {
-		if !estadosPermitidos[estado] {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Estado de reserva inválido",
-				Cause:   "El estado debe ser uno de los siguientes: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA",
-			}
-			c.ServeJSON()
-			return
-		}
-		reserva.ESTADO_RESERVA = &estado
-	}
-
-	// Procesar INDICACIONES si existe
-	if indicaciones, ok := input["INDICACIONES"].(string); ok {
-		reserva.INDICACIONES = &indicaciones
-	}
-
-	// Procesar CREATED_BY si existe
-	if createdBy, ok := input["CREATED_BY"].(string); ok {
-		reserva.CREATED_BY = &createdBy
 	}
 
 	// Establecer valores automáticos
@@ -257,8 +156,7 @@ func (c *ReservaController) Post() {
 	reserva.UPDATED_AT = time.Time{}
 
 	// Insertar en la base de datos
-	_, err := o.Insert(&reserva)
-	if err != nil {
+	if _, err := o.Insert(&reserva); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -268,6 +166,8 @@ func (c *ReservaController) Post() {
 		c.ServeJSON()
 		return
 	}
+
+	adjustTimezoneFields(&reserva)
 
 	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusCreated)
@@ -319,6 +219,9 @@ func (c *ReservaController) Put() {
 		return
 	}
 
+	// Guardar el valor original de CREATED_BY
+	originalCreatedBy := reserva.CREATED_BY
+
 	// Deserializar los datos actualizados desde el cuerpo de la solicitud
 	var input map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
@@ -332,58 +235,26 @@ func (c *ReservaController) Put() {
 		return
 	}
 
-	// Validar y actualizar los campos que pueden cambiar
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
+	// Validar y actualizar los campos
+	if err := validateAndParseFields(input, &reserva); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Error en los datos de entrada",
+			Cause:   err.Error(),
 		}
-		reserva.FECHA = parsedDate
+		c.ServeJSON()
+		return
 	}
 
-	if horaStr, ok := input["HORA"].(string); ok && horaStr != "" {
-		_, err := time.Parse("15:04:05", horaStr)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de hora inválido",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-		reserva.HORA = horaStr
-	}
-
-	if personas, ok := input["PERSONAS"].(float64); ok {
-		reserva.PERSONAS = int(personas)
-	}
-
-	if estado, ok := input["ESTADO_RESERVA"].(string); ok && estadosPermitidos[estado] {
-		reserva.ESTADO_RESERVA = &estado
-	}
-
-	if indicaciones, ok := input["INDICACIONES"].(string); ok {
-		reserva.INDICACIONES = &indicaciones
-	}
-
-	if updatedBy, ok := input["UPDATED_BY"].(string); ok {
-		reserva.UPDATED_BY = &updatedBy
-	}
+	// Restaurar el valor original de CREATED_BY
+	reserva.CREATED_BY = originalCreatedBy
 
 	// Actualizar la fecha de modificación
 	reserva.UPDATED_AT = time.Now().UTC()
 
 	// Actualizar los datos en la base de datos
-	if _, err := o.Update(&reserva); err != nil {
+	if _, err := o.Update(&reserva, "FECHA", "HORA", "PERSONAS", "ESTADO_RESERVA", "INDICACIONES", "UPDATED_AT", "UPDATED_BY"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -394,11 +265,13 @@ func (c *ReservaController) Put() {
 		return
 	}
 
-	// Responder con los datos actualizados
+	adjustTimezoneFields(&reserva)
+
+	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Reserva actualizada",
+		Message: "Reserva actualizada correctamente",
 		Data:    reserva,
 	}
 	c.ServeJSON()
@@ -446,7 +319,7 @@ func (c *ReservaController) Delete() {
 	// Actualizar el estado a CANCELADA
 	estadoCancelada := "CANCELADA"
 	reserva.ESTADO_RESERVA = &estadoCancelada
-	reserva.UPDATED_AT = time.Now() // Actualizar la fecha de modificación
+	reserva.UPDATED_AT = time.Now().UTC()
 
 	// Guardar los cambios en la base de datos
 	if _, err := o.Update(&reserva, "ESTADO_RESERVA", "UPDATED_AT"); err != nil {
@@ -460,6 +333,8 @@ func (c *ReservaController) Delete() {
 		return
 	}
 
+	adjustTimezoneFields(&reserva)
+
 	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -468,4 +343,66 @@ func (c *ReservaController) Delete() {
 		Data:    reserva,
 	}
 	c.ServeJSON()
+}
+
+func adjustTimezoneFields(reserva *models.Reserva) {
+	if !reserva.CREATED_AT.IsZero() {
+		reserva.CREATED_AT = reserva.CREATED_AT.Local()
+	}
+	if !reserva.UPDATED_AT.IsZero() {
+		reserva.UPDATED_AT = reserva.UPDATED_AT.Local()
+	}
+	if !reserva.FECHA.IsZero() {
+		reserva.FECHA = reserva.FECHA.Local()
+	}
+	if len(reserva.HORA) >= 8 {
+		reserva.HORA = reserva.HORA[:8] // Formato HH:MM:SS
+	}
+}
+
+func validateAndParseFields(input map[string]interface{}, reserva *models.Reserva) error {
+	// Validar y procesar FECHA
+	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", fechaStr)
+		if err != nil {
+			return fmt.Errorf("formato de fecha inválido: %v", err)
+		}
+		reserva.FECHA = parsedDate
+	}
+
+	// Validar y procesar HORA
+	if horaStr, ok := input["HORA"].(string); ok && horaStr != "" {
+		_, err := time.Parse("15:04:05", horaStr)
+		if err != nil {
+			return fmt.Errorf("formato de hora inválido: %v", err)
+		}
+		reserva.HORA = horaStr
+	}
+
+	// Validar PERSONAS
+	if personas, ok := input["PERSONAS"].(float64); ok {
+		reserva.PERSONAS = int(personas)
+	} else {
+		return fmt.Errorf("el campo PERSONAS debe ser un número mayor a 0")
+	}
+
+	// Validar ESTADO_RESERVA
+	if estado, ok := input["ESTADO_RESERVA"].(string); ok && estado != "" {
+		if !estadosPermitidos[estado] {
+			return fmt.Errorf("estado de reserva inválido")
+		}
+		reserva.ESTADO_RESERVA = &estado
+	}
+
+	// Procesar INDICACIONES
+	if indicaciones, ok := input["INDICACIONES"].(string); ok {
+		reserva.INDICACIONES = &indicaciones
+	}
+
+	// Procesar UPDATED_BY
+	if updatedBy, ok := input["UPDATED_BY"].(string); ok {
+		reserva.UPDATED_BY = &updatedBy
+	}
+
+	return nil
 }
