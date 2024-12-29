@@ -25,8 +25,8 @@ func init() {
 	var err error
 	location, err = time.LoadLocation("America/Bogota")
 	if err != nil {
-		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando manual offset.")
-		location = time.FixedZone("America/Bogota", -5*60*60) // UTC -5
+		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
+		location = time.UTC
 	}
 }
 
