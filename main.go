@@ -1,11 +1,9 @@
 package main
 
 import (
-	"log"
 	"restaurante/database"
 	_ "restaurante/docs"
 	_ "restaurante/routers"
-
 	"time"
 
 	"github.com/beego/beego/v2/server/web"
@@ -14,20 +12,15 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// Declaración global de la variable location
-var location *time.Location
-
 func init() {
+	// Configurar el timezone global para Bogotá
+	location, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		panic("Error al cargar el timezone: " + err.Error())
+	}
+	time.Local = location
 	// Inicializar la base de datos
 	database.InitDB()
-
-	// Cargar el timezone
-	var err error
-	location, err = time.LoadLocation("America/Bogota")
-	if err != nil {
-		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
-		location = time.UTC
-	}
 }
 
 // @title Restaurante API
