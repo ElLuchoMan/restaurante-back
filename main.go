@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"restaurante/database"
 	_ "restaurante/docs"
 	_ "restaurante/routers"
@@ -14,6 +15,9 @@ import (
 func init() {
 	// Inicializar la base de datos
 	database.InitDB()
+	database.InitTimezone()
+	fmt.Println("Loaded timezone:", database.BogotaZone)
+
 }
 
 // @title Restaurante API

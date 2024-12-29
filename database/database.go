@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -20,9 +21,21 @@ func InitDB() {
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
 	err := orm.RegisterDataBase("default", "postgres", connStr)
+
 	if err != nil {
 		log.Fatal("Error al conectar a la base de datos:", err)
 	}
 
 	fmt.Println("Conexión a la base de datos exitosa!")
+}
+
+var BogotaZone *time.Location
+
+func InitTimezone() {
+	var err error
+	BogotaZone, err = time.LoadLocation("America/Bogota")
+	if err != nil {
+		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
+		BogotaZone = time.FixedZone("UTC-5", -5*60*60) // Fallback manual a UTC-5
+	}
 }
