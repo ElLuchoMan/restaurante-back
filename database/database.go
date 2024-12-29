@@ -17,7 +17,7 @@ func InitDB() {
 	dbPass, _ := web.AppConfig.String("db_pass")
 	dbName, _ := web.AppConfig.String("db_name")
 
-	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
+	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable TimeZone=UTC",
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
 	err := orm.RegisterDataBase("default", "postgres", connStr)
@@ -33,9 +33,9 @@ var BogotaZone *time.Location
 
 func InitTimezone() {
 	var err error
-	BogotaZone, err = time.LoadLocation("America/Lima")
+	BogotaZone, err = time.LoadLocation("America/Bogota")
 	if err != nil {
 		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
-		BogotaZone = time.FixedZone("UTC-5", -5*60*60) // Fallback manual a UTC-5
+		BogotaZone = time.FixedZone("UTC-5", -5*60*60) // Fallback manual
 	}
 }

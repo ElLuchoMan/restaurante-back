@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"restaurante/database"
 	"restaurante/models"
 	"strconv"
 	"time"
@@ -50,24 +51,11 @@ func (c *ReservaController) GetAll() {
 		return
 	}
 
-	// Configurar la ubicación para Bogotá
-	location, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al cargar la zona horaria",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
 	// Ajustar las fechas y horas al formato y zona horaria correcta
 	for i := range reservas {
-		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(location)
-		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(location)
-		reservas[i].FECHA = reservas[i].FECHA.In(location)
+		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
+		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
+		reservas[i].FECHA = reservas[i].FECHA.In(database.BogotaZone)
 
 		if len(reservas[i].HORA) >= 8 {
 			reservas[i].HORA = reservas[i].HORA[:8] // Asegurar formato HH:MM:SS
@@ -121,9 +109,9 @@ func (c *ReservaController) GetById() {
 		c.ServeJSON()
 		return
 	}
-	reserva.FECHA = reserva.FECHA.In(location)
-	reserva.CREATED_AT = reserva.CREATED_AT.In(location)
-	reserva.UPDATED_AT = reserva.UPDATED_AT.In(location)
+	reserva.FECHA = reserva.FECHA.In(database.BogotaZone)
+	reserva.CREATED_AT = reserva.CREATED_AT.In(database.BogotaZone)
+	reserva.UPDATED_AT = reserva.UPDATED_AT.In(database.BogotaZone)
 	if len(reserva.HORA) >= 8 {
 		reserva.HORA = reserva.HORA[:8] // Formato HH:MM:SS
 	}
