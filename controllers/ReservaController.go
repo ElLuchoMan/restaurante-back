@@ -23,7 +23,7 @@ var estadosPermitidos = map[string]bool{
 	"CUMPLIDA":   true,
 }
 
-var location, _ = time.LoadLocation("America/Bogota")
+var location, _ = time.LoadLocation("America/Lima")
 
 // @Title GetAll
 // @Summary Obtener todas las reservas
