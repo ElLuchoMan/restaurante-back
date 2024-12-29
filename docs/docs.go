@@ -37,6 +37,18 @@ const docTemplate = `{
                 "summary": "Obtener todos los clientes con opción de filtrar campos",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Cantidad de resultados por página (por defecto es 10)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Número de registros a omitir desde el inicio (por defecto es 0)",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
                         "type": "string",
                         "description": "Especifica los campos a incluir en la respuesta (opciones: 'nombre_completo_telefono')",
                         "name": "fields",
@@ -1959,7 +1971,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Elimina una reserva de la base de datos.",
+                "description": "Actualiza el estado de una reserva a \"CANCELADA\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -1969,7 +1981,7 @@ const docTemplate = `{
                 "tags": [
                     "reservas"
                 ],
-                "summary": "Eliminar una reserva",
+                "summary": "Cancelar una reserva",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1980,8 +1992,11 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Reserva eliminada"
+                    "200": {
+                        "description": "Reserva cancelada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     },
                     "404": {
                         "description": "Reserva no encontrada",
@@ -2501,25 +2516,25 @@ const docTemplate = `{
         "models.Domicilio": {
             "type": "object",
             "properties": {
-                "direccion": {
+                "DIRECCION": {
                     "type": "string"
                 },
-                "entregado": {
+                "ENTREGADO": {
                     "type": "boolean"
                 },
-                "estado_PAGO": {
+                "ESTADO_PAGO": {
                     "type": "string"
                 },
-                "fecha": {
+                "FECHA": {
                     "type": "string"
                 },
-                "observaciones": {
+                "OBSERVACIONES": {
                     "type": "string"
                 },
-                "pk_ID_DOMICILIO": {
+                "PK_ID_DOMICILIO": {
                     "type": "integer"
                 },
-                "telefono": {
+                "TELEFONO": {
                     "type": "string"
                 }
             }
@@ -2680,6 +2695,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "CREATED_AT": {
+                    "type": "string"
+                },
+                "CREATED_BY": {
                     "type": "string"
                 },
                 "ESTADO_RESERVA": {

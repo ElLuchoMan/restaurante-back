@@ -268,6 +268,10 @@
             "type": "object",
             "properties": {
                 "CREATED_AT": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "CREATED_BY": {
                     "type": "string"
                 },
                 "ESTADO_RESERVA": {
@@ -292,7 +296,8 @@
                     "format": "int64"
                 },
                 "UPDATED_AT": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "datetime"
                 },
                 "UPDATED_BY": {
                     "type": "string"

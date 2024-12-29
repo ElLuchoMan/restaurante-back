@@ -29,19 +29,19 @@ definitions:
     type: object
   models.Domicilio:
     properties:
-      direccion:
+      DIRECCION:
         type: string
-      entregado:
+      ENTREGADO:
         type: boolean
-      estado_PAGO:
+      ESTADO_PAGO:
         type: string
-      fecha:
+      FECHA:
         type: string
-      observaciones:
+      OBSERVACIONES:
         type: string
-      pk_ID_DOMICILIO:
+      PK_ID_DOMICILIO:
         type: integer
-      telefono:
+      TELEFONO:
         type: string
     type: object
   models.LoginRequest:
@@ -147,6 +147,8 @@ definitions:
     properties:
       CREATED_AT:
         type: string
+      CREATED_BY:
+        type: string
       ESTADO_RESERVA:
         type: string
       FECHA:
@@ -249,6 +251,15 @@ paths:
       description: Devuelve todos los clientes registrados en la base de datos, con
         opción de retornar solo nombre completo y teléfono.
       parameters:
+      - description: Cantidad de resultados por página (por defecto es 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Número de registros a omitir desde el inicio (por defecto es
+          0)
+        in: query
+        name: offset
+        type: integer
       - description: 'Especifica los campos a incluir en la respuesta (opciones: ''nombre_completo_telefono'')'
         in: query
         name: fields
@@ -1393,7 +1404,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Elimina una reserva de la base de datos.
+      description: Actualiza el estado de una reserva a "CANCELADA".
       parameters:
       - description: ID de la Reserva
         in: query
@@ -1403,13 +1414,15 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
-          description: Reserva eliminada
+        "200":
+          description: Reserva cancelada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Reserva no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Eliminar una reserva
+      summary: Cancelar una reserva
       tags:
       - reservas
     get:
