@@ -72,7 +72,7 @@ definitions:
     type: object
   models.Nomina:
     properties:
-      ESTADO:
+      ESTADO_NOMINA:
         type: string
       FECHA:
         type: string
@@ -697,7 +697,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Elimina una nómina de la base de datos.
+      description: Marca una nómina como "NO PAGO" en lugar de eliminarla físicamente.
       parameters:
       - description: ID de la Nómina
         in: query
@@ -708,7 +708,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Nómina eliminada
+          description: Nómina eliminada lógicamente
           schema:
             $ref: '#/definitions/models.ApiResponse'
         "404":
@@ -717,13 +717,27 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Eliminar una nómina
+      summary: Eliminar una nómina (lógica)
       tags:
       - nominas
     get:
       consumes:
       - application/json
-      description: Devuelve todas las nóminas registradas en la base de datos.
+      description: Devuelve todas las nóminas registradas en la base de datos, con
+        opción de filtrar por fecha exacta, mes y año.
+      parameters:
+      - description: Filtrar por fecha exacta (YYYY-MM-DD)
+        in: query
+        name: fecha
+        type: string
+      - description: Filtrar por mes (1-12)
+        in: query
+        name: mes
+        type: integer
+      - description: Filtrar por año (YYYY)
+        in: query
+        name: anio
+        type: integer
       produces:
       - application/json
       responses:
@@ -739,7 +753,7 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener todas las nóminas
+      summary: Obtener todas las nóminas con filtros
       tags:
       - nominas
     post:
@@ -805,7 +819,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve una nómina específica por ID.
+      description: Devuelve una nómina específica por ID utilizando query parameters.
       parameters:
       - description: ID de la Nómina
         in: query

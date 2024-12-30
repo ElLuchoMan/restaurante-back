@@ -69,6 +69,12 @@ func init() {
 			beego.NSRouter("/", &controllers.PedidoClienteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.PedidoClienteController{}, "get:GetById"),
 		),
+		// Rutas para nominas
+		beego.NSNamespace("/nominas",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.NominaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.NominaController{}, "get:GetById"),
+		),
 	)
 
 	beego.AddNamespace(ns)

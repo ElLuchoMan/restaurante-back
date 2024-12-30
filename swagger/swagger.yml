@@ -95,10 +95,11 @@ definitions:
     title: Nomina
     type: object
     properties:
-      ESTADO:
+      ESTADO_NOMINA:
         type: string
       FECHA:
         type: string
+        format: datetime
       MONTO:
         type: integer
         format: int64

@@ -137,11 +137,12 @@
             "title": "Nomina",
             "type": "object",
             "properties": {
-                "ESTADO": {
+                "ESTADO_NOMINA": {
                     "type": "string"
                 },
                 "FECHA": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "datetime"
                 },
                 "MONTO": {
                     "type": "integer",

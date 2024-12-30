@@ -755,7 +755,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todas las nóminas registradas en la base de datos.",
+                "description": "Devuelve todas las nóminas registradas en la base de datos, con opción de filtrar por fecha exacta, mes y año.",
                 "consumes": [
                     "application/json"
                 ],
@@ -765,7 +765,27 @@ const docTemplate = `{
                 "tags": [
                     "nominas"
                 ],
-                "summary": "Obtener todas las nóminas",
+                "summary": "Obtener todas las nóminas con filtros",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por fecha exacta (YYYY-MM-DD)",
+                        "name": "fecha",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por mes (1-12)",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por año (YYYY)",
+                        "name": "anio",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Lista de nóminas",
@@ -883,7 +903,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina una nómina de la base de datos.",
+                "description": "Marca una nómina como \"NO PAGO\" en lugar de eliminarla físicamente.",
                 "consumes": [
                     "application/json"
                 ],
@@ -893,7 +913,7 @@ const docTemplate = `{
                 "tags": [
                     "nominas"
                 ],
-                "summary": "Eliminar una nómina",
+                "summary": "Eliminar una nómina (lógica)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -905,7 +925,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Nómina eliminada",
+                        "description": "Nómina eliminada lógicamente",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -926,7 +946,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve una nómina específica por ID.",
+                "description": "Devuelve una nómina específica por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2608,7 +2628,7 @@ const docTemplate = `{
         "models.Nomina": {
             "type": "object",
             "properties": {
-                "ESTADO": {
+                "ESTADO_NOMINA": {
                     "type": "string"
                 },
                 "FECHA": {
