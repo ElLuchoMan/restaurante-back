@@ -29,6 +29,10 @@ definitions:
     type: object
   models.Domicilio:
     properties:
+      CREATED_AT:
+        type: string
+      CREATED_BY:
+        type: string
       DIRECCION:
         type: string
       ENTREGADO:
@@ -42,6 +46,10 @@ definitions:
       PK_ID_DOMICILIO:
         type: integer
       TELEFONO:
+        type: string
+      UPDATED_AT:
+        type: string
+      UPDATED_BY:
         type: string
     type: object
   models.LoginRequest:
@@ -396,7 +404,25 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve todos los domicilios registrados en la base de datos.
+      description: Devuelve todos los domicilios registrados en la base de datos,
+        con opción de filtrar por dirección, teléfono y actualizado por.
+      parameters:
+      - description: Filtrar por dirección
+        in: query
+        name: direccion
+        type: string
+      - description: Filtrar por teléfono
+        in: query
+        name: telefono
+        type: string
+      - description: Filtrar por fecha
+        in: query
+        name: fecha
+        type: string
+      - description: Filtrar por usuario que realizó la última actualización
+        in: query
+        name: updated_by
+        type: string
       produces:
       - application/json
       responses:
@@ -412,7 +438,7 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener todos los domicilios
+      summary: Obtener todos los domicilios con posibilidad de filtrar
       tags:
       - domicilios
     post:

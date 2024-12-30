@@ -42,6 +42,11 @@ definitions:
     title: Domicilio
     type: object
     properties:
+      CREATED_AT:
+        type: string
+        format: datetime
+      CREATED_BY:
+        type: string
       DIRECCION:
         type: string
       ENTREGADO:
@@ -50,12 +55,18 @@ definitions:
         type: string
       FECHA:
         type: string
+        format: datetime
       OBSERVACIONES:
         type: string
       PK_ID_DOMICILIO:
         type: integer
         format: int64
       TELEFONO:
+        type: string
+      UPDATED_AT:
+        type: string
+        format: datetime
+      UPDATED_BY:
         type: string
   models.LoginRequest:
     title: LoginRequest

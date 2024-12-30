@@ -258,7 +258,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los domicilios registrados en la base de datos.",
+                "description": "Devuelve todos los domicilios registrados en la base de datos, con opción de filtrar por dirección, teléfono y actualizado por.",
                 "consumes": [
                     "application/json"
                 ],
@@ -268,7 +268,33 @@ const docTemplate = `{
                 "tags": [
                     "domicilios"
                 ],
-                "summary": "Obtener todos los domicilios",
+                "summary": "Obtener todos los domicilios con posibilidad de filtrar",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por dirección",
+                        "name": "direccion",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por teléfono",
+                        "name": "telefono",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por fecha",
+                        "name": "fecha",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por usuario que realizó la última actualización",
+                        "name": "updated_by",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Lista de domicilios",
@@ -2516,6 +2542,12 @@ const docTemplate = `{
         "models.Domicilio": {
             "type": "object",
             "properties": {
+                "CREATED_AT": {
+                    "type": "string"
+                },
+                "CREATED_BY": {
+                    "type": "string"
+                },
                 "DIRECCION": {
                     "type": "string"
                 },
@@ -2535,6 +2567,12 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "TELEFONO": {
+                    "type": "string"
+                },
+                "UPDATED_AT": {
+                    "type": "string"
+                },
+                "UPDATED_BY": {
                     "type": "string"
                 }
             }
