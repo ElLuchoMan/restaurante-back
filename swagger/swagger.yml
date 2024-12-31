@@ -86,9 +86,6 @@ definitions:
       PK_ID_METODO_PAGO:
         type: integer
         format: int64
-      PK_ID_PAGO:
-        type: integer
-        format: int64
       TIPO:
         type: string
   models.Nomina:
@@ -229,16 +226,9 @@ definitions:
     title: Restaurante
     type: object
     properties:
-      PK_ID_CAMBIO_HORARIO:
-        type: integer
-        format: int64
-      PK_ID_RESERVA:
-        description: 'TODO: ESTÁ AL REVÉS'
-        type: integer
-        format: int64
-      dias_laborales:
+      HORA_APERTURA:
         type: string
-      hora_apertura:
+      dias_laborales:
         type: string
       nombre_restaurante:
         type: string

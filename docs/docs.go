@@ -2655,9 +2655,6 @@ const docTemplate = `{
                 "PK_ID_METODO_PAGO": {
                     "type": "integer"
                 },
-                "PK_ID_PAGO": {
-                    "type": "integer"
-                },
                 "TIPO": {
                     "type": "string"
                 }
@@ -2825,17 +2822,10 @@ const docTemplate = `{
         "models.Restaurante": {
             "type": "object",
             "properties": {
-                "PK_ID_CAMBIO_HORARIO": {
-                    "type": "integer"
-                },
-                "PK_ID_RESERVA": {
-                    "description": "TODO: ESTÁ AL REVÉS",
-                    "type": "integer"
-                },
-                "dias_laborales": {
+                "HORA_APERTURA": {
                     "type": "string"
                 },
-                "hora_apertura": {
+                "dias_laborales": {
                     "type": "string"
                 },
                 "nombre_restaurante": {

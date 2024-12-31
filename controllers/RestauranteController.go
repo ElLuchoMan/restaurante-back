@@ -39,6 +39,12 @@ func (c *RestauranteController) GetAll() {
 		c.ServeJSON()
 		return
 	}
+	// Formatear HORA si es necesario
+	for i := range restaurantes {
+		if len(restaurantes[i].HORA_APERTURA) > 19 {
+			restaurantes[i].HORA_APERTURA = restaurantes[i].HORA_APERTURA[11:19] // Solo toma HH:mm:ss
+		}
+	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
