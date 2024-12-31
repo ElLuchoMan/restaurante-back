@@ -34,6 +34,7 @@ var estadosPagoPermitidos = map[string]bool{
 // @Param   mes      query   int      false   "Filtrar por mes (1-12)"
 // @Param   anio     query   int      false   "Filtrar por año (YYYY)"
 // @Param   estado   query   string   false   "Filtrar por estado del pago (PAGADO, PENDIENTE, NO PAGO)"
+// @Param   metodo_pago     query   int      false   "Filtrar por metodo de pago"
 // @Success 200 {array} models.Pago "Lista de pagos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
@@ -71,6 +72,7 @@ func (c *PagoController) GetAll() {
 	mes, _ := c.GetInt("mes")
 	anio, _ := c.GetInt("anio")
 	estado := c.GetString("estado")
+	metodo_pago, _ := c.GetInt("metodo_pago")
 
 	// Filtrar los pagos según los parámetros proporcionados
 	var filteredPagos []models.Pago
@@ -90,6 +92,10 @@ func (c *PagoController) GetAll() {
 		if estado != "" && pago.ESTADO_PAGO != estado {
 			continue
 		}
+		if metodo_pago > 0 && pago.PK_ID_METODO_PAGO != metodo_pago {
+			continue
+		}
+
 		filteredPagos = append(filteredPagos, pago)
 	}
 
@@ -278,8 +284,17 @@ func (c *PagoController) Post() {
 	}
 
 	if pkMetodoPago, ok := input["PK_ID_METODO_PAGO"].(float64); ok {
-		pago.PK_ID_METODO_PAGO = new(int)
-		*pago.PK_ID_METODO_PAGO = int(pkMetodoPago)
+		valorMetodoPago := int(pkMetodoPago)     // Convertir a int
+		pago.PK_ID_METODO_PAGO = valorMetodoPago // Asignar el valor directamente
+	} else {
+		// Opcional: Manejo de errores o acciones si el campo es obligatorio
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo PK_ID_METODO_PAGO es obligatorio y debe ser un número válido",
+		}
+		c.ServeJSON()
+		return
 	}
 
 	// Insertar en la base de datos
@@ -423,8 +438,17 @@ func (c *PagoController) Put() {
 	pago.UPDATED_AT = time.Now().UTC()
 
 	if pkMetodoPago, ok := input["PK_ID_METODO_PAGO"].(float64); ok {
-		pago.PK_ID_METODO_PAGO = new(int)
-		*pago.PK_ID_METODO_PAGO = int(pkMetodoPago)
+		valorMetodoPago := int(pkMetodoPago)     // Convertir a int
+		pago.PK_ID_METODO_PAGO = valorMetodoPago // Asignar al puntero
+	} else {
+		// Opcional: Manejo de errores o acciones si el campo es obligatorio
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo PK_ID_METODO_PAGO es obligatorio y debe ser un número válido",
+		}
+		c.ServeJSON()
+		return
 	}
 
 	// Guardar los cambios en la base de datos

@@ -1030,6 +1030,12 @@ const docTemplate = `{
                         "description": "Filtrar por estado del pago (PAGADO, PENDIENTE, NO PAGO)",
                         "name": "estado",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por metodo de pago",
+                        "name": "metodo_pago",
+                        "in": "query"
                     }
                 ],
                 "responses": {
