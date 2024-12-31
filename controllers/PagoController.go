@@ -65,11 +65,51 @@ func (c *PagoController) GetAll() {
 		}
 	}
 
+	// Leer parámetros de la URL
+	fecha := c.GetString("fecha")
+	dia, _ := c.GetInt("dia")
+	mes, _ := c.GetInt("mes")
+	anio, _ := c.GetInt("anio")
+	estado := c.GetString("estado")
+
+	// Filtrar los pagos según los parámetros proporcionados
+	var filteredPagos []models.Pago
+	for _, pago := range pagos {
+		if fecha != "" && pago.FECHA.Format("2006-01-02") != fecha {
+			continue
+		}
+		if dia > 0 && dia <= 31 && pago.FECHA.Day() != dia {
+			continue
+		}
+		if mes > 0 && mes <= 12 && int(pago.FECHA.Month()) != mes {
+			continue
+		}
+		if anio > 0 && pago.FECHA.Year() != anio {
+			continue
+		}
+		if estado != "" && pago.ESTADO_PAGO != estado {
+			continue
+		}
+		filteredPagos = append(filteredPagos, pago)
+	}
+
+	// Si no hay resultados
+	if len(filteredPagos) == 0 {
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusNotFound,
+			Message: "No se encontraron pagos que coincidan con los filtros proporcionados",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Respuesta con los pagos filtrados
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Pagos obtenidos exitosamente",
-		Data:    pagos,
+		Data:    filteredPagos,
 	}
 	c.ServeJSON()
 }
