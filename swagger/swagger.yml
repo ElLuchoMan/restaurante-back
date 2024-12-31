@@ -114,6 +114,7 @@ definitions:
         type: string
       FECHA:
         type: string
+        format: datetime
       HORA:
         type: string
       MONTO:
@@ -127,6 +128,7 @@ definitions:
         format: int64
       UPDATED_AT:
         type: string
+        format: datetime
       UPDATED_BY:
         type: string
   models.Pedido:

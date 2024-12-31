@@ -989,7 +989,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los pagos registrados en la base de datos.",
+                "description": "Devuelve todos los pagos registrados en la base de datos, con opción de filtrar por fecha exacta, mes, año y estado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -999,7 +999,39 @@ const docTemplate = `{
                 "tags": [
                     "pagos"
                 ],
-                "summary": "Obtener todos los pagos",
+                "summary": "Obtener todos los pagos con filtros",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por fecha exacta (YYYY-MM-DD)",
+                        "name": "fecha",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por dia (1-31)",
+                        "name": "dia",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por mes (1-12)",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por año (YYYY)",
+                        "name": "anio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por estado del pago (PAGADO, PENDIENTE, NO PAGO)",
+                        "name": "estado",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Lista de pagos",
@@ -1160,7 +1192,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un pago específico por ID utilizando query parameters.",
+                "description": "Devuelve un pago específico por ID.",
                 "consumes": [
                     "application/json"
                 ],

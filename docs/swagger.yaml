@@ -872,7 +872,29 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve todos los pagos registrados en la base de datos.
+      description: Devuelve todos los pagos registrados en la base de datos, con opción
+        de filtrar por fecha exacta, mes, año y estado.
+      parameters:
+      - description: Filtrar por fecha exacta (YYYY-MM-DD)
+        in: query
+        name: fecha
+        type: string
+      - description: Filtrar por dia (1-31)
+        in: query
+        name: dia
+        type: integer
+      - description: Filtrar por mes (1-12)
+        in: query
+        name: mes
+        type: integer
+      - description: Filtrar por año (YYYY)
+        in: query
+        name: anio
+        type: integer
+      - description: Filtrar por estado del pago (PAGADO, PENDIENTE, NO PAGO)
+        in: query
+        name: estado
+        type: string
       produces:
       - application/json
       responses:
@@ -888,7 +910,7 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener todos los pagos
+      summary: Obtener todos los pagos con filtros
       tags:
       - pagos
     post:
@@ -954,7 +976,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve un pago específico por ID utilizando query parameters.
+      description: Devuelve un pago específico por ID.
       parameters:
       - description: ID del Pago
         in: query

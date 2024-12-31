@@ -55,8 +55,8 @@ func (c *ReservaController) GetAll() {
 		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
 		reservas[i].FECHA = reservas[i].FECHA.In(database.BogotaZone)
 
-		if len(reservas[i].HORA) >= 8 {
-			reservas[i].HORA = reservas[i].HORA[:8] // Asegurar formato HH:MM:SS
+		if len(reservas[i].HORA) >= 19 {
+			reservas[i].HORA = reservas[i].HORA[11:19] // Asegurar formato HH:MM:SS
 		}
 	}
 
@@ -110,8 +110,8 @@ func (c *ReservaController) GetById() {
 	reserva.FECHA = reserva.FECHA.In(database.BogotaZone)
 	reserva.CREATED_AT = reserva.CREATED_AT.In(database.BogotaZone)
 	reserva.UPDATED_AT = reserva.UPDATED_AT.In(database.BogotaZone)
-	if len(reserva.HORA) >= 8 {
-		reserva.HORA = reserva.HORA[:8] // Formato HH:MM:SS
+	if len(reserva.HORA) >= 19 {
+		reserva.HORA = reserva.HORA[11:19] // Formato HH:MM:SS
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)

@@ -162,7 +162,8 @@
                     "type": "string"
                 },
                 "FECHA": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "datetime"
                 },
                 "HORA": {
                     "type": "string"
@@ -180,7 +181,8 @@
                     "format": "int64"
                 },
                 "UPDATED_AT": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "datetime"
                 },
                 "UPDATED_BY": {
                     "type": "string"
