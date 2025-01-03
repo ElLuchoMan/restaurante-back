@@ -100,23 +100,23 @@ definitions:
     type: object
   models.Pedido:
     properties:
+      DELIVERY:
+        type: boolean
+      FECHA:
+        type: string
+      HORA:
+        type: string
+      PK_ID_PAGO:
+        type: integer
       UPDATED_AT:
         type: string
       UPDATED_BY:
         type: string
-      delivery:
-        type: boolean
       estado_PEDIDO:
-        type: string
-      fecha:
-        type: string
-      hora:
         type: string
       pk_ID_DOMICILIO:
         type: integer
       pk_ID_PAGO:
-        type: integer
-      pk_ID_PEDIDO:
         type: integer
       pk_ID_RESTAURANTE:
         type: integer
@@ -1747,7 +1747,26 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve todos los trabajadores registrados en la base de datos.
+      description: Devuelve todos los trabajadores registrados en la base de datos,
+        con opción de filtrar por fecha de ingreso, rol, estado de retiro, o solo
+        retirados.
+      parameters:
+      - description: Filtrar por fecha exacta de ingreso (YYYY-MM-DD)
+        in: query
+        name: fecha_ingreso
+        type: string
+      - description: Filtrar por rol del trabajador
+        in: query
+        name: rol
+        type: string
+      - description: Incluir trabajadores retirados (true/false)
+        in: query
+        name: incluir_retirados
+        type: boolean
+      - description: Ver solo trabajadores retirados (true/false)
+        in: query
+        name: solo_retirados
+        type: boolean
       produces:
       - application/json
       responses:
@@ -1763,7 +1782,7 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener todos los trabajadores
+      summary: Obtener todos los trabajadores con filtros
       tags:
       - trabajadores
     post:

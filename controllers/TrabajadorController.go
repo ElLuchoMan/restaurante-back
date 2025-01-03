@@ -2,9 +2,12 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"restaurante/database"
 	"restaurante/models"
 	"strconv"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -15,12 +18,35 @@ type TrabajadorController struct {
 	web.Controller
 }
 
+// Función para hash de contraseñas
+func hashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedPassword), nil
+}
+
+// Validar fechas relacionadas con el trabajador
+func validateDates(fechaIngreso, fechaRetiro *time.Time) error {
+	if fechaIngreso != nil && fechaRetiro != nil {
+		if fechaRetiro.Before(*fechaIngreso) {
+			return fmt.Errorf("la fecha de retiro no puede ser anterior a la fecha de ingreso")
+		}
+	}
+	return nil
+}
+
 // @Title GetAll
-// @Summary Obtener todos los trabajadores
-// @Description Devuelve todos los trabajadores registrados en la base de datos.
+// @Summary Obtener todos los trabajadores con filtros
+// @Description Devuelve todos los trabajadores registrados en la base de datos, con opción de filtrar por fecha de ingreso, rol, estado de retiro, o solo retirados.
 // @Tags trabajadores
 // @Accept json
 // @Produce json
+// @Param   fecha_ingreso    query   string   false   "Filtrar por fecha exacta de ingreso (YYYY-MM-DD)"
+// @Param   rol              query   string   false   "Filtrar por rol del trabajador"
+// @Param   incluir_retirados query  bool     false   "Incluir trabajadores retirados (true/false)"
+// @Param   solo_retirados    query  bool     false   "Ver solo trabajadores retirados (true/false)"
 // @Success 200 {array} models.Trabajador "Lista de trabajadores"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
@@ -29,7 +55,25 @@ func (c *TrabajadorController) GetAll() {
 	o := orm.NewOrm()
 	var trabajadores []models.Trabajador
 
-	_, err := o.QueryTable(new(models.Trabajador)).All(&trabajadores)
+	// Leer parámetros de la URL
+	fechaIngreso := c.GetString("fecha_ingreso")
+	rol := c.GetString("rol")
+	incluirRetirados, _ := c.GetBool("incluir_retirados", false) // Por defecto, no incluir retirados
+	soloRetirados, _ := c.GetBool("solo_retirados", false)       // Por defecto, no mostrar solo retirados
+
+	// Construir consulta inicial
+	query := o.QueryTable(new(models.Trabajador))
+
+	if soloRetirados {
+		// Solo mostrar trabajadores con FECHA_RETIRO no nula
+		query = query.Filter("FECHA_RETIRO__isnull", false)
+	} else if !incluirRetirados {
+		// Excluir trabajadores retirados si no se solicita incluirlos
+		query = query.Filter("FECHA_RETIRO__isnull", true)
+	}
+
+	// Ejecutar la consulta
+	_, err := query.All(&trabajadores)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -41,16 +85,52 @@ func (c *TrabajadorController) GetAll() {
 		return
 	}
 
-	// Excluir la contraseña de la respuesta
+	// Ajustar fechas a zona horaria Bogotá y excluir contraseñas
 	for i := range trabajadores {
-		trabajadores[i].PASSWORD = ""
+		trabajadores[i].FECHA_INGRESO = trabajadores[i].FECHA_INGRESO.In(database.BogotaZone)
+
+		if trabajadores[i].FECHA_RETIRO != nil {
+			fechaRetiro := trabajadores[i].FECHA_RETIRO.In(database.BogotaZone)
+			trabajadores[i].FECHA_RETIRO = &fechaRetiro
+		}
+
+		if trabajadores[i].FECHA_NACIMIENTO != nil {
+			fechaNacimiento := trabajadores[i].FECHA_NACIMIENTO.In(database.BogotaZone)
+			trabajadores[i].FECHA_NACIMIENTO = &fechaNacimiento
+		}
+
+		trabajadores[i].PASSWORD = "" // Excluir contraseña
 	}
 
+	// Filtrar trabajadores según los parámetros proporcionados
+	var filteredTrabajadores []models.Trabajador
+	for _, trabajador := range trabajadores {
+		if fechaIngreso != "" && trabajador.FECHA_INGRESO.Format("2006-01-02") != fechaIngreso {
+			continue
+		}
+		if rol != "" && trabajador.ROL != rol {
+			continue
+		}
+		filteredTrabajadores = append(filteredTrabajadores, trabajador)
+	}
+
+	// Si no hay resultados
+	if len(filteredTrabajadores) == 0 {
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusNotFound,
+			Message: "No se encontraron trabajadores que coincidan con los filtros proporcionados",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Respuesta con los trabajadores filtrados
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Trabajadores obtenidos exitosamente",
-		Data:    trabajadores,
+		Data:    filteredTrabajadores,
 	}
 	c.ServeJSON()
 }
@@ -68,45 +148,31 @@ func (c *TrabajadorController) GetAll() {
 // @Router /trabajadores/search [get]
 func (c *TrabajadorController) GetById() {
 	o := orm.NewOrm()
-	id, err := c.GetInt("id")
+	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
-
+	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: id}
 	err = o.Read(&trabajador)
-	if err == orm.ErrNoRows || err == orm.ErrMissPK {
+	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Trabajador no encontrado",
-			Cause:   "No existe un trabajador con el ID proporcionado",
-		}
-		c.ServeJSON()
-		return
-	} else if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al buscar el trabajador",
-			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Excluir la contraseña de la respuesta
 	trabajador.PASSWORD = ""
-
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -129,9 +195,10 @@ func (c *TrabajadorController) GetById() {
 // @Router /trabajadores [post]
 func (c *TrabajadorController) Post() {
 	o := orm.NewOrm()
-	var trabajador models.Trabajador
+	var input map[string]interface{}
 
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &trabajador); err != nil {
+	// Decodificar la solicitud
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -142,34 +209,37 @@ func (c *TrabajadorController) Post() {
 		return
 	}
 
-	// Validación de campos obligatorios
-	if trabajador.PK_DOCUMENTO_TRABAJADOR == 0 || trabajador.NOMBRE == "" || trabajador.APELLIDO == "" {
+	// Crear instancia del modelo Trabajador
+	var trabajador models.Trabajador
+
+	// Procesar FECHA_INGRESO
+	if fechaIngresoStr, ok := input["FECHA_INGRESO"].(string); ok && fechaIngresoStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", fechaIngresoStr)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Formato de fecha inválido para FECHA_INGRESO",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		trabajador.FECHA_INGRESO = parsedDate
+	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "Faltan campos obligatorios",
-			Cause:   " Los campos: Documento, Nombre y Apellido son obligatorios",
+			Message: "El campo FECHA_INGRESO es obligatorio",
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Hash de la contraseña antes de insertar
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(trabajador.PASSWORD), bcrypt.DefaultCost)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al procesar la contraseña",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-	trabajador.PASSWORD = string(hashedPassword)
+	// Otros campos...
 
-	// Inserción en la base de datos
-	_, err = o.Insert(&trabajador)
+	// Insertar en la base de datos
+	_, err := o.Insert(&trabajador)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -181,7 +251,7 @@ func (c *TrabajadorController) Post() {
 		return
 	}
 
-	// Excluir la contraseña de la respuesta
+	// Excluir contraseña de la respuesta
 	trabajador.PASSWORD = ""
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
@@ -207,62 +277,121 @@ func (c *TrabajadorController) Post() {
 // @Router /trabajadores [put]
 func (c *TrabajadorController) Put() {
 	o := orm.NewOrm()
+	id, err := c.GetInt64("id")
 
-	// Obtener el ID del query parameter
-	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   "Se requiere un ID numérico válido en el parámetro 'id'",
+			Message: "ID inválido o ausente",
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Verificar si el trabajador existe
-	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
+	// Buscar trabajador existente
+	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: id}
 	if err := o.Read(&trabajador); err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Trabajador no encontrado",
-			}
-			c.ServeJSON()
-		} else {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al buscar el trabajador",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusNotFound,
+			Message: "Trabajador no encontrado",
 		}
+		c.ServeJSON()
 		return
 	}
 
-	// Decodificar los datos actualizados
-	var updatedTrabajador models.Trabajador
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedTrabajador); err != nil {
+	// Decodificar el cuerpo de la solicitud
+	var input map[string]interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "Error al decodificar la solicitud",
+			Message: "Error al decodificar los datos",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Mantener el ID original
-	updatedTrabajador.PK_DOCUMENTO_TRABAJADOR = trabajador.PK_DOCUMENTO_TRABAJADOR
+	// Actualizar campos proporcionados
+	if nombre, ok := input["NOMBRE"].(string); ok && nombre != "" {
+		trabajador.NOMBRE = nombre
+	}
 
-	// Si se proporciona una nueva contraseña, hashéala
-	if updatedTrabajador.PASSWORD != "" {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(updatedTrabajador.PASSWORD), bcrypt.DefaultCost)
+	if apellido, ok := input["APELLIDO"].(string); ok && apellido != "" {
+		trabajador.APELLIDO = apellido
+	}
+
+	if rol, ok := input["ROL"].(string); ok && rol != "" {
+		trabajador.ROL = rol
+	}
+
+	if sueldo, ok := input["SUELDO"].(float64); ok {
+		trabajador.SUELDO = int64(sueldo)
+	}
+
+	if nuevo, ok := input["NUEVO"].(bool); ok {
+		trabajador.NUEVO = nuevo
+	}
+
+	if telefono, ok := input["TELEFONO"].(string); ok && telefono != "" {
+		trabajador.TELEFONO = &telefono
+	}
+
+	if horario, ok := input["HORARIO"].(string); ok && horario != "" {
+		trabajador.HORARIO = &horario
+	}
+
+	if fechaIngresoStr, ok := input["FECHA_INGRESO"].(string); ok && fechaIngresoStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", fechaIngresoStr)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Formato de fecha inválido para FECHA_INGRESO",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		trabajador.FECHA_INGRESO = parsedDate
+	}
+
+	if fechaRetiroStr, ok := input["FECHA_RETIRO"].(string); ok && fechaRetiroStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", fechaRetiroStr)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Formato de fecha inválido para FECHA_RETIRO",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		fechaRetiro := parsedDate
+		trabajador.FECHA_RETIRO = &fechaRetiro
+	}
+
+	if fechaNacimientoStr, ok := input["FECHA_NACIMIENTO"].(string); ok && fechaNacimientoStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", fechaNacimientoStr)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Formato de fecha inválido para FECHA_NACIMIENTO",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		fechaNacimiento := parsedDate
+		trabajador.FECHA_NACIMIENTO = &fechaNacimiento
+	}
+
+	if password, ok := input["PASSWORD"].(string); ok && password != "" {
+		hashedPassword, err := hashPassword(password)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
@@ -273,15 +402,22 @@ func (c *TrabajadorController) Put() {
 			c.ServeJSON()
 			return
 		}
-		updatedTrabajador.PASSWORD = string(hashedPassword)
-	} else {
-		// Mantener la contraseña existente
-		updatedTrabajador.PASSWORD = trabajador.PASSWORD
+		trabajador.PASSWORD = hashedPassword
+	}
+
+	// Validar fechas (FECHA_INGRESO y FECHA_RETIRO)
+	if err := validateDates(&trabajador.FECHA_INGRESO, trabajador.FECHA_RETIRO); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+		}
+		c.ServeJSON()
+		return
 	}
 
 	// Actualizar en la base de datos
-	_, err = o.Update(&updatedTrabajador)
-	if err != nil {
+	if _, err := o.Update(&trabajador); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -292,14 +428,15 @@ func (c *TrabajadorController) Put() {
 		return
 	}
 
-	// Excluir la contraseña de la respuesta
-	updatedTrabajador.PASSWORD = ""
+	// Excluir contraseña de la respuesta
+	trabajador.PASSWORD = ""
 
+	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Trabajador actualizado",
-		Data:    updatedTrabajador,
+		Message: "Trabajador actualizado correctamente",
+		Data:    trabajador,
 	}
 	c.ServeJSON()
 }
@@ -332,31 +469,49 @@ func (c *TrabajadorController) Delete() {
 		return
 	}
 
+	// Buscar al trabajador
 	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
-
-	if num, err := o.Delete(&trabajador); err == nil {
-		if num > 0 {
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusOK,
-				Message: "Trabajador eliminado",
-			}
-			c.ServeJSON()
-		} else {
+	if err := o.Read(&trabajador); err != nil {
+		if err == orm.ErrNoRows {
 			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Trabajador no encontrado",
 			}
-			c.ServeJSON()
+		} else {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al buscar el trabajador",
+				Cause:   err.Error(),
+			}
 		}
-	} else {
+		c.ServeJSON()
+		return
+	}
+
+	// Actualizar la fecha de retiro a la fecha actual en zona horaria de Bogotá
+	fechaRetiro := time.Now().In(database.BogotaZone)
+	trabajador.FECHA_RETIRO = &fechaRetiro
+
+	// Actualizar el registro en la base de datos
+	if _, err := o.Update(&trabajador, "FECHA_RETIRO"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al eliminar el trabajador",
+			Message: "Error al actualizar la fecha de retiro del trabajador",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
+		return
 	}
+
+	// Responder con éxito
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Fecha de retiro del trabajador actualizada correctamente",
+		Data:    trabajador,
+	}
+	c.ServeJSON()
 }

@@ -138,6 +138,7 @@ definitions:
         type: string
       FECHA:
         type: string
+        format: datetime
       HORA:
         type: string
       PK_ID_DOMICILIO:
@@ -146,14 +147,12 @@ definitions:
       PK_ID_PAGO:
         type: integer
         format: int64
-      PK_ID_PEDIDO:
-        type: integer
-        format: int64
       PK_ID_RESTAURANTE:
         type: integer
         format: int64
       UPDATED_AT:
         type: string
+        format: datetime
       UPDATED_BY:
         type: string
   models.PedidoCliente:

@@ -2347,7 +2347,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los trabajadores registrados en la base de datos.",
+                "description": "Devuelve todos los trabajadores registrados en la base de datos, con opción de filtrar por fecha de ingreso, rol, estado de retiro, o solo retirados.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2357,7 +2357,33 @@ const docTemplate = `{
                 "tags": [
                     "trabajadores"
                 ],
-                "summary": "Obtener todos los trabajadores",
+                "summary": "Obtener todos los trabajadores con filtros",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por fecha exacta de ingreso (YYYY-MM-DD)",
+                        "name": "fecha_ingreso",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por rol del trabajador",
+                        "name": "rol",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Incluir trabajadores retirados (true/false)",
+                        "name": "incluir_retirados",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Ver solo trabajadores retirados (true/false)",
+                        "name": "solo_retirados",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Lista de trabajadores",
@@ -2709,31 +2735,31 @@ const docTemplate = `{
         "models.Pedido": {
             "type": "object",
             "properties": {
+                "DELIVERY": {
+                    "type": "boolean"
+                },
+                "FECHA": {
+                    "type": "string"
+                },
+                "HORA": {
+                    "type": "string"
+                },
+                "PK_ID_PAGO": {
+                    "type": "integer"
+                },
                 "UPDATED_AT": {
                     "type": "string"
                 },
                 "UPDATED_BY": {
                     "type": "string"
                 },
-                "delivery": {
-                    "type": "boolean"
-                },
                 "estado_PEDIDO": {
-                    "type": "string"
-                },
-                "fecha": {
-                    "type": "string"
-                },
-                "hora": {
                     "type": "string"
                 },
                 "pk_ID_DOMICILIO": {
                     "type": "integer"
                 },
                 "pk_ID_PAGO": {
-                    "type": "integer"
-                },
-                "pk_ID_PEDIDO": {
                     "type": "integer"
                 },
                 "pk_ID_RESTAURANTE": {
