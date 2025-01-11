@@ -61,18 +61,23 @@ func (c *TrabajadorController) GetAll() {
 	incluirRetirados, _ := c.GetBool("incluir_retirados", false) // Por defecto, no incluir retirados
 	soloRetirados, _ := c.GetBool("solo_retirados", false)       // Por defecto, no mostrar solo retirados
 
-	// Construir consulta inicial
+	// Priorizar "solo retirados" sobre "incluir retirados"
 	query := o.QueryTable(new(models.Trabajador))
-
 	if soloRetirados {
-		// Solo mostrar trabajadores con FECHA_RETIRO no nula
 		query = query.Filter("FECHA_RETIRO__isnull", false)
 	} else if !incluirRetirados {
-		// Excluir trabajadores retirados si no se solicita incluirlos
 		query = query.Filter("FECHA_RETIRO__isnull", true)
 	}
 
-	// Ejecutar la consulta
+	// Aplicar filtros adicionales
+	if fechaIngreso != "" {
+		query = query.Filter("FECHA_INGRESO__exact", fechaIngreso)
+	}
+	if rol != "" {
+		query = query.Filter("ROL__exact", rol)
+	}
+
+	// Ejecutar consulta
 	_, err := query.All(&trabajadores)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -85,37 +90,22 @@ func (c *TrabajadorController) GetAll() {
 		return
 	}
 
-	// Ajustar fechas a zona horaria Bogotá y excluir contraseñas
+	// Excluir contraseñas y ajustar fechas
 	for i := range trabajadores {
-		trabajadores[i].FECHA_INGRESO = trabajadores[i].FECHA_INGRESO.In(database.BogotaZone)
-
-		if trabajadores[i].FECHA_RETIRO != nil {
-			fechaRetiro := trabajadores[i].FECHA_RETIRO.In(database.BogotaZone)
-			trabajadores[i].FECHA_RETIRO = &fechaRetiro
-		}
-
-		if trabajadores[i].FECHA_NACIMIENTO != nil {
-			fechaNacimiento := trabajadores[i].FECHA_NACIMIENTO.In(database.BogotaZone)
-			trabajadores[i].FECHA_NACIMIENTO = &fechaNacimiento
-		}
-
 		trabajadores[i].PASSWORD = "" // Excluir contraseña
-	}
-
-	// Filtrar trabajadores según los parámetros proporcionados
-	var filteredTrabajadores []models.Trabajador
-	for _, trabajador := range trabajadores {
-		if fechaIngreso != "" && trabajador.FECHA_INGRESO.Format("2006-01-02") != fechaIngreso {
-			continue
+		if trabajadores[i].FECHA_RETIRO != nil {
+			fechaRetiroUTC := trabajadores[i].FECHA_RETIRO.UTC()
+			trabajadores[i].FECHA_RETIRO = &fechaRetiroUTC // UTC sin ajuste
 		}
-		if rol != "" && trabajador.ROL != rol {
-			continue
+		if trabajadores[i].FECHA_NACIMIENTO != nil {
+			fechaNacimientoUTC := trabajadores[i].FECHA_NACIMIENTO.UTC()
+			trabajadores[i].FECHA_NACIMIENTO = &fechaNacimientoUTC // UTC sin ajuste
 		}
-		filteredTrabajadores = append(filteredTrabajadores, trabajador)
+		trabajadores[i].FECHA_INGRESO = trabajadores[i].FECHA_INGRESO.UTC() // UTC sin ajuste
 	}
 
 	// Si no hay resultados
-	if len(filteredTrabajadores) == 0 {
+	if len(trabajadores) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -125,12 +115,12 @@ func (c *TrabajadorController) GetAll() {
 		return
 	}
 
-	// Respuesta con los trabajadores filtrados
+	// Respuesta exitosa
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Trabajadores obtenidos exitosamente",
-		Data:    filteredTrabajadores,
+		Data:    trabajadores,
 	}
 	c.ServeJSON()
 }
@@ -212,6 +202,58 @@ func (c *TrabajadorController) Post() {
 	// Crear instancia del modelo Trabajador
 	var trabajador models.Trabajador
 
+	// Procesar PK_DOCUMENTO_TRABAJADOR
+	if doc, ok := input["PK_DOCUMENTO_TRABAJADOR"].(float64); ok {
+		trabajador.PK_DOCUMENTO_TRABAJADOR = int64(doc)
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo PK_DOCUMENTO_TRABAJADOR es obligatorio y debe ser un número válido",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Procesar NOMBRE
+	if nombre, ok := input["NOMBRE"].(string); ok && nombre != "" {
+		trabajador.NOMBRE = nombre
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo NOMBRE es obligatorio",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Procesar APELLIDO
+	if apellido, ok := input["APELLIDO"].(string); ok && apellido != "" {
+		trabajador.APELLIDO = apellido
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo APELLIDO es obligatorio",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Procesar ROL
+	if rol, ok := input["ROL"].(string); ok && rol != "" {
+		trabajador.ROL = rol
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo ROL es obligatorio",
+		}
+		c.ServeJSON()
+		return
+	}
+
 	// Procesar FECHA_INGRESO
 	if fechaIngresoStr, ok := input["FECHA_INGRESO"].(string); ok && fechaIngresoStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaIngresoStr)
@@ -236,7 +278,69 @@ func (c *TrabajadorController) Post() {
 		return
 	}
 
-	// Otros campos...
+	// Procesar SUELDO
+	if sueldo, ok := input["SUELDO"].(float64); ok {
+		trabajador.SUELDO = int64(sueldo)
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo SUELDO es obligatorio",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Procesar PASSWORD
+	if password, ok := input["PASSWORD"].(string); ok && password != "" {
+		hashedPassword, err := hashPassword(password)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al procesar la contraseña",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		trabajador.PASSWORD = hashedPassword
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo PASSWORD es obligatorio",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Procesar otros campos opcionales (ejemplo TELEFONO)
+	if telefono, ok := input["TELEFONO"].(string); ok {
+		trabajador.TELEFONO = &telefono
+	}
+
+	// Procesar PK_ID_RESTAURANTE
+	if pkRestaurante, ok := input["PK_ID_RESTAURANTE"].(float64); ok {
+		valor := int64(pkRestaurante)
+		trabajador.PK_ID_RESTAURANTE = &valor
+	}
+
+	// Procesar FECHA_NACIMIENTO
+	if fechaNacimientoStr, ok := input["FECHA_NACIMIENTO"].(string); ok && fechaNacimientoStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", fechaNacimientoStr)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Formato de fecha inválido para FECHA_NACIMIENTO",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		trabajador.FECHA_NACIMIENTO = &parsedDate
+	}
 
 	// Insertar en la base de datos
 	_, err := o.Insert(&trabajador)
@@ -505,7 +609,7 @@ func (c *TrabajadorController) Delete() {
 		c.ServeJSON()
 		return
 	}
-
+	trabajador.PASSWORD = ""
 	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
