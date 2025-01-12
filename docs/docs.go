@@ -22,16 +22,22 @@ const docTemplate = `{
                 "security": [
                     {
                         "BearerAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene un listado de todos los cambios de horario registrados en la base de datos",
+                "description": "Obtiene un listado de todos los cambios de horario registrados en la base de datos\nObtiene un listado de todos los cambios de horario registrados en la base de datos",
                 "consumes": [
+                    "application/json",
                     "application/json"
                 ],
                 "produces": [
+                    "application/json",
                     "application/json"
                 ],
                 "tags": [
+                    "cambios_horario",
                     "cambios_horario"
                 ],
                 "summary": "Obtener todos los cambios de horario",
@@ -41,8 +47,169 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.CambiosHorario"
+                                "type": "object",
+                                "additionalProperties": true
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualiza los datos de un cambio de horario existente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cambios_horario"
+                ],
+                "summary": "Actualizar un cambio de horario",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del cambio de horario",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del cambio de horario a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CambiosHorario"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cambio de horario actualizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Cambio de horario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea un nuevo cambio de horario en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cambios_horario"
+                ],
+                "summary": "Crear un nuevo cambio de horario",
+                "parameters": [
+                    {
+                        "description": "Datos del cambio de horario",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CambiosHorario"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Cambio de horario creado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina un cambio de horario de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cambios_horario"
+                ],
+                "summary": "Eliminar un cambio de horario",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del cambio de horario",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cambio de horario eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Cambio de horario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -76,7 +243,8 @@ const docTemplate = `{
                     "200": {
                         "description": "Cambio de horario para la fecha actual",
                         "schema": {
-                            "$ref": "#/definitions/models.CambiosHorario"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "404": {

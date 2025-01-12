@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -19,4 +20,14 @@ func (t *CambiosHorario) TableName() string {
 }
 func init() {
 	orm.RegisterModel(new(CambiosHorario))
+}
+func (t CambiosHorario) MarshalJSON() ([]byte, error) {
+	type Alias CambiosHorario
+	return json.Marshal(&struct {
+		FECHA string `json:"FECHA"`
+		Alias
+	}{
+		FECHA: t.FECHA.Format("2006-01-02"),
+		Alias: (Alias)(t),
+	})
 }

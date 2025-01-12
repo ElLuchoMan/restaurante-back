@@ -233,19 +233,53 @@ info:
   version: 2.0.0
 paths:
   /cambios_horario:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un cambio de horario de la base de datos.
+      parameters:
+      - description: ID del cambio de horario
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cambio de horario eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Cambio de horario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar un cambio de horario
+      tags:
+      - cambios_horario
     get:
       consumes:
       - application/json
-      description: Obtiene un listado de todos los cambios de horario registrados
-        en la base de datos
+      - application/json
+      description: |-
+        Obtiene un listado de todos los cambios de horario registrados en la base de datos
+        Obtiene un listado de todos los cambios de horario registrados en la base de datos
       produces:
+      - application/json
       - application/json
       responses:
         "200":
           description: Listado de cambios de horario
           schema:
             items:
-              $ref: '#/definitions/models.CambiosHorario'
+              additionalProperties: true
+              type: object
             type: array
         "500":
           description: Error en la base de datos
@@ -253,7 +287,82 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
+      - BearerAuth: []
       summary: Obtener todos los cambios de horario
+      tags:
+      - cambios_horario
+      - cambios_horario
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo cambio de horario en la base de datos.
+      parameters:
+      - description: Datos del cambio de horario
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CambiosHorario'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Cambio de horario creado
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un nuevo cambio de horario
+      tags:
+      - cambios_horario
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un cambio de horario existente.
+      parameters:
+      - description: ID del cambio de horario
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del cambio de horario a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CambiosHorario'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cambio de horario actualizado
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Cambio de horario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar un cambio de horario
       tags:
       - cambios_horario
   /cambios_horario/actual:
@@ -268,7 +377,8 @@ paths:
         "200":
           description: Cambio de horario para la fecha actual
           schema:
-            $ref: '#/definitions/models.CambiosHorario'
+            additionalProperties: true
+            type: object
         "404":
           description: No hay cambios de horario para la fecha actual
           schema:

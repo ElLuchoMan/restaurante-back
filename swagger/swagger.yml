@@ -6,6 +6,9 @@ definitions:
   interface{}:
     title: interface{}
     type: object
+  map[string]interface{}:
+    title: map[string]interface{}
+    type: object
   models.ApiResponse:
     title: ApiResponse
     type: object
