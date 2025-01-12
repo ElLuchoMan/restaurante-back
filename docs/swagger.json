@@ -726,6 +726,269 @@
                 }
             }
         },
+        "/incidencias": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve una lista de todas las incidencias registradas en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "incidencias"
+                ],
+                "summary": "Obtener todas las incidencias",
+                "responses": {
+                    "200": {
+                        "description": "Lista de incidencias",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Incidencia"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualiza los datos de una incidencia existente en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "incidencias"
+                ],
+                "summary": "Actualizar una incidencia",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la Incidencia",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de la incidencia a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Incidencia"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Incidencia actualizada",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Incidencia no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea una nueva incidencia en la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "incidencias"
+                ],
+                "summary": "Crear una nueva incidencia",
+                "parameters": [
+                    {
+                        "description": "Datos de la incidencia",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Incidencia"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Incidencia creada",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina una incidencia de la base de datos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "incidencias"
+                ],
+                "summary": "Eliminar una incidencia",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la incidencia",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Incidencia eliminada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Incidencia no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/incidencias/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve las incidencias de un trabajador en un mes y año específico.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "incidencias"
+                ],
+                "summary": "Obtener incidencias por documento del trabajador y fecha",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del Trabajador",
+                        "name": "documento",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes de la Incidencia (1-12)",
+                        "name": "mes",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año de la Incidencia",
+                        "name": "anio",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de incidencias encontradas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Incidencia"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "No se encontraron incidencias",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Permite iniciar sesión utilizando el documento y la contraseña, devuelve un JWT con el rol.",
@@ -2916,6 +3179,29 @@
                 },
                 "UPDATED_BY": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Incidencia": {
+            "type": "object",
+            "properties": {
+                "FECHA": {
+                    "type": "string"
+                },
+                "MONTO": {
+                    "type": "integer"
+                },
+                "MOTIVO": {
+                    "type": "string"
+                },
+                "PK_DOCUMENTO_TRABAJADOR": {
+                    "type": "integer"
+                },
+                "PK_ID_INCIDENCIA": {
+                    "type": "integer"
+                },
+                "RESTA": {
+                    "type": "boolean"
                 }
             }
         },

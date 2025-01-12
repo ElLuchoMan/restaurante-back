@@ -129,6 +129,34 @@
                 }
             }
         },
+        "models.Incidencia": {
+            "title": "Incidencia",
+            "type": "object",
+            "properties": {
+                "FECHA": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "MONTO": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "MOTIVO": {
+                    "type": "string"
+                },
+                "PK_DOCUMENTO_TRABAJADOR": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_INCIDENCIA": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "RESTA": {
+                    "type": "boolean"
+                }
+            }
+        },
         "models.LoginRequest": {
             "title": "LoginRequest",
             "type": "object",

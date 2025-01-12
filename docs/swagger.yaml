@@ -65,6 +65,21 @@ definitions:
       UPDATED_BY:
         type: string
     type: object
+  models.Incidencia:
+    properties:
+      FECHA:
+        type: string
+      MONTO:
+        type: integer
+      MOTIVO:
+        type: string
+      PK_DOCUMENTO_TRABAJADOR:
+        type: integer
+      PK_ID_INCIDENCIA:
+        type: integer
+      RESTA:
+        type: boolean
+    type: object
   models.LoginRequest:
     properties:
       documento:
@@ -693,6 +708,176 @@ paths:
       summary: Obtener domicilio por ID
       tags:
       - domicilios
+  /incidencias:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina una incidencia de la base de datos.
+      parameters:
+      - description: ID de la incidencia
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Incidencia eliminada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Incidencia no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar una incidencia
+      tags:
+      - incidencias
+    get:
+      consumes:
+      - application/json
+      description: Devuelve una lista de todas las incidencias registradas en la base
+        de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de incidencias
+          schema:
+            items:
+              $ref: '#/definitions/models.Incidencia'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todas las incidencias
+      tags:
+      - incidencias
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva incidencia en la base de datos.
+      parameters:
+      - description: Datos de la incidencia
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Incidencia'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Incidencia creada
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear una nueva incidencia
+      tags:
+      - incidencias
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de una incidencia existente en la base de datos.
+      parameters:
+      - description: ID de la Incidencia
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos de la incidencia a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Incidencia'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Incidencia actualizada
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Incidencia no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar una incidencia
+      tags:
+      - incidencias
+  /incidencias/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve las incidencias de un trabajador en un mes y año específico.
+      parameters:
+      - description: Documento del Trabajador
+        in: query
+        name: documento
+        required: true
+        type: integer
+      - description: Mes de la Incidencia (1-12)
+        in: query
+        name: mes
+        required: true
+        type: integer
+      - description: Año de la Incidencia
+        in: query
+        name: anio
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de incidencias encontradas
+          schema:
+            items:
+              $ref: '#/definitions/models.Incidencia'
+            type: array
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: No se encontraron incidencias
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener incidencias por documento del trabajador y fecha
+      tags:
+      - incidencias
   /login:
     post:
       consumes:

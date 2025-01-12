@@ -81,6 +81,12 @@ func init() {
 			beego.NSRouter("/", &controllers.CambiosHorarioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/actual", &controllers.CambiosHorarioController{}, "get:GetByCurrentDate"),
 		),
+		// Rutas para incidencias
+		beego.NSNamespace("/incidencias",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.IncidenciaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.IncidenciaController{}, "get:GetByDocumentAndDate"),
+		),
 	)
 
 	beego.AddNamespace(ns)
