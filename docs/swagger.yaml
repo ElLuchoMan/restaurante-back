@@ -10,6 +10,19 @@ definitions:
       message:
         type: string
     type: object
+  models.CambiosHorario:
+    properties:
+      ABIERTO:
+        type: boolean
+      FECHA:
+        type: string
+      HORA_APERTURA:
+        type: string
+      HORA_CIERRE:
+        type: string
+      PK_ID_CAMBIO_HORARIO:
+        type: integer
+    type: object
   models.Cliente:
     properties:
       APELLIDO:
@@ -219,6 +232,56 @@ info:
   title: Restaurante API
   version: 2.0.0
 paths:
+  /cambios_horario:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene un listado de todos los cambios de horario registrados
+        en la base de datos
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Listado de cambios de horario
+          schema:
+            items:
+              $ref: '#/definitions/models.CambiosHorario'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todos los cambios de horario
+      tags:
+      - cambios_horario
+  /cambios_horario/actual:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene el cambio de horario que aplica para la fecha actual, si
+        existe.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cambio de horario para la fecha actual
+          schema:
+            $ref: '#/definitions/models.CambiosHorario'
+        "404":
+          description: No hay cambios de horario para la fecha actual
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Consultar cambios de horario para la fecha actual
+      tags:
+      - cambios_horario
   /clientes:
     delete:
       consumes:

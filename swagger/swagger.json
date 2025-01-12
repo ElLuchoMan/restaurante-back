@@ -29,6 +29,31 @@
                 }
             }
         },
+        "models.CambiosHorario": {
+            "title": "CambiosHorario",
+            "type": "object",
+            "properties": {
+                "ABIERTO": {
+                    "type": "boolean"
+                },
+                "FECHA": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "HORA_APERTURA": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "HORA_CIERRE": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "PK_ID_CAMBIO_HORARIO": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Cliente": {
             "title": "Cliente",
             "type": "object",

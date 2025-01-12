@@ -17,6 +17,83 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/cambios_horario": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene un listado de todos los cambios de horario registrados en la base de datos",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cambios_horario"
+                ],
+                "summary": "Obtener todos los cambios de horario",
+                "responses": {
+                    "200": {
+                        "description": "Listado de cambios de horario",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.CambiosHorario"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cambios_horario/actual": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene el cambio de horario que aplica para la fecha actual, si existe.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cambios_horario"
+                ],
+                "summary": "Consultar cambios de horario para la fecha actual",
+                "responses": {
+                    "200": {
+                        "description": "Cambio de horario para la fecha actual",
+                        "schema": {
+                            "$ref": "#/definitions/models.CambiosHorario"
+                        }
+                    },
+                    "404": {
+                        "description": "No hay cambios de horario para la fecha actual",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/clientes": {
             "get": {
                 "security": [
@@ -2594,6 +2671,26 @@ const docTemplate = `{
                 "data": {},
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "models.CambiosHorario": {
+            "type": "object",
+            "properties": {
+                "ABIERTO": {
+                    "type": "boolean"
+                },
+                "FECHA": {
+                    "type": "string"
+                },
+                "HORA_APERTURA": {
+                    "type": "string"
+                },
+                "HORA_CIERRE": {
+                    "type": "string"
+                },
+                "PK_ID_CAMBIO_HORARIO": {
+                    "type": "integer"
                 }
             }
         },
