@@ -21,16 +21,6 @@ type CambiosHorarioController struct {
 // @Tags cambios_horario
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.CambiosHorario "Listado de cambios de horario"
-// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @Security BearerAuth
-// @Router /cambios_horario [get]
-// @Title GetAll
-// @Summary Obtener todos los cambios de horario
-// @Description Obtiene un listado de todos los cambios de horario registrados en la base de datos
-// @Tags cambios_horario
-// @Accept json
-// @Produce json
 // @Success 200 {array} map[string]interface{} "Listado de cambios de horario"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth

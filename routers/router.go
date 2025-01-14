@@ -73,7 +73,6 @@ func init() {
 		beego.NSNamespace("/nominas",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.NominaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-			beego.NSRouter("/search", &controllers.NominaController{}, "get:GetById"),
 		),
 		// Rutas para cambios_horario
 		beego.NSNamespace("/cambios_horario",
@@ -86,6 +85,12 @@ func init() {
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.IncidenciaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.IncidenciaController{}, "get:GetByDocumentAndDate"),
+		),
+		// Rutas para nóminas de trabajadores
+		beego.NSNamespace("/nomina_trabajador",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.NominaTrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.NominaTrabajadorController{}, "get:GetByTrabajador"),
 		),
 	)
 

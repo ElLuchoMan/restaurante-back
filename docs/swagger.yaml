@@ -107,6 +107,50 @@ definitions:
       PK_ID_NOMINA:
         type: integer
     type: object
+  models.NominaTrabajador:
+    properties:
+      DETALLES:
+        type: string
+      MONTO_INCIDENCIAS:
+        type: integer
+      PK_DOCUMENTO_TRABAJADOR:
+        type: integer
+      PK_ID_NOMINA:
+        type: integer
+      PK_ID_NOMINA_TRABAJADOR:
+        type: integer
+      SUELDO_BASE:
+        type: integer
+      TOTAL:
+        type: integer
+    type: object
+  models.NominaTrabajadorRequest:
+    properties:
+      DETALLES:
+        example: Pago correspondiente al mes de enero
+        type: string
+      PK_DOCUMENTO_TRABAJADOR:
+        example: 1015466494
+        type: integer
+    type: object
+  models.NominaTrabajadorResponse:
+    properties:
+      DETALLES:
+        example: Pago correspondiente al mes de enero
+        type: string
+      MONTO_INCIDENCIAS:
+        example: 50000
+        type: integer
+      PK_ID_NOMINA_TRABAJADOR:
+        example: 1
+        type: integer
+      SUELDO_BASE:
+        example: 2000000
+        type: integer
+      TOTAL:
+        example: 2050000
+        type: integer
+    type: object
   models.Pago:
     properties:
       ESTADO_PAGO:
@@ -281,12 +325,9 @@ paths:
     get:
       consumes:
       - application/json
-      - application/json
-      description: |-
-        Obtiene un listado de todos los cambios de horario registrados en la base de datos
-        Obtiene un listado de todos los cambios de horario registrados en la base de datos
+      description: Obtiene un listado de todos los cambios de horario registrados
+        en la base de datos
       produces:
-      - application/json
       - application/json
       responses:
         "200":
@@ -302,10 +343,8 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      - BearerAuth: []
       summary: Obtener todos los cambios de horario
       tags:
-      - cambios_horario
       - cambios_horario
     post:
       consumes:
@@ -1044,6 +1083,117 @@ paths:
       summary: Obtener método de pago por ID
       tags:
       - metodos_pago
+  /nomina_trabajador:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene un listado de todas las relaciones nómina-trabajador registradas
+        en la base de datos
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Listado de relaciones nómina-trabajador
+          schema:
+            items:
+              $ref: '#/definitions/models.NominaTrabajador'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todas las relaciones nómina-trabajador
+      tags:
+      - nomina_trabajador
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva relación nómina-trabajador, calculando incidencias
+        y total a pagar basado en el sueldo y las incidencias del trabajador.
+      parameters:
+      - description: Datos de la nómina-trabajador
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.NominaTrabajadorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Nómina-trabajador creada
+          schema:
+            $ref: '#/definitions/models.NominaTrabajadorResponse'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear una nómina-trabajador con cálculo automático
+      tags:
+      - nomina_trabajador
+  /nomina_trabajador/search:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene las relaciones nómina-trabajador según los filtros aplicados
+        (nómina actual, nóminas pagas, nóminas no pagas, nómina por mes y año, todas
+        las nóminas).
+      parameters:
+      - description: Documento del trabajador
+        in: query
+        name: documento
+        required: true
+        type: integer
+      - description: Consultar solo la nómina actual
+        in: query
+        name: actual
+        type: boolean
+      - description: Consultar solo nóminas pagadas
+        in: query
+        name: pagas
+        type: boolean
+      - description: Consultar solo nóminas no pagadas
+        in: query
+        name: no_pagas
+        type: boolean
+      - description: Mes (1-12) para filtrar nóminas
+        in: query
+        name: mes
+        type: integer
+      - description: Año (YYYY) para filtrar nóminas
+        in: query
+        name: anio
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Relaciones nómina-trabajador encontradas
+          schema:
+            items:
+              $ref: '#/definitions/models.NominaTrabajador'
+            type: array
+        "404":
+          description: Relación nómina-trabajador no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener relaciones nómina-trabajador según filtros
+      tags:
+      - nomina_trabajador
   /nominas:
     delete:
       consumes:
@@ -1110,9 +1260,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea una nueva nómina en la base de datos.
+      description: Inserta un registro en la tabla "NOMINA" para activar el trigger
+        y generar automáticamente los cálculos de nómina.
       parameters:
-      - description: Datos de la nómina a crear
+      - description: Datos de la nómina a crear (sin 'MONTO')
         in: body
         name: body
         required: true
@@ -1129,6 +1280,10 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
       summary: Crear una nueva nómina
@@ -1137,19 +1292,13 @@ paths:
     put:
       consumes:
       - application/json
-      description: Actualiza los datos de una nómina existente.
+      description: Cambia el estado de una nómina existente a "PAGO".
       parameters:
       - description: ID de la Nómina
         in: query
         name: id
         required: true
         type: integer
-      - description: Datos de la nómina a actualizar
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.Nomina'
       produces:
       - application/json
       responses:
@@ -1157,40 +1306,21 @@ paths:
           description: Nómina actualizada
           schema:
             $ref: '#/definitions/models.Nomina'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Nómina no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Actualizar una nómina
-      tags:
-      - nominas
-  /nominas/search:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve una nómina específica por ID utilizando query parameters.
-      parameters:
-      - description: ID de la Nómina
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Nómina encontrada
-          schema:
-            $ref: '#/definitions/models.Nomina'
-        "404":
-          description: Nómina no encontrada
+        "500":
+          description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener nómina por ID
+      summary: Actualizar el estado de una nómina
       tags:
       - nominas
   /pagos:

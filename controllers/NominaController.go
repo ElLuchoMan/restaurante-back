@@ -38,7 +38,6 @@ func (c *NominaController) GetAll() {
 	o := orm.NewOrm()
 	var nominas []models.Nomina
 
-	// Traer todos los registros de la base de datos
 	_, err := o.QueryTable(new(models.Nomina)).All(&nominas)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -51,12 +50,10 @@ func (c *NominaController) GetAll() {
 		return
 	}
 
-	// Leer parámetros de la URL
 	fecha := c.GetString("fecha")
 	mes, _ := c.GetInt("mes")
 	anio, _ := c.GetInt("anio")
 
-	// Aplicar filtros en memoria
 	var filteredNominas []models.Nomina
 	for _, nomina := range nominas {
 		if fecha != "" && nomina.FECHA.Format("2006-01-02") != fecha {
@@ -71,7 +68,6 @@ func (c *NominaController) GetAll() {
 		filteredNominas = append(filteredNominas, nomina)
 	}
 
-	// Si no hay resultados
 	if len(filteredNominas) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
@@ -82,7 +78,6 @@ func (c *NominaController) GetAll() {
 		return
 	}
 
-	// Responder con las nóminas filtradas
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -92,71 +87,21 @@ func (c *NominaController) GetAll() {
 	c.ServeJSON()
 }
 
-// @Title GetById
-// @Summary Obtener nómina por ID
-// @Description Devuelve una nómina específica por ID utilizando query parameters.
-// @Tags nominas
-// @Accept json
-// @Produce json
-// @Param   id     query    int     true        "ID de la Nómina"
-// @Success 200 {object} models.Nomina "Nómina encontrada"
-// @Failure 404 {object} models.ApiResponse "Nómina no encontrada"
-// @Security BearerAuth
-// @Router /nominas/search [get]
-func (c *NominaController) GetById() {
-	o := orm.NewOrm()
-	id, err := c.GetInt("id")
-
-	if err != nil || id == 0 {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Convertir el id a int64
-	nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
-
-	err = o.Read(&nomina)
-	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Nómina no encontrada",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Nómina encontrada",
-		Data:    nomina,
-	}
-	c.ServeJSON()
-}
-
-// @Title Create
+// @Title Post
 // @Summary Crear una nueva nómina
-// @Description Crea una nueva nómina en la base de datos.
+// @Description Inserta un registro en la tabla "NOMINA" para activar el trigger y generar automáticamente los cálculos de nómina.
 // @Tags nominas
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Nomina true  "Datos de la nómina a crear"
+// @Param   body  body   models.Nomina true  "Datos de la nómina a crear (sin 'MONTO')"
 // @Success 201 {object} models.Nomina "Nómina creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nominas [post]
 func (c *NominaController) Post() {
 	o := orm.NewOrm()
-	var input map[string]interface{}
-	var nomina models.Nomina
+	var input models.Nomina
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -169,61 +114,17 @@ func (c *NominaController) Post() {
 		return
 	}
 
-	// Validar y procesar FECHA
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-		nomina.FECHA = parsedDate
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo 'FECHA' no puede estar vacío",
-		}
-		c.ServeJSON()
-		return
+	if input.FECHA.IsZero() {
+		input.FECHA = time.Now()
 	}
 
-	// Validar y procesar MONTO
-	if monto, ok := input["MONTO"].(float64); ok {
-		nomina.MONTO = int64(monto)
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo 'MONTO' es obligatorio y debe ser un número",
-		}
-		c.ServeJSON()
-		return
+	if !estadosNominaPermitidos[input.ESTADO_NOMINA] {
+		input.ESTADO_NOMINA = "NO PAGO"
 	}
 
-	// Validar y procesar ESTADO_NOMINA
-	if estado, ok := input["ESTADO_NOMINA"].(string); ok {
-		if !estadosNominaPermitidos[estado] {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El estado de la nómina debe ser 'PAGO' o 'NO PAGO'",
-			}
-			c.ServeJSON()
-			return
-		}
-		nomina.ESTADO_NOMINA = estado
-	} else {
-		nomina.ESTADO_NOMINA = "NO PAGO" // Valor por defecto
-	}
+	input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
 
-	// Insertar en la base de datos
-	_, err := o.Insert(&nomina)
+	_, err := o.Insert(&input)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -235,26 +136,41 @@ func (c *NominaController) Post() {
 		return
 	}
 
-	// Responder con éxito
+	var updatedNomina models.Nomina
+	err = o.QueryTable(new(models.Nomina)).
+		Filter("PK_ID_NOMINA", input.PK_ID_NOMINA).
+		One(&updatedNomina)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al verificar la nómina generada",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
 		Message: "Nómina creada correctamente",
-		Data:    nomina,
+		Data:    updatedNomina,
 	}
 	c.ServeJSON()
 }
 
 // @Title Update
-// @Summary Actualizar una nómina
-// @Description Actualiza los datos de una nómina existente.
+// @Summary Actualizar el estado de una nómina
+// @Description Cambia el estado de una nómina existente a "PAGO".
 // @Tags nominas
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID de la Nómina"
-// @Param   body  body   models.Nomina true  "Datos de la nómina a actualizar"
 // @Success 200 {object} models.Nomina "Nómina actualizada"
 // @Failure 404 {object} models.ApiResponse "Nómina no encontrada"
+// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nominas [put]
 func (c *NominaController) Put() {
@@ -286,49 +202,35 @@ func (c *NominaController) Put() {
 		return
 	}
 
-	// Actualizar los datos
-	var updatedNomina models.Nomina
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedNomina); err != nil {
+	// Cambiar el estado a "PAGO" si no lo está ya
+	if nomina.ESTADO_NOMINA == "PAGO" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "Error al procesar la solicitud",
-			Cause:   err.Error(),
+			Message: "La nómina ya está en estado 'PAGO'",
 		}
 		c.ServeJSON()
 		return
 	}
+	nomina.ESTADO_NOMINA = "PAGO"
 
-	if updatedNomina.ESTADO_NOMINA != "" && !estadosNominaPermitidos[updatedNomina.ESTADO_NOMINA] {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El estado de la nómina debe ser 'PAGO' o 'NO PAGO'",
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Aplicar cambios
-	nomina.FECHA = updatedNomina.FECHA
-	nomina.MONTO = updatedNomina.MONTO
-	nomina.ESTADO_NOMINA = updatedNomina.ESTADO_NOMINA
-
-	if _, err := o.Update(&nomina); err != nil {
+	// Guardar los cambios
+	if _, err := o.Update(&nomina, "ESTADO_NOMINA"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar la nómina",
+			Message: "Error al actualizar el estado de la nómina",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
+	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Nómina actualizada correctamente",
+		Message: "Estado de la nómina actualizado a 'PAGO' correctamente",
 		Data:    nomina,
 	}
 	c.ServeJSON()

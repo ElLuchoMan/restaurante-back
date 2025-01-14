@@ -15,22 +15,16 @@
                 "security": [
                     {
                         "BearerAuth": []
-                    },
-                    {
-                        "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene un listado de todos los cambios de horario registrados en la base de datos\nObtiene un listado de todos los cambios de horario registrados en la base de datos",
+                "description": "Obtiene un listado de todos los cambios de horario registrados en la base de datos",
                 "consumes": [
-                    "application/json",
                     "application/json"
                 ],
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
-                    "cambios_horario",
                     "cambios_horario"
                 ],
                 "summary": "Obtener todos los cambios de horario",
@@ -1249,6 +1243,174 @@
                 }
             }
         },
+        "/nomina_trabajador": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene un listado de todas las relaciones nómina-trabajador registradas en la base de datos",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nomina_trabajador"
+                ],
+                "summary": "Obtener todas las relaciones nómina-trabajador",
+                "responses": {
+                    "200": {
+                        "description": "Listado de relaciones nómina-trabajador",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.NominaTrabajador"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea una nueva relación nómina-trabajador, calculando incidencias y total a pagar basado en el sueldo y las incidencias del trabajador.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nomina_trabajador"
+                ],
+                "summary": "Crear una nómina-trabajador con cálculo automático",
+                "parameters": [
+                    {
+                        "description": "Datos de la nómina-trabajador",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.NominaTrabajadorRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Nómina-trabajador creada",
+                        "schema": {
+                            "$ref": "#/definitions/models.NominaTrabajadorResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nomina_trabajador/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene las relaciones nómina-trabajador según los filtros aplicados (nómina actual, nóminas pagas, nóminas no pagas, nómina por mes y año, todas las nóminas).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nomina_trabajador"
+                ],
+                "summary": "Obtener relaciones nómina-trabajador según filtros",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del trabajador",
+                        "name": "documento",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Consultar solo la nómina actual",
+                        "name": "actual",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Consultar solo nóminas pagadas",
+                        "name": "pagas",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Consultar solo nóminas no pagadas",
+                        "name": "no_pagas",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtrar nóminas",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año (YYYY) para filtrar nóminas",
+                        "name": "anio",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relaciones nómina-trabajador encontradas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.NominaTrabajador"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Relación nómina-trabajador no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/nominas": {
             "get": {
                 "security": [
@@ -1311,7 +1473,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de una nómina existente.",
+                "description": "Cambia el estado de una nómina existente a \"PAGO\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -1321,7 +1483,7 @@
                 "tags": [
                     "nominas"
                 ],
-                "summary": "Actualizar una nómina",
+                "summary": "Actualizar el estado de una nómina",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1329,15 +1491,6 @@
                         "name": "id",
                         "in": "query",
                         "required": true
-                    },
-                    {
-                        "description": "Datos de la nómina a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Nomina"
-                        }
                     }
                 ],
                 "responses": {
@@ -1347,8 +1500,20 @@
                             "$ref": "#/definitions/models.Nomina"
                         }
                     },
+                    "400": {
+                        "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Nómina no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1361,7 +1526,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una nueva nómina en la base de datos.",
+                "description": "Inserta un registro en la tabla \"NOMINA\" para activar el trigger y generar automáticamente los cálculos de nómina.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1374,7 +1539,7 @@
                 "summary": "Crear una nueva nómina",
                 "parameters": [
                     {
-                        "description": "Datos de la nómina a crear",
+                        "description": "Datos de la nómina a crear (sin 'MONTO')",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1392,6 +1557,12 @@
                     },
                     "400": {
                         "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1429,49 +1600,6 @@
                         "description": "Nómina eliminada lógicamente",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Nómina no encontrada",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/nominas/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve una nómina específica por ID utilizando query parameters.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "nominas"
-                ],
-                "summary": "Obtener nómina por ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID de la Nómina",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Nómina encontrada",
-                        "schema": {
-                            "$ref": "#/definitions/models.Nomina"
                         }
                     },
                     "404": {
@@ -3244,6 +3372,70 @@
                 },
                 "PK_ID_NOMINA": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.NominaTrabajador": {
+            "type": "object",
+            "properties": {
+                "DETALLES": {
+                    "type": "string"
+                },
+                "MONTO_INCIDENCIAS": {
+                    "type": "integer"
+                },
+                "PK_DOCUMENTO_TRABAJADOR": {
+                    "type": "integer"
+                },
+                "PK_ID_NOMINA": {
+                    "type": "integer"
+                },
+                "PK_ID_NOMINA_TRABAJADOR": {
+                    "type": "integer"
+                },
+                "SUELDO_BASE": {
+                    "type": "integer"
+                },
+                "TOTAL": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.NominaTrabajadorRequest": {
+            "type": "object",
+            "properties": {
+                "DETALLES": {
+                    "type": "string",
+                    "example": "Pago correspondiente al mes de enero"
+                },
+                "PK_DOCUMENTO_TRABAJADOR": {
+                    "type": "integer",
+                    "example": 1015466494
+                }
+            }
+        },
+        "models.NominaTrabajadorResponse": {
+            "type": "object",
+            "properties": {
+                "DETALLES": {
+                    "type": "string",
+                    "example": "Pago correspondiente al mes de enero"
+                },
+                "MONTO_INCIDENCIAS": {
+                    "type": "integer",
+                    "example": 50000
+                },
+                "PK_ID_NOMINA_TRABAJADOR": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "SUELDO_BASE": {
+                    "type": "integer",
+                    "example": 2000000
+                },
+                "TOTAL": {
+                    "type": "integer",
+                    "example": 2050000
                 }
             }
         },

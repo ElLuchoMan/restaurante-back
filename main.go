@@ -5,7 +5,9 @@ import (
 	"restaurante/database"
 	_ "restaurante/docs"
 	_ "restaurante/routers"
+	"time"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/filter/cors"
 	_ "github.com/lib/pq"
@@ -13,11 +15,34 @@ import (
 )
 
 func init() {
-	// Inicializar la base de datos
+	// Inicializar la base de datos y la zona horaria
 	database.InitDB()
 	database.InitTimezone()
 	fmt.Println("Loaded timezone:", database.BogotaZone)
+}
 
+// Función para ejecutar la generación automática de nómina
+func generarNominaAutomatica() {
+	o := orm.NewOrm() // Usar la conexión existente
+
+	for {
+		// Ejecutar la función de nómina cada día a las 00:00
+		now := time.Now().In(database.BogotaZone)
+		if now.Hour() == 0 && now.Minute() == 0 {
+			fmt.Println("Ejecutando generación automática de nómina...")
+
+			// Llamar a la función de nómina
+			_, err := o.Raw("CALL generar_nomina_automatica()").Exec()
+			if err != nil {
+				fmt.Println("Error al generar la nómina automática:", err)
+			} else {
+				fmt.Println("Nómina generada automáticamente con éxito.")
+			}
+		}
+
+		// Esperar 1 minuto antes de verificar de nuevo
+		time.Sleep(1 * time.Minute)
+	}
 }
 
 // @title Restaurante API
@@ -42,6 +67,9 @@ func main() {
 	// Habilitar la documentación de Swagger
 	web.BConfig.WebConfig.DirectoryIndex = true
 	web.Handler("/swagger/*", httpSwagger.WrapHandler)
+
+	// Iniciar el cron job en un goroutine
+	go generarNominaAutomatica()
 
 	// Iniciar el servidor
 	web.Run()

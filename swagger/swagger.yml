@@ -144,6 +144,64 @@ definitions:
       PK_ID_NOMINA:
         type: integer
         format: int64
+  models.NominaTrabajador:
+    title: NominaTrabajador
+    type: object
+    properties:
+      DETALLES:
+        type: string
+      MONTO_INCIDENCIAS:
+        type: integer
+        format: int64
+      PK_DOCUMENTO_TRABAJADOR:
+        type: integer
+        format: int64
+      PK_ID_NOMINA:
+        type: integer
+        format: int64
+      PK_ID_NOMINA_TRABAJADOR:
+        type: integer
+        format: int64
+      SUELDO_BASE:
+        type: integer
+        format: int64
+      TOTAL:
+        type: integer
+        format: int64
+  models.NominaTrabajadorRequest:
+    title: NominaTrabajadorRequest
+    type: object
+    properties:
+      DETALLES:
+        type: string
+        example: Pago correspondiente al mes de enero
+      PK_DOCUMENTO_TRABAJADOR:
+        type: integer
+        example: 1015466494
+        format: int64
+  models.NominaTrabajadorResponse:
+    title: NominaTrabajadorResponse
+    type: object
+    properties:
+      DETALLES:
+        type: string
+        example: Pago correspondiente al mes de enero
+      MONTO_INCIDENCIAS:
+        type: integer
+        example: 50000
+        format: int64
+      PK_ID_NOMINA_TRABAJADOR:
+        type: integer
+        example: 1
+        format: int64
+      SUELDO_BASE:
+        type: integer
+        example: 2000000
+        format: int64
+      TOTAL:
+        type: integer
+        example: 2050000
+        format: int64
   models.Pago:
     title: Pago
     type: object
