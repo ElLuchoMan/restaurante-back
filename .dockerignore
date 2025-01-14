@@ -1,0 +1,5 @@
+# Excluye binarios y dependencias locales
+/bin/
+/out/
+/vendor/
+*.log
