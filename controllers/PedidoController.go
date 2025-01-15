@@ -1,10 +1,8 @@
 package controllers
 
 import (
-	"encoding/json"
-	"net/http"
-	"restaurante/models"
-	"strconv"
+	"restaurante/models" // Asegúrate de que la ruta del paquete sea la correcta
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -14,301 +12,170 @@ type PedidoController struct {
 	web.Controller
 }
 
-// @Title GetAll
-// @Summary Obtener todos los pedidos
-// @Description Devuelve todos los pedidos registrados en la base de datos.
-// @Tags pedidos
-// @Accept json
-// @Produce json
-// @Success 200 {array} models.Pedido "Lista de pedidos"
-// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
-// @Security BearerAuth
-// @Router /pedidos [get]
-func (c *PedidoController) GetAll() {
-	o := orm.NewOrm()
-	var pedidos []models.Pedido
-
-	_, err := o.QueryTable(new(models.Pedido)).All(&pedidos)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener pedidos de la base de datos",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Pedidos obtenidos exitosamente",
-		Data:    pedidos,
-	}
-	c.ServeJSON()
-}
-
-// @Title GetById
-// @Summary Obtener pedido por ID
-// @Description Devuelve un pedido específico por ID utilizando query parameters.
-// @Tags pedidos
-// @Accept json
-// @Produce json
-// @Param   id     query    int     true        "ID del Pedido"
-// @Success 200 {object} models.Pedido "Pedido encontrado"
-// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
-// @Security BearerAuth
-// @Router /pedidos/search [get]
-func (c *PedidoController) GetById() {
-	o := orm.NewOrm()
-	id, err := c.GetInt("id")
-
-	if err != nil || id == 0 {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	pedido := models.Pedido{PK_ID_PEDIDO: id}
-
-	err = o.Read(&pedido)
-	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Pedido no encontrado",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Pedido encontrado",
-		Data:    pedido,
-	}
-	c.ServeJSON()
-}
-
-// @Title Create
+// @Title CreatePedido
 // @Summary Crear un nuevo pedido
-// @Description Crea un nuevo pedido en la base de datos.
-// @Tags pedidos
+// @Description Crea un nuevo pedido en el sistema sin domicilio ni pago asociados.
+// @Tags pedido
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Pedido true  "Datos del pedido a crear"
-// @Success 201 {object} models.Pedido "Pedido creado"
-// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Param body body models.Pedido true "Datos del pedido"
+// @Success 200 {object} models.Pedido "Pedido creado"
+// @Failure 400 {object} models.ApiResponse "Datos inválidos"
+// @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
 // @Security BearerAuth
-// @Router /pedidos [post]
-func (c *PedidoController) Post() {
-	o := orm.NewOrm()
+// @Router /pedido [post]
+func (c *PedidoController) CreatePedido() {
 	var pedido models.Pedido
 
-	// Deserializar el cuerpo de la solicitud primero
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &pedido); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error en la solicitud",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
+	if err := c.ParseForm(&pedido); err != nil {
+		c.CustomAbort(400, "Datos inválidos")
 		return
 	}
 
-	// Validar el campo ESTADO
-	validStates := []string{"INICIADO", "TERMINADO", "CANCELADO"}
-	isValidState := false
-	for _, state := range validStates {
-		if pedido.ESTADO_PEDIDO == state {
-			isValidState = true
-			break
-		}
-	}
-
-	if !isValidState {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Estado inválido. Los estados permitidos son: INICIADO, TERMINADO, CANCELADO.",
-		}
-		c.ServeJSON()
+	pedido.FECHA = time.Now()
+	pedido.ESTADO_PEDIDO = "INICIADO"
+	o := orm.NewOrm()
+	if _, err := o.Insert(&pedido); err != nil {
+		c.CustomAbort(500, "Error al crear el pedido")
 		return
 	}
 
-	// Insertar el nuevo pedido en la base de datos
-	_, err := o.Insert(&pedido)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el pedido",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Pedido creado correctamente",
-		Data:    pedido,
-	}
+	c.Data["json"] = map[string]interface{}{"message": "Pedido creado", "pedido": pedido}
 	c.ServeJSON()
 }
 
-// @Title Update
-// @Summary Actualizar un pedido
-// @Description Actualiza los datos de un pedido existente.
-// @Tags pedidos
+// @Title AssignDomicilio
+// @Summary Asignar un domicilio a un pedido
+// @Description Asigna un domicilio existente a un pedido y actualiza su estado a "EN CAMINO".
+// @Tags pedido
 // @Accept json
 // @Produce json
-// @Param   id    query    int  true   "ID del Pedido"
-// @Param   body  body   models.Pedido true  "Datos del pedido a actualizar"
-// @Success 200 {object} models.Pedido "Pedido actualizado"
-// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Param pedido_id query int true "ID del pedido"
+// @Param domicilio_id query int true "ID del domicilio"
+// @Success 200 {object} models.Pedido "Domicilio asignado al pedido"
+// @Failure 404 {object} models.ApiResponse "Pedido o domicilio no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
 // @Security BearerAuth
-// @Router /pedidos [put]
-func (c *PedidoController) Put() {
+// @Router /pedido/asignar-domicilio [post]
+func (c *PedidoController) AssignDomicilio() {
+	pedidoID, _ := c.GetInt("pedido_id")
+	domicilioID, _ := c.GetInt("domicilio_id")
+
 	o := orm.NewOrm()
 
-	// Obtener el ID del query parameter
-	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id == 0 {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente.",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
+	// Buscar el pedido
+	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
+	if err := o.Read(&pedido); err != nil {
+		c.CustomAbort(404, "Pedido no encontrado")
 		return
 	}
 
-	// Leer el pedido actual por ID
-	pedido := models.Pedido{PK_ID_PEDIDO: id}
-	if o.Read(&pedido) != nil {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Pedido no encontrado.",
-		}
-		c.ServeJSON()
+	// Actualizar el domicilio y el estado del pedido
+	pedido.PK_ID_DOMICILIO = &domicilioID
+	pedido.ESTADO_PEDIDO = "EN CAMINO"
+
+	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO", "ESTADO_PEDIDO"); err != nil {
+		c.CustomAbort(500, "Error al asignar domicilio")
 		return
 	}
 
-	// Deserializar los datos del pedido que vienen en el cuerpo de la solicitud
-	var updatedPedido models.Pedido
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedPedido); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error en la solicitud.",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Validar el campo ESTADO
-	validStates := []string{"INICIADO", "TERMINADO", "CANCELADO"}
-	isValidState := false
-	for _, state := range validStates {
-		if updatedPedido.ESTADO_PEDIDO == state {
-			isValidState = true
-			break
+	// Actualizar el estado del domicilio
+	domicilio := models.Domicilio{PK_ID_DOMICILIO: domicilioID}
+	if err := o.Read(&domicilio); err == nil {
+		domicilio.ENTREGADO = false
+		if _, err := o.Update(&domicilio, "ENTREGADO"); err != nil {
+			c.CustomAbort(500, "Error al actualizar el domicilio")
+			return
 		}
 	}
 
-	if !isValidState {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Estado inválido. Los estados permitidos son: INICIADO, TERMINADO, CANCELADO.",
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Asignar el ID original al pedido actualizado
-	updatedPedido.PK_ID_PEDIDO = id
-
-	// Actualizar el pedido en la base de datos
-	if _, err := o.Update(&updatedPedido); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar el pedido.",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Enviar la respuesta exitosa
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Pedido actualizado.",
-		Data:    updatedPedido,
-	}
+	c.Data["json"] = map[string]interface{}{"message": "Domicilio asignado", "pedido": pedido}
 	c.ServeJSON()
 }
 
-// @Title Delete
-// @Summary Eliminar un pedido
-// @Description Elimina un pedido de la base de datos.
-// @Tags pedidos
+// @Title AssignPago
+// @Summary Asignar un pago a un pedido
+// @Description Asigna un pago existente a un pedido y actualiza su estado a "PAGADO".
+// @Tags pedido
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID del Pedido"
-// @Success 204 {object} nil "Pedido eliminado"
-// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Param pedido_id query int true "ID del pedido"
+// @Param pago_id query int true "ID del pago"
+// @Success 200 {object} models.Pedido "Pago asignado al pedido"
+// @Failure 404 {object} models.ApiResponse "Pedido o pago no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error al asignar pago"
 // @Security BearerAuth
-// @Router /pedidos [delete]
-func (c *PedidoController) Delete() {
+// @Router /pedido/asignar-pago [post]
+func (c *PedidoController) AssignPago() {
+	pedidoID, _ := c.GetInt("pedido_id")
+	pagoID, _ := c.GetInt("pago_id")
+
 	o := orm.NewOrm()
 
-	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id == 0 {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
+	// Buscar el pedido
+	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
+	if err := o.Read(&pedido); err != nil {
+		c.CustomAbort(404, "Pedido no encontrado")
 		return
 	}
 
-	pedido := models.Pedido{PK_ID_PEDIDO: id}
+	// Actualizar el pago y el estado del pedido
+	pedido.PK_ID_PAGO = &pagoID
+	pedido.ESTADO_PEDIDO = "PAGADO"
 
-	if _, err := o.Delete(&pedido); err == nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Pedido eliminado",
-		}
-		c.ServeJSON()
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Pedido no encontrado",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
+	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
+		c.CustomAbort(500, "Error al asignar pago")
+		return
 	}
+
+	// Actualizar el estado del pago
+	pago := models.Pago{PK_ID_PAGO: pagoID}
+	if err := o.Read(&pago); err == nil {
+		pago.ESTADO_PAGO = "PAGADO"
+		if _, err := o.Update(&pago, "ESTADO_PAGO"); err != nil {
+			c.CustomAbort(500, "Error al actualizar el pago")
+			return
+		}
+	}
+
+	c.Data["json"] = map[string]interface{}{"message": "Pago asignado", "pedido": pedido}
+	c.ServeJSON()
+}
+
+// @Title UpdateEstadoPedido
+// @Summary Actualizar el estado de un pedido
+// @Description Actualiza el estado de un pedido existente.
+// @Tags pedido
+// @Accept json
+// @Produce json
+// @Param pedido_id query int true "ID del pedido"
+// @Param estado query string true "Nuevo estado del pedido"
+// @Success 200 {object} models.Pedido "Estado actualizado"
+// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error al actualizar estado del pedido"
+// @Security BearerAuth
+// @Router /pedido/actualizar-estado [put]
+func (c *PedidoController) UpdateEstadoPedido() {
+	pedidoID, _ := c.GetInt("pedido_id")
+	estado := c.GetString("estado")
+
+	o := orm.NewOrm()
+
+	// Buscar el pedido
+	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
+	if err := o.Read(&pedido); err != nil {
+		c.CustomAbort(404, "Pedido no encontrado")
+		return
+	}
+
+	// Actualizar el estado del pedido
+	pedido.ESTADO_PEDIDO = estado
+
+	if _, err := o.Update(&pedido, "ESTADO_PEDIDO"); err != nil {
+		c.CustomAbort(500, "Error al actualizar estado del pedido")
+		return
+	}
+
+	c.Data["json"] = map[string]interface{}{"message": "Estado actualizado", "pedido": pedido}
+	c.ServeJSON()
 }

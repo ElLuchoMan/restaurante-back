@@ -28,7 +28,11 @@ func init() {
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.PedidoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.PedidoController{}, "get:GetById"),
+			beego.NSRouter("/asignar-domicilio", &controllers.PedidoController{}, "post:AssignDomicilio"),
+			beego.NSRouter("/asignar-pago", &controllers.PedidoController{}, "post:AssignPago"),
+			beego.NSRouter("/actualizar-estado", &controllers.PedidoController{}, "put:UpdateEstadoPedido"),
 		),
+
 		// Rutas para domicilios
 		beego.NSNamespace("/domicilios",
 			beego.NSBefore(controllers.ValidateToken),
