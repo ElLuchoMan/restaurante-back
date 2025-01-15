@@ -1658,58 +1658,68 @@ paths:
       tags:
       - pedido_clientes
   /pedidos:
-    delete:
-      consumes:
-      - application/json
-      description: Elimina un pedido de la base de datos.
-      parameters:
-      - description: ID del Pedido
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: Pedido eliminado
-        "404":
-          description: Pedido no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Eliminar un pedido
-      tags:
-      - pedidos
     get:
       consumes:
       - application/json
-      description: Devuelve todos los pedidos registrados en la base de datos.
+      description: 'Devuelve pedidos filtrados según varios criterios: fecha, rango
+        de fechas, usuario, método de pago, si tienen domicilio, etc.'
+      parameters:
+      - description: Fecha específica en formato YYYY-MM-DD
+        in: query
+        name: fecha
+        type: string
+      - description: Fecha inicial del rango en formato YYYY-MM-DD
+        in: query
+        name: desde
+        type: string
+      - description: Fecha final del rango en formato YYYY-MM-DD
+        in: query
+        name: hasta
+        type: string
+      - description: Mes del año (1-12)
+        in: query
+        name: mes
+        type: integer
+      - description: ID del usuario (PK_DOCUMENTO_CLIENTE)
+        in: query
+        name: usuario
+        type: integer
+      - description: ID del método de pago (PK_ID_PAGO)
+        in: query
+        name: metodo_pago
+        type: integer
+      - description: Indica si el pedido tiene domicilio (true/false)
+        in: query
+        name: domicilio
+        type: boolean
       produces:
       - application/json
       responses:
         "200":
-          description: Lista de pedidos
+          description: Lista de pedidos filtrados
           schema:
             items:
               $ref: '#/definitions/models.Pedido'
             type: array
+        "400":
+          description: Error en los parámetros de filtro
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "500":
-          description: Error en la base de datos
+          description: Error al obtener los pedidos
           schema:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener todos los pedidos
+      summary: Obtener pedidos con múltiples filtros
       tags:
-      - pedidos
+      - pedido
     post:
       consumes:
       - application/json
-      description: Crea un nuevo pedido en la base de datos.
+      description: Crea un nuevo pedido en el sistema sin domicilio ni pago asociados.
       parameters:
-      - description: Datos del pedido a crear
+      - description: Datos del pedido
         in: body
         name: body
         required: true
@@ -1718,78 +1728,132 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
+        "200":
           description: Pedido creado
           schema:
-            $ref: '#/definitions/models.Pedido'
+            $ref: '#/definitions/models.ApiResponse'
         "400":
-          description: Error en la solicitud
+          description: Datos inválidos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al crear el pedido
           schema:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
       summary: Crear un nuevo pedido
       tags:
-      - pedidos
+      - pedido
+  /pedidos/actualizar-estado:
     put:
       consumes:
       - application/json
-      description: Actualiza los datos de un pedido existente.
+      description: Actualiza el estado de un pedido existente.
       parameters:
-      - description: ID del Pedido
+      - description: ID del pedido
         in: query
-        name: id
+        name: pedido_id
         required: true
         type: integer
-      - description: Datos del pedido a actualizar
-        in: body
-        name: body
+      - description: Nuevo estado del pedido
+        in: query
+        name: estado
         required: true
-        schema:
-          $ref: '#/definitions/models.Pedido'
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Pedido actualizado
+          description: Estado actualizado
           schema:
-            $ref: '#/definitions/models.Pedido'
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Pedido no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al actualizar estado del pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Actualizar un pedido
+      summary: Actualizar el estado de un pedido
       tags:
-      - pedidos
-  /pedidos/search:
-    get:
+      - pedido
+  /pedidos/asignar-domicilio:
+    post:
       consumes:
       - application/json
-      description: Devuelve un pedido específico por ID utilizando query parameters.
+      description: Asigna un domicilio existente a un pedido y actualiza su estado
+        a "EN CAMINO".
       parameters:
-      - description: ID del Pedido
+      - description: ID del pedido
         in: query
-        name: id
+        name: pedido_id
+        required: true
+        type: integer
+      - description: ID del domicilio
+        in: query
+        name: domicilio_id
         required: true
         type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: Pedido encontrado
+          description: Domicilio asignado al pedido
           schema:
-            $ref: '#/definitions/models.Pedido'
+            $ref: '#/definitions/models.ApiResponse'
         "404":
-          description: Pedido no encontrado
+          description: Pedido o domicilio no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al asignar domicilio
           schema:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener pedido por ID
+      summary: Asignar un domicilio a un pedido
       tags:
-      - pedidos
+      - pedido
+  /pedidos/asignar-pago:
+    post:
+      consumes:
+      - application/json
+      description: Asigna un pago existente a un pedido y actualiza su estado a "PAGADO".
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      - description: ID del pago
+        in: query
+        name: pago_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pago asignado al pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pedido o pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al asignar pago
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Asignar un pago a un pedido
+      tags:
+      - pedido
   /productos:
     delete:
       consumes:

@@ -2142,7 +2142,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los pedidos registrados en la base de datos.",
+                "description": "Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario, método de pago, si tienen domicilio, etc.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2150,12 +2150,56 @@
                     "application/json"
                 ],
                 "tags": [
-                    "pedidos"
+                    "pedido"
                 ],
-                "summary": "Obtener todos los pedidos",
+                "summary": "Obtener pedidos con múltiples filtros",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Fecha específica en formato YYYY-MM-DD",
+                        "name": "fecha",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicial del rango en formato YYYY-MM-DD",
+                        "name": "desde",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha final del rango en formato YYYY-MM-DD",
+                        "name": "hasta",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes del año (1-12)",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del usuario (PK_DOCUMENTO_CLIENTE)",
+                        "name": "usuario",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del método de pago (PK_ID_PAGO)",
+                        "name": "metodo_pago",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Indica si el pedido tiene domicilio (true/false)",
+                        "name": "domicilio",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Lista de pedidos",
+                        "description": "Lista de pedidos filtrados",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -2163,58 +2207,14 @@
                             }
                         }
                     },
-                    "500": {
-                        "description": "Error en la base de datos",
+                    "400": {
+                        "description": "Error en los parámetros de filtro",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Actualiza los datos de un pedido existente.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "pedidos"
-                ],
-                "summary": "Actualizar un pedido",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Pedido",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
                     },
-                    {
-                        "description": "Datos del pedido a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Pedido"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Pedido actualizado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Pedido"
-                        }
-                    },
-                    "404": {
-                        "description": "Pedido no encontrado",
+                    "500": {
+                        "description": "Error al obtener los pedidos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2227,7 +2227,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo pedido en la base de datos.",
+                "description": "Crea un nuevo pedido en el sistema sin domicilio ni pago asociados.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2235,12 +2235,12 @@
                     "application/json"
                 ],
                 "tags": [
-                    "pedidos"
+                    "pedido"
                 ],
                 "summary": "Crear un nuevo pedido",
                 "parameters": [
                     {
-                        "description": "Datos del pedido a crear",
+                        "description": "Datos del pedido",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2250,52 +2250,20 @@
                     }
                 ],
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Pedido creado",
-                        "schema": {
-                            "$ref": "#/definitions/models.Pedido"
-                        }
-                    },
-                    "400": {
-                        "description": "Error en la solicitud",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Elimina un pedido de la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "pedidos"
-                ],
-                "summary": "Eliminar un pedido",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Pedido",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Pedido eliminado"
                     },
-                    "404": {
-                        "description": "Pedido no encontrado",
+                    "400": {
+                        "description": "Datos inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al crear el pedido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2303,14 +2271,14 @@
                 }
             }
         },
-        "/pedidos/search": {
-            "get": {
+        "/pedidos/actualizar-estado": {
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un pedido específico por ID utilizando query parameters.",
+                "description": "Actualiza el estado de un pedido existente.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2318,27 +2286,152 @@
                     "application/json"
                 ],
                 "tags": [
-                    "pedidos"
+                    "pedido"
                 ],
-                "summary": "Obtener pedido por ID",
+                "summary": "Actualizar el estado de un pedido",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Pedido",
-                        "name": "id",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Nuevo estado del pedido",
+                        "name": "estado",
                         "in": "query",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Pedido encontrado",
+                        "description": "Estado actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.Pedido"
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar estado del pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pedidos/asignar-domicilio": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Asigna un domicilio existente a un pedido y actualiza su estado a \"EN CAMINO\".",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido"
+                ],
+                "summary": "Asignar un domicilio a un pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del domicilio",
+                        "name": "domicilio_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Domicilio asignado al pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido o domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al asignar domicilio",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pedidos/asignar-pago": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Asigna un pago existente a un pedido y actualiza su estado a \"PAGADO\".",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido"
+                ],
+                "summary": "Asignar un pago a un pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del pago",
+                        "name": "pago_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pago asignado al pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido o pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al asignar pago",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
