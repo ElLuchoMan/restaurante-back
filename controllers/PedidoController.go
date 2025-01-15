@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"restaurante/models" // Asegúrate de que la ruta del paquete sea la correcta
+	"restaurante/models" // Ajusta la ruta según tu proyecto
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -19,7 +19,7 @@ type PedidoController struct {
 // @Accept json
 // @Produce json
 // @Param body body models.Pedido true "Datos del pedido"
-// @Success 200 {object} models.Pedido "Pedido creado"
+// @Success 200 {object} models.ApiResponse "Pedido creado"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
 // @Security BearerAuth
@@ -28,7 +28,13 @@ func (c *PedidoController) CreatePedido() {
 	var pedido models.Pedido
 
 	if err := c.ParseForm(&pedido); err != nil {
-		c.CustomAbort(400, "Datos inválidos")
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{
+			Code:    400,
+			Message: "Datos inválidos",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
 		return
 	}
 
@@ -36,11 +42,22 @@ func (c *PedidoController) CreatePedido() {
 	pedido.ESTADO_PEDIDO = "INICIADO"
 	o := orm.NewOrm()
 	if _, err := o.Insert(&pedido); err != nil {
-		c.CustomAbort(500, "Error al crear el pedido")
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al crear el pedido",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
 		return
 	}
 
-	c.Data["json"] = map[string]interface{}{"message": "Pedido creado", "pedido": pedido}
+	c.Ctx.Output.SetStatus(200)
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Pedido creado exitosamente",
+		Data:    pedido,
+	}
 	c.ServeJSON()
 }
 
@@ -52,7 +69,7 @@ func (c *PedidoController) CreatePedido() {
 // @Produce json
 // @Param pedido_id query int true "ID del pedido"
 // @Param domicilio_id query int true "ID del domicilio"
-// @Success 200 {object} models.Pedido "Domicilio asignado al pedido"
+// @Success 200 {object} models.ApiResponse "Domicilio asignado al pedido"
 // @Failure 404 {object} models.ApiResponse "Pedido o domicilio no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
 // @Security BearerAuth
@@ -66,7 +83,12 @@ func (c *PedidoController) AssignDomicilio() {
 	// Buscar el pedido
 	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
 	if err := o.Read(&pedido); err != nil {
-		c.CustomAbort(404, "Pedido no encontrado")
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = models.ApiResponse{
+			Code:    404,
+			Message: "Pedido no encontrado",
+		}
+		c.ServeJSON()
 		return
 	}
 
@@ -75,7 +97,13 @@ func (c *PedidoController) AssignDomicilio() {
 	pedido.ESTADO_PEDIDO = "EN CAMINO"
 
 	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO", "ESTADO_PEDIDO"); err != nil {
-		c.CustomAbort(500, "Error al asignar domicilio")
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al asignar domicilio",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
 		return
 	}
 
@@ -84,12 +112,23 @@ func (c *PedidoController) AssignDomicilio() {
 	if err := o.Read(&domicilio); err == nil {
 		domicilio.ENTREGADO = false
 		if _, err := o.Update(&domicilio, "ENTREGADO"); err != nil {
-			c.CustomAbort(500, "Error al actualizar el domicilio")
+			c.Ctx.Output.SetStatus(500)
+			c.Data["json"] = models.ApiResponse{
+				Code:    500,
+				Message: "Error al actualizar el domicilio",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
 			return
 		}
 	}
 
-	c.Data["json"] = map[string]interface{}{"message": "Domicilio asignado", "pedido": pedido}
+	c.Ctx.Output.SetStatus(200)
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Domicilio asignado correctamente",
+		Data:    pedido,
+	}
 	c.ServeJSON()
 }
 
@@ -101,7 +140,7 @@ func (c *PedidoController) AssignDomicilio() {
 // @Produce json
 // @Param pedido_id query int true "ID del pedido"
 // @Param pago_id query int true "ID del pago"
-// @Success 200 {object} models.Pedido "Pago asignado al pedido"
+// @Success 200 {object} models.ApiResponse "Pago asignado al pedido"
 // @Failure 404 {object} models.ApiResponse "Pedido o pago no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error al asignar pago"
 // @Security BearerAuth
@@ -115,7 +154,12 @@ func (c *PedidoController) AssignPago() {
 	// Buscar el pedido
 	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
 	if err := o.Read(&pedido); err != nil {
-		c.CustomAbort(404, "Pedido no encontrado")
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = models.ApiResponse{
+			Code:    404,
+			Message: "Pedido no encontrado",
+		}
+		c.ServeJSON()
 		return
 	}
 
@@ -124,7 +168,13 @@ func (c *PedidoController) AssignPago() {
 	pedido.ESTADO_PEDIDO = "PAGADO"
 
 	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
-		c.CustomAbort(500, "Error al asignar pago")
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al asignar pago",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
 		return
 	}
 
@@ -133,12 +183,23 @@ func (c *PedidoController) AssignPago() {
 	if err := o.Read(&pago); err == nil {
 		pago.ESTADO_PAGO = "PAGADO"
 		if _, err := o.Update(&pago, "ESTADO_PAGO"); err != nil {
-			c.CustomAbort(500, "Error al actualizar el pago")
+			c.Ctx.Output.SetStatus(500)
+			c.Data["json"] = models.ApiResponse{
+				Code:    500,
+				Message: "Error al actualizar el pago",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
 			return
 		}
 	}
 
-	c.Data["json"] = map[string]interface{}{"message": "Pago asignado", "pedido": pedido}
+	c.Ctx.Output.SetStatus(200)
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Pago asignado correctamente",
+		Data:    pedido,
+	}
 	c.ServeJSON()
 }
 
@@ -150,7 +211,7 @@ func (c *PedidoController) AssignPago() {
 // @Produce json
 // @Param pedido_id query int true "ID del pedido"
 // @Param estado query string true "Nuevo estado del pedido"
-// @Success 200 {object} models.Pedido "Estado actualizado"
+// @Success 200 {object} models.ApiResponse "Estado actualizado"
 // @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error al actualizar estado del pedido"
 // @Security BearerAuth
@@ -164,7 +225,12 @@ func (c *PedidoController) UpdateEstadoPedido() {
 	// Buscar el pedido
 	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
 	if err := o.Read(&pedido); err != nil {
-		c.CustomAbort(404, "Pedido no encontrado")
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = models.ApiResponse{
+			Code:    404,
+			Message: "Pedido no encontrado",
+		}
+		c.ServeJSON()
 		return
 	}
 
@@ -172,10 +238,21 @@ func (c *PedidoController) UpdateEstadoPedido() {
 	pedido.ESTADO_PEDIDO = estado
 
 	if _, err := o.Update(&pedido, "ESTADO_PEDIDO"); err != nil {
-		c.CustomAbort(500, "Error al actualizar estado del pedido")
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al actualizar estado del pedido",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
 		return
 	}
 
-	c.Data["json"] = map[string]interface{}{"message": "Estado actualizado", "pedido": pedido}
+	c.Ctx.Output.SetStatus(200)
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Estado del pedido actualizado correctamente",
+		Data:    pedido,
+	}
 	c.ServeJSON()
 }
