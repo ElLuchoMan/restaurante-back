@@ -91,6 +91,7 @@ func init() {
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.NominaTrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.NominaTrabajadorController{}, "get:GetByTrabajador"),
+			beego.NSRouter("/mes", &controllers.NominaTrabajadorController{}, "get:GetNominasByMes"),
 		),
 	)
 

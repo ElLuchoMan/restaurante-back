@@ -11,18 +11,28 @@ type NominaTrabajador struct {
 	PK_DOCUMENTO_TRABAJADOR int64   `orm:"column(PK_DOCUMENTO_TRABAJADOR);null" json:"PK_DOCUMENTO_TRABAJADOR,omitempty"`
 	PK_ID_NOMINA            *int64  `orm:"column(PK_ID_NOMINA);null" json:"PK_ID_NOMINA,omitempty"`
 }
-
 type NominaTrabajadorRequest struct {
 	PK_DOCUMENTO_TRABAJADOR int64  `json:"PK_DOCUMENTO_TRABAJADOR" example:"1015466494"`
 	DETALLES                string `json:"DETALLES,omitempty" example:"Pago correspondiente al mes de enero"`
 }
-
 type NominaTrabajadorResponse struct {
 	PK_ID_NOMINA_TRABAJADOR int64  `json:"PK_ID_NOMINA_TRABAJADOR" example:"1"`
 	SUELDO_BASE             int64  `json:"SUELDO_BASE" example:"2000000"`
 	MONTO_INCIDENCIAS       int64  `json:"MONTO_INCIDENCIAS" example:"50000"`
 	TOTAL                   int64  `json:"TOTAL" example:"2050000"`
 	DETALLES                string `json:"DETALLES,omitempty" example:"Pago correspondiente al mes de enero"`
+}
+
+type NominaTrabajadorDetalle struct {
+	PK_ID_NOMINA_TRABAJADOR int64  `orm:"column(PK_ID_NOMINA_TRABAJADOR)" json:"PK_ID_NOMINA_TRABAJADOR"`
+	SUELDO_BASE             int64  `orm:"column(SUELDO_BASE)" json:"SUELDO_BASE"`
+	MONTO_INCIDENCIAS       int64  `orm:"column(MONTO_INCIDENCIAS)" json:"MONTO_INCIDENCIAS"`
+	TOTAL                   int64  `orm:"column(TOTAL)" json:"TOTAL"`
+	DETALLES                string `orm:"column(DETALLES)" json:"DETALLES"`
+	PK_DOCUMENTO_TRABAJADOR int64  `orm:"column(PK_DOCUMENTO_TRABAJADOR)" json:"PK_DOCUMENTO_TRABAJADOR"`
+	PK_ID_NOMINA            int64  `orm:"column(PK_ID_NOMINA)" json:"PK_ID_NOMINA"`
+	NOMBRE                  string `orm:"column(NOMBRE)" json:"NOMBRE"`
+	APELLIDO                string `orm:"column(APELLIDO)" json:"APELLIDO"`
 }
 
 func (n *NominaTrabajador) TableName() string {

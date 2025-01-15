@@ -1336,6 +1336,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/nomina_trabajador/mes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene todas las relaciones nómina-trabajador del mes actual o de un mes/año específico, incluyendo el nombre y apellido del trabajador.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nomina_trabajador"
+                ],
+                "summary": "Consultar nóminas del mes actual o de un mes/año específico",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtrar nóminas",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año (YYYY) para filtrar nóminas",
+                        "name": "anio",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relaciones nómina-trabajador encontradas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No se encontraron relaciones nómina-trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/nomina_trabajador/search": {
             "get": {
                 "security": [

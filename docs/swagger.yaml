@@ -1139,6 +1139,44 @@ paths:
       summary: Crear una nómina-trabajador con cálculo automático
       tags:
       - nomina_trabajador
+  /nomina_trabajador/mes:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todas las relaciones nómina-trabajador del mes actual o
+        de un mes/año específico, incluyendo el nombre y apellido del trabajador.
+      parameters:
+      - description: Mes (1-12) para filtrar nóminas
+        in: query
+        name: mes
+        type: integer
+      - description: Año (YYYY) para filtrar nóminas
+        in: query
+        name: anio
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Relaciones nómina-trabajador encontradas
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "404":
+          description: No se encontraron relaciones nómina-trabajador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Consultar nóminas del mes actual o de un mes/año específico
+      tags:
+      - nomina_trabajador
   /nomina_trabajador/search:
     get:
       consumes:

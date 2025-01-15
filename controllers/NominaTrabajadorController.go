@@ -298,3 +298,88 @@ func obtenerMesEnEspañol(mes time.Month) string {
 	}
 	return meses[mes]
 }
+
+// @Title GetNominasByMes
+// @Summary Consultar nóminas del mes actual o de un mes/año específico
+// @Description Obtiene todas las relaciones nómina-trabajador del mes actual o de un mes/año específico, incluyendo el nombre y apellido del trabajador.
+// @Tags nomina_trabajador
+// @Accept json
+// @Produce json
+// @Param mes query int false "Mes (1-12) para filtrar nóminas"
+// @Param anio query int false "Año (YYYY) para filtrar nóminas"
+// @Success 200 {array} map[string]interface{} "Relaciones nómina-trabajador encontradas"
+// @Failure 404 {object} models.ApiResponse "No se encontraron relaciones nómina-trabajador"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
+// @Router /nomina_trabajador/mes [get]
+func (c *NominaTrabajadorController) GetNominasByMes() {
+	o := orm.NewOrm()
+	mes, _ := c.GetInt("mes")
+	anio, _ := c.GetInt("anio")
+
+	// Validar parámetros
+	if mes < 1 || mes > 12 || anio < 1 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Los parámetros 'mes' y 'anio' deben ser válidos.",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Consulta SQL
+	var resultados []models.NominaTrabajadorDetalle
+	sql := `
+	SELECT 
+		nt."PK_ID_NOMINA_TRABAJADOR", 
+		nt."SUELDO_BASE", 
+		nt."MONTO_INCIDENCIAS", 
+		nt."TOTAL", 
+		nt."DETALLES", 
+		nt."PK_DOCUMENTO_TRABAJADOR", 
+		nt."PK_ID_NOMINA", 
+		t."NOMBRE", 
+		t."APELLIDO"
+	FROM "NOMINA_TRABAJADOR" nt
+	JOIN "TRABAJADOR" t ON nt."PK_DOCUMENTO_TRABAJADOR" = t."PK_DOCUMENTO_TRABAJADOR"
+	JOIN "NOMINA" n ON nt."PK_ID_NOMINA" = n."PK_ID_NOMINA"
+	WHERE EXTRACT(MONTH FROM n."FECHA") = ? 
+	AND EXTRACT(YEAR FROM n."FECHA") = ?
+`
+	// Ejecutar la consulta
+	num, err := o.Raw(sql, mes, anio).QueryRows(&resultados)
+	fmt.Printf("Número de filas recuperadas: %d\n", num)
+	fmt.Printf("Resultados: %+v\n", resultados)
+
+	// Validar resultados
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al buscar las nóminas.",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	if len(resultados) == 0 {
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusNotFound,
+			Message: "No se encontraron nóminas para el mes y año especificados.",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Responder con éxito
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Nóminas encontradas.",
+		Data:    resultados,
+	}
+	c.ServeJSON()
+}
