@@ -26,7 +26,7 @@ type PedidoController struct {
 // @Param cliente query int false "ID del cliente (PK_DOCUMENTO_CLIENTE)"
 // @Param metodo_pago query string false "Tipo de método de pago (NEQUI, DAVIPLATA, EFECTIVO)"
 // @Param domicilio query bool false "Indica si el pedido tiene domicilio (true/false)"
-// @Success 200 {array} models.Pedido "Lista de pedidos filtrados"
+// @Success 200 {object} models.ApiResponse "Pedidos obtenidos exitosamente"
 // @Failure 400 {object} models.ApiResponse "Error en los parámetros de filtro"
 // @Failure 500 {object} models.ApiResponse "Error al obtener los pedidos"
 // @Security BearerAuth
@@ -97,14 +97,30 @@ func (c *PedidoController) GetAll() {
 	var pedidos []models.Pedido
 	_, err := o.Raw(query, params...).QueryRows(&pedidos)
 	if err != nil {
-		c.CustomAbort(500, "Error al obtener los pedidos: "+err.Error())
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al obtener los pedidos",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Validar si no se encontraron resultados
+	if len(pedidos) == 0 {
+		c.Data["json"] = models.ApiResponse{
+			Code:    404,
+			Message: "No se encontraron pedidos que coincidan con los filtros proporcionados",
+		}
+		c.ServeJSON()
 		return
 	}
 
 	// Responder con los pedidos obtenidos
-	c.Data["json"] = map[string]interface{}{
-		"message": "Pedidos obtenidos exitosamente",
-		"pedidos": pedidos,
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Pedidos obtenidos exitosamente",
+		Data:    pedidos,
 	}
 	c.ServeJSON()
 }

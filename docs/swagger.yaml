@@ -1701,11 +1701,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Lista de pedidos filtrados
+          description: Pedidos obtenidos exitosamente
           schema:
-            items:
-              $ref: '#/definitions/models.Pedido'
-            type: array
+            $ref: '#/definitions/models.ApiResponse'
         "400":
           description: Error en los parámetros de filtro
           schema:

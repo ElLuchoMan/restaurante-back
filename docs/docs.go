@@ -2212,12 +2212,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de pedidos filtrados",
+                        "description": "Pedidos obtenidos exitosamente",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Pedido"
-                            }
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "400": {
