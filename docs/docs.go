@@ -2149,7 +2149,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario (cliente), método de pago, si tienen domicilio, etc.",
+                "description": "Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario (cliente), tipo de método de pago, si tienen domicilio, etc.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2187,13 +2187,19 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
+                        "description": "Año para el filtro de mes",
+                        "name": "anio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
                         "description": "ID del cliente (PK_DOCUMENTO_CLIENTE)",
                         "name": "cliente",
                         "in": "query"
                     },
                     {
-                        "type": "integer",
-                        "description": "ID del método de pago (PK_ID_PAGO)",
+                        "type": "string",
+                        "description": "Tipo de método de pago (NEQUI, DAVIPLATA, EFECTIVO)",
                         "name": "metodo_pago",
                         "in": "query"
                     },

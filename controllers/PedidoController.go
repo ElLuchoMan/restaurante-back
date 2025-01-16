@@ -14,7 +14,7 @@ type PedidoController struct {
 
 // @Title GetAll
 // @Summary Obtener pedidos con múltiples filtros
-// @Description Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario (cliente), método de pago, si tienen domicilio, etc.
+// @Description Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario (cliente), tipo de método de pago, si tienen domicilio, etc.
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -22,8 +22,9 @@ type PedidoController struct {
 // @Param desde query string false "Fecha inicial del rango en formato YYYY-MM-DD"
 // @Param hasta query string false "Fecha final del rango en formato YYYY-MM-DD"
 // @Param mes query int false "Mes del año (1-12)"
+// @Param anio query int false "Año para el filtro de mes"
 // @Param cliente query int false "ID del cliente (PK_DOCUMENTO_CLIENTE)"
-// @Param metodo_pago query int false "ID del método de pago (PK_ID_PAGO)"
+// @Param metodo_pago query string false "Tipo de método de pago (NEQUI, DAVIPLATA, EFECTIVO)"
 // @Param domicilio query bool false "Indica si el pedido tiene domicilio (true/false)"
 // @Success 200 {array} models.Pedido "Lista de pedidos filtrados"
 // @Failure 400 {object} models.ApiResponse "Error en los parámetros de filtro"
@@ -38,6 +39,8 @@ func (c *PedidoController) GetAll() {
         SELECT p.* 
         FROM "PEDIDO" p
         LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
+        LEFT JOIN "PAGO" pa ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
+        LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
         WHERE 1 = 1
     `
 
@@ -47,8 +50,9 @@ func (c *PedidoController) GetAll() {
 	desde := c.GetString("desde")
 	hasta := c.GetString("hasta")
 	mes, _ := c.GetInt("mes")
+	anio, _ := c.GetInt("anio")
 	cliente, _ := c.GetInt("cliente")
-	metodoPago, _ := c.GetInt("metodo_pago")
+	metodoPago := c.GetString("metodo_pago")
 	domicilio, errDomicilio := c.GetBool("domicilio")
 
 	// Agregar filtros según los parámetros proporcionados
@@ -65,6 +69,10 @@ func (c *PedidoController) GetAll() {
 	if mes > 0 && mes <= 12 {
 		query += ` AND EXTRACT(MONTH FROM p."FECHA") = ?`
 		params = append(params, mes)
+		if anio > 0 {
+			query += ` AND EXTRACT(YEAR FROM p."FECHA") = ?`
+			params = append(params, anio)
+		}
 	}
 
 	if cliente > 0 {
@@ -72,8 +80,8 @@ func (c *PedidoController) GetAll() {
 		params = append(params, cliente)
 	}
 
-	if metodoPago > 0 {
-		query += ` AND p."PK_ID_PAGO" = ?`
+	if metodoPago != "" {
+		query += ` AND mp."TIPO" ILIKE ?`
 		params = append(params, metodoPago)
 	}
 
