@@ -2449,6 +2449,170 @@ const docTemplate = `{
                 }
             }
         },
+        "/producto_pedido": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve los productos consolidados en un pedido específico",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "producto_pedido"
+                ],
+                "summary": "Obtener los productos de un pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de productos del pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "No se encontraron productos asociados a este pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permite agregar o modificar productos en un pedido consolidado",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "producto_pedido"
+                ],
+                "summary": "Actualizar productos en un pedido consolidado",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido a actualizar",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Lista actualizada de productos",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Productos actualizados exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea un registro de productos consolidados en un pedido",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "producto_pedido"
+                ],
+                "summary": "Crear un pedido con productos consolidados",
+                "parameters": [
+                    {
+                        "description": "Datos del pedido con productos",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductoPedido"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Pedido con productos agregado exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/productos": {
             "get": {
                 "description": "Devuelve todos los productos registrados en la base de datos. Puedes incluir o excluir las imágenes con el parámetro ` + "`" + `includeImage` + "`" + ` y filtrar los productos activos con ` + "`" + `onlyActive` + "`" + `.",
@@ -3703,6 +3867,21 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "PRECIO": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ProductoPedido": {
+            "type": "object",
+            "properties": {
+                "DETALLES_PRODUCTOS": {
+                    "description": "JSONB para consolidar productos",
+                    "type": "string"
+                },
+                "PK_ID_PEDIDO": {
+                    "type": "integer"
+                },
+                "PK_ID_PRODUCTO_PEDIDO": {
                     "type": "integer"
                 }
             }

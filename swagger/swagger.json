@@ -410,6 +410,24 @@
                 }
             }
         },
+        "models.ProductoPedido": {
+            "title": "ProductoPedido",
+            "type": "object",
+            "properties": {
+                "DETALLES_PRODUCTOS": {
+                    "description": "JSONB para consolidar productos",
+                    "type": "string"
+                },
+                "PK_ID_PEDIDO": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PK_ID_PRODUCTO_PEDIDO": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Reserva": {
             "title": "Reserva",
             "type": "object",

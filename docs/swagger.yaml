@@ -221,6 +221,16 @@ definitions:
       PRECIO:
         type: integer
     type: object
+  models.ProductoPedido:
+    properties:
+      DETALLES_PRODUCTOS:
+        description: JSONB para consolidar productos
+        type: string
+      PK_ID_PEDIDO:
+        type: integer
+      PK_ID_PRODUCTO_PEDIDO:
+        type: integer
+    type: object
   models.Reserva:
     properties:
       CREATED_AT:
@@ -1857,6 +1867,111 @@ paths:
       summary: Asignar un pago a un pedido
       tags:
       - pedido
+  /producto_pedido:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve los productos consolidados en un pedido específico
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de productos del pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: No se encontraron productos asociados a este pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener los productos de un pedido
+      tags:
+      - producto_pedido
+    post:
+      consumes:
+      - application/json
+      description: Crea un registro de productos consolidados en un pedido
+      parameters:
+      - description: Datos del pedido con productos
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductoPedido'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Pedido con productos agregado exitosamente
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Datos inválidos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un pedido con productos consolidados
+      tags:
+      - producto_pedido
+    put:
+      consumes:
+      - application/json
+      description: Permite agregar o modificar productos en un pedido consolidado
+      parameters:
+      - description: ID del pedido a actualizar
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      - description: Lista actualizada de productos
+        in: body
+        name: body
+        required: true
+        schema:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Productos actualizados exitosamente
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Datos inválidos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar productos en un pedido consolidado
+      tags:
+      - producto_pedido
   /productos:
     delete:
       consumes:
