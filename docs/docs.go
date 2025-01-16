@@ -2149,7 +2149,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario, método de pago, si tienen domicilio, etc.",
+                "description": "Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario (cliente), método de pago, si tienen domicilio, etc.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2187,8 +2187,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "ID del usuario (PK_DOCUMENTO_CLIENTE)",
-                        "name": "usuario",
+                        "description": "ID del cliente (PK_DOCUMENTO_CLIENTE)",
+                        "name": "cliente",
                         "in": "query"
                     },
                     {

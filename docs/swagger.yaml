@@ -1662,7 +1662,7 @@ paths:
       consumes:
       - application/json
       description: 'Devuelve pedidos filtrados según varios criterios: fecha, rango
-        de fechas, usuario, método de pago, si tienen domicilio, etc.'
+        de fechas, usuario (cliente), método de pago, si tienen domicilio, etc.'
       parameters:
       - description: Fecha específica en formato YYYY-MM-DD
         in: query
@@ -1680,9 +1680,9 @@ paths:
         in: query
         name: mes
         type: integer
-      - description: ID del usuario (PK_DOCUMENTO_CLIENTE)
+      - description: ID del cliente (PK_DOCUMENTO_CLIENTE)
         in: query
-        name: usuario
+        name: cliente
         type: integer
       - description: ID del método de pago (PK_ID_PAGO)
         in: query

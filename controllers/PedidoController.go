@@ -14,7 +14,7 @@ type PedidoController struct {
 
 // @Title GetAll
 // @Summary Obtener pedidos con múltiples filtros
-// @Description Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario, método de pago, si tienen domicilio, etc.
+// @Description Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario (cliente), método de pago, si tienen domicilio, etc.
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -22,7 +22,7 @@ type PedidoController struct {
 // @Param desde query string false "Fecha inicial del rango en formato YYYY-MM-DD"
 // @Param hasta query string false "Fecha final del rango en formato YYYY-MM-DD"
 // @Param mes query int false "Mes del año (1-12)"
-// @Param usuario query int false "ID del usuario (PK_DOCUMENTO_CLIENTE)"
+// @Param cliente query int false "ID del cliente (PK_DOCUMENTO_CLIENTE)"
 // @Param metodo_pago query int false "ID del método de pago (PK_ID_PAGO)"
 // @Param domicilio query bool false "Indica si el pedido tiene domicilio (true/false)"
 // @Success 200 {array} models.Pedido "Lista de pedidos filtrados"
@@ -32,59 +32,68 @@ type PedidoController struct {
 // @Router /pedidos [get]
 func (c *PedidoController) GetAll() {
 	o := orm.NewOrm()
-	qs := o.QueryTable(new(models.Pedido))
 
-	// Obtener parámetros de filtro
+	// Construcción de la consulta SQL
+	query := `
+        SELECT p.* 
+        FROM "PEDIDO" p
+        LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
+        WHERE 1 = 1
+    `
+
+	// Parámetros de filtro
+	params := []interface{}{}
 	fecha := c.GetString("fecha")
 	desde := c.GetString("desde")
 	hasta := c.GetString("hasta")
 	mes, _ := c.GetInt("mes")
-	usuario, _ := c.GetInt("usuario")
+	cliente, _ := c.GetInt("cliente")
 	metodoPago, _ := c.GetInt("metodo_pago")
 	domicilio, errDomicilio := c.GetBool("domicilio")
 
-	// Filtrar por fecha específica
+	// Agregar filtros según los parámetros proporcionados
 	if fecha != "" {
-		qs = qs.Filter("FECHA", fecha)
+		query += ` AND p."FECHA" = ?`
+		params = append(params, fecha)
 	}
 
-	// Filtrar por rango de fechas
 	if desde != "" && hasta != "" {
-		qs = qs.Filter("FECHA__gte", desde).Filter("FECHA__lte", hasta)
+		query += ` AND p."FECHA" BETWEEN ? AND ?`
+		params = append(params, desde, hasta)
 	}
 
-	// Filtrar por mes
 	if mes > 0 && mes <= 12 {
-		qs = qs.Filter("FECHA__month", mes)
+		query += ` AND EXTRACT(MONTH FROM p."FECHA") = ?`
+		params = append(params, mes)
 	}
 
-	// Filtrar por usuario
-	if usuario > 0 {
-		qs = qs.Filter("PK_DOCUMENTO_CLIENTE", usuario)
+	if cliente > 0 {
+		query += ` AND pc."PK_DOCUMENTO_CLIENTE" = ?`
+		params = append(params, cliente)
 	}
 
-	// Filtrar por método de pago
 	if metodoPago > 0 {
-		qs = qs.Filter("PK_ID_PAGO", metodoPago)
+		query += ` AND p."PK_ID_PAGO" = ?`
+		params = append(params, metodoPago)
 	}
 
-	// Filtrar por domicilio
 	if errDomicilio == nil {
 		if domicilio {
-			qs = qs.Filter("PK_ID_DOMICILIO__isnull", false)
+			query += ` AND p."PK_ID_DOMICILIO" IS NOT NULL`
 		} else {
-			qs = qs.Filter("PK_ID_DOMICILIO__isnull", true)
+			query += ` AND p."PK_ID_DOMICILIO" IS NULL`
 		}
 	}
 
-	// Obtener resultados
+	// Ejecutar la consulta y obtener los resultados
 	var pedidos []models.Pedido
-	_, err := qs.All(&pedidos)
+	_, err := o.Raw(query, params...).QueryRows(&pedidos)
 	if err != nil {
-		c.CustomAbort(500, "Error al obtener los pedidos")
+		c.CustomAbort(500, "Error al obtener los pedidos: "+err.Error())
 		return
 	}
 
+	// Responder con los pedidos obtenidos
 	c.Data["json"] = map[string]interface{}{
 		"message": "Pedidos obtenidos exitosamente",
 		"pedidos": pedidos,
