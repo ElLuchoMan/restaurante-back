@@ -1559,7 +1559,7 @@ paths:
       consumes:
       - application/json
       description: Crea una nueva relación entre un pedido y un cliente después de
-        validar su existencia.
+        validar su existencia y evitar duplicados.
       parameters:
       - description: Datos de la relación a crear
         in: body
@@ -1573,7 +1573,7 @@ paths:
         "201":
           description: Relación creada
           schema:
-            $ref: '#/definitions/models.PedidoCliente'
+            $ref: '#/definitions/models.ApiResponse'
         "400":
           description: Datos inválidos o relación ya existente
           schema:

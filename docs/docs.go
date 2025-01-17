@@ -1970,7 +1970,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una nueva relación entre un pedido y un cliente después de validar su existencia.",
+                "description": "Crea una nueva relación entre un pedido y un cliente después de validar su existencia y evitar duplicados.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1996,7 +1996,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Relación creada",
                         "schema": {
-                            "$ref": "#/definitions/models.PedidoCliente"
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "400": {
