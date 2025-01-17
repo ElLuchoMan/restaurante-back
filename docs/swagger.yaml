@@ -1533,32 +1533,6 @@ paths:
       tags:
       - pagos
   /pedido_clientes:
-    delete:
-      consumes:
-      - application/json
-      description: Elimina una relación de la base de datos.
-      parameters:
-      - description: ID de la Relación
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Relación eliminada
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-        "404":
-          description: Relación no encontrada
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Eliminar una relación pedido-cliente
-      tags:
-      - pedido_clientes
     get:
       consumes:
       - application/json
@@ -1573,7 +1547,7 @@ paths:
               $ref: '#/definitions/models.PedidoCliente'
             type: array
         "500":
-          description: Error en la base de datos
+          description: Error interno del servidor
           schema:
             $ref: '#/definitions/models.ApiResponse'
       security:
@@ -1584,7 +1558,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea una nueva relación entre un pedido y un cliente.
+      description: Crea una nueva relación entre un pedido y un cliente después de
+        validar su existencia.
       parameters:
       - description: Datos de la relación a crear
         in: body
@@ -1600,71 +1575,20 @@ paths:
           schema:
             $ref: '#/definitions/models.PedidoCliente'
         "400":
-          description: Error en la solicitud
+          description: Datos inválidos o relación ya existente
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Cliente o pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
           schema:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
       summary: Crear una nueva relación pedido-cliente
-      tags:
-      - pedido_clientes
-    put:
-      consumes:
-      - application/json
-      description: Actualiza los datos de una relación existente.
-      parameters:
-      - description: ID de la Relación
-        in: query
-        name: id
-        required: true
-        type: integer
-      - description: Datos de la relación a actualizar
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.PedidoCliente'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Relación actualizada
-          schema:
-            $ref: '#/definitions/models.PedidoCliente'
-        "404":
-          description: Relación no encontrada
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Actualizar una relación pedido-cliente
-      tags:
-      - pedido_clientes
-  /pedido_clientes/search:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve una relación específica por ID.
-      parameters:
-      - description: ID de la Relación
-        in: query
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Relación encontrada
-          schema:
-            $ref: '#/definitions/models.PedidoCliente'
-        "404":
-          description: Relación no encontrada
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Obtener relación por ID
       tags:
       - pedido_clientes
   /pedidos:

@@ -1957,57 +1957,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Error en la base de datos",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Actualiza los datos de una relación existente.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "pedido_clientes"
-                ],
-                "summary": "Actualizar una relación pedido-cliente",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID de la Relación",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "description": "Datos de la relación a actualizar",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.PedidoCliente"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Relación actualizada",
-                        "schema": {
-                            "$ref": "#/definitions/models.PedidoCliente"
-                        }
-                    },
-                    "404": {
-                        "description": "Relación no encontrada",
+                        "description": "Error interno del servidor",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2020,7 +1970,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una nueva relación entre un pedido y un cliente.",
+                "description": "Crea una nueva relación entre un pedido y un cliente después de validar su existencia.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2050,91 +2000,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Elimina una relación de la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "pedido_clientes"
-                ],
-                "summary": "Eliminar una relación pedido-cliente",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID de la Relación",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Relación eliminada",
+                        "description": "Datos inválidos o relación ya existente",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Relación no encontrada",
+                        "description": "Cliente o pedido no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
-                    }
-                }
-            }
-        },
-        "/pedido_clientes/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve una relación específica por ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "pedido_clientes"
-                ],
-                "summary": "Obtener relación por ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID de la Relación",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Relación encontrada",
-                        "schema": {
-                            "$ref": "#/definitions/models.PedidoCliente"
-                        }
                     },
-                    "404": {
-                        "description": "Relación no encontrada",
+                    "500": {
+                        "description": "Error interno del servidor",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
