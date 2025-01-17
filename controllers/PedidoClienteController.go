@@ -39,6 +39,7 @@ func (c *PedidoClienteController) GetAll() {
 		return
 	}
 
+	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Relaciones obtenidas exitosamente",
@@ -49,7 +50,7 @@ func (c *PedidoClienteController) GetAll() {
 
 // @Title Post
 // @Summary Crear una nueva relación pedido-cliente
-// @Description Crea una nueva relación entre un pedido y un cliente después de validar su existencia.
+// @Description Crea una nueva relación entre un pedido y un cliente después de validar su existencia y que el pedido no esté ya asociado a otro cliente.
 // @Tags pedido_clientes
 // @Accept json
 // @Produce json
@@ -57,6 +58,7 @@ func (c *PedidoClienteController) GetAll() {
 // @Success 201 {object} models.PedidoCliente "Relación creada"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos o relación ya existente"
 // @Failure 404 {object} models.ApiResponse "Cliente o pedido no encontrado"
+// @Failure 409 {object} models.ApiResponse "El pedido ya está asociado a otro cliente"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /pedido_clientes [post]
@@ -93,6 +95,29 @@ func (c *PedidoClienteController) Post() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Pedido no encontrado",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Verificar si el pedido ya está asociado a otro cliente
+	existingRelacion := models.PedidoCliente{}
+	err := o.QueryTable(new(models.PedidoCliente)).
+		Filter("PK_ID_PEDIDO", relacion.PK_ID_PEDIDO).
+		One(&existingRelacion)
+	if err == nil {
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusConflict,
+			Message: "El pedido ya está asociado a otro cliente",
+		}
+		c.ServeJSON()
+		return
+	} else if err != orm.ErrNoRows {
+		// Error distinto a "sin resultados"
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al validar la relación existente",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
