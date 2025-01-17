@@ -1867,6 +1867,41 @@ paths:
       summary: Asignar un pago a un pedido
       tags:
       - pedido
+  /pedidos/detalles:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve la información del pedido, tipo de pago y los productos
+        asociados.
+      parameters:
+      - description: ID del pedido (filtrar por pedido específico)
+        in: query
+        name: pedido_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Detalles del pedido obtenidos exitosamente
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Error en los parámetros de filtro
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al obtener los detalles del pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener detalles completos de un pedido
+      tags:
+      - pedido
   /producto_pedido:
     get:
       consumes:

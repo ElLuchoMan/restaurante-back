@@ -30,6 +30,7 @@ func init() {
 			beego.NSRouter("/asignar-domicilio", &controllers.PedidoController{}, "post:AssignDomicilio"),
 			beego.NSRouter("/asignar-pago", &controllers.PedidoController{}, "post:AssignPago"),
 			beego.NSRouter("/actualizar-estado", &controllers.PedidoController{}, "put:UpdateEstadoPedido"),
+			beego.NSRouter("/detalles", &controllers.PedidoController{}, "get:GetPedidoDetails"),
 		),
 
 		// Rutas para domicilios

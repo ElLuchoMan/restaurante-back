@@ -2442,6 +2442,60 @@
                 }
             }
         },
+        "/pedidos/detalles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve la información del pedido, tipo de pago y los productos asociados.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido"
+                ],
+                "summary": "Obtener detalles completos de un pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido (filtrar por pedido específico)",
+                        "name": "pedido_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalles del pedido obtenidos exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Error en los parámetros de filtro",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al obtener los detalles del pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/producto_pedido": {
             "get": {
                 "security": [

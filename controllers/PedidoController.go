@@ -369,3 +369,81 @@ func (c *PedidoController) UpdateEstadoPedido() {
 	}
 	c.ServeJSON()
 }
+
+// @Title GetPedidoDetails
+// @Summary Obtener detalles completos de un pedido
+// @Description Devuelve la información del pedido, tipo de pago y los productos asociados.
+// @Tags pedido
+// @Accept json
+// @Produce json
+// @Param pedido_id query int false "ID del pedido (filtrar por pedido específico)"
+// @Success 200 {object} models.ApiResponse "Detalles del pedido obtenidos exitosamente"
+// @Failure 400 {object} models.ApiResponse "Error en los parámetros de filtro"
+// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error al obtener los detalles del pedido"
+// @Security BearerAuth
+// @Router /pedidos/detalles [get]
+func (c *PedidoController) GetPedidoDetails() {
+	o := orm.NewOrm()
+
+	// Parámetro
+	pedidoID, _ := c.GetInt64("pedido_id")
+	if pedidoID == 0 {
+		c.Data["json"] = models.ApiResponse{
+			Code:    400,
+			Message: "El parámetro 'pedido_id' es obligatorio.",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Consulta para obtener detalles del pedido
+	query := `
+        SELECT 
+            p."PK_ID_PEDIDO",
+            p."FECHA",
+            p."HORA",
+            p."DELIVERY",
+            p."ESTADO_PEDIDO",
+            mp."TIPO" AS metodo_pago,
+            COALESCE((SELECT jsonb_agg(elementos)::text FROM (
+                SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
+                FROM "PRODUCTO_PEDIDO" pp
+                WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+            ) subquery), '[]') AS productos
+        FROM "PEDIDO" p
+        LEFT JOIN "PAGO" pa ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
+        LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
+        WHERE p."PK_ID_PEDIDO" = ?;
+    `
+
+	var details struct {
+		PKIDPedido   int64  `json:"PK_ID_PEDIDO"`
+		Fecha        string `json:"FECHA"`
+		Hora         string `json:"HORA"`
+		Delivery     bool   `json:"DELIVERY"`
+		EstadoPedido string `json:"ESTADO_PEDIDO"`
+		MetodoPago   string `json:"METODO_PAGO"`
+		Productos    string `json:"PRODUCTOS"`
+	}
+
+	// Ejecutar consulta
+	err := o.Raw(query, pedidoID).QueryRow(&details)
+	if err != nil {
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al obtener los detalles del pedido",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Respuesta exitosa
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Detalles del pedido obtenidos exitosamente",
+		Data:    details,
+	}
+	c.ServeJSON()
+}
