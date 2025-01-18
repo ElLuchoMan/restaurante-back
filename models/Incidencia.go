@@ -30,7 +30,7 @@ func (t Incidencia) MarshalJSON() ([]byte, error) {
 		FECHA string `json:"FECHA"`
 		Alias
 	}{
-		FECHA: t.FECHA.Format("2006-01-02"),
+		FECHA: t.FECHA.Format("02-01-2006"),
 		Alias: (Alias)(t),
 	})
 }
