@@ -19,11 +19,6 @@ const docTemplate = `{
     "paths": {
         "/cambios_horario": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Obtiene un listado de todos los cambios de horario registrados en la base de datos",
                 "consumes": [
                     "application/json"
@@ -55,11 +50,6 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Actualiza los datos de un cambio de horario existente.",
                 "consumes": [
                     "application/json"
@@ -118,11 +108,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Crea un nuevo cambio de horario en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -168,11 +153,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Elimina un cambio de horario de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -217,11 +197,6 @@ const docTemplate = `{
         },
         "/cambios_horario/actual": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Obtiene el cambio de horario que aplica para la fecha actual, si existe.",
                 "consumes": [
                     "application/json"
@@ -3017,11 +2992,6 @@ const docTemplate = `{
         },
         "/restaurantes": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Devuelve todos los restaurantes registrados en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -3052,11 +3022,6 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Actualiza los datos de un restaurante existente.",
                 "consumes": [
                     "application/json"
@@ -3102,11 +3067,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Crea un nuevo restaurante en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -3145,11 +3105,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Elimina un restaurante de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -3185,11 +3140,6 @@ const docTemplate = `{
         },
         "/restaurantes/search": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Devuelve un restaurante específico por ID utilizando query parameters.",
                 "consumes": [
                     "application/json"

@@ -19,7 +19,6 @@ func init() {
 		),
 		// Rutas para restaurantes
 		beego.NSNamespace("/restaurantes",
-			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.RestauranteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.RestauranteController{}, "get:GetById"),
 		),
@@ -79,7 +78,6 @@ func init() {
 		),
 		// Rutas para cambios_horario
 		beego.NSNamespace("/cambios_horario",
-			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.CambiosHorarioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/actual", &controllers.CambiosHorarioController{}, "get:GetByCurrentDate"),
 		),

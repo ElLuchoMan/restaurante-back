@@ -327,8 +327,6 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Eliminar un cambio de horario
       tags:
       - cambios_horario
@@ -351,8 +349,6 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Obtener todos los cambios de horario
       tags:
       - cambios_horario
@@ -383,8 +379,6 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Crear un nuevo cambio de horario
       tags:
       - cambios_horario
@@ -424,8 +418,6 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Actualizar un cambio de horario
       tags:
       - cambios_horario
@@ -451,8 +443,6 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Consultar cambios de horario para la fecha actual
       tags:
       - cambios_horario
@@ -2271,8 +2261,6 @@ paths:
           description: Restaurante no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Eliminar un restaurante
       tags:
       - restaurantes
@@ -2293,8 +2281,6 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Obtener todos los restaurantes
       tags:
       - restaurantes
@@ -2320,8 +2306,6 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Crear un nuevo restaurante
       tags:
       - restaurantes
@@ -2352,8 +2336,6 @@ paths:
           description: Restaurante no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Actualizar un restaurante
       tags:
       - restaurantes
@@ -2379,8 +2361,6 @@ paths:
           description: Restaurante no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
       summary: Obtener restaurante por ID
       tags:
       - restaurantes
