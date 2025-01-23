@@ -37,24 +37,24 @@
             "title": "CambiosHorario",
             "type": "object",
             "properties": {
-                "ABIERTO": {
+                "abierto": {
                     "type": "boolean"
                 },
-                "FECHA": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "HORA_APERTURA": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "HORA_CIERRE": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "PK_ID_CAMBIO_HORARIO": {
+                "cambioHorarioId": {
                     "type": "integer",
                     "format": "int64"
+                },
+                "fechaCambioHorario": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "horaCierre": {
+                    "type": "string",
+                    "format": "datetime"
                 }
             }
         },
@@ -62,26 +62,26 @@
             "title": "Cliente",
             "type": "object",
             "properties": {
-                "APELLIDO": {
+                "apellido": {
                     "type": "string"
                 },
-                "DIRECCION": {
+                "direccion": {
                     "type": "string"
                 },
-                "NOMBRE": {
-                    "type": "string"
-                },
-                "OBSERVACIONES": {
-                    "type": "string"
-                },
-                "PASSWORD": {
-                    "type": "string"
-                },
-                "PK_DOCUMENTO_CLIENTE": {
+                "documentoCliente": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "TELEFONO": {
+                "nombre": {
+                    "type": "string"
+                },
+                "observciones": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "telefono": {
                     "type": "string"
                 }
             }
@@ -90,41 +90,41 @@
             "title": "Domicilio",
             "type": "object",
             "properties": {
-                "CREATED_AT": {
+                "createdAt": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "CREATED_BY": {
+                "createdBy": {
                     "type": "string"
                 },
-                "DIRECCION": {
+                "direccion": {
                     "type": "string"
                 },
-                "ENTREGADO": {
-                    "type": "boolean"
-                },
-                "ESTADO_PAGO": {
-                    "type": "string"
-                },
-                "FECHA": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "OBSERVACIONES": {
-                    "type": "string"
-                },
-                "PK_ID_DOMICILIO": {
+                "domicilioId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "TELEFONO": {
+                "entregado": {
+                    "type": "boolean"
+                },
+                "estadoPago": {
                     "type": "string"
                 },
-                "UPDATED_AT": {
+                "fechaDomicilio": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "UPDATED_BY": {
+                "observaciones": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "updatedBy": {
                     "type": "string"
                 }
             }
@@ -133,26 +133,26 @@
             "title": "Incidencia",
             "type": "object",
             "properties": {
-                "FECHA": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "fechaIncidencia": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "MONTO": {
+                "incidenciaId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "MOTIVO": {
+                "monto": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "motivo": {
                     "type": "string"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PK_ID_INCIDENCIA": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "RESTA": {
+                "resta": {
                     "type": "boolean"
                 }
             }
@@ -174,14 +174,14 @@
             "title": "MetodoPago",
             "type": "object",
             "properties": {
-                "DETALLE": {
+                "detalle": {
                     "type": "string"
                 },
-                "PK_ID_METODO_PAGO": {
+                "metodoPagoId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "TIPO": {
+                "tipo": {
                     "type": "string"
                 }
             }
@@ -190,18 +190,18 @@
             "title": "Nomina",
             "type": "object",
             "properties": {
-                "ESTADO_NOMINA": {
+                "estadoNomina": {
                     "type": "string"
                 },
-                "FECHA": {
+                "fechaNomina": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "MONTO": {
+                "monto": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_NOMINA": {
+                "nominaId": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -289,33 +289,33 @@
             "title": "Pago",
             "type": "object",
             "properties": {
-                "ESTADO_PAGO": {
+                "estadoPago": {
                     "type": "string"
                 },
-                "FECHA": {
+                "fechaPago": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "HORA": {
+                "horaPago": {
                     "type": "string"
                 },
-                "MONTO": {
+                "metodoPagoId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_METODO_PAGO": {
+                "monto": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_PAGO": {
+                "pagoId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "UPDATED_AT": {
+                "updatedAt": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "UPDATED_BY": {
+                "updatedBy": {
                     "type": "string"
                 }
             }
@@ -324,36 +324,40 @@
             "title": "Pedido",
             "type": "object",
             "properties": {
-                "DELIVERY": {
+                "delivery": {
                     "type": "boolean"
                 },
-                "ESTADO_PEDIDO": {
+                "domicilioId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "estadoPedido": {
                     "type": "string"
                 },
-                "FECHA": {
+                "fechaPedido": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "HORA": {
+                "horaPedido": {
                     "type": "string"
                 },
-                "PK_ID_DOMICILIO": {
+                "pagoId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_PAGO": {
+                "pedidoId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_RESTAURANTE": {
+                "restauranteId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "UPDATED_AT": {
+                "updatedAt": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "UPDATED_BY": {
+                "updatedBy": {
                     "type": "string"
                 }
             }
@@ -362,15 +366,15 @@
             "title": "PedidoCliente",
             "type": "object",
             "properties": {
-                "PK_DOCUMENTO_CLIENTE": {
+                "documentoCliente": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_PEDIDO": {
+                "pedidoClienteId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_PEDIDO_CLIENTE": {
+                "pedidoId": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -380,33 +384,39 @@
             "title": "Producto",
             "type": "object",
             "properties": {
-                "CALORIAS": {
+                "calorias": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "CANTIDAD": {
+                "cantidad": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "DESCRIPCION": {
+                "categoria": {
                     "type": "string"
                 },
-                "ESTADO_PRODUCTO": {
+                "descripcion": {
                     "type": "string"
                 },
-                "IMAGEN": {
+                "estadoProducto": {
                     "type": "string"
                 },
-                "NOMBRE": {
+                "imagen": {
                     "type": "string"
                 },
-                "PK_ID_PRODUCTO": {
+                "nombre": {
+                    "type": "string"
+                },
+                "precio": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PRECIO": {
+                "productoId": {
                     "type": "integer",
                     "format": "int64"
+                },
+                "subcategoria": {
+                    "type": "string"
                 }
             }
         },
@@ -414,15 +424,14 @@
             "title": "ProductoPedido",
             "type": "object",
             "properties": {
-                "DETALLES_PRODUCTOS": {
-                    "description": "JSONB para consolidar productos",
+                "detallesProductos": {
                     "type": "string"
                 },
-                "PK_ID_PEDIDO": {
+                "pedidoId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_PRODUCTO_PEDIDO": {
+                "productoPedidoId": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -432,39 +441,49 @@
             "title": "Reserva",
             "type": "object",
             "properties": {
-                "CREATED_AT": {
+                "createdAt": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "CREATED_BY": {
+                "createdBy": {
                     "type": "string"
                 },
-                "ESTADO_RESERVA": {
-                    "type": "string"
-                },
-                "FECHA": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "HORA": {
-                    "type": "string"
-                },
-                "INDICACIONES": {
-                    "type": "string"
-                },
-                "PERSONAS": {
+                "documentoCliente": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_RESERVA": {
-                    "type": "integer",
-                    "format": "int64"
+                "estadoReserva": {
+                    "type": "string"
                 },
-                "UPDATED_AT": {
+                "fechaReserva": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "UPDATED_BY": {
+                "horaReserva": {
+                    "type": "string"
+                },
+                "indicaciones": {
+                    "type": "string"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "personas": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "reservaId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "telefono": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "updatedBy": {
                     "type": "string"
                 }
             }
@@ -473,16 +492,16 @@
             "title": "Restaurante",
             "type": "object",
             "properties": {
-                "HORA_APERTURA": {
+                "diasLaborales": {
                     "type": "string"
                 },
-                "dias_laborales": {
+                "horaApertura": {
                     "type": "string"
                 },
-                "nombre_restaurante": {
+                "nombreRestaurante": {
                     "type": "string"
                 },
-                "pk_id_restaurante": {
+                "restauranteId": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -492,49 +511,49 @@
             "title": "Trabajador",
             "type": "object",
             "properties": {
-                "APELLIDO": {
+                "apellido": {
                     "type": "string"
                 },
-                "FECHA_INGRESO": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "fechaIngreso": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "FECHA_NACIMIENTO": {
+                "fechaNacimiento": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "FECHA_RETIRO": {
+                "fechaRetiro": {
                     "type": "string",
                     "format": "datetime"
                 },
-                "HORARIO": {
+                "horario": {
                     "type": "string"
                 },
-                "NOMBRE": {
+                "nombre": {
                     "type": "string"
                 },
-                "NUEVO": {
+                "nuevo": {
                     "type": "boolean"
                 },
-                "PASSWORD": {
+                "password": {
                     "type": "string"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
+                "restauranteId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_RESTAURANTE": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "ROL": {
+                "rol": {
                     "type": "string"
                 },
-                "SUELDO": {
+                "sueldo": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "TELEFONO": {
+                "telefono": {
                     "type": "string"
                 }
             }

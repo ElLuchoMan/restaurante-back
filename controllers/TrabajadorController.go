@@ -94,14 +94,14 @@ func (c *TrabajadorController) GetAll() {
 	for i := range trabajadores {
 		trabajadores[i].PASSWORD = "" // Excluir contraseña
 		if trabajadores[i].FECHA_RETIRO != nil {
-			fechaRetiroUTC := trabajadores[i].FECHA_RETIRO.UTC()
+			fechaRetiroUTC := trabajadores[i].FECHA_RETIRO.In(database.BogotaZone)
 			trabajadores[i].FECHA_RETIRO = &fechaRetiroUTC // UTC sin ajuste
 		}
 		if trabajadores[i].FECHA_NACIMIENTO != nil {
-			fechaNacimientoUTC := trabajadores[i].FECHA_NACIMIENTO.UTC()
+			fechaNacimientoUTC := trabajadores[i].FECHA_NACIMIENTO.In(database.BogotaZone)
 			trabajadores[i].FECHA_NACIMIENTO = &fechaNacimientoUTC // UTC sin ajuste
 		}
-		trabajadores[i].FECHA_INGRESO = trabajadores[i].FECHA_INGRESO.UTC() // UTC sin ajuste
+		trabajadores[i].FECHA_INGRESO = trabajadores[i].FECHA_INGRESO.In(database.BogotaZone)
 	}
 
 	// Si no hay resultados

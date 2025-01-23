@@ -40,19 +40,23 @@ func (c *CambiosHorarioController) GetAll() {
 		return
 	}
 
-	// Preparar respuesta con horas formateadas
+	// Preparar respuesta con transformación
 	var response []map[string]interface{}
 	for _, horario := range horarios {
 		h := map[string]interface{}{
-			"PK_ID_CAMBIO_HORARIO": horario.PK_ID_CAMBIO_HORARIO,
-			"FECHA":                horario.FECHA.Format("2006-01-02"),
-			"ABIERTO":              horario.ABIERTO,
+			"cambioHorarioId":    horario.PK_ID_CAMBIO_HORARIO,
+			"fechaCambioHorario": horario.FECHA.Format("2006-01-02"),
+			"abierto":            horario.ABIERTO,
 		}
 		if horario.HORA_APERTURA != nil {
-			h["HORA_APERTURA"] = horario.HORA_APERTURA.Format("15:04:05")
+			h["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
+		} else {
+			h["horaApertura"] = nil
 		}
 		if horario.HORA_CIERRE != nil {
-			h["HORA_CIERRE"] = horario.HORA_CIERRE.Format("15:04:05")
+			h["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
+		} else {
+			h["horaCierre"] = nil
 		}
 		response = append(response, h)
 	}
@@ -108,15 +112,15 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 
 	// Preparar la respuesta con horas formateadas
 	response := map[string]interface{}{
-		"PK_ID_CAMBIO_HORARIO": cambioHorario.PK_ID_CAMBIO_HORARIO,
-		"FECHA":                cambioHorario.FECHA.Format("2006-01-02"),
-		"ABIERTO":              cambioHorario.ABIERTO,
+		"cambioHorarioId":    cambioHorario.PK_ID_CAMBIO_HORARIO,
+		"fechaCambioHorario": cambioHorario.FECHA.Format("2006-01-02"),
+		"abierto":            cambioHorario.ABIERTO,
 	}
 	if cambioHorario.HORA_APERTURA != nil {
-		response["HORA_APERTURA"] = cambioHorario.HORA_APERTURA.Format("15:04:05")
+		response["horaApertura"] = cambioHorario.HORA_APERTURA.Format("15:04:05")
 	}
 	if cambioHorario.HORA_CIERRE != nil {
-		response["HORA_CIERRE"] = cambioHorario.HORA_CIERRE.Format("15:04:05")
+		response["horaCierre"] = cambioHorario.HORA_CIERRE.Format("15:04:05")
 	}
 
 	// Respuesta con el cambio de horario encontrado
@@ -158,7 +162,7 @@ func (c *CambiosHorarioController) Post() {
 	}
 
 	// Validar y procesar FECHA
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
+	if fechaStr, ok := input["fechaCambioHorario"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -182,7 +186,7 @@ func (c *CambiosHorarioController) Post() {
 	}
 
 	// Validar ABIERTO
-	if abierto, ok := input["ABIERTO"].(bool); ok {
+	if abierto, ok := input["abierto"].(bool); ok {
 		horario.ABIERTO = abierto
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -203,7 +207,7 @@ func (c *CambiosHorarioController) Post() {
 		horario.HORA_CIERRE = &horaCierre
 	} else {
 		// Validar y procesar HORA_APERTURA (opcional)
-		if horaAperturaStr, ok := input["HORA_APERTURA"].(string); ok && horaAperturaStr != "" {
+		if horaAperturaStr, ok := input["horaApertura"].(string); ok && horaAperturaStr != "" {
 			parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
 			if err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -227,7 +231,7 @@ func (c *CambiosHorarioController) Post() {
 		}
 
 		// Validar y procesar HORA_CIERRE
-		if horaCierreStr, ok := input["HORA_CIERRE"].(string); ok && horaCierreStr != "" {
+		if horaCierreStr, ok := input["horaCierre"].(string); ok && horaCierreStr != "" {
 			parsedHora, err := time.Parse("15:04:05", horaCierreStr)
 			if err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -266,15 +270,15 @@ func (c *CambiosHorarioController) Post() {
 
 	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
-		"PK_ID_CAMBIO_HORARIO": horario.PK_ID_CAMBIO_HORARIO,
-		"FECHA":                horario.FECHA.Format("2006-01-02"),
-		"ABIERTO":              horario.ABIERTO,
+		"cambioHorarioId":    horario.PK_ID_CAMBIO_HORARIO,
+		"fechaCambioHorario": horario.FECHA.Format("2006-01-02"),
+		"abierto":            horario.ABIERTO,
 	}
 	if horario.HORA_APERTURA != nil {
-		response["HORA_APERTURA"] = horario.HORA_APERTURA.Format("15:04:05")
+		response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
 	}
 	if horario.HORA_CIERRE != nil {
-		response["HORA_CIERRE"] = horario.HORA_CIERRE.Format("15:04:05")
+		response["horaApertura"] = horario.HORA_CIERRE.Format("15:04:05")
 	}
 
 	// Responder con éxito
@@ -327,7 +331,7 @@ func (c *CambiosHorarioController) Put() {
 
 	// Buscar el cambio de horario por ID
 	var horario models.CambiosHorario
-	if err := o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).One(&horario); err == orm.ErrNoRows {
+	if err := o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).One(&horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -347,7 +351,7 @@ func (c *CambiosHorarioController) Put() {
 	}
 
 	// Validar y actualizar campos
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
+	if fechaStr, ok := input["fechaCambioHorario"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -362,7 +366,7 @@ func (c *CambiosHorarioController) Put() {
 		horario.FECHA = parsedDate
 	}
 
-	if abierto, ok := input["ABIERTO"].(bool); ok {
+	if abierto, ok := input["abierto"].(bool); ok {
 		horario.ABIERTO = abierto
 		if !abierto {
 			horaApertura, _ := time.Parse("15:04:05", "00:00:00")
@@ -373,7 +377,7 @@ func (c *CambiosHorarioController) Put() {
 	}
 
 	if horario.ABIERTO {
-		if horaAperturaStr, ok := input["HORA_APERTURA"].(string); ok && horaAperturaStr != "" {
+		if horaAperturaStr, ok := input["horaApertura"].(string); ok && horaAperturaStr != "" {
 			parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
 			if err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -388,7 +392,7 @@ func (c *CambiosHorarioController) Put() {
 			horario.HORA_APERTURA = &parsedHora
 		}
 
-		if horaCierreStr, ok := input["HORA_CIERRE"].(string); ok && horaCierreStr != "" {
+		if horaCierreStr, ok := input["horaCierre"].(string); ok && horaCierreStr != "" {
 			parsedHora, err := time.Parse("15:04:05", horaCierreStr)
 			if err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -418,15 +422,15 @@ func (c *CambiosHorarioController) Put() {
 
 	// Preparar la respuesta
 	response := map[string]interface{}{
-		"PK_ID_CAMBIO_HORARIO": horario.PK_ID_CAMBIO_HORARIO,
-		"FECHA":                horario.FECHA.Format("2006-01-02"),
-		"ABIERTO":              horario.ABIERTO,
+		"cambioHorarioId": horario.PK_ID_CAMBIO_HORARIO,
+		"fecha":           horario.FECHA.Format("2006-01-02"),
+		"abierto":         horario.ABIERTO,
 	}
 	if horario.HORA_APERTURA != nil {
-		response["HORA_APERTURA"] = horario.HORA_APERTURA.Format("15:04:05")
+		response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
 	}
 	if horario.HORA_CIERRE != nil {
-		response["HORA_CIERRE"] = horario.HORA_CIERRE.Format("15:04:05")
+		response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
 	}
 
 	// Responder con éxito
@@ -465,7 +469,7 @@ func (c *CambiosHorarioController) Delete() {
 
 	// Eliminar el cambio de horario
 	if num, err := o.QueryTable(new(models.CambiosHorario)).
-		Filter("PK_ID_CAMBIO_HORARIO", id).
+		Filter("cambioHorarioId", id).
 		Delete(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{

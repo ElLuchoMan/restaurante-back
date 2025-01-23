@@ -2522,7 +2522,7 @@ const docTemplate = `{
         },
         "/productos": {
             "get": {
-                "description": "Devuelve todos los productos registrados en la base de datos. Puedes incluir o excluir las imágenes con el parámetro ` + "`" + `includeImage` + "`" + ` y filtrar los productos activos con ` + "`" + `onlyActive` + "`" + `.",
+                "description": "Devuelve productos registrados con filtros opcionales para categoría, subcategoría, imágenes y disponibilidad.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2532,7 +2532,7 @@ const docTemplate = `{
                 "tags": [
                     "productos"
                 ],
-                "summary": "Obtener productos",
+                "summary": "Obtener productos con filtros",
                 "parameters": [
                     {
                         "type": "boolean",
@@ -2544,6 +2544,18 @@ const docTemplate = `{
                         "type": "boolean",
                         "description": "Filtrar solo productos disponibles (true o false, por defecto es false)",
                         "name": "onlyActive",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar productos por categoría",
+                        "name": "categoria",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar productos por subcategoría",
+                        "name": "subcategoria",
                         "in": "query"
                     }
                 ],
@@ -2647,7 +2659,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Crea un nuevo producto en la base de datos, incluyendo una imagen en formato Base64.",
+                "description": "Crea un nuevo producto en la base de datos.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2702,6 +2714,19 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Cantidad del producto",
                         "name": "CANTIDAD",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Categoría del producto",
+                        "name": "CATEGORIA",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Subcategoría del producto",
+                        "name": "SUBCATEGORIA",
                         "in": "formData"
                     }
                 ],
@@ -3436,45 +3461,45 @@ const docTemplate = `{
         "models.CambiosHorario": {
             "type": "object",
             "properties": {
-                "ABIERTO": {
+                "abierto": {
                     "type": "boolean"
                 },
-                "FECHA": {
-                    "type": "string"
-                },
-                "HORA_APERTURA": {
-                    "type": "string"
-                },
-                "HORA_CIERRE": {
-                    "type": "string"
-                },
-                "PK_ID_CAMBIO_HORARIO": {
+                "cambioHorarioId": {
                     "type": "integer"
+                },
+                "fechaCambioHorario": {
+                    "type": "string"
+                },
+                "horaApertura": {
+                    "type": "string"
+                },
+                "horaCierre": {
+                    "type": "string"
                 }
             }
         },
         "models.Cliente": {
             "type": "object",
             "properties": {
-                "APELLIDO": {
+                "apellido": {
                     "type": "string"
                 },
-                "DIRECCION": {
+                "direccion": {
                     "type": "string"
                 },
-                "NOMBRE": {
-                    "type": "string"
-                },
-                "OBSERVACIONES": {
-                    "type": "string"
-                },
-                "PASSWORD": {
-                    "type": "string"
-                },
-                "PK_DOCUMENTO_CLIENTE": {
+                "documentoCliente": {
                     "type": "integer"
                 },
-                "TELEFONO": {
+                "nombre": {
+                    "type": "string"
+                },
+                "observciones": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "telefono": {
                     "type": "string"
                 }
             }
@@ -3482,37 +3507,37 @@ const docTemplate = `{
         "models.Domicilio": {
             "type": "object",
             "properties": {
-                "CREATED_AT": {
+                "createdAt": {
                     "type": "string"
                 },
-                "CREATED_BY": {
+                "createdBy": {
                     "type": "string"
                 },
-                "DIRECCION": {
+                "direccion": {
                     "type": "string"
                 },
-                "ENTREGADO": {
-                    "type": "boolean"
-                },
-                "ESTADO_PAGO": {
-                    "type": "string"
-                },
-                "FECHA": {
-                    "type": "string"
-                },
-                "OBSERVACIONES": {
-                    "type": "string"
-                },
-                "PK_ID_DOMICILIO": {
+                "domicilioId": {
                     "type": "integer"
                 },
-                "TELEFONO": {
+                "entregado": {
+                    "type": "boolean"
+                },
+                "estadoPago": {
                     "type": "string"
                 },
-                "UPDATED_AT": {
+                "fechaDomicilio": {
                     "type": "string"
                 },
-                "UPDATED_BY": {
+                "observaciones": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "updatedBy": {
                     "type": "string"
                 }
             }
@@ -3520,22 +3545,22 @@ const docTemplate = `{
         "models.Incidencia": {
             "type": "object",
             "properties": {
-                "FECHA": {
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "fechaIncidencia": {
                     "type": "string"
                 },
-                "MONTO": {
+                "incidenciaId": {
                     "type": "integer"
                 },
-                "MOTIVO": {
+                "monto": {
+                    "type": "integer"
+                },
+                "motivo": {
                     "type": "string"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
-                    "type": "integer"
-                },
-                "PK_ID_INCIDENCIA": {
-                    "type": "integer"
-                },
-                "RESTA": {
+                "resta": {
                     "type": "boolean"
                 }
             }
@@ -3554,13 +3579,13 @@ const docTemplate = `{
         "models.MetodoPago": {
             "type": "object",
             "properties": {
-                "DETALLE": {
+                "detalle": {
                     "type": "string"
                 },
-                "PK_ID_METODO_PAGO": {
+                "metodoPagoId": {
                     "type": "integer"
                 },
-                "TIPO": {
+                "tipo": {
                     "type": "string"
                 }
             }
@@ -3568,16 +3593,16 @@ const docTemplate = `{
         "models.Nomina": {
             "type": "object",
             "properties": {
-                "ESTADO_NOMINA": {
+                "estadoNomina": {
                     "type": "string"
                 },
-                "FECHA": {
+                "fechaNomina": {
                     "type": "string"
                 },
-                "MONTO": {
+                "monto": {
                     "type": "integer"
                 },
-                "PK_ID_NOMINA": {
+                "nominaId": {
                     "type": "integer"
                 }
             }
@@ -3649,28 +3674,28 @@ const docTemplate = `{
         "models.Pago": {
             "type": "object",
             "properties": {
-                "ESTADO_PAGO": {
+                "estadoPago": {
                     "type": "string"
                 },
-                "FECHA": {
+                "fechaPago": {
                     "type": "string"
                 },
-                "HORA": {
+                "horaPago": {
                     "type": "string"
                 },
-                "MONTO": {
+                "metodoPagoId": {
                     "type": "integer"
                 },
-                "PK_ID_METODO_PAGO": {
+                "monto": {
                     "type": "integer"
                 },
-                "PK_ID_PAGO": {
+                "pagoId": {
                     "type": "integer"
                 },
-                "UPDATED_AT": {
+                "updatedAt": {
                     "type": "string"
                 },
-                "UPDATED_BY": {
+                "updatedBy": {
                     "type": "string"
                 }
             }
@@ -3678,48 +3703,48 @@ const docTemplate = `{
         "models.Pedido": {
             "type": "object",
             "properties": {
-                "DELIVERY": {
+                "delivery": {
                     "type": "boolean"
                 },
-                "FECHA": {
-                    "type": "string"
-                },
-                "HORA": {
-                    "type": "string"
-                },
-                "PK_ID_PAGO": {
+                "domicilioId": {
                     "type": "integer"
                 },
-                "UPDATED_AT": {
+                "estadoPedido": {
                     "type": "string"
                 },
-                "UPDATED_BY": {
+                "fechaPedido": {
                     "type": "string"
                 },
-                "estado_PEDIDO": {
+                "horaPedido": {
                     "type": "string"
                 },
-                "pk_ID_DOMICILIO": {
+                "pagoId": {
                     "type": "integer"
                 },
-                "pk_ID_PAGO": {
+                "pedidoId": {
                     "type": "integer"
                 },
-                "pk_ID_RESTAURANTE": {
+                "restauranteId": {
                     "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "updatedBy": {
+                    "type": "string"
                 }
             }
         },
         "models.PedidoCliente": {
             "type": "object",
             "properties": {
-                "PK_DOCUMENTO_CLIENTE": {
+                "documentoCliente": {
                     "type": "integer"
                 },
-                "PK_ID_PEDIDO": {
+                "pedidoClienteId": {
                     "type": "integer"
                 },
-                "PK_ID_PEDIDO_CLIENTE": {
+                "pedidoId": {
                     "type": "integer"
                 }
             }
@@ -3727,43 +3752,48 @@ const docTemplate = `{
         "models.Producto": {
             "type": "object",
             "properties": {
-                "CALORIAS": {
+                "calorias": {
                     "type": "integer"
                 },
-                "CANTIDAD": {
+                "cantidad": {
                     "type": "integer"
                 },
-                "DESCRIPCION": {
+                "categoria": {
                     "type": "string"
                 },
-                "ESTADO_PRODUCTO": {
+                "descripcion": {
                     "type": "string"
                 },
-                "IMAGEN": {
+                "estadoProducto": {
                     "type": "string"
                 },
-                "NOMBRE": {
+                "imagen": {
                     "type": "string"
                 },
-                "PK_ID_PRODUCTO": {
+                "nombre": {
+                    "type": "string"
+                },
+                "precio": {
                     "type": "integer"
                 },
-                "PRECIO": {
+                "productoId": {
                     "type": "integer"
+                },
+                "subcategoria": {
+                    "type": "string"
                 }
             }
         },
         "models.ProductoPedido": {
             "type": "object",
             "properties": {
-                "DETALLES_PRODUCTOS": {
-                    "description": "JSONB para consolidar productos",
+                "detallesProductos": {
                     "type": "string"
                 },
-                "PK_ID_PEDIDO": {
+                "pedidoId": {
                     "type": "integer"
                 },
-                "PK_ID_PRODUCTO_PEDIDO": {
+                "productoPedidoId": {
                     "type": "integer"
                 }
             }
@@ -3771,34 +3801,43 @@ const docTemplate = `{
         "models.Reserva": {
             "type": "object",
             "properties": {
-                "CREATED_AT": {
+                "createdAt": {
                     "type": "string"
                 },
-                "CREATED_BY": {
+                "createdBy": {
                     "type": "string"
                 },
-                "ESTADO_RESERVA": {
-                    "type": "string"
-                },
-                "FECHA": {
-                    "type": "string"
-                },
-                "HORA": {
-                    "type": "string"
-                },
-                "INDICACIONES": {
-                    "type": "string"
-                },
-                "PERSONAS": {
+                "documentoCliente": {
                     "type": "integer"
                 },
-                "PK_ID_RESERVA": {
-                    "type": "integer"
-                },
-                "UPDATED_AT": {
+                "estadoReserva": {
                     "type": "string"
                 },
-                "UPDATED_BY": {
+                "fechaReserva": {
+                    "type": "string"
+                },
+                "horaReserva": {
+                    "type": "string"
+                },
+                "indicaciones": {
+                    "type": "string"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "personas": {
+                    "type": "integer"
+                },
+                "reservaId": {
+                    "type": "integer"
+                },
+                "telefono": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "updatedBy": {
                     "type": "string"
                 }
             }
@@ -3806,16 +3845,16 @@ const docTemplate = `{
         "models.Restaurante": {
             "type": "object",
             "properties": {
-                "HORA_APERTURA": {
+                "diasLaborales": {
                     "type": "string"
                 },
-                "dias_laborales": {
+                "horaApertura": {
                     "type": "string"
                 },
-                "nombre_restaurante": {
+                "nombreRestaurante": {
                     "type": "string"
                 },
-                "pk_id_restaurante": {
+                "restauranteId": {
                     "type": "integer"
                 }
             }
@@ -3823,43 +3862,43 @@ const docTemplate = `{
         "models.Trabajador": {
             "type": "object",
             "properties": {
-                "APELLIDO": {
+                "apellido": {
                     "type": "string"
                 },
-                "FECHA_INGRESO": {
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "fechaIngreso": {
                     "type": "string"
                 },
-                "FECHA_NACIMIENTO": {
+                "fechaNacimiento": {
                     "type": "string"
                 },
-                "FECHA_RETIRO": {
+                "fechaRetiro": {
                     "type": "string"
                 },
-                "HORARIO": {
+                "horario": {
                     "type": "string"
                 },
-                "NOMBRE": {
+                "nombre": {
                     "type": "string"
                 },
-                "NUEVO": {
+                "nuevo": {
                     "type": "boolean"
                 },
-                "PASSWORD": {
+                "password": {
                     "type": "string"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
+                "restauranteId": {
                     "type": "integer"
                 },
-                "PK_ID_RESTAURANTE": {
-                    "type": "integer"
-                },
-                "ROL": {
+                "rol": {
                     "type": "string"
                 },
-                "SUELDO": {
+                "sueldo": {
                     "type": "integer"
                 },
-                "TELEFONO": {
+                "telefono": {
                     "type": "string"
                 }
             }

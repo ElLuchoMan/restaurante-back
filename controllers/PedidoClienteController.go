@@ -109,7 +109,7 @@ func (c *PedidoClienteController) Post() {
 		// Validar que el pedido no pertenece ya a otro cliente
 		existingRelacion := models.PedidoCliente{}
 		err := txOrm.QueryTable(new(models.PedidoCliente)).
-			Filter("PK_ID_PEDIDO", *relacion.PK_ID_PEDIDO).
+			Filter("pedidoId", *relacion.PK_ID_PEDIDO).
 			One(&existingRelacion)
 		if err == nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)

@@ -280,7 +280,7 @@ func (c *PedidoController) AssignPago() {
 	pedido.PK_ID_PAGO = &pagoID
 	pedido.ESTADO_PEDIDO = "PAGADO"
 
-	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
+	if _, err := o.Update(&pedido, "pagoId", "estadoPedido"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{
 			Code:    500,
@@ -295,7 +295,7 @@ func (c *PedidoController) AssignPago() {
 	pago := models.Pago{PK_ID_PAGO: pagoID}
 	if err := o.Read(&pago); err == nil {
 		pago.ESTADO_PAGO = "PAGADO"
-		if _, err := o.Update(&pago, "ESTADO_PAGO"); err != nil {
+		if _, err := o.Update(&pago, "estadoPago"); err != nil {
 			c.Ctx.Output.SetStatus(500)
 			c.Data["json"] = models.ApiResponse{
 				Code:    500,

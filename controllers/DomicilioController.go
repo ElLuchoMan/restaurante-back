@@ -164,7 +164,7 @@ func (c *DomicilioController) Post() {
 	}
 
 	// Validar y establecer los campos obligatorios
-	if direccion, ok := input["DIRECCION"].(string); ok && direccion != "" {
+	if direccion, ok := input["direccion"].(string); ok && direccion != "" {
 		domicilio.DIRECCION = direccion
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -176,7 +176,7 @@ func (c *DomicilioController) Post() {
 		return
 	}
 	// Validar fecha:
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
+	if fechaStr, ok := input["fechaDomicilio"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -199,7 +199,7 @@ func (c *DomicilioController) Post() {
 		return
 	}
 
-	if telefono, ok := input["TELEFONO"].(string); ok && telefono != "" {
+	if telefono, ok := input["telefono"].(string); ok && telefono != "" {
 		domicilio.TELEFONO = telefono
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -212,16 +212,16 @@ func (c *DomicilioController) Post() {
 	}
 
 	// Procesar campos opcionales
-	if estadoPago, ok := input["ESTADO_PAGO"].(string); ok {
+	if estadoPago, ok := input["estadoPago"].(string); ok {
 		domicilio.ESTADO_PAGO = estadoPago
 	}
-	if entregado, ok := input["ENTREGADO"].(bool); ok {
+	if entregado, ok := input["entregado"].(bool); ok {
 		domicilio.ENTREGADO = entregado
 	}
-	if observaciones, ok := input["OBSERVACIONES"].(string); ok {
+	if observaciones, ok := input["observaciones"].(string); ok {
 		domicilio.OBSERVACIONES = observaciones
 	}
-	if createdBy, ok := input["CREATED_BY"].(string); ok {
+	if createdBy, ok := input["createdBy"].(string); ok {
 		domicilio.CREATED_BY = &createdBy
 	}
 
@@ -307,19 +307,19 @@ func (c *DomicilioController) Put() {
 	}
 
 	// Actualizar campos
-	if direccion, ok := input["DIRECCION"].(string); ok {
+	if direccion, ok := input["direccion"].(string); ok {
 		domicilio.DIRECCION = direccion
 	}
-	if telefono, ok := input["TELEFONO"].(string); ok {
+	if telefono, ok := input["telefono"].(string); ok {
 		domicilio.TELEFONO = telefono
 	}
-	if estadoPago, ok := input["ESTADO_PAGO"].(string); ok {
+	if estadoPago, ok := input["estadoPago"].(string); ok {
 		domicilio.ESTADO_PAGO = estadoPago
 	}
-	if entregado, ok := input["ENTREGADO"].(bool); ok {
+	if entregado, ok := input["entregado"].(bool); ok {
 		domicilio.ENTREGADO = entregado
 	}
-	if updatedBy, ok := input["UPDATED_BY"].(string); ok {
+	if updatedBy, ok := input["updatedBy"].(string); ok {
 		domicilio.UPDATED_BY = &updatedBy
 	}
 

@@ -13,6 +13,12 @@ type ProductoPedidoController struct {
 	web.Controller
 }
 
+// Estructura para mapear las respuestas en camelCase
+type ProductoPedidoResponse struct {
+	PedidoID          int64       `json:"pedidoId"`
+	DetallesProductos interface{} `json:"detallesProductos"`
+}
+
 // @Title GetAll
 // @Summary Obtener los productos de un pedido
 // @Description Devuelve los productos consolidados en un pedido específico
@@ -72,10 +78,29 @@ func (c *ProductoPedidoController) GetAll() {
 		return
 	}
 
+	// Transformar las claves de los detalles a camelCase
+	var detallesCamelCase []map[string]interface{}
+	for _, detalle := range detalles {
+		camelCaseDetalle := map[string]interface{}{
+			"cantidad":       detalle["CANTIDAD"],
+			"nombre":         detalle["NOMBRE"],
+			"productoId":     detalle["PK_ID_PRODUCTO"],
+			"precioUnitario": detalle["PRECIO_UNITARIO"],
+			"subtotal":       detalle["SUBTOTAL"],
+		}
+		detallesCamelCase = append(detallesCamelCase, camelCaseDetalle)
+	}
+
+	// Construir la respuesta
+	response := map[string]interface{}{
+		"pedidoId":          productoPedido.PK_ID_PEDIDO,
+		"detallesProductos": detallesCamelCase,
+	}
+
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Productos del pedido obtenidos exitosamente",
-		Data:    detalles,
+		Data:    response,
 	}
 	c.ServeJSON()
 }
@@ -94,8 +119,8 @@ func (c *ProductoPedidoController) GetAll() {
 // @Router /producto_pedido [post]
 func (c *ProductoPedidoController) Create() {
 	var input struct {
-		PK_ID_PEDIDO       int64                    `json:"PK_ID_PEDIDO"`
-		DETALLES_PRODUCTOS []map[string]interface{} `json:"DETALLES_PRODUCTOS"`
+		PedidoId          int64                    `json:"pedidoId"`
+		DetallesProductos []map[string]interface{} `json:"detallesProductos"`
 	}
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
@@ -109,7 +134,7 @@ func (c *ProductoPedidoController) Create() {
 	}
 
 	// Validar que se proporcione el pedido y los detalles
-	if input.PK_ID_PEDIDO == 0 || len(input.DETALLES_PRODUCTOS) == 0 {
+	if input.PedidoId == 0 || len(input.DetallesProductos) == 0 {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "El pedido y los detalles de los productos son obligatorios",
@@ -119,7 +144,7 @@ func (c *ProductoPedidoController) Create() {
 	}
 
 	// Convertir los detalles a JSON
-	detallesJSON, err := json.Marshal(input.DETALLES_PRODUCTOS)
+	detallesJSON, err := json.Marshal(input.DetallesProductos)
 	if err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -131,7 +156,7 @@ func (c *ProductoPedidoController) Create() {
 	}
 
 	productoPedido := models.ProductoPedido{
-		PK_ID_PEDIDO:       input.PK_ID_PEDIDO,
+		PK_ID_PEDIDO:       input.PedidoId,
 		DETALLES_PRODUCTOS: string(detallesJSON),
 	}
 

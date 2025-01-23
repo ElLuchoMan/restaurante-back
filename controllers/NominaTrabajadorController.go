@@ -29,6 +29,7 @@ func (c *NominaTrabajadorController) GetAll() {
 	o := orm.NewOrm()
 	var relaciones []models.NominaTrabajador
 
+	// Obtener las relaciones desde la base de datos
 	_, err := o.QueryTable(new(models.NominaTrabajador)).All(&relaciones)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -41,12 +42,26 @@ func (c *NominaTrabajadorController) GetAll() {
 		return
 	}
 
+	// Convertir las claves a camelCase
+	var relacionesCamelCase []map[string]interface{}
+	for _, rel := range relaciones {
+		relacionesCamelCase = append(relacionesCamelCase, map[string]interface{}{
+			"nominaTrabajadorId":  rel.PK_ID_NOMINA_TRABAJADOR,
+			"sueldoBase":          rel.SUELDO_BASE,
+			"montoIncidencias":    rel.MONTO_INCIDENCIAS,
+			"total":               rel.TOTAL,
+			"detalles":            rel.DETALLES,
+			"documentoTrabajador": rel.PK_DOCUMENTO_TRABAJADOR,
+			"nominaId":            rel.PK_ID_NOMINA,
+		})
+	}
+
 	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Relaciones nómina-trabajador obtenidas correctamente",
-		Data:    relaciones,
+		Data:    relacionesCamelCase,
 	}
 	c.ServeJSON()
 }

@@ -12,72 +12,72 @@ definitions:
     type: object
   models.CambiosHorario:
     properties:
-      ABIERTO:
+      abierto:
         type: boolean
-      FECHA:
-        type: string
-      HORA_APERTURA:
-        type: string
-      HORA_CIERRE:
-        type: string
-      PK_ID_CAMBIO_HORARIO:
+      cambioHorarioId:
         type: integer
+      fechaCambioHorario:
+        type: string
+      horaApertura:
+        type: string
+      horaCierre:
+        type: string
     type: object
   models.Cliente:
     properties:
-      APELLIDO:
+      apellido:
         type: string
-      DIRECCION:
+      direccion:
         type: string
-      NOMBRE:
-        type: string
-      OBSERVACIONES:
-        type: string
-      PASSWORD:
-        type: string
-      PK_DOCUMENTO_CLIENTE:
+      documentoCliente:
         type: integer
-      TELEFONO:
+      nombre:
+        type: string
+      observciones:
+        type: string
+      password:
+        type: string
+      telefono:
         type: string
     type: object
   models.Domicilio:
     properties:
-      CREATED_AT:
+      createdAt:
         type: string
-      CREATED_BY:
+      createdBy:
         type: string
-      DIRECCION:
+      direccion:
         type: string
-      ENTREGADO:
-        type: boolean
-      ESTADO_PAGO:
-        type: string
-      FECHA:
-        type: string
-      OBSERVACIONES:
-        type: string
-      PK_ID_DOMICILIO:
+      domicilioId:
         type: integer
-      TELEFONO:
+      entregado:
+        type: boolean
+      estadoPago:
         type: string
-      UPDATED_AT:
+      fechaDomicilio:
         type: string
-      UPDATED_BY:
+      observaciones:
+        type: string
+      telefono:
+        type: string
+      updatedAt:
+        type: string
+      updatedBy:
         type: string
     type: object
   models.Incidencia:
     properties:
-      FECHA:
+      documentoTrabajador:
+        type: integer
+      fechaIncidencia:
         type: string
-      MONTO:
+      incidenciaId:
         type: integer
-      MOTIVO:
+      monto:
+        type: integer
+      motivo:
         type: string
-      PK_DOCUMENTO_TRABAJADOR:
-        type: integer
-      PK_ID_INCIDENCIA:
-        type: integer
-      RESTA:
+      resta:
         type: boolean
     type: object
   models.LoginRequest:
@@ -89,22 +89,22 @@ definitions:
     type: object
   models.MetodoPago:
     properties:
-      DETALLE:
+      detalle:
         type: string
-      PK_ID_METODO_PAGO:
+      metodoPagoId:
         type: integer
-      TIPO:
+      tipo:
         type: string
     type: object
   models.Nomina:
     properties:
-      ESTADO_NOMINA:
+      estadoNomina:
         type: string
-      FECHA:
+      fechaNomina:
         type: string
-      MONTO:
+      monto:
         type: integer
-      PK_ID_NOMINA:
+      nominaId:
         type: integer
     type: object
   models.NominaTrabajador:
@@ -153,145 +153,154 @@ definitions:
     type: object
   models.Pago:
     properties:
-      ESTADO_PAGO:
+      estadoPago:
         type: string
-      FECHA:
+      fechaPago:
         type: string
-      HORA:
+      horaPago:
         type: string
-      MONTO:
+      metodoPagoId:
         type: integer
-      PK_ID_METODO_PAGO:
+      monto:
         type: integer
-      PK_ID_PAGO:
+      pagoId:
         type: integer
-      UPDATED_AT:
+      updatedAt:
         type: string
-      UPDATED_BY:
+      updatedBy:
         type: string
     type: object
   models.Pedido:
     properties:
-      DELIVERY:
+      delivery:
         type: boolean
-      FECHA:
-        type: string
-      HORA:
-        type: string
-      PK_ID_PAGO:
+      domicilioId:
         type: integer
-      UPDATED_AT:
+      estadoPedido:
         type: string
-      UPDATED_BY:
+      fechaPedido:
         type: string
-      estado_PEDIDO:
+      horaPedido:
         type: string
-      pk_ID_DOMICILIO:
+      pagoId:
         type: integer
-      pk_ID_PAGO:
+      pedidoId:
         type: integer
-      pk_ID_RESTAURANTE:
+      restauranteId:
         type: integer
+      updatedAt:
+        type: string
+      updatedBy:
+        type: string
     type: object
   models.PedidoCliente:
     properties:
-      PK_DOCUMENTO_CLIENTE:
+      documentoCliente:
         type: integer
-      PK_ID_PEDIDO:
+      pedidoClienteId:
         type: integer
-      PK_ID_PEDIDO_CLIENTE:
+      pedidoId:
         type: integer
     type: object
   models.Producto:
     properties:
-      CALORIAS:
+      calorias:
         type: integer
-      CANTIDAD:
+      cantidad:
         type: integer
-      DESCRIPCION:
+      categoria:
         type: string
-      ESTADO_PRODUCTO:
+      descripcion:
         type: string
-      IMAGEN:
+      estadoProducto:
         type: string
-      NOMBRE:
+      imagen:
         type: string
-      PK_ID_PRODUCTO:
+      nombre:
+        type: string
+      precio:
         type: integer
-      PRECIO:
+      productoId:
         type: integer
+      subcategoria:
+        type: string
     type: object
   models.ProductoPedido:
     properties:
-      DETALLES_PRODUCTOS:
-        description: JSONB para consolidar productos
+      detallesProductos:
         type: string
-      PK_ID_PEDIDO:
+      pedidoId:
         type: integer
-      PK_ID_PRODUCTO_PEDIDO:
+      productoPedidoId:
         type: integer
     type: object
   models.Reserva:
     properties:
-      CREATED_AT:
+      createdAt:
         type: string
-      CREATED_BY:
+      createdBy:
         type: string
-      ESTADO_RESERVA:
-        type: string
-      FECHA:
-        type: string
-      HORA:
-        type: string
-      INDICACIONES:
-        type: string
-      PERSONAS:
+      documentoCliente:
         type: integer
-      PK_ID_RESERVA:
-        type: integer
-      UPDATED_AT:
+      estadoReserva:
         type: string
-      UPDATED_BY:
+      fechaReserva:
+        type: string
+      horaReserva:
+        type: string
+      indicaciones:
+        type: string
+      nombreCompleto:
+        type: string
+      personas:
+        type: integer
+      reservaId:
+        type: integer
+      telefono:
+        type: string
+      updatedAt:
+        type: string
+      updatedBy:
         type: string
     type: object
   models.Restaurante:
     properties:
-      HORA_APERTURA:
+      diasLaborales:
         type: string
-      dias_laborales:
+      horaApertura:
         type: string
-      nombre_restaurante:
+      nombreRestaurante:
         type: string
-      pk_id_restaurante:
+      restauranteId:
         type: integer
     type: object
   models.Trabajador:
     properties:
-      APELLIDO:
+      apellido:
         type: string
-      FECHA_INGRESO:
+      documentoTrabajador:
+        type: integer
+      fechaIngreso:
         type: string
-      FECHA_NACIMIENTO:
+      fechaNacimiento:
         type: string
-      FECHA_RETIRO:
+      fechaRetiro:
         type: string
-      HORARIO:
+      horario:
         type: string
-      NOMBRE:
+      nombre:
         type: string
-      NUEVO:
+      nuevo:
         type: boolean
-      PASSWORD:
+      password:
         type: string
-      PK_DOCUMENTO_TRABAJADOR:
+      restauranteId:
         type: integer
-      PK_ID_RESTAURANTE:
-        type: integer
-      ROL:
+      rol:
         type: string
-      SUELDO:
+      sueldo:
         type: integer
-      TELEFONO:
+      telefono:
         type: string
     type: object
 info:
@@ -1953,9 +1962,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve todos los productos registrados en la base de datos. Puedes
-        incluir o excluir las imágenes con el parámetro `includeImage` y filtrar los
-        productos activos con `onlyActive`.
+      description: Devuelve productos registrados con filtros opcionales para categoría,
+        subcategoría, imágenes y disponibilidad.
       parameters:
       - description: Incluir imágenes Base64 en la respuesta (true o false, por defecto
           es false)
@@ -1967,6 +1975,14 @@ paths:
         in: query
         name: onlyActive
         type: boolean
+      - description: Filtrar productos por categoría
+        in: query
+        name: categoria
+        type: string
+      - description: Filtrar productos por subcategoría
+        in: query
+        name: subcategoria
+        type: string
       produces:
       - application/json
       responses:
@@ -1980,14 +1996,13 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
-      summary: Obtener productos
+      summary: Obtener productos con filtros
       tags:
       - productos
     post:
       consumes:
       - multipart/form-data
-      description: Crea un nuevo producto en la base de datos, incluyendo una imagen
-        en formato Base64.
+      description: Crea un nuevo producto en la base de datos.
       parameters:
       - description: Nombre del producto
         in: formData
@@ -2020,6 +2035,15 @@ paths:
         in: formData
         name: CANTIDAD
         type: integer
+      - description: Categoría del producto
+        in: formData
+        name: CATEGORIA
+        required: true
+        type: string
+      - description: Subcategoría del producto
+        in: formData
+        name: SUBCATEGORIA
+        type: string
       produces:
       - application/json
       responses:

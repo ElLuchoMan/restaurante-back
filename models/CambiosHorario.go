@@ -8,11 +8,11 @@ import (
 )
 
 type CambiosHorario struct {
-	PK_ID_CAMBIO_HORARIO int64      `orm:"column(PK_ID_CAMBIO_HORARIO);pk;auto" json:"PK_ID_CAMBIO_HORARIO"`
-	FECHA                time.Time  `orm:"column(FECHA);type(date)" json:"FECHA"`
-	HORA_APERTURA        *time.Time `orm:"column(HORA_APERTURA);type(time);null" json:"HORA_APERTURA,omitempty"`
-	HORA_CIERRE          *time.Time `orm:"column(HORA_CIERRE);type(time);null" json:"HORA_CIERRE,omitempty"`
-	ABIERTO              bool       `orm:"column(ABIERTO)" json:"ABIERTO"`
+	PK_ID_CAMBIO_HORARIO int64      `orm:"column(PK_ID_CAMBIO_HORARIO);pk;auto" json:"cambioHorarioId"`
+	FECHA                time.Time  `orm:"column(FECHA);type(date)" json:"fechaCambioHorario"`
+	HORA_APERTURA        *time.Time `orm:"column(HORA_APERTURA);type(time);null" json:"horaApertura,omitempty"`
+	HORA_CIERRE          *time.Time `orm:"column(HORA_CIERRE);type(time);null" json:"horaCierre,omitempty"`
+	ABIERTO              bool       `orm:"column(ABIERTO)" json:"abierto"`
 }
 
 func (t *CambiosHorario) TableName() string {
@@ -25,7 +25,7 @@ func init() {
 func (t CambiosHorario) MarshalJSON() ([]byte, error) {
 	type Alias CambiosHorario
 	return json.Marshal(&struct {
-		FECHA string `json:"FECHA"`
+		FECHA string `json:"fechaCambioHorario"`
 		Alias
 	}{
 		FECHA: t.FECHA.Format("02-01-2006"),

@@ -8,26 +8,26 @@ import (
 )
 
 type Pedido struct {
-	PK_ID_PEDIDO      int       `orm:"column(PK_ID_PEDIDO);pk;auto" json:"PK_ID_PAGO"`
-	FECHA             time.Time `orm:"column(FECHA);type(date)" json:"FECHA"`
-	HORA              string    `orm:"column(HORA);type(time)" json:"HORA"`
-	DELIVERY          bool      `orm:"column(DELIVERY); type(boolean)" json:"DELIVERY"`
-	ESTADO_PEDIDO     string    `orm:"column(ESTADO_PEDIDO)"`
-	PK_ID_DOMICILIO   *int      `orm:"column(PK_ID_DOMICILIO);null"`
-	PK_ID_PAGO        *int      `orm:"column(PK_ID_PAGO);null"`
-	PK_ID_RESTAURANTE *int      `orm:"column(PK_ID_RESTAURANTE);null"`
-	UPDATED_AT        time.Time `orm:"column(UPDATED_AT);type(timestamp);auto_now" json:"UPDATED_AT"`
-	UPDATED_BY        string    `orm:"column(UPDATED_BY)" json:"UPDATED_BY"`
+	PK_ID_PEDIDO      int       `orm:"column(PK_ID_PEDIDO);pk;auto" json:"pedidoId"`
+	FECHA             time.Time `orm:"column(FECHA);type(date)" json:"fechaPedido"`
+	HORA              string    `orm:"column(HORA);type(time)" json:"horaPedido"`
+	DELIVERY          bool      `orm:"column(DELIVERY); type(boolean)" json:"delivery"`
+	ESTADO_PEDIDO     string    `orm:"column(ESTADO_PEDIDO)" json:"estadoPedido"`
+	PK_ID_DOMICILIO   *int      `orm:"column(PK_ID_DOMICILIO);null" json:"domicilioId,omitempty"`
+	PK_ID_PAGO        *int      `orm:"column(PK_ID_PAGO);null" json:"pagoId"`
+	PK_ID_RESTAURANTE *int      `orm:"column(PK_ID_RESTAURANTE);null" json:"restauranteId"`
+	UPDATED_AT        time.Time `orm:"column(UPDATED_AT);type(timestamp);auto_now" json:"updatedAt"`
+	UPDATED_BY        string    `orm:"column(UPDATED_BY)" json:"updatedBy"`
 }
 
 type PedidoDetails struct {
-	PKIDPedido   int64  `json:"PK_ID_PEDIDO" orm:"column(PK_ID_PEDIDO)"`
-	Fecha        string `json:"FECHA" orm:"column(FECHA)"`
-	Hora         string `json:"HORA" orm:"column(HORA)"`
-	Delivery     bool   `json:"DELIVERY" orm:"column(DELIVERY)"`
-	EstadoPedido string `json:"ESTADO_PEDIDO" orm:"column(ESTADO_PEDIDO)"`
-	MetodoPago   string `json:"METODO_PAGO"`
-	Productos    string `json:"PRODUCTOS"`
+	PKIDPedido   int64  `json:"pedidoId" orm:"column(PK_ID_PEDIDO)"`
+	Fecha        string `json:"fechaPedido" orm:"column(FECHA)"`
+	Hora         string `json:"horaPedido" orm:"column(HORA)"`
+	Delivery     bool   `json:"delivery" orm:"column(DELIVERY)"`
+	EstadoPedido string `json:"estadoPedido" orm:"column(ESTADO_PEDIDO)"`
+	MetodoPago   string `json:"metodoPago"`
+	Productos    string `json:"productos"`
 }
 
 func (p *Pedido) TableName() string {
@@ -41,9 +41,9 @@ func init() {
 func (d Pedido) MarshalJSON() ([]byte, error) {
 	type Alias Pedido
 	return json.Marshal(&struct {
-		FECHA      string `json:"FECHA"`
-		CREATED_AT string `json:"CREATED_AT"`
-		UPDATED_AT string `json:"UPDATED_AT"`
+		FECHA      string `json:"fechaPedido"`
+		CREATED_AT string `json:"createdAt"`
+		UPDATED_AT string `json:"updatedAt"`
 		Alias
 	}{
 		FECHA:      d.FECHA.Format("02-01-2006"),

@@ -17,13 +17,15 @@ type ProductoController struct {
 }
 
 // @Title GetAll
-// @Summary Obtener productos
-// @Description Devuelve todos los productos registrados en la base de datos. Puedes incluir o excluir las imágenes con el parámetro `includeImage` y filtrar los productos activos con `onlyActive`.
+// @Summary Obtener productos con filtros
+// @Description Devuelve productos registrados con filtros opcionales para categoría, subcategoría, imágenes y disponibilidad.
 // @Tags productos
 // @Accept json
 // @Produce json
 // @Param   includeImage  query    bool   false  "Incluir imágenes Base64 en la respuesta (true o false, por defecto es false)"
 // @Param   onlyActive    query    bool   false  "Filtrar solo productos disponibles (true o false, por defecto es false)"
+// @Param   categoria     query    string false  "Filtrar productos por categoría"
+// @Param   subcategoria  query    string false  "Filtrar productos por subcategoría"
 // @Success 200 {array} models.Producto "Lista de productos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [get]
@@ -34,11 +36,19 @@ func (c *ProductoController) GetAll() {
 	// Obtener valores de los parámetros
 	includeImage, _ := c.GetBool("includeImage", false)
 	onlyActive, _ := c.GetBool("onlyActive", false)
+	categoria := c.GetString("categoria")
+	subcategoria := c.GetString("subcategoria")
 
 	// Construir la consulta con filtros
 	query := o.QueryTable(new(models.Producto))
 	if onlyActive {
 		query = query.Filter("ESTADO_PRODUCTO", "DISPONIBLE")
+	}
+	if categoria != "" {
+		query = query.Filter("CATEGORIA__icontains", categoria)
+	}
+	if subcategoria != "" {
+		query = query.Filter("SUBCATEGORIA__icontains", subcategoria)
 	}
 
 	// Ejecutar la consulta
@@ -117,19 +127,21 @@ func (c *ProductoController) GetById() {
 	c.ServeJSON()
 }
 
-// @Title Create
+// @Title Post
 // @Summary Crear un nuevo producto
-// @Description Crea un nuevo producto en la base de datos, incluyendo una imagen en formato Base64.
+// @Description Crea un nuevo producto en la base de datos.
 // @Tags productos
 // @Accept multipart/form-data
 // @Produce json
 // @Param   NOMBRE        formData  string  true   "Nombre del producto"
-// @Param   CALORIAS      formData  int     false   "Calorías del producto"
+// @Param   CALORIAS      formData  int     false  "Calorías del producto"
 // @Param   DESCRIPCION   formData  string  false  "Descripción del producto"
-// @Param   ESTADO_PRODUCTO formData  string    true   "Estado del producto"
+// @Param   ESTADO_PRODUCTO formData  string true   "Estado del producto"
 // @Param   PRECIO        formData  int     true   "Precio del producto"
 // @Param   IMAGEN        formData  file    false  "Imagen del producto (opcional)"
-// @Param   CANTIDAD        formData  int     false   "Cantidad del producto"
+// @Param   CANTIDAD      formData  int     false  "Cantidad del producto"
+// @Param   CATEGORIA     formData  string  true   "Categoría del producto"
+// @Param   SUBCATEGORIA  formData  string  false  "Subcategoría del producto"
 // @Success 201 {object} models.Producto "Producto creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /productos [post]
@@ -139,6 +151,8 @@ func (c *ProductoController) Post() {
 
 	// Validar campos obligatorios
 	producto.NOMBRE = c.GetString("NOMBRE")
+	producto.CATEGORIA = c.GetString("CATEGORIA")
+	producto.SUBCATEGORIA = c.GetString("SUBCATEGORIA")
 	producto.ESTADO_PRODUCTO = c.GetString("ESTADO_PRODUCTO")
 	calorias, _ := c.GetInt64("CALORIAS")
 	producto.CALORIAS = &calorias
