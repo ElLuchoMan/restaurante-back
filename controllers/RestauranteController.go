@@ -83,7 +83,7 @@ func (c *RestauranteController) GetById() {
 
 	err = o.Read(&restaurante)
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Restaurante no encontrado",
@@ -231,7 +231,7 @@ func (c *RestauranteController) Put() {
 		}
 		c.ServeJSON()
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Restaurante no encontrado",
@@ -277,7 +277,7 @@ func (c *RestauranteController) Delete() {
 		}
 		c.ServeJSON()
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Restaurante no encontrado",

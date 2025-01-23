@@ -106,7 +106,7 @@ func (c *TrabajadorController) GetAll() {
 
 	// Si no hay resultados
 	if len(trabajadores) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron trabajadores que coincidan con los filtros proporcionados",
@@ -153,7 +153,7 @@ func (c *TrabajadorController) GetById() {
 	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: id}
 	err = o.Read(&trabajador)
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Trabajador no encontrado",
@@ -396,7 +396,7 @@ func (c *TrabajadorController) Put() {
 	// Buscar trabajador existente
 	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: id}
 	if err := o.Read(&trabajador); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Trabajador no encontrado",
@@ -577,7 +577,7 @@ func (c *TrabajadorController) Delete() {
 	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
 	if err := o.Read(&trabajador); err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Trabajador no encontrado",

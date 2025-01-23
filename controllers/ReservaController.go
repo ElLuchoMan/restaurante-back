@@ -98,7 +98,7 @@ func (c *ReservaController) GetById() {
 
 	err = o.Read(&reserva)
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Reserva no encontrada",
@@ -315,7 +315,7 @@ func (c *ReservaController) Put() {
 	// Buscar la reserva por ID
 	reserva := models.Reserva{PK_ID_RESERVA: id}
 	if err := o.Read(&reserva); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Reserva no encontrada",
@@ -458,7 +458,7 @@ func (c *ReservaController) Delete() {
 	// Buscar la reserva por ID
 	reserva := models.Reserva{PK_ID_RESERVA: id}
 	if err := o.Read(&reserva); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Reserva no encontrada",

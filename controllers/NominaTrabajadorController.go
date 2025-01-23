@@ -268,7 +268,7 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 
 	// Validar si hay resultados
 	if err == orm.ErrNoRows || len(relaciones) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron relaciones nómina-trabajador para los filtros aplicados.",
@@ -380,7 +380,7 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 	}
 
 	if len(resultados) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron nóminas para el mes y año especificados.",

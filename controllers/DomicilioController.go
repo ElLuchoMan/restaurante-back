@@ -68,7 +68,7 @@ func (c *DomicilioController) GetAll() {
 
 	// Si no se encuentran resultados
 	if count == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron domicilios que coincidan con los filtros proporcionados",
@@ -116,7 +116,7 @@ func (c *DomicilioController) GetById() {
 
 	err = o.Read(&domicilio)
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Domicilio no encontrado",
@@ -284,7 +284,7 @@ func (c *DomicilioController) Put() {
 	// Buscar el domicilio por ID
 	domicilio := models.Domicilio{PK_ID_DOMICILIO: id}
 	if err := o.Read(&domicilio); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Domicilio no encontrado",
@@ -385,7 +385,7 @@ func (c *DomicilioController) Delete() {
 		}
 		c.ServeJSON()
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Domicilio no encontrado",

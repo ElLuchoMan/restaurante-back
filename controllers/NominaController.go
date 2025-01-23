@@ -69,7 +69,7 @@ func (c *NominaController) GetAll() {
 	}
 
 	if len(filteredNominas) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron nóminas que coincidan con los filtros proporcionados",
@@ -193,7 +193,7 @@ func (c *NominaController) Put() {
 	// Buscar la nómina
 	nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
 	if err := o.Read(&nomina); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Nómina no encontrada",
@@ -265,7 +265,7 @@ func (c *NominaController) Delete() {
 
 	nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
 	if err := o.Read(&nomina); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Nómina no encontrada",

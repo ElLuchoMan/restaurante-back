@@ -101,7 +101,7 @@ func (c *PagoController) GetAll() {
 
 	// Si no hay resultados
 	if len(filteredPagos) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron pagos que coincidan con los filtros proporcionados",
@@ -149,7 +149,7 @@ func (c *PagoController) GetById() {
 	pago := models.Pago{PK_ID_PAGO: id}
 	err = o.Read(&pago)
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Pago no encontrado",
@@ -351,7 +351,7 @@ func (c *PagoController) Put() {
 	// Buscar el pago por ID
 	pago := models.Pago{PK_ID_PAGO: id}
 	if err := o.Read(&pago); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Pago no encontrado",
@@ -510,7 +510,7 @@ func (c *PagoController) Delete() {
 		}
 		c.ServeJSON()
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Pago no encontrado",

@@ -111,7 +111,7 @@ func (c *ClienteController) GetById() {
 
 	err = o.Read(&cliente)
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",
@@ -230,7 +230,7 @@ func (c *ClienteController) Put() {
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 	if err := o.Read(&cliente); err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Cliente no encontrado",
@@ -345,7 +345,7 @@ func (c *ClienteController) Delete() {
 		}
 		c.ServeJSON()
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",

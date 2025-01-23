@@ -92,7 +92,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 		One(&cambioHorario)
 
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No hay cambios de horario para la fecha actual",
@@ -332,7 +332,7 @@ func (c *CambiosHorarioController) Put() {
 	// Buscar el cambio de horario por ID
 	var horario models.CambiosHorario
 	if err := o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).One(&horario); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cambio de horario no encontrado",
@@ -479,7 +479,7 @@ func (c *CambiosHorarioController) Delete() {
 		}
 		c.ServeJSON()
 	} else if num == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Cambio de horario no encontrado",

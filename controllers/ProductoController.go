@@ -109,7 +109,7 @@ func (c *ProductoController) GetById() {
 
 	producto, err := getProductoByID(int64(id), o)
 	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: err.Error(),
@@ -311,7 +311,7 @@ func (c *ProductoController) Put() {
 		}
 		c.ServeJSON()
 	} else {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Producto no encontrado.",
@@ -352,7 +352,7 @@ func (c *ProductoController) Delete() {
 	// Buscar el producto
 	producto, err := getProductoByID(int64(id), o)
 	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: err.Error(),

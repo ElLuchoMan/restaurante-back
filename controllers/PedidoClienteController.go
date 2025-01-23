@@ -83,7 +83,7 @@ func (c *PedidoClienteController) Post() {
 		// Validar que el cliente existe
 		cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: int(*relacion.PK_DOCUMENTO_CLIENTE)}
 		if err := txOrm.Read(&cliente); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Cliente no encontrado",
@@ -96,7 +96,7 @@ func (c *PedidoClienteController) Post() {
 		// Validar que el pedido existe
 		pedido := models.Pedido{PK_ID_PEDIDO: *relacion.PK_ID_PEDIDO}
 		if err := txOrm.Read(&pedido); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Pedido no encontrado",

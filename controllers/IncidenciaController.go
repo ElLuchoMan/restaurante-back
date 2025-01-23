@@ -115,7 +115,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 		All(&incidencias)
 
 	if err == orm.ErrNoRows || len(incidencias) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron incidencias para los parámetros proporcionados",
@@ -307,7 +307,7 @@ func (c *IncidenciaController) Put() {
 	// Buscar la incidencia por ID
 	incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
 	if err := o.Read(&incidencia); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Incidencia no encontrada",
@@ -420,7 +420,7 @@ func (c *IncidenciaController) Delete() {
 
 	_, err = o.Delete(&models.Incidencia{PK_ID_INCIDENCIA: id})
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Incidencia no encontrada",
