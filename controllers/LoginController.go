@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -24,11 +25,12 @@ type LoginController struct {
 type Claims struct {
 	Documento int    `json:"documento"`
 	Rol       string `json:"rol"`
+	Nombre    string `json:"nombre"`
 	jwt.StandardClaims
 }
 
 // Llave secreta para firmar el token
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+var jwtSecret = []byte(os.Getenv("cocina-de-maria"))
 
 // @Title Login
 // @Summary Iniciar sesión para clientes o trabajadores
@@ -71,9 +73,9 @@ func (c *LoginController) Login() {
 			c.ServeJSON()
 			return
 		}
-
+		nombre := trabajador.NOMBRE + " " + trabajador.APELLIDO
 		// Generar JWT con el rol específico del trabajador (admin, mesero, mensajero, etc.)
-		generateJWT(c, int(trabajador.PK_DOCUMENTO_TRABAJADOR), trabajador.ROL)
+		generateJWT(c, int(trabajador.PK_DOCUMENTO_TRABAJADOR), trabajador.ROL, nombre)
 		return
 	}
 
@@ -92,9 +94,9 @@ func (c *LoginController) Login() {
 			c.ServeJSON()
 			return
 		}
-
+		nombre := cliente.NOMBRE + " " + cliente.APELLIDO
 		// Generar JWT con rol de "cliente"
-		generateJWT(c, cliente.PK_DOCUMENTO_CLIENTE, "cliente")
+		generateJWT(c, cliente.PK_DOCUMENTO_CLIENTE, "Cliente", nombre)
 		return
 	}
 
@@ -108,17 +110,18 @@ func (c *LoginController) Login() {
 }
 
 // Función para generar y devolver un token JWT
-func generateJWT(c *LoginController, documento int, rol string) {
+func generateJWT(c *LoginController, documento int, rol string, nombre string) {
 	// Obtener la fecha y hora actual
 	now := time.Now()
 
-	// Establecer la hora de expiración a las 11:59 p.m. del mismo día
-	expirationTime := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 0, 0, now.Location())
+	// Establecer la hora de expiración a las 24 horas
+	expirationTime := now.Add(24 * time.Hour)
 
 	// Crear los claims con la expiración calculada
 	claims := &Claims{
 		Documento: documento,
 		Rol:       rol,
+		Nombre:    nombre,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -144,15 +147,24 @@ func generateJWT(c *LoginController, documento int, rol string) {
 		Code:    http.StatusOK,
 		Message: "Inicio de sesión exitoso",
 		Data: map[string]string{
-			"token": tokenString,
+			"token":  tokenString,
+			"nombre": nombre,
 		},
 	}
 	c.ServeJSON()
 }
 
 func ValidateToken(ctx *context.Context) {
+	// Permitir solicitudes OPTIONS sin autenticación
+	if ctx.Input.Method() == "OPTIONS" {
+		fmt.Println("Solicitud OPTIONS recibida y permitida")
+		ctx.Output.Status = http.StatusOK
+		return
+	}
+
 	authHeader := ctx.Input.Header("Authorization")
 	if authHeader == "" {
+		fmt.Println("No se proporcionó el token")
 		ctx.Output.SetStatus(http.StatusUnauthorized)
 		ctx.Output.JSON(models.ApiResponse{
 			Code:    http.StatusUnauthorized,
@@ -160,6 +172,7 @@ func ValidateToken(ctx *context.Context) {
 		}, false, false)
 		return
 	}
+	fmt.Println("Token recibido:", authHeader)
 
 	// Verificar si ya contiene el prefijo 'Bearer'
 	if len(authHeader) < 7 || authHeader[:7] != "Bearer " {
@@ -174,6 +187,7 @@ func ValidateToken(ctx *context.Context) {
 	})
 
 	if err != nil || !token.Valid {
+		fmt.Println("Token inválido:", err)
 		ctx.Output.SetStatus(http.StatusUnauthorized)
 		ctx.Output.JSON(models.ApiResponse{
 			Code:    http.StatusUnauthorized,
@@ -182,5 +196,5 @@ func ValidateToken(ctx *context.Context) {
 		return
 	}
 
-	// Se podría usar el rol aquí para autorizaciones más avanzadas
+	fmt.Println("Token válido. Claims:", claims)
 }
