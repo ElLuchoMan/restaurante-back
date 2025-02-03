@@ -198,25 +198,25 @@ func (c *TrabajadorController) Post() {
 		c.ServeJSON()
 		return
 	}
-
+	fmt.Println("Este es el input recibido:", input)
 	// Crear instancia del modelo Trabajador
 	var trabajador models.Trabajador
 
 	// Procesar PK_DOCUMENTO_TRABAJADOR
-	if doc, ok := input["PK_DOCUMENTO_TRABAJADOR"].(float64); ok {
+	if doc, ok := input["documentoTrabajador"].(float64); ok {
 		trabajador.PK_DOCUMENTO_TRABAJADOR = int64(doc)
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo PK_DOCUMENTO_TRABAJADOR es obligatorio y debe ser un número válido",
+			Message: "El campo documentoTrabajador es obligatorio y debe ser un número válido",
 		}
 		c.ServeJSON()
 		return
 	}
 
 	// Procesar NOMBRE
-	if nombre, ok := input["NOMBRE"].(string); ok && nombre != "" {
+	if nombre, ok := input["nombre"].(string); ok && nombre != "" {
 		trabajador.NOMBRE = nombre
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -229,7 +229,7 @@ func (c *TrabajadorController) Post() {
 	}
 
 	// Procesar APELLIDO
-	if apellido, ok := input["APELLIDO"].(string); ok && apellido != "" {
+	if apellido, ok := input["apellido"].(string); ok && apellido != "" {
 		trabajador.APELLIDO = apellido
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -242,7 +242,7 @@ func (c *TrabajadorController) Post() {
 	}
 
 	// Procesar ROL
-	if rol, ok := input["ROL"].(string); ok && rol != "" {
+	if rol, ok := input["rol"].(string); ok && rol != "" {
 		trabajador.ROL = rol
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -255,7 +255,7 @@ func (c *TrabajadorController) Post() {
 	}
 
 	// Procesar FECHA_INGRESO
-	if fechaIngresoStr, ok := input["FECHA_INGRESO"].(string); ok && fechaIngresoStr != "" {
+	if fechaIngresoStr, ok := input["fechaIngreso"].(string); ok && fechaIngresoStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaIngresoStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -279,7 +279,7 @@ func (c *TrabajadorController) Post() {
 	}
 
 	// Procesar SUELDO
-	if sueldo, ok := input["SUELDO"].(float64); ok {
+	if sueldo, ok := input["sueldo"].(float64); ok {
 		trabajador.SUELDO = int64(sueldo)
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -292,7 +292,7 @@ func (c *TrabajadorController) Post() {
 	}
 
 	// Procesar PASSWORD
-	if password, ok := input["PASSWORD"].(string); ok && password != "" {
+	if password, ok := input["password"].(string); ok && password != "" {
 		hashedPassword, err := hashPassword(password)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -316,18 +316,18 @@ func (c *TrabajadorController) Post() {
 	}
 
 	// Procesar otros campos opcionales (ejemplo TELEFONO)
-	if telefono, ok := input["TELEFONO"].(string); ok {
+	if telefono, ok := input["telefono"].(string); ok {
 		trabajador.TELEFONO = &telefono
 	}
 
 	// Procesar PK_ID_RESTAURANTE
-	if pkRestaurante, ok := input["PK_ID_RESTAURANTE"].(float64); ok {
+	if pkRestaurante, ok := input["restauranteId"].(float64); ok {
 		valor := int64(pkRestaurante)
 		trabajador.PK_ID_RESTAURANTE = &valor
 	}
 
 	// Procesar FECHA_NACIMIENTO
-	if fechaNacimientoStr, ok := input["FECHA_NACIMIENTO"].(string); ok && fechaNacimientoStr != "" {
+	if fechaNacimientoStr, ok := input["fechaNacimiento"].(string); ok && fechaNacimientoStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaNacimientoStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
