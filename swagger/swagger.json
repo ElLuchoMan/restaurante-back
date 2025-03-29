@@ -75,7 +75,7 @@
                 "nombre": {
                     "type": "string"
                 },
-                "observciones": {
+                "observaciones": {
                     "type": "string"
                 },
                 "password": {
@@ -119,6 +119,10 @@
                 },
                 "telefono": {
                     "type": "string"
+                },
+                "trabajadorAsignado": {
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "updatedAt": {
                     "type": "string",

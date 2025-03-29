@@ -57,8 +57,8 @@ func (c *PagoController) GetAll() {
 
 	// Ajustar fechas y hora al formato correcto
 	for i := range pagos {
-		pagos[i].UPDATED_AT = pagos[i].UPDATED_AT.In(database.BogotaZone)
-		pagos[i].FECHA = pagos[i].FECHA.In(database.BogotaZone)
+		pagos[i].UPDATED_AT = pagos[i].UPDATED_AT.UTC()
+		pagos[i].FECHA = pagos[i].FECHA.UTC()
 
 		// Formatear HORA si es necesario
 		if len(pagos[i].HORA) >= 19 {

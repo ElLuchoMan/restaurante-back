@@ -17,14 +17,15 @@ type DomicilioController struct {
 
 // @Title GetAll
 // @Summary Obtener todos los domicilios con posibilidad de filtrar
-// @Description Devuelve todos los domicilios registrados en la base de datos, con opción de filtrar por dirección, teléfono y actualizado por.
+// @Description Devuelve todos los domicilios registrados en la base de datos, filtrando según criterios específicos.
 // @Tags domicilios
 // @Accept json
 // @Produce json
 // @Param   direccion    query   string   false   "Filtrar por dirección"
 // @Param   telefono     query   string   false   "Filtrar por teléfono"
-// @Param   fecha     query   string   false   "Filtrar por fecha"
+// @Param   fecha        query   string   false   "Filtrar por fecha"
 // @Param   updated_by   query   string   false   "Filtrar por usuario que realizó la última actualización"
+// @Param   trabajador   query   int      false   "ID del domiciliario solicitante"
 // @Success 200 {array} models.Domicilio "Lista de domicilios"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
@@ -38,10 +39,11 @@ func (c *DomicilioController) GetAll() {
 	telefono := c.GetString("telefono")
 	updatedBy := c.GetString("updated_by")
 	fecha := c.GetString("fecha")
+	trabajadorID, _ := c.GetInt("trabajador") // ID del domiciliario solicitante
 
-	// Aplicar filtros opcionales
+	// Aplicar filtros opcionales SOLO si se proporcionan
 	if direccion != "" {
-		qs = qs.Filter("DIRECCION__icontains", direccion) // Búsqueda parcial
+		qs = qs.Filter("DIRECCION__icontains", direccion)
 	}
 	if telefono != "" {
 		qs = qs.Filter("TELEFONO", telefono)
@@ -53,6 +55,16 @@ func (c *DomicilioController) GetAll() {
 		qs = qs.Filter("FECHA", fecha)
 	}
 
+	// Aplicar condición para que los domiciliarios solo vean pedidos que pueden tomar
+	if trabajadorID != 0 {
+		cond := orm.NewCondition().
+			Or("PK_DOCUMENTO_TRABAJADOR__isnull", true).
+			Or("PK_DOCUMENTO_TRABAJADOR", trabajadorID)
+
+		qs = qs.Filter("ENTREGADO", false).SetCond(cond)
+	}
+
+	// Ejecutar consulta
 	var domicilios []models.Domicilio
 	count, err := qs.All(&domicilios)
 	if err != nil {
@@ -66,7 +78,7 @@ func (c *DomicilioController) GetAll() {
 		return
 	}
 
-	// Si no se encuentran resultados
+	// Si no hay domicilios, retornar mensaje informativo
 	if count == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -77,6 +89,7 @@ func (c *DomicilioController) GetAll() {
 		return
 	}
 
+	// Responder con los domicilios filtrados
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -393,4 +406,69 @@ func (c *DomicilioController) Delete() {
 		}
 		c.ServeJSON()
 	}
+}
+
+// @Title AsignarDomiciliario
+// @Summary Asignar un domiciliario a un pedido de domicilio
+// @Description Un domiciliario puede tomar un pedido si no ha sido asignado previamente
+// @Tags domicilios
+// @Accept json
+// @Produce json
+// @Param domicilio_id query int true "ID del domicilio"
+// @Param trabajador_id query int true "ID del domiciliario que lo tomará"
+// @Success 200 {object} models.ApiResponse "Domicilio asignado"
+// @Failure 404 {object} models.ApiResponse "Domicilio no encontrado o ya asignado"
+// @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
+// @Security BearerAuth
+// @Router /domicilios/asignar [post]
+func (c *DomicilioController) AsignarDomiciliario() {
+	domicilioID, _ := c.GetInt("domicilio_id")
+	trabajadorID, _ := c.GetInt("trabajador_id")
+
+	o := orm.NewOrm()
+
+	// Buscar el domicilio
+	domicilio := models.Domicilio{PK_ID_DOMICILIO: domicilioID}
+	if err := o.Read(&domicilio); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusNotFound,
+			Message: "Domicilio no encontrado",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Verificar si ya está asignado
+	if domicilio.PK_DOCUMENTO_TRABAJADOR != nil {
+		c.Ctx.Output.SetStatus(http.StatusConflict)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusConflict,
+			Message: "Este domicilio ya ha sido asignado",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Asignar el domiciliario
+	domicilio.PK_DOCUMENTO_TRABAJADOR = &trabajadorID
+
+	if _, err := o.Update(&domicilio, "PK_DOCUMENTO_TRABAJADOR"); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al asignar domicilio",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Domicilio asignado correctamente",
+		Data:    domicilio,
+	}
+	c.ServeJSON()
 }

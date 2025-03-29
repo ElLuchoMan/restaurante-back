@@ -37,6 +37,7 @@ func init() {
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.DomicilioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.DomicilioController{}, "get:GetById"),
+			beego.NSRouter("/asignar", &controllers.DomicilioController{}, "post:AsignarDomiciliario"),
 		),
 		// Rutas para trabajadores
 		beego.NSNamespace("/trabajadores",
@@ -53,6 +54,7 @@ func init() {
 		beego.NSNamespace("/reservas",
 			beego.NSRouter("/", &controllers.ReservaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.ReservaController{}, "get:GetById"),
+			beego.NSRouter("/parameter", &controllers.ReservaController{}, "get:GetByParameter"),
 		),
 		// Rutas para métodos de pago
 		beego.NSNamespace("/metodos_pago",

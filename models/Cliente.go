@@ -10,7 +10,7 @@ type Cliente struct {
 	APELLIDO             string  `orm:"column(APELLIDO);type(text)" json:"apellido"`
 	DIRECCION            string  `orm:"column(DIRECCION);type(text)" json:"direccion"`
 	TELEFONO             string  `orm:"column(TELEFONO);type(text)" json:"telefono"`
-	OBSERVACIONES        *string `orm:"column(OBSERVACIONES);type(text)" json:"observciones"`
+	OBSERVACIONES        *string `orm:"column(OBSERVACIONES);type(text)" json:"observaciones"`
 	PASSWORD             string  `orm:"column(PASSWORD);type(text)" json:"password"`
 }
 

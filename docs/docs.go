@@ -472,7 +472,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los domicilios registrados en la base de datos, con opción de filtrar por dirección, teléfono y actualizado por.",
+                "description": "Devuelve todos los domicilios registrados en la base de datos, filtrando según criterios específicos.",
                 "consumes": [
                     "application/json"
                 ],
@@ -506,6 +506,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filtrar por usuario que realizó la última actualización",
                         "name": "updated_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del domiciliario solicitante",
+                        "name": "trabajador",
                         "in": "query"
                     }
                 ],
@@ -652,6 +658,62 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/domicilios/asignar": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Un domiciliario puede tomar un pedido si no ha sido asignado previamente",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "domicilios"
+                ],
+                "summary": "Asignar un domiciliario a un pedido de domicilio",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del domicilio",
+                        "name": "domicilio_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del domiciliario que lo tomará",
+                        "name": "trabajador_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Domicilio asignado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Domicilio no encontrado o ya asignado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al asignar domicilio",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2977,6 +3039,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/reservas/parameter": {
+            "get": {
+                "description": "Devuelve las reservas asociadas a un cliente en una fecha específica, todas sus reservas si no se especifica la fecha, o todas las reservas en una fecha específica si no se especifica el cliente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Obtener reservas por documento de cliente y/o fecha",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del Cliente (Opcional)",
+                        "name": "documentoCliente",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha de la reserva (YYYY-MM-DD) (Opcional)",
+                        "name": "fecha",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas encontradas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Error en los parámetros",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/reservas/search": {
             "get": {
                 "description": "Devuelve una reserva específica por ID utilizando query parameters.",
@@ -3493,7 +3607,7 @@ const docTemplate = `{
                 "nombre": {
                     "type": "string"
                 },
-                "observciones": {
+                "observaciones": {
                     "type": "string"
                 },
                 "password": {
@@ -3533,6 +3647,9 @@ const docTemplate = `{
                 },
                 "telefono": {
                     "type": "string"
+                },
+                "trabajadorAsignado": {
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"

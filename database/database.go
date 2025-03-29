@@ -27,6 +27,8 @@ func InitDB() {
 	}
 
 	fmt.Println("Conexión a la base de datos exitosa!")
+	fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
+
 }
 
 var BogotaZone *time.Location

@@ -9,6 +9,7 @@ import (
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/context"
 	"github.com/beego/beego/v2/server/web/filter/cors"
 	_ "github.com/lib/pq"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -45,6 +46,15 @@ func generarNominaAutomatica() {
 	}
 }
 
+func setStaticHeaders(ctx *context.Context) {
+	// Solo aplicar cache y compresión en archivos estáticos (imagenes, CSS, JS)
+	if ctx.Input.URL() != "" && (ctx.Input.URL() == "/assets/" || ctx.Input.URL() == "/static/") {
+		ctx.Output.Header("Cache-Control", "public, max-age=31536000, immutable")
+		ctx.Output.Header("Content-Encoding", "gzip")
+		ctx.Output.Header("Vary", "Accept-Encoding")
+	}
+}
+
 // @title Restaurante API
 // @version 2.0.0
 // @description API para gestionar el sistema de un restaurante para "El fogón de María"
@@ -63,6 +73,8 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+	// Aplicar compresión y cacheo SOLO a archivos estáticos
+	web.InsertFilter("/*", web.BeforeRouter, setStaticHeaders)
 
 	// Habilitar la documentación de Swagger
 	web.BConfig.WebConfig.DirectoryIndex = true

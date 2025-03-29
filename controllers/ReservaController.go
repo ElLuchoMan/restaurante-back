@@ -53,7 +53,7 @@ func (c *ReservaController) GetAll() {
 	for i := range reservas {
 		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
 		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
-		reservas[i].FECHA = reservas[i].FECHA.In(database.BogotaZone)
+		reservas[i].FECHA = reservas[i].FECHA.UTC()
 
 		if len(reservas[i].HORA) >= 19 {
 			reservas[i].HORA = reservas[i].HORA[11:19]
@@ -424,6 +424,79 @@ func (c *ReservaController) Put() {
 		Code:    http.StatusOK,
 		Message: "Reserva actualizada",
 		Data:    reserva,
+	}
+	c.ServeJSON()
+}
+
+// @Title GetByCliente
+// @Summary Obtener reservas por documento de cliente y/o fecha
+// @Description Devuelve las reservas asociadas a un cliente en una fecha específica, todas sus reservas si no se especifica la fecha, o todas las reservas en una fecha específica si no se especifica el cliente.
+// @Tags reservas
+// @Accept json
+// @Produce json
+// @Param documentoCliente query int false "Documento del Cliente (Opcional)"
+// @Param fecha query string false "Fecha de la reserva (YYYY-MM-DD) (Opcional)"
+// @Success 200 {array} models.Reserva "Lista de reservas encontradas"
+// @Failure 400 {object} models.ApiResponse "Error en los parámetros"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Router /reservas/parameter [get]
+func (c *ReservaController) GetByParameter() {
+	o := orm.NewOrm()
+	var reservas []models.Reserva
+
+	// Obtener parámetros de la consulta
+	documentoCliente, errDoc := c.GetInt64("documentoCliente")
+	fechaReserva := c.GetString("fecha")
+
+	// Construir la consulta con filtros dinámicos
+	query := o.QueryTable(new(models.Reserva))
+
+	if errDoc == nil && documentoCliente != 0 {
+		query = query.Filter("DOCUMENTO_CLIENTE", documentoCliente)
+	}
+
+	if fechaReserva != "" {
+		_, err := time.Parse("2006-01-02", fechaReserva)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "El parámetro 'fecha' debe tener el formato YYYY-MM-DD",
+			}
+			c.ServeJSON()
+			return
+		}
+		query = query.Filter("FECHA", fechaReserva)
+	}
+
+	// Ejecutar la consulta
+	_, err := query.All(&reservas)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al obtener reservas",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	// Ajustar fechas y formato de hora antes de responder
+	for i := range reservas {
+		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
+		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
+		reservas[i].FECHA = reservas[i].FECHA.UTC()
+		if len(reservas[i].HORA) >= 19 {
+			reservas[i].HORA = reservas[i].HORA[11:19]
+		}
+	}
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Reservas obtenidas exitosamente",
+		Data:    reservas,
 	}
 	c.ServeJSON()
 }
