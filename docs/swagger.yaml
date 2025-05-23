@@ -509,8 +509,7 @@ paths:
         "200":
           description: Lista de clientes con los campos especificados
           schema:
-            items:
-              type: object
+            items: {}
             type: array
         "500":
           description: Error en la base de datos

@@ -274,9 +274,7 @@ const docTemplate = `{
                         "description": "Lista de clientes con los campos especificados",
                         "schema": {
                             "type": "array",
-                            "items": {
-                                "type": "object"
-                            }
+                            "items": {}
                         }
                     },
                     "500": {
