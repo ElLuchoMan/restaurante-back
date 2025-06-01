@@ -78,10 +78,21 @@ func (c *PedidoClienteController) Post() {
 		return
 	}
 
+	// ¡VALIDACIÓN IMPORTANTE!
+	if relacion.PK_DOCUMENTO_CLIENTE == 0 || relacion.PK_ID_PEDIDO == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Faltan campos obligatorios: documentoCliente y/o pedidoId",
+		}
+		c.ServeJSON()
+		return
+	}
+
 	// Ejecutar transacción
 	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
 		// Validar que el cliente existe
-		cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: int(*relacion.PK_DOCUMENTO_CLIENTE)}
+		cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: int(relacion.PK_DOCUMENTO_CLIENTE)}
 		if err := txOrm.Read(&cliente); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
@@ -94,7 +105,7 @@ func (c *PedidoClienteController) Post() {
 		}
 
 		// Validar que el pedido existe
-		pedido := models.Pedido{PK_ID_PEDIDO: *relacion.PK_ID_PEDIDO}
+		pedido := models.Pedido{PK_ID_PEDIDO: relacion.PK_ID_PEDIDO}
 		if err := txOrm.Read(&pedido); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
@@ -109,7 +120,7 @@ func (c *PedidoClienteController) Post() {
 		// Validar que el pedido no pertenece ya a otro cliente
 		existingRelacion := models.PedidoCliente{}
 		err := txOrm.QueryTable(new(models.PedidoCliente)).
-			Filter("pedidoId", *relacion.PK_ID_PEDIDO).
+			Filter("PK_ID_PEDIDO", relacion.PK_ID_PEDIDO).
 			One(&existingRelacion)
 		if err == nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)

@@ -105,7 +105,7 @@ func (c *ProductoPedidoController) GetAll() {
 	c.ServeJSON()
 }
 
-// @Title Create
+// @Title Post
 // @Summary Crear un pedido con productos consolidados
 // @Description Crea un registro de productos consolidados en un pedido
 // @Tags producto_pedido
@@ -117,7 +117,7 @@ func (c *ProductoPedidoController) GetAll() {
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [post]
-func (c *ProductoPedidoController) Create() {
+func (c *ProductoPedidoController) Post() {
 	var input struct {
 		PedidoId          int64                    `json:"pedidoId"`
 		DetallesProductos []map[string]interface{} `json:"detallesProductos"`

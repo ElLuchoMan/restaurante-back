@@ -1758,43 +1758,6 @@ paths:
       summary: Actualizar el estado de un pedido
       tags:
       - pedido
-  /pedidos/asignar-domicilio:
-    post:
-      consumes:
-      - application/json
-      description: Asigna un domicilio existente a un pedido y actualiza su estado
-        a "EN CAMINO".
-      parameters:
-      - description: ID del pedido
-        in: query
-        name: pedido_id
-        required: true
-        type: integer
-      - description: ID del domicilio
-        in: query
-        name: domicilio_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Domicilio asignado al pedido
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-        "404":
-          description: Pedido o domicilio no encontrado
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-        "500":
-          description: Error al asignar domicilio
-          schema:
-            $ref: '#/definitions/models.ApiResponse'
-      security:
-      - BearerAuth: []
-      summary: Asignar un domicilio a un pedido
-      tags:
-      - pedido
   /pedidos/asignar-pago:
     post:
       consumes:

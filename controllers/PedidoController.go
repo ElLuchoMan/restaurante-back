@@ -125,7 +125,7 @@ func (c *PedidoController) GetAll() {
 	c.ServeJSON()
 }
 
-// @Title CreatePedido
+// @Title PostPedido
 // @Summary Crear un nuevo pedido
 // @Description Crea un nuevo pedido en el sistema sin domicilio ni pago asociados.
 // @Tags pedido
@@ -137,7 +137,7 @@ func (c *PedidoController) GetAll() {
 // @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
 // @Security BearerAuth
 // @Router /pedidos [post]
-func (c *PedidoController) CreatePedido() {
+func (c *PedidoController) Post() {
 	var pedido models.Pedido
 
 	if err := c.ParseForm(&pedido); err != nil {
@@ -151,8 +151,12 @@ func (c *PedidoController) CreatePedido() {
 		return
 	}
 
-	pedido.FECHA = time.Now()
+	now := time.Now()
+	pedido.FECHA = now
+	// Asigna la hora formateada como string
+	pedido.HORA = now.Format("15:04:05")
 	pedido.ESTADO_PEDIDO = "INICIADO"
+
 	o := orm.NewOrm()
 	if _, err := o.Insert(&pedido); err != nil {
 		c.Ctx.Output.SetStatus(500)
@@ -187,61 +191,32 @@ func (c *PedidoController) CreatePedido() {
 // @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
 // @Security BearerAuth
 // @Router /pedidos/asignar-domicilio [post]
+// controllers/PedidoController.go
+
 func (c *PedidoController) AssignDomicilio() {
 	pedidoID, _ := c.GetInt("pedido_id")
 	domicilioID, _ := c.GetInt("domicilio_id")
-
 	o := orm.NewOrm()
 
-	// Buscar el pedido
+	// Leer pedido
 	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
 	if err := o.Read(&pedido); err != nil {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = models.ApiResponse{
-			Code:    404,
-			Message: "Pedido no encontrado",
-		}
+		c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
 		c.ServeJSON()
 		return
 	}
 
-	// Actualizar el domicilio y el estado del pedido
+	// Sólo actualizamos la FK al domicilio
 	pedido.PK_ID_DOMICILIO = &domicilioID
-	pedido.ESTADO_PEDIDO = "EN CAMINO"
-
-	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO", "ESTADO_PEDIDO"); err != nil {
+	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
-		c.Data["json"] = models.ApiResponse{
-			Code:    500,
-			Message: "Error al asignar domicilio",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar domicilio", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
-	// Actualizar el estado del domicilio
-	domicilio := models.Domicilio{PK_ID_DOMICILIO: domicilioID}
-	if err := o.Read(&domicilio); err == nil {
-		domicilio.ENTREGADO = false
-		if _, err := o.Update(&domicilio, "ENTREGADO"); err != nil {
-			c.Ctx.Output.SetStatus(500)
-			c.Data["json"] = models.ApiResponse{
-				Code:    500,
-				Message: "Error al actualizar el domicilio",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-	}
-
-	c.Ctx.Output.SetStatus(200)
-	c.Data["json"] = models.ApiResponse{
-		Code:    200,
-		Message: "Domicilio asignado correctamente",
-		Data:    pedido,
-	}
+	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Domicilio asignado correctamente", Data: pedido}
 	c.ServeJSON()
 }
 
@@ -261,58 +236,35 @@ func (c *PedidoController) AssignDomicilio() {
 func (c *PedidoController) AssignPago() {
 	pedidoID, _ := c.GetInt("pedido_id")
 	pagoID, _ := c.GetInt("pago_id")
-
 	o := orm.NewOrm()
 
-	// Buscar el pedido
+	// Leer pedido
 	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
 	if err := o.Read(&pedido); err != nil {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = models.ApiResponse{
-			Code:    404,
-			Message: "Pedido no encontrado",
-		}
+		c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
 		c.ServeJSON()
 		return
 	}
 
-	// Actualizar el pago y el estado del pedido
+	// Actualizamos la FK al pago y, opcionalmente, marcamos la orden como terminada
 	pedido.PK_ID_PAGO = &pagoID
-	pedido.ESTADO_PEDIDO = "PAGADO"
-
-	if _, err := o.Update(&pedido, "pagoId", "estadoPedido"); err != nil {
+	pedido.ESTADO_PEDIDO = "TERMINADO" // valor válido según tu CHECK
+	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
-		c.Data["json"] = models.ApiResponse{
-			Code:    500,
-			Message: "Error al asignar pago",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar pago", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
-	// Actualizar el estado del pago
+	// También cambiamos el estado en la tabla PAGO
 	pago := models.Pago{PK_ID_PAGO: pagoID}
 	if err := o.Read(&pago); err == nil {
 		pago.ESTADO_PAGO = "PAGADO"
-		if _, err := o.Update(&pago, "estadoPago"); err != nil {
-			c.Ctx.Output.SetStatus(500)
-			c.Data["json"] = models.ApiResponse{
-				Code:    500,
-				Message: "Error al actualizar el pago",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
+		o.Update(&pago, "ESTADO_PAGO")
 	}
 
-	c.Ctx.Output.SetStatus(200)
-	c.Data["json"] = models.ApiResponse{
-		Code:    200,
-		Message: "Pago asignado correctamente",
-		Data:    pedido,
-	}
+	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Pago asignado correctamente", Data: pedido}
 	c.ServeJSON()
 }
 
