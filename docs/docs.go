@@ -332,15 +332,16 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
+                    },
+                    "409": {
+                        "description": "Correo ya registrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     }
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Crea un nuevo cliente en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -372,6 +373,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Error en la solicitud",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Correo ya registrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3538,6 +3545,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "apellido": {
+                    "type": "string"
+                },
+                "correo": {
                     "type": "string"
                 },
                 "direccion": {

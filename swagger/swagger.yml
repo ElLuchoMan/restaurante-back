@@ -46,6 +46,8 @@ definitions:
     properties:
       apellido:
         type: string
+      correo:
+        type: string
       direccion:
         type: string
       documentoCliente:

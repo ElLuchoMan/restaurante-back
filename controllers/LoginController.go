@@ -95,7 +95,7 @@ func (c *LoginController) Login() {
 			return
 		}
 		nombre := cliente.NOMBRE + " " + cliente.APELLIDO
-		// Generar JWT con rol de "cliente"
+		// Generar JWT con rol de "Cliente"
 		generateJWT(c, cliente.PK_DOCUMENTO_CLIENTE, "Cliente", nombre)
 		return
 	}
@@ -111,13 +111,9 @@ func (c *LoginController) Login() {
 
 // Función para generar y devolver un token JWT
 func generateJWT(c *LoginController, documento int, rol string, nombre string) {
-	// Obtener la fecha y hora actual
 	now := time.Now()
-
-	// Establecer la hora de expiración a las 24 horas
 	expirationTime := now.Add(24 * time.Hour)
 
-	// Crear los claims con la expiración calculada
 	claims := &Claims{
 		Documento: documento,
 		Rol:       rol,
@@ -127,7 +123,6 @@ func generateJWT(c *LoginController, documento int, rol string, nombre string) {
 		},
 	}
 
-	// Generar el token con los claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
@@ -141,7 +136,6 @@ func generateJWT(c *LoginController, documento int, rol string, nombre string) {
 		return
 	}
 
-	// Respuesta exitosa con el token
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -155,13 +149,20 @@ func generateJWT(c *LoginController, documento int, rol string, nombre string) {
 }
 
 func ValidateToken(ctx *context.Context) {
-	// Permitir solicitudes OPTIONS sin autenticación
+	// 1) Permitir CORS preflight
 	if ctx.Input.Method() == "OPTIONS" {
 		fmt.Println("Solicitud OPTIONS recibida y permitida")
 		ctx.Output.Status = http.StatusOK
 		return
 	}
 
+	// 2) Permitir crear cliente sin token (registro público)
+	if ctx.Input.Method() == "POST" && ctx.Input.URL() == "/restaurante/v1/clientes" {
+		fmt.Println("POST público /restaurante/v1/clientes: sin validación de token")
+		return
+	}
+
+	// 3) Resto de rutas: exigir token
 	authHeader := ctx.Input.Header("Authorization")
 	if authHeader == "" {
 		fmt.Println("No se proporcionó el token")
@@ -174,11 +175,10 @@ func ValidateToken(ctx *context.Context) {
 	}
 	fmt.Println("Token recibido:", authHeader)
 
-	// Verificar si ya contiene el prefijo 'Bearer'
+	// Normalizar prefijo Bearer
 	if len(authHeader) < 7 || authHeader[:7] != "Bearer " {
 		authHeader = "Bearer " + authHeader
 	}
-
 	tokenString := authHeader[len("Bearer "):]
 
 	claims := &Claims{}

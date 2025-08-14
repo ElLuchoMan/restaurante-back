@@ -7,22 +7,34 @@ import (
 )
 
 func init() {
-	ns := beego.NewNamespace("/restaurante/v1",
-		// Ruta para login
+	// ===== Namespace PÚBLICO (primero en orden) =====
+	// Sólo expone POST /restaurante/v1/clientes sin middleware de token
+	public := beego.NewNamespace("/restaurante/v1",
+		beego.NSNamespace("/clientes",
+			// OJO: aquí NO hay NSBefore(ValidateToken)
+			beego.NSRouter("/", &controllers.ClienteController{}, "options:Options;post:Post"),
+		),
+	)
+
+	// ===== Namespace PROTEGIDO (después del público) =====
+	protected := beego.NewNamespace("/restaurante/v1",
+		// Login (público)
 		beego.NSRouter("/login", &controllers.LoginController{}, "post:Login"),
 
-		// Rutas para clientes
+		// Clientes protegidos (NO incluir post:Post aquí)
 		beego.NSNamespace("/clientes",
 			beego.NSBefore(controllers.ValidateToken),
-			beego.NSRouter("/", &controllers.ClienteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/", &controllers.ClienteController{}, "get:GetAll;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.ClienteController{}, "get:GetById"),
 		),
-		// Rutas para restaurantes
+
+		// Restaurantes
 		beego.NSNamespace("/restaurantes",
 			beego.NSRouter("/", &controllers.RestauranteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.RestauranteController{}, "get:GetById"),
 		),
-		// Rutas para pedidos
+
+		// Pedidos (protegido)
 		beego.NSNamespace("/pedidos",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.PedidoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
@@ -32,76 +44,89 @@ func init() {
 			beego.NSRouter("/detalles", &controllers.PedidoController{}, "get:GetPedidoDetails"),
 		),
 
-		// Rutas para domicilios
+		// Domicilios (protegido)
 		beego.NSNamespace("/domicilios",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.DomicilioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.DomicilioController{}, "get:GetById"),
 			beego.NSRouter("/asignar", &controllers.DomicilioController{}, "post:AsignarDomiciliario"),
 		),
-		// Rutas para trabajadores
+
+		// Trabajadores (protegido)
 		beego.NSNamespace("/trabajadores",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.TrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.TrabajadorController{}, "get:GetById"),
 		),
-		// Rutas para platos
+
+		// Productos (público según tu definición actual)
 		beego.NSNamespace("/productos",
 			beego.NSRouter("/", &controllers.ProductoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.ProductoController{}, "get:GetById"),
 		),
-		// Rutas para reservas
+
+		// Reservas (público según tu definición actual)
 		beego.NSNamespace("/reservas",
 			beego.NSRouter("/", &controllers.ReservaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.ReservaController{}, "get:GetById"),
 			beego.NSRouter("/parameter", &controllers.ReservaController{}, "get:GetByParameter"),
 		),
-		// Rutas para métodos de pago
+
+		// Métodos de pago (protegido)
 		beego.NSNamespace("/metodos_pago",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.MetodoPagoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.MetodoPagoController{}, "get:GetById"),
 		),
-		// Rutas para pagos
+
+		// Pagos (protegido)
 		beego.NSNamespace("/pagos",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.PagoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.PagoController{}, "get:GetById"),
 		),
-		// Rutas para pedido_clientes
+
+		// Pedido_Clientes (protegido)
 		beego.NSNamespace("/pedido_clientes",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.PedidoClienteController{}, "get:GetAll;post:Post"),
 		),
-		// Rutas para nominas
+
+		// Nóminas (protegido)
 		beego.NSNamespace("/nominas",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.NominaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		),
-		// Rutas para cambios_horario
+
+		// Cambios de horario (público según tu definición actual)
 		beego.NSNamespace("/cambios_horario",
 			beego.NSRouter("/", &controllers.CambiosHorarioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/actual", &controllers.CambiosHorarioController{}, "get:GetByCurrentDate"),
 		),
-		// Rutas para incidencias
+
+		// Incidencias (protegido)
 		beego.NSNamespace("/incidencias",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.IncidenciaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.IncidenciaController{}, "get:GetByDocumentAndDate"),
 		),
-		// Rutas para nóminas de trabajadores
+
+		// Nómina trabajador (protegido)
 		beego.NSNamespace("/nomina_trabajador",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.NominaTrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &controllers.NominaTrabajadorController{}, "get:GetByTrabajador"),
 			beego.NSRouter("/mes", &controllers.NominaTrabajadorController{}, "get:GetNominasByMes"),
 		),
-		// Rutas para productos_pedido
+
+		// Producto_pedido (protegido)
 		beego.NSNamespace("/producto_pedido",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.ProductoPedidoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		),
 	)
 
-	beego.AddNamespace(ns)
+	// IMPORTANTE: agregar namespaces en orden: primero público, luego protegido
+	beego.AddNamespace(public)
+	beego.AddNamespace(protected)
 }

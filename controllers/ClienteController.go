@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"restaurante/models"
 	"strconv"
+	"strings"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -13,6 +14,20 @@ import (
 
 type ClienteController struct {
 	web.Controller
+}
+
+func normalizeEmail(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
+
+func isUniqueEmailErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Detecta violaciones de unicidad por nombre de índice o mensaje
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "uq_cliente_correo") ||
+		(strings.Contains(msg, "unique") && strings.Contains(msg, "correo"))
 }
 
 // @Title GetAll
@@ -118,6 +133,15 @@ func (c *ClienteController) GetById() {
 		}
 		c.ServeJSON()
 		return
+	} else if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al consultar el cliente",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
 	}
 
 	// Excluir la contraseña de la respuesta
@@ -141,7 +165,7 @@ func (c *ClienteController) GetById() {
 // @Param   body  body   models.Cliente true  "Datos del cliente a crear"
 // @Success 201 {object} models.Cliente "Cliente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
-// @Security BearerAuth
+// @Failure 409 {object} models.ApiResponse "Correo ya registrado"
 // @Router /clientes [post]
 func (c *ClienteController) Post() {
 	o := orm.NewOrm()
@@ -156,6 +180,12 @@ func (c *ClienteController) Post() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	// Normalizar correo si viene
+	if cliente.CORREO != nil && strings.TrimSpace(*cliente.CORREO) != "" {
+		normalized := normalizeEmail(*cliente.CORREO)
+		cliente.CORREO = &normalized
 	}
 
 	// Hash de la contraseña antes de insertar
@@ -173,8 +203,17 @@ func (c *ClienteController) Post() {
 	cliente.PASSWORD = string(hashedPassword)
 
 	// Inserción en la base de datos
-	_, err = o.Insert(&cliente)
-	if err != nil {
+	if _, err = o.Insert(&cliente); err != nil {
+		if isUniqueEmailErr(err) {
+			c.Ctx.Output.SetStatus(http.StatusConflict)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusConflict,
+				Message: "El correo ya está registrado",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -207,6 +246,7 @@ func (c *ClienteController) Post() {
 // @Param   body  body   models.Cliente true  "Datos del cliente a actualizar"
 // @Success 200 {object} models.Cliente "Cliente actualizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
+// @Failure 409 {object} models.ApiResponse "Correo ya registrado"
 // @Security BearerAuth
 // @Router /clientes [put]
 func (c *ClienteController) Put() {
@@ -264,7 +304,19 @@ func (c *ClienteController) Put() {
 	// Mantener el ID original
 	updatedCliente.PK_DOCUMENTO_CLIENTE = cliente.PK_DOCUMENTO_CLIENTE
 
-	// Si se proporciona una nueva contraseña, hashéala
+	// Normalizar/Conservar correo
+	var correoTrim string
+	if updatedCliente.CORREO != nil {
+		correoTrim = strings.TrimSpace(*updatedCliente.CORREO)
+	}
+	if correoTrim == "" {
+		updatedCliente.CORREO = cliente.CORREO // no sobreescribir con vacío
+	} else {
+		normalized := normalizeEmail(*updatedCliente.CORREO)
+		updatedCliente.CORREO = &normalized
+	}
+
+	// Si se proporciona una nueva contraseña, hashéala; de lo contrario conserva la actual
 	if updatedCliente.PASSWORD != "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(updatedCliente.PASSWORD), bcrypt.DefaultCost)
 		if err != nil {
@@ -284,8 +336,17 @@ func (c *ClienteController) Put() {
 	}
 
 	// Actualizar en la base de datos
-	_, err = o.Update(&updatedCliente)
-	if err != nil {
+	if _, err = o.Update(&updatedCliente); err != nil {
+		if isUniqueEmailErr(err) {
+			c.Ctx.Output.SetStatus(http.StatusConflict)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusConflict,
+				Message: "El correo ya está registrado",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
