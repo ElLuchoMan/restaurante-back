@@ -36,7 +36,7 @@ func setupProductoController(t *testing.T, data []byte) *web.Controller {
 	return c
 }
 
-func TestHandleImageUploadMissingFile(t *testing.T) {
+func TestProductoHandleImageUploadMissingFile(t *testing.T) {
 	c := setupProductoController(t, nil)
 	img, err := handleImageUpload(c)
 	if err != nil {
@@ -47,7 +47,7 @@ func TestHandleImageUploadMissingFile(t *testing.T) {
 	}
 }
 
-func TestHandleImageUploadTooLarge(t *testing.T) {
+func TestProductoHandleImageUploadTooLarge(t *testing.T) {
 	data := bytes.Repeat([]byte("a"), 1024*1024+1)
 	c := setupProductoController(t, data)
 	img, err := handleImageUpload(c)
@@ -59,7 +59,7 @@ func TestHandleImageUploadTooLarge(t *testing.T) {
 	}
 }
 
-func TestHandleImageUploadSuccess(t *testing.T) {
+func TestProductoHandleImageUploadSuccess(t *testing.T) {
 	c := setupProductoController(t, []byte("hello"))
 	img, err := handleImageUpload(c)
 	if err != nil {
@@ -108,5 +108,100 @@ func TestProductoGetAllWithoutDB(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), "Error al obtener productos") {
 		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestProductoGetByIdInvalidID(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/productos/search", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetById()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestProductoGetByIdNotFound(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/productos/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetById()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "error al buscar el producto") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestProductoPostMissingNombre(t *testing.T) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("NOMBRE", "")
+	writer.WriteField("CATEGORIA", "cat")
+	writer.WriteField("ESTADO_PRODUCTO", "DISPONIBLE")
+	writer.WriteField("PRECIO", "10")
+	writer.Close()
+
+	r := httptest.NewRequest(http.MethodPost, "/productos", body)
+	r.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "NOMBRE") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestProductoPutInvalidID(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPut, "/productos", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Put()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestProductoDeleteInvalidID(t *testing.T) {
+	r := httptest.NewRequest(http.MethodDelete, "/productos", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Delete()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
 	}
 }
