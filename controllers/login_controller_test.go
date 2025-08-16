@@ -1,0 +1,144 @@
+package controllers
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+
+	"restaurante/models"
+
+	"github.com/beego/beego/v2/server/web/context"
+	"github.com/dgrijalva/jwt-go"
+)
+
+func TestGenerateJWT(t *testing.T) {
+	os.Setenv("cocina-de-maria", "testsecret")
+	defer os.Unsetenv("cocina-de-maria")
+	jwtSecret = []byte(os.Getenv("cocina-de-maria"))
+
+	r := httptest.NewRequest(http.MethodPost, "/login", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := LoginController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	generateJWT(&c, 123, "Admin", "Foo Bar")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var resp models.ApiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+	if resp.Code != http.StatusOK {
+		t.Errorf("expected response code 200, got %d", resp.Code)
+	}
+	data := resp.Data.(map[string]interface{})
+	if data["token"] == "" {
+		t.Errorf("expected token to be set")
+	}
+	if data["nombre"] != "Foo Bar" {
+		t.Errorf("expected nombre Foo Bar, got %v", data["nombre"])
+	}
+}
+
+func TestLoginInvalidJSON(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader("notjson"))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := LoginController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Login()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestValidateTokenMissing(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+
+	ValidateToken(ctx)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestValidateTokenInvalid(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	r.Header.Set("Authorization", "Bearer invalid")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+
+	ValidateToken(ctx)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestValidateTokenValid(t *testing.T) {
+	os.Setenv("cocina-de-maria", "testsecret")
+	defer os.Unsetenv("cocina-de-maria")
+	jwtSecret = []byte(os.Getenv("cocina-de-maria"))
+
+	claims := &Claims{Documento: 1, Rol: "Admin", Nombre: "Tester"}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenStr, err := token.SignedString(jwtSecret)
+	if err != nil {
+		t.Fatalf("failed to sign token: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	r.Header.Set("Authorization", "Bearer "+tokenStr)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+
+	ValidateToken(ctx)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestValidateTokenOptions(t *testing.T) {
+	r := httptest.NewRequest(http.MethodOptions, "/any", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+
+	ValidateToken(ctx)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestValidateTokenPublicCliente(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPost, "/restaurante/v1/clientes", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+
+	ValidateToken(ctx)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
