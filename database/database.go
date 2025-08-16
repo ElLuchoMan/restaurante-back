@@ -10,6 +10,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// registerDataBase allows tests to stub orm.RegisterDataBase.
+var registerDataBase = orm.RegisterDataBase
+
+// loadLocation allows tests to stub time.LoadLocation.
+var loadLocation = time.LoadLocation
+
 func InitDB() error {
 	dbHost, _ := web.AppConfig.String("db_host")
 	dbPort, _ := web.AppConfig.String("db_port")
@@ -20,7 +26,7 @@ func InitDB() error {
 	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable TimeZone=UTC",
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
-	err := orm.RegisterDataBase("default", "postgres", connStr)
+	err := registerDataBase("default", "postgres", connStr)
 
 	if err != nil {
 		return err
@@ -36,7 +42,7 @@ var BogotaZone *time.Location
 
 func InitTimezone() {
 	var err error
-	BogotaZone, err = time.LoadLocation("America/Bogota")
+	BogotaZone, err = loadLocation("America/Bogota")
 	if err != nil {
 		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
 		BogotaZone = time.FixedZone("UTC-5", -5*60*60)
