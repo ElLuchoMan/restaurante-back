@@ -55,39 +55,39 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">restaurante/controllers/CambiosHorarioController.go (0.0%)</option>
+				<option value="file0">restaurante/controllers/CambiosHorarioController.go (38.7%)</option>
 				
-				<option value="file1">restaurante/controllers/ClienteController.go (8.6%)</option>
+				<option value="file1">restaurante/controllers/ClienteController.go (48.0%)</option>
 				
-				<option value="file2">restaurante/controllers/DomicilioController.go (0.0%)</option>
+				<option value="file2">restaurante/controllers/DomicilioController.go (50.8%)</option>
 				
-				<option value="file3">restaurante/controllers/IncidenciaController.go (0.0%)</option>
+				<option value="file3">restaurante/controllers/IncidenciaController.go (35.2%)</option>
 				
-				<option value="file4">restaurante/controllers/LoginController.go (0.0%)</option>
+				<option value="file4">restaurante/controllers/LoginController.go (94.4%)</option>
 				
-				<option value="file5">restaurante/controllers/MetodoPagoController.go (0.0%)</option>
+				<option value="file5">restaurante/controllers/MetodoPagoController.go (88.0%)</option>
 				
-				<option value="file6">restaurante/controllers/NominaController.go (0.0%)</option>
+				<option value="file6">restaurante/controllers/NominaController.go (53.3%)</option>
 				
-				<option value="file7">restaurante/controllers/NominaTrabajadorController.go (0.0%)</option>
+				<option value="file7">restaurante/controllers/NominaTrabajadorController.go (58.3%)</option>
 				
-				<option value="file8">restaurante/controllers/PagoController.go (0.0%)</option>
+				<option value="file8">restaurante/controllers/PagoController.go (24.9%)</option>
 				
-				<option value="file9">restaurante/controllers/PedidoClienteController.go (0.0%)</option>
+				<option value="file9">restaurante/controllers/PedidoClienteController.go (41.1%)</option>
 				
-				<option value="file10">restaurante/controllers/PedidoController.go (0.0%)</option>
+				<option value="file10">restaurante/controllers/PedidoController.go (55.1%)</option>
 				
-				<option value="file11">restaurante/controllers/ProductoController.go (0.0%)</option>
+				<option value="file11">restaurante/controllers/ProductoController.go (47.5%)</option>
 				
-				<option value="file12">restaurante/controllers/ProductoPedidoController.go (0.0%)</option>
+				<option value="file12">restaurante/controllers/ProductoPedidoController.go (60.2%)</option>
 				
-				<option value="file13">restaurante/controllers/ReservaController.go (0.0%)</option>
+				<option value="file13">restaurante/controllers/ReservaController.go (31.9%)</option>
 				
-				<option value="file14">restaurante/controllers/RestauranteController.go (8.0%)</option>
+				<option value="file14">restaurante/controllers/RestauranteController.go (61.0%)</option>
 				
-				<option value="file15">restaurante/controllers/TrabajadorController.go (0.0%)</option>
+				<option value="file15">restaurante/controllers/TrabajadorController.go (26.3%)</option>
 				
-				<option value="file16">restaurante/database/database.go (0.0%)</option>
+				<option value="file16">restaurante/database/database.go (100.0%)</option>
 				
 				<option value="file17">restaurante/docs/docs.go (100.0%)</option>
 				
@@ -119,11 +119,13 @@
 				
 				<option value="file31">restaurante/models/Reserva.go (100.0%)</option>
 				
-				<option value="file32">restaurante/models/Restaurante.go (90.0%)</option>
+				<option value="file32">restaurante/models/Restaurante.go (100.0%)</option>
 				
-				<option value="file33">restaurante/models/Trabajador.go (83.3%)</option>
+				<option value="file33">restaurante/models/Trabajador.go (100.0%)</option>
 				
 				<option value="file34">restaurante/routers/router.go (100.0%)</option>
+				
+				<option value="file35">restaurante/tests/http_utils.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -163,6 +165,11 @@ type CambiosHorarioController struct {
         web.Controller
 }
 
+// queryCambioHorarioByDate allows tests to mock the database query used in GetByCurrentDate.
+var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error <span class="cov1" title="1">{
+        return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)
+}</span>
+
 // @Title GetAll
 // @Summary Obtener todos los cambios de horario
 // @Description Obtiene un listado de todos los cambios de horario registrados en la base de datos
@@ -172,12 +179,12 @@ type CambiosHorarioController struct {
 // @Success 200 {array} map[string]interface{} "Listado de cambios de horario"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [get]
-func (c *CambiosHorarioController) GetAll() <span class="cov0" title="0">{
+func (c *CambiosHorarioController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var horarios []models.CambiosHorario
 
         _, err := o.QueryTable(new(models.CambiosHorario)).All(&amp;horarios)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -227,7 +234,7 @@ func (c *CambiosHorarioController) GetAll() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "No hay cambios de horario para la fecha actual"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario/actual [get]
-func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov0" title="0">{
+func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov5" title="2">{
         o := orm.NewOrm()
         var cambioHorario models.CambiosHorario
 
@@ -235,19 +242,17 @@ func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov0" title="
         currentDate := time.Now().In(database.BogotaZone)
 
         // Consultar si hay un cambio de horario para la fecha actual
-        err := o.QueryTable(new(models.CambiosHorario)).
-                Filter("FECHA", currentDate.Format("2006-01-02")).
-                One(&amp;cambioHorario)
+        err := queryCambioHorarioByDate(o, currentDate.Format("2006-01-02"), &amp;cambioHorario)
 
-        if err == orm.ErrNoRows </span><span class="cov0" title="0">{
-                c.Ctx.Output.SetStatus(http.StatusOK)
+        if err == orm.ErrNoRows </span><span class="cov1" title="1">{
+                c.Ctx.Output.SetStatus(http.StatusNotFound)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
                         Message: "No hay cambios de horario para la fecha actual",
                 }
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov0" title="0"> if err != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov1" title="1"> if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -292,13 +297,13 @@ func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov0" title="
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [post]
-func (c *CambiosHorarioController) Post() <span class="cov0" title="0">{
+func (c *CambiosHorarioController) Post() <span class="cov10" title="4">{
         o := orm.NewOrm()
         var input map[string]interface{}
         var horario models.CambiosHorario
 
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -310,7 +315,7 @@ func (c *CambiosHorarioController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Validar y procesar FECHA
-        <span class="cov0" title="0">if fechaStr, ok := input["fechaCambioHorario"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="3">if fechaStr, ok := input["fechaCambioHorario"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov5" title="2">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
                 if err != nil </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -322,8 +327,8 @@ func (c *CambiosHorarioController) Post() <span class="cov0" title="0">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">horario.FECHA = parsedDate</span>
-        } else<span class="cov0" title="0"> {
+                <span class="cov5" title="2">horario.FECHA = parsedDate</span>
+        } else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -334,7 +339,7 @@ func (c *CambiosHorarioController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Validar ABIERTO
-        <span class="cov0" title="0">if abierto, ok := input["abierto"].(bool); ok </span><span class="cov0" title="0">{
+        <span class="cov5" title="2">if abierto, ok := input["abierto"].(bool); ok </span><span class="cov5" title="2">{
                 horario.ABIERTO = abierto
         }</span> else<span class="cov0" title="0"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -347,13 +352,13 @@ func (c *CambiosHorarioController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Configuración automática para días cerrados
-        <span class="cov0" title="0">if !horario.ABIERTO </span><span class="cov0" title="0">{
+        <span class="cov5" title="2">if !horario.ABIERTO </span><span class="cov1" title="1">{
                 // Si el restaurante no abre, establecer horas predeterminadas
                 horaApertura, _ := time.Parse("15:04:05", "00:00:00")
                 horaCierre, _ := time.Parse("15:04:05", "23:59:59")
                 horario.HORA_APERTURA = &amp;horaApertura
                 horario.HORA_CIERRE = &amp;horaCierre
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 // Validar y procesar HORA_APERTURA (opcional)
                 if horaAperturaStr, ok := input["horaApertura"].(string); ok &amp;&amp; horaAperturaStr != "" </span><span class="cov0" title="0">{
                         parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
@@ -368,7 +373,7 @@ func (c *CambiosHorarioController) Post() <span class="cov0" title="0">{
                                 return
                         }</span>
                         <span class="cov0" title="0">horario.HORA_APERTURA = &amp;parsedHora</span>
-                } else<span class="cov0" title="0"> {
+                } else<span class="cov1" title="1"> {
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusBadRequest,
@@ -404,8 +409,8 @@ func (c *CambiosHorarioController) Post() <span class="cov0" title="0">{
         }
 
         // Insertar en la base de datos
-        <span class="cov0" title="0">_, err := o.Insert(&amp;horario)
-        if err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">_, err := o.Insert(&amp;horario)
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -452,10 +457,10 @@ func (c *CambiosHorarioController) Post() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Cambio de horario no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [put]
-func (c *CambiosHorarioController) Put() <span class="cov0" title="0">{
+func (c *CambiosHorarioController) Put() <span class="cov5" title="2">{
         o := orm.NewOrm()
         id, err := c.GetInt64("id")
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -465,8 +470,8 @@ func (c *CambiosHorarioController) Put() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">var input map[string]interface{}
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">var input map[string]interface{}
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -602,10 +607,10 @@ func (c *CambiosHorarioController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Cambio de horario no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [delete]
-func (c *CambiosHorarioController) Delete() <span class="cov0" title="0">{
+func (c *CambiosHorarioController) Delete() <span class="cov1" title="1">{
         o := orm.NewOrm()
         id, err := c.GetInt64("id")
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -666,12 +671,12 @@ func normalizeEmail(s string) string <span class="cov1" title="1">{
         return strings.ToLower(strings.TrimSpace(s))
 }</span>
 
-func isUniqueEmailErr(err error) bool <span class="cov10" title="2">{
+func isUniqueEmailErr(err error) bool <span class="cov10" title="3">{
         if err == nil </span><span class="cov0" title="0">{
                 return false
         }</span>
         // Detecta violaciones de unicidad por nombre de índice o mensaje
-        <span class="cov10" title="2">msg := strings.ToLower(err.Error())
+        <span class="cov10" title="3">msg := strings.ToLower(err.Error())
         return strings.Contains(msg, "uq_cliente_correo") ||
                 (strings.Contains(msg, "unique") &amp;&amp; strings.Contains(msg, "correo"))</span>
 }
@@ -753,11 +758,11 @@ func (c *ClienteController) GetAll() <span class="cov1" title="1">{
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Security BearerAuth
 // @Router /clientes/search [get]
-func (c *ClienteController) GetById() <span class="cov0" title="0">{
+func (c *ClienteController) GetById() <span class="cov6" title="2">{
         o := orm.NewOrm()
         id, err := c.GetInt("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -768,7 +773,7 @@ func (c *ClienteController) GetById() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
+        <span class="cov1" title="1">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
         err = o.Read(&amp;cliente)
         if err == orm.ErrNoRows </span><span class="cov0" title="0">{
@@ -779,7 +784,7 @@ func (c *ClienteController) GetById() <span class="cov0" title="0">{
                 }
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov0" title="0"> if err != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov1" title="1"> if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -813,11 +818,11 @@ func (c *ClienteController) GetById() <span class="cov0" title="0">{
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 409 {object} models.ApiResponse "Correo ya registrado"
 // @Router /clientes [post]
-func (c *ClienteController) Post() <span class="cov0" title="0">{
+func (c *ClienteController) Post() <span class="cov6" title="2">{
         o := orm.NewOrm()
         var cliente models.Cliente
 
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;cliente); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;cliente); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -829,13 +834,13 @@ func (c *ClienteController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Normalizar correo si viene
-        <span class="cov0" title="0">if cliente.CORREO != nil &amp;&amp; strings.TrimSpace(*cliente.CORREO) != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if cliente.CORREO != nil &amp;&amp; strings.TrimSpace(*cliente.CORREO) != "" </span><span class="cov0" title="0">{
                 normalized := normalizeEmail(*cliente.CORREO)
                 cliente.CORREO = &amp;normalized
         }</span>
 
         // Hash de la contraseña antes de insertar
-        <span class="cov0" title="0">hashedPassword, err := bcrypt.GenerateFromPassword([]byte(cliente.PASSWORD), bcrypt.DefaultCost)
+        <span class="cov1" title="1">hashedPassword, err := bcrypt.GenerateFromPassword([]byte(cliente.PASSWORD), bcrypt.DefaultCost)
         if err != nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
@@ -846,10 +851,10 @@ func (c *ClienteController) Post() <span class="cov0" title="0">{
                 c.ServeJSON()
                 return
         }</span>
-        <span class="cov0" title="0">cliente.PASSWORD = string(hashedPassword)
+        <span class="cov1" title="1">cliente.PASSWORD = string(hashedPassword)
 
         // Inserción en la base de datos
-        if _, err = o.Insert(&amp;cliente); err != nil </span><span class="cov0" title="0">{
+        if _, err = o.Insert(&amp;cliente); err != nil </span><span class="cov1" title="1">{
                 if isUniqueEmailErr(err) </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusConflict)
                         c.Data["json"] = models.ApiResponse{
@@ -860,7 +865,7 @@ func (c *ClienteController) Post() <span class="cov0" title="0">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+                <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al crear el cliente",
@@ -895,13 +900,13 @@ func (c *ClienteController) Post() <span class="cov0" title="0">{
 // @Failure 409 {object} models.ApiResponse "Correo ya registrado"
 // @Security BearerAuth
 // @Router /clientes [put]
-func (c *ClienteController) Put() <span class="cov0" title="0">{
+func (c *ClienteController) Put() <span class="cov6" title="2">{
         o := orm.NewOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -913,8 +918,8 @@ func (c *ClienteController) Put() <span class="cov0" title="0">{
         }</span>
 
         // Verificar si el cliente existe
-        <span class="cov0" title="0">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
-        if err := o.Read(&amp;cliente); err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
+        if err := o.Read(&amp;cliente); err != nil </span><span class="cov1" title="1">{
                 if err == orm.ErrNoRows </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusOK)
                         c.Data["json"] = models.ApiResponse{
@@ -922,7 +927,7 @@ func (c *ClienteController) Put() <span class="cov0" title="0">{
                                 Message: "Cliente no encontrado",
                         }
                         c.ServeJSON()
-                }</span> else<span class="cov0" title="0"> {
+                }</span> else<span class="cov1" title="1"> {
                         c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusInternalServerError,
@@ -931,7 +936,7 @@ func (c *ClienteController) Put() <span class="cov0" title="0">{
                         }
                         c.ServeJSON()
                 }</span>
-                <span class="cov0" title="0">return</span>
+                <span class="cov1" title="1">return</span>
         }
 
         // Decodificar los datos actualizados
@@ -1026,13 +1031,13 @@ func (c *ClienteController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Security BearerAuth
 // @Router /clientes [delete]
-func (c *ClienteController) Delete() <span class="cov0" title="0">{
+func (c *ClienteController) Delete() <span class="cov6" title="2">{
         o := orm.NewOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1042,7 +1047,7 @@ func (c *ClienteController) Delete() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
+        <span class="cov1" title="1">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
         if _, err := o.Delete(&amp;cliente); err == nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
@@ -1051,7 +1056,7 @@ func (c *ClienteController) Delete() <span class="cov0" title="0">{
                         Message: "Cliente eliminado",
                 }
                 c.ServeJSON()
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -1095,7 +1100,7 @@ type DomicilioController struct {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /domicilios [get]
-func (c *DomicilioController) GetAll() <span class="cov0" title="0">{
+func (c *DomicilioController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         qs := o.QueryTable(new(models.Domicilio))
 
@@ -1110,18 +1115,18 @@ func (c *DomicilioController) GetAll() <span class="cov0" title="0">{
         if direccion != "" </span><span class="cov0" title="0">{
                 qs = qs.Filter("DIRECCION__icontains", direccion)
         }</span>
-        <span class="cov0" title="0">if telefono != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if telefono != "" </span><span class="cov0" title="0">{
                 qs = qs.Filter("TELEFONO", telefono)
         }</span>
-        <span class="cov0" title="0">if updatedBy != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if updatedBy != "" </span><span class="cov0" title="0">{
                 qs = qs.Filter("UPDATED_BY__icontains", updatedBy)
         }</span>
-        <span class="cov0" title="0">if fecha != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if fecha != "" </span><span class="cov0" title="0">{
                 qs = qs.Filter("FECHA", fecha)
         }</span>
 
         // Aplicar condición para que los domiciliarios solo vean pedidos que pueden tomar
-        <span class="cov0" title="0">if trabajadorID != 0 </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if trabajadorID != 0 </span><span class="cov0" title="0">{
                 cond := orm.NewCondition().
                         Or("PK_DOCUMENTO_TRABAJADOR__isnull", true).
                         Or("PK_DOCUMENTO_TRABAJADOR", trabajadorID)
@@ -1130,9 +1135,9 @@ func (c *DomicilioController) GetAll() <span class="cov0" title="0">{
         }</span>
 
         // Ejecutar consulta
-        <span class="cov0" title="0">var domicilios []models.Domicilio
+        <span class="cov1" title="1">var domicilios []models.Domicilio
         count, err := qs.All(&amp;domicilios)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -1175,11 +1180,11 @@ func (c *DomicilioController) GetAll() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
 // @Router /domicilios/search [get]
-func (c *DomicilioController) GetById() <span class="cov0" title="0">{
+func (c *DomicilioController) GetById() <span class="cov1" title="1">{
         o := orm.NewOrm()
         id, err := c.GetInt("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1224,13 +1229,13 @@ func (c *DomicilioController) GetById() <span class="cov0" title="0">{
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /domicilios [post]
-func (c *DomicilioController) Post() <span class="cov0" title="0">{
+func (c *DomicilioController) Post() <span class="cov10" title="5">{
         o := orm.NewOrm()
         var input map[string]interface{}
         var domicilio models.Domicilio
 
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1242,9 +1247,9 @@ func (c *DomicilioController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Validar y establecer los campos obligatorios
-        <span class="cov0" title="0">if direccion, ok := input["direccion"].(string); ok &amp;&amp; direccion != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="4">if direccion, ok := input["direccion"].(string); ok &amp;&amp; direccion != "" </span><span class="cov7" title="3">{
                 domicilio.DIRECCION = direccion
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1254,9 +1259,9 @@ func (c *DomicilioController) Post() <span class="cov0" title="0">{
                 return
         }</span>
         // Validar fecha:
-        <span class="cov0" title="0">if fechaStr, ok := input["fechaDomicilio"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov0" title="0">{
+        <span class="cov7" title="3">if fechaStr, ok := input["fechaDomicilio"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov7" title="3">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
-                if err != nil </span><span class="cov0" title="0">{
+                if err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusBadRequest,
@@ -1266,7 +1271,7 @@ func (c *DomicilioController) Post() <span class="cov0" title="0">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">domicilio.FECHA = parsedDate</span>
+                <span class="cov4" title="2">domicilio.FECHA = parsedDate</span>
         } else<span class="cov0" title="0"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -1277,9 +1282,9 @@ func (c *DomicilioController) Post() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">if telefono, ok := input["telefono"].(string); ok &amp;&amp; telefono != "" </span><span class="cov0" title="0">{
+        <span class="cov4" title="2">if telefono, ok := input["telefono"].(string); ok &amp;&amp; telefono != "" </span><span class="cov1" title="1">{
                 domicilio.TELEFONO = telefono
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1290,26 +1295,26 @@ func (c *DomicilioController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Procesar campos opcionales
-        <span class="cov0" title="0">if estadoPago, ok := input["estadoPago"].(string); ok </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if estadoPago, ok := input["estadoPago"].(string); ok </span><span class="cov0" title="0">{
                 domicilio.ESTADO_PAGO = estadoPago
         }</span>
-        <span class="cov0" title="0">if entregado, ok := input["entregado"].(bool); ok </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if entregado, ok := input["entregado"].(bool); ok </span><span class="cov0" title="0">{
                 domicilio.ENTREGADO = entregado
         }</span>
-        <span class="cov0" title="0">if observaciones, ok := input["observaciones"].(string); ok </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if observaciones, ok := input["observaciones"].(string); ok </span><span class="cov0" title="0">{
                 domicilio.OBSERVACIONES = observaciones
         }</span>
-        <span class="cov0" title="0">if createdBy, ok := input["createdBy"].(string); ok </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if createdBy, ok := input["createdBy"].(string); ok </span><span class="cov0" title="0">{
                 domicilio.CREATED_BY = &amp;createdBy
         }</span>
 
         // Establecer valores automáticos
-        <span class="cov0" title="0">domicilio.CREATED_AT = time.Now().UTC()
+        <span class="cov1" title="1">domicilio.CREATED_AT = time.Now().UTC()
         domicilio.UPDATED_AT = time.Time{} // Inicializa vacío
 
         // Insertar en la base de datos
         _, err := o.Insert(&amp;domicilio)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -1342,13 +1347,13 @@ func (c *DomicilioController) Post() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
 // @Router /domicilios [put]
-func (c *DomicilioController) Put() <span class="cov0" title="0">{
+func (c *DomicilioController) Put() <span class="cov1" title="1">{
         o := orm.NewOrm()
 
         // Obtener el ID del domicilio
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1437,12 +1442,12 @@ func (c *DomicilioController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
 // @Router /domicilios [delete]
-func (c *DomicilioController) Delete() <span class="cov0" title="0">{
+func (c *DomicilioController) Delete() <span class="cov1" title="1">{
         o := orm.NewOrm()
 
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1486,7 +1491,7 @@ func (c *DomicilioController) Delete() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
 // @Security BearerAuth
 // @Router /domicilios/asignar [post]
-func (c *DomicilioController) AsignarDomiciliario() <span class="cov0" title="0">{
+func (c *DomicilioController) AsignarDomiciliario() <span class="cov1" title="1">{
         domicilioID, _ := c.GetInt("domicilio_id")
         trabajadorID, _ := c.GetInt("trabajador_id")
 
@@ -1494,7 +1499,7 @@ func (c *DomicilioController) AsignarDomiciliario() <span class="cov0" title="0"
 
         // Buscar el domicilio
         domicilio := models.Domicilio{PK_ID_DOMICILIO: domicilioID}
-        if err := o.Read(&amp;domicilio); err != nil </span><span class="cov0" title="0">{
+        if err := o.Read(&amp;domicilio); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusNotFound)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -1566,12 +1571,12 @@ type IncidenciaController struct {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [get]
-func (c *IncidenciaController) GetAll() <span class="cov0" title="0">{
+func (c *IncidenciaController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var incidencias []models.Incidencia
 
         _, err := o.QueryTable(new(models.Incidencia)).All(&amp;incidencias)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -1606,12 +1611,12 @@ func (c *IncidenciaController) GetAll() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias/search [get]
-func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov0" title="0">{
+func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov8" title="3">{
         o := orm.NewOrm()
 
         // Obtener parámetros de la consulta
         documento, err := c.GetInt64("documento")
-        if err != nil || documento == 0 </span><span class="cov0" title="0">{
+        if err != nil || documento == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1621,8 +1626,8 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov0" title="
                 return
         }</span>
 
-        <span class="cov0" title="0">mes, err := c.GetInt("mes")
-        if err != nil || mes &lt; 1 || mes &gt; 12 </span><span class="cov0" title="0">{
+        <span class="cov5" title="2">mes, err := c.GetInt("mes")
+        if err != nil || mes &lt; 1 || mes &gt; 12 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1632,8 +1637,8 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov0" title="
                 return
         }</span>
 
-        <span class="cov0" title="0">anio, err := c.GetInt("anio")
-        if err != nil || anio &lt; 1900 || anio &gt; time.Now().Year() </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">anio, err := c.GetInt("anio")
+        if err != nil || anio &lt; 1900 || anio &gt; time.Now().Year() </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1696,13 +1701,13 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov0" title="
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [post]
-func (c *IncidenciaController) Post() <span class="cov0" title="0">{
+func (c *IncidenciaController) Post() <span class="cov10" title="4">{
         o := orm.NewOrm()
         var input map[string]interface{}
         var incidencia models.Incidencia
 
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov10" title="4">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1829,13 +1834,13 @@ func (c *IncidenciaController) Post() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [put]
-func (c *IncidenciaController) Put() <span class="cov0" title="0">{
+func (c *IncidenciaController) Put() <span class="cov8" title="3">{
         o := orm.NewOrm()
 
         // Obtener el ID de la incidencia desde los parámetros
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1846,7 +1851,7 @@ func (c *IncidenciaController) Put() <span class="cov0" title="0">{
         }</span>
 
         // Buscar la incidencia por ID
-        <span class="cov0" title="0">incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
+        <span class="cov5" title="2">incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
         if err := o.Read(&amp;incidencia); err == orm.ErrNoRows </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
@@ -1858,8 +1863,8 @@ func (c *IncidenciaController) Put() <span class="cov0" title="0">{
         }</span>
 
         // Deserializar los datos actualizados desde el cuerpo de la solicitud
-        <span class="cov0" title="0">var input map[string]interface{}
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        <span class="cov5" title="2">var input map[string]interface{}
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov5" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -1946,10 +1951,10 @@ func (c *IncidenciaController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Incidencia no encontrada"
 // @Security BearerAuth
 // @Router /incidencias [delete]
-func (c *IncidenciaController) Delete() <span class="cov0" title="0">{
+func (c *IncidenciaController) Delete() <span class="cov1" title="1">{
         o := orm.NewOrm()
         id, err := c.GetInt64("id")
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2007,6 +2012,11 @@ import (
         "github.com/beego/beego/v2/server/web/context"
 )
 
+var (
+        newOrm                 = orm.NewOrm
+        compareHashAndPassword = bcrypt.CompareHashAndPassword
+)
+
 type LoginController struct {
         web.Controller
 }
@@ -2033,9 +2043,9 @@ var jwtSecret = []byte(os.Getenv("cocina-de-maria"))
 // @Failure 400 {object} models.ApiResponse "Solicitud incorrecta"
 // @Failure 401 {object} models.ApiResponse "Credenciales inválidas"
 // @Router /login [post]
-func (c *LoginController) Login() <span class="cov0" title="0">{
+func (c *LoginController) Login() <span class="cov10" title="6">{
         var loginRequest models.LoginRequest
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;loginRequest); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;loginRequest); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2046,15 +2056,15 @@ func (c *LoginController) Login() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">o := orm.NewOrm()
+        <span class="cov9" title="5">o := newOrm()
 
         // Primero, intenta encontrar al usuario como trabajador
         trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(loginRequest.Documento)}
         err := o.Read(&amp;trabajador)
 
-        if err == nil </span><span class="cov0" title="0">{
+        if err == nil </span><span class="cov4" title="2">{
                 // Verificar la contraseña
-                if err := bcrypt.CompareHashAndPassword([]byte(trabajador.PASSWORD), []byte(loginRequest.Password)); err != nil </span><span class="cov0" title="0">{
+                if err := compareHashAndPassword([]byte(trabajador.PASSWORD), []byte(loginRequest.Password)); err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusUnauthorized)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusUnauthorized,
@@ -2063,19 +2073,19 @@ func (c *LoginController) Login() <span class="cov0" title="0">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">nombre := trabajador.NOMBRE + " " + trabajador.APELLIDO
+                <span class="cov1" title="1">nombre := trabajador.NOMBRE + " " + trabajador.APELLIDO
                 // Generar JWT con el rol específico del trabajador (admin, mesero, mensajero, etc.)
                 generateJWT(c, int(trabajador.PK_DOCUMENTO_TRABAJADOR), trabajador.ROL, nombre)
                 return</span>
         }
 
         // Si no es un trabajador, intenta como cliente
-        <span class="cov0" title="0">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: loginRequest.Documento}
+        <span class="cov6" title="3">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: loginRequest.Documento}
         err = o.Read(&amp;cliente)
 
-        if err == nil </span><span class="cov0" title="0">{
+        if err == nil </span><span class="cov4" title="2">{
                 // Verificar la contraseña
-                if err := bcrypt.CompareHashAndPassword([]byte(cliente.PASSWORD), []byte(loginRequest.Password)); err != nil </span><span class="cov0" title="0">{
+                if err := compareHashAndPassword([]byte(cliente.PASSWORD), []byte(loginRequest.Password)); err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusUnauthorized)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusUnauthorized,
@@ -2084,14 +2094,14 @@ func (c *LoginController) Login() <span class="cov0" title="0">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">nombre := cliente.NOMBRE + " " + cliente.APELLIDO
+                <span class="cov1" title="1">nombre := cliente.NOMBRE + " " + cliente.APELLIDO
                 // Generar JWT con rol de "Cliente"
                 generateJWT(c, cliente.PK_DOCUMENTO_CLIENTE, "Cliente", nombre)
                 return</span>
         }
 
         // Si no se encontró ni como trabajador ni como cliente
-        <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusUnauthorized)
+        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusUnauthorized)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusUnauthorized,
                 Message: "Credenciales inválidas",
@@ -2100,7 +2110,7 @@ func (c *LoginController) Login() <span class="cov0" title="0">{
 }
 
 // Función para generar y devolver un token JWT
-func generateJWT(c *LoginController, documento int, rol string, nombre string) <span class="cov0" title="0">{
+func generateJWT(c *LoginController, documento int, rol string, nombre string) <span class="cov6" title="3">{
         now := time.Now()
         expirationTime := now.Add(24 * time.Hour)
 
@@ -2126,7 +2136,7 @@ func generateJWT(c *LoginController, documento int, rol string, nombre string) <
                 return
         }</span>
 
-        <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov6" title="3">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Inicio de sesión exitoso",
@@ -2138,23 +2148,23 @@ func generateJWT(c *LoginController, documento int, rol string, nombre string) <
         c.ServeJSON()</span>
 }
 
-func ValidateToken(ctx *context.Context) <span class="cov0" title="0">{
+func ValidateToken(ctx *context.Context) <span class="cov10" title="6">{
         // 1) Permitir CORS preflight
-        if ctx.Input.Method() == "OPTIONS" </span><span class="cov0" title="0">{
+        if ctx.Input.Method() == "OPTIONS" </span><span class="cov1" title="1">{
                 fmt.Println("Solicitud OPTIONS recibida y permitida")
                 ctx.Output.Status = http.StatusOK
                 return
         }</span>
 
         // 2) Permitir crear cliente sin token (registro público)
-        <span class="cov0" title="0">if ctx.Input.Method() == "POST" &amp;&amp; ctx.Input.URL() == "/restaurante/v1/clientes" </span><span class="cov0" title="0">{
+        <span class="cov9" title="5">if ctx.Input.Method() == "POST" &amp;&amp; ctx.Input.URL() == "/restaurante/v1/clientes" </span><span class="cov1" title="1">{
                 fmt.Println("POST público /restaurante/v1/clientes: sin validación de token")
                 return
         }</span>
 
         // 3) Resto de rutas: exigir token
-        <span class="cov0" title="0">authHeader := ctx.Input.Header("Authorization")
-        if authHeader == "" </span><span class="cov0" title="0">{
+        <span class="cov7" title="4">authHeader := ctx.Input.Header("Authorization")
+        if authHeader == "" </span><span class="cov1" title="1">{
                 fmt.Println("No se proporcionó el token")
                 ctx.Output.SetStatus(http.StatusUnauthorized)
                 ctx.Output.JSON(models.ApiResponse{
@@ -2163,20 +2173,20 @@ func ValidateToken(ctx *context.Context) <span class="cov0" title="0">{
                 }, false, false)
                 return
         }</span>
-        <span class="cov0" title="0">fmt.Println("Token recibido:", authHeader)
+        <span class="cov6" title="3">fmt.Println("Token recibido:", authHeader)
 
         // Normalizar prefijo Bearer
-        if len(authHeader) &lt; 7 || authHeader[:7] != "Bearer " </span><span class="cov0" title="0">{
+        if len(authHeader) &lt; 7 || authHeader[:7] != "Bearer " </span><span class="cov1" title="1">{
                 authHeader = "Bearer " + authHeader
         }</span>
-        <span class="cov0" title="0">tokenString := authHeader[len("Bearer "):]
+        <span class="cov6" title="3">tokenString := authHeader[len("Bearer "):]
 
         claims := &amp;Claims{}
-        token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) </span><span class="cov0" title="0">{
+        token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) </span><span class="cov4" title="2">{
                 return jwtSecret, nil
         }</span>)
 
-        <span class="cov0" title="0">if err != nil || !token.Valid </span><span class="cov0" title="0">{
+        <span class="cov6" title="3">if err != nil || !token.Valid </span><span class="cov1" title="1">{
                 fmt.Println("Token inválido:", err)
                 ctx.Output.SetStatus(http.StatusUnauthorized)
                 ctx.Output.JSON(models.ApiResponse{
@@ -2186,7 +2196,7 @@ func ValidateToken(ctx *context.Context) <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">fmt.Println("Token válido. Claims:", claims)</span>
+        <span class="cov4" title="2">fmt.Println("Token válido. Claims:", claims)</span>
 }
 </pre>
 		
@@ -2202,6 +2212,36 @@ import (
         "github.com/beego/beego/v2/server/web"
 )
 
+type metodoPagoQuerySeter interface {
+        All(interface{}, ...string) (int64, error)
+}
+
+type metodoPagoOrmer interface {
+        QueryTable(interface{}) metodoPagoQuerySeter
+        Read(interface{}, ...string) error
+        Insert(interface{}) (int64, error)
+        Update(interface{}, ...string) (int64, error)
+        Delete(interface{}, ...string) (int64, error)
+}
+
+type defaultQuerySeter struct {
+        orm.QuerySeter
+}
+
+func (d *defaultQuerySeter) All(res interface{}, cols ...string) (int64, error) <span class="cov1" title="1">{
+        return d.QuerySeter.All(res, cols...)
+}</span>
+
+type defaultOrmer struct {
+        orm.Ormer
+}
+
+func (d *defaultOrmer) QueryTable(v interface{}) metodoPagoQuerySeter <span class="cov1" title="1">{
+        return &amp;defaultQuerySeter{d.Ormer.QueryTable(v)}
+}</span>
+
+var getOrm func() metodoPagoOrmer = func() metodoPagoOrmer <span class="cov10" title="7">{ return &amp;defaultOrmer{orm.NewOrm()} }</span>
+
 type MetodoPagoController struct {
         web.Controller
 }
@@ -2216,12 +2256,12 @@ type MetodoPagoController struct {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /metodos_pago [get]
-func (c *MetodoPagoController) GetAll() <span class="cov0" title="0">{
-        o := orm.NewOrm()
+func (c *MetodoPagoController) GetAll() <span class="cov1" title="1">{
+        o := getOrm()
         var metodos []models.MetodoPago
 
         _, err := o.QueryTable(new(models.MetodoPago)).All(&amp;metodos)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2252,11 +2292,11 @@ func (c *MetodoPagoController) GetAll() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
 // @Security BearerAuth
 // @Router /metodos_pago/search [get]
-func (c *MetodoPagoController) GetById() <span class="cov0" title="0">{
-        o := orm.NewOrm()
+func (c *MetodoPagoController) GetById() <span class="cov6" title="3">{
+        o := getOrm()
         id, err := c.GetInt("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2267,10 +2307,10 @@ func (c *MetodoPagoController) GetById() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
+        <span class="cov4" title="2">metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
 
         err = o.Read(&amp;metodo)
-        if err == orm.ErrNoRows </span><span class="cov0" title="0">{
+        if err == orm.ErrNoRows </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -2281,7 +2321,7 @@ func (c *MetodoPagoController) GetById() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Método de pago encontrado",
@@ -2301,11 +2341,11 @@ func (c *MetodoPagoController) GetById() <span class="cov0" title="0">{
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /metodos_pago [post]
-func (c *MetodoPagoController) Post() <span class="cov0" title="0">{
-        o := orm.NewOrm()
+func (c *MetodoPagoController) Post() <span class="cov4" title="2">{
+        o := getOrm()
         var metodo models.MetodoPago
 
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;metodo); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;metodo); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2316,7 +2356,7 @@ func (c *MetodoPagoController) Post() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">_, err := o.Insert(&amp;metodo)
+        <span class="cov1" title="1">_, err := o.Insert(&amp;metodo)
         if err != nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
@@ -2328,7 +2368,7 @@ func (c *MetodoPagoController) Post() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusCreated)
+        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusCreated)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusCreated,
                 Message: "Método de pago creado correctamente",
@@ -2349,13 +2389,13 @@ func (c *MetodoPagoController) Post() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
 // @Security BearerAuth
 // @Router /metodos_pago [put]
-func (c *MetodoPagoController) Put() <span class="cov0" title="0">{
-        o := orm.NewOrm()
+func (c *MetodoPagoController) Put() <span class="cov7" title="4">{
+        o := getOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2366,11 +2406,11 @@ func (c *MetodoPagoController) Put() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
+        <span class="cov6" title="3">metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
 
-        if o.Read(&amp;metodo) == nil </span><span class="cov0" title="0">{
+        if o.Read(&amp;metodo) == nil </span><span class="cov4" title="2">{
                 var updatedMetodo models.MetodoPago
-                if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;updatedMetodo); err != nil </span><span class="cov0" title="0">{
+                if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;updatedMetodo); err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusBadRequest,
@@ -2381,7 +2421,7 @@ func (c *MetodoPagoController) Put() <span class="cov0" title="0">{
                         return
                 }</span>
 
-                <span class="cov0" title="0">updatedMetodo.PK_ID_METODO_PAGO = id
+                <span class="cov1" title="1">updatedMetodo.PK_ID_METODO_PAGO = id
                 _, err := o.Update(&amp;updatedMetodo)
                 if err != nil </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -2394,14 +2434,14 @@ func (c *MetodoPagoController) Put() <span class="cov0" title="0">{
                         return
                 }</span>
 
-                <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusOK)
+                <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusOK,
                         Message: "Método de pago actualizado",
                         Data:    updatedMetodo,
                 }
                 c.ServeJSON()</span>
-        } else<span class="cov0" title="0"> {
+        } else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -2422,13 +2462,13 @@ func (c *MetodoPagoController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
 // @Security BearerAuth
 // @Router /metodos_pago [delete]
-func (c *MetodoPagoController) Delete() <span class="cov0" title="0">{
-        o := orm.NewOrm()
+func (c *MetodoPagoController) Delete() <span class="cov6" title="3">{
+        o := getOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2439,16 +2479,16 @@ func (c *MetodoPagoController) Delete() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
+        <span class="cov4" title="2">metodo := models.MetodoPago{PK_ID_METODO_PAGO: id}
 
-        if _, err := o.Delete(&amp;metodo); err == nil </span><span class="cov0" title="0">{
+        if _, err := o.Delete(&amp;metodo); err == nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusOK,
                         Message: "Método de pago eliminado",
                 }
                 c.ServeJSON()
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -2496,12 +2536,12 @@ var estadosNominaPermitidos = map[string]bool{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nominas [get]
-func (c *NominaController) GetAll() <span class="cov0" title="0">{
+func (c *NominaController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var nominas []models.Nomina
 
         _, err := o.QueryTable(new(models.Nomina)).All(&amp;nominas)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2561,11 +2601,11 @@ func (c *NominaController) GetAll() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nominas [post]
-func (c *NominaController) Post() <span class="cov0" title="0">{
+func (c *NominaController) Post() <span class="cov10" title="2">{
         o := orm.NewOrm()
         var input models.Nomina
 
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2576,18 +2616,18 @@ func (c *NominaController) Post() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">if input.FECHA.IsZero() </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if input.FECHA.IsZero() </span><span class="cov1" title="1">{
                 input.FECHA = time.Now()
         }</span>
 
-        <span class="cov0" title="0">if !estadosNominaPermitidos[input.ESTADO_NOMINA] </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if !estadosNominaPermitidos[input.ESTADO_NOMINA] </span><span class="cov1" title="1">{
                 input.ESTADO_NOMINA = "NO PAGO"
         }</span>
 
-        <span class="cov0" title="0">input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
+        <span class="cov1" title="1">input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
 
         _, err := o.Insert(&amp;input)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2635,13 +2675,13 @@ func (c *NominaController) Post() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nominas [put]
-func (c *NominaController) Put() <span class="cov0" title="0">{
+func (c *NominaController) Put() <span class="cov10" title="2">{
         o := orm.NewOrm()
 
         // Obtener el ID
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2653,7 +2693,7 @@ func (c *NominaController) Put() <span class="cov0" title="0">{
         }</span>
 
         // Buscar la nómina
-        <span class="cov0" title="0">nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
+        <span class="cov1" title="1">nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
         if err := o.Read(&amp;nomina); err == orm.ErrNoRows </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
@@ -2665,7 +2705,7 @@ func (c *NominaController) Put() <span class="cov0" title="0">{
         }</span>
 
         // Cambiar el estado a "PAGO" si no lo está ya
-        <span class="cov0" title="0">if nomina.ESTADO_NOMINA == "PAGO" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if nomina.ESTADO_NOMINA == "PAGO" </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2674,10 +2714,10 @@ func (c *NominaController) Put() <span class="cov0" title="0">{
                 c.ServeJSON()
                 return
         }</span>
-        <span class="cov0" title="0">nomina.ESTADO_NOMINA = "PAGO"
+        <span class="cov1" title="1">nomina.ESTADO_NOMINA = "PAGO"
 
         // Guardar los cambios
-        if _, err := o.Update(&amp;nomina, "ESTADO_NOMINA"); err != nil </span><span class="cov0" title="0">{
+        if _, err := o.Update(&amp;nomina, "ESTADO_NOMINA"); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2709,12 +2749,12 @@ func (c *NominaController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Nómina no encontrada"
 // @Security BearerAuth
 // @Router /nominas [delete]
-func (c *NominaController) Delete() <span class="cov0" title="0">{
+func (c *NominaController) Delete() <span class="cov10" title="2">{
         o := orm.NewOrm()
 
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2725,8 +2765,8 @@ func (c *NominaController) Delete() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
-        if err := o.Read(&amp;nomina); err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
+        if err := o.Read(&amp;nomina); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -2784,13 +2824,13 @@ type NominaTrabajadorController struct {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador [get]
-func (c *NominaTrabajadorController) GetAll() <span class="cov0" title="0">{
+func (c *NominaTrabajadorController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var relaciones []models.NominaTrabajador
 
         // Obtener las relaciones desde la base de datos
         _, err := o.QueryTable(new(models.NominaTrabajador)).All(&amp;relaciones)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2837,13 +2877,13 @@ func (c *NominaTrabajadorController) GetAll() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador [post]
-func (c *NominaTrabajadorController) Post() <span class="cov0" title="0">{
+func (c *NominaTrabajadorController) Post() <span class="cov10" title="3">{
         o := orm.NewOrm()
         var input models.NominaTrabajadorRequest
         var nominaTrabajador models.NominaTrabajador
 
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2855,7 +2895,7 @@ func (c *NominaTrabajadorController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Validar documento del trabajador
-        <span class="cov0" title="0">if input.PK_DOCUMENTO_TRABAJADOR == 0 </span><span class="cov0" title="0">{
+        <span class="cov6" title="2">if input.PK_DOCUMENTO_TRABAJADOR == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2864,7 +2904,7 @@ func (c *NominaTrabajadorController) Post() <span class="cov0" title="0">{
                 c.ServeJSON()
                 return
         }</span>
-        <span class="cov0" title="0">nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = input.PK_DOCUMENTO_TRABAJADOR
+        <span class="cov1" title="1">nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = input.PK_DOCUMENTO_TRABAJADOR
 
         // Calcular el rango de fechas
         now := time.Now()
@@ -2879,7 +2919,7 @@ func (c *NominaTrabajadorController) Post() <span class="cov0" title="0">{
                 Filter("FECHA__lte", endDate).
                 All(&amp;incidencias)
 
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2975,7 +3015,7 @@ func (c *NominaTrabajadorController) Post() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador/search [get]
-func (c *NominaTrabajadorController) GetByTrabajador() <span class="cov0" title="0">{
+func (c *NominaTrabajadorController) GetByTrabajador() <span class="cov6" title="2">{
         o := orm.NewOrm()
         documento, _ := c.GetInt64("documento")
         actual, _ := c.GetBool("actual")
@@ -2985,7 +3025,7 @@ func (c *NominaTrabajadorController) GetByTrabajador() <span class="cov0" title=
         anio, _ := c.GetInt("anio")
 
         // Validar el documento del trabajador
-        if documento == 0 </span><span class="cov0" title="0">{
+        if documento == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2996,7 +3036,7 @@ func (c *NominaTrabajadorController) GetByTrabajador() <span class="cov0" title=
         }</span>
 
         // Base de la consulta
-        <span class="cov0" title="0">var relaciones []models.NominaTrabajador
+        <span class="cov1" title="1">var relaciones []models.NominaTrabajador
         sql := `
         SELECT nt.* FROM "NOMINA_TRABAJADOR" nt
         JOIN "NOMINA" n ON nt."PK_ID_NOMINA" = n."PK_ID_NOMINA"
@@ -3010,23 +3050,23 @@ func (c *NominaTrabajadorController) GetByTrabajador() <span class="cov0" title=
         }</span>
 
         // Filtrar por nóminas pagas o no pagas
-        <span class="cov0" title="0">if pagas </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if pagas </span><span class="cov0" title="0">{
                 sql += ` AND n."ESTADO_NOMINA" = 'PAGO'`
-        }</span> else<span class="cov0" title="0"> if noPagas </span><span class="cov0" title="0">{
+        }</span> else<span class="cov1" title="1"> if noPagas </span><span class="cov0" title="0">{
                 sql += ` AND n."ESTADO_NOMINA" = 'NO PAGO'`
         }</span>
 
         // Filtrar por mes y año
-        <span class="cov0" title="0">if mes &gt; 0 &amp;&amp; anio &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if mes &gt; 0 &amp;&amp; anio &gt; 0 </span><span class="cov0" title="0">{
                 sql += ` AND EXTRACT(MONTH FROM n."FECHA") = ? AND EXTRACT(YEAR FROM n."FECHA") = ?`
                 params = append(params, mes, anio)
         }</span>
 
         // Ejecutar la consulta
-        <span class="cov0" title="0">_, err := o.Raw(sql, params...).QueryRows(&amp;relaciones)
+        <span class="cov1" title="1">_, err := o.Raw(sql, params...).QueryRows(&amp;relaciones)
 
         // Validar si hay resultados
-        if err == orm.ErrNoRows || len(relaciones) == 0 </span><span class="cov0" title="0">{
+        if err == orm.ErrNoRows || len(relaciones) == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -3055,7 +3095,7 @@ func (c *NominaTrabajadorController) GetByTrabajador() <span class="cov0" title=
         c.ServeJSON()</span>
 }
 
-func obtenerMesEnEspañol(mes time.Month) string <span class="cov0" title="0">{
+func obtenerMesEnEspañol(mes time.Month) string <span class="cov6" title="2">{
         meses := map[time.Month]string{
                 time.January:   "Enero",
                 time.February:  "Febrero",
@@ -3086,13 +3126,13 @@ func obtenerMesEnEspañol(mes time.Month) string <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador/mes [get]
-func (c *NominaTrabajadorController) GetNominasByMes() <span class="cov0" title="0">{
+func (c *NominaTrabajadorController) GetNominasByMes() <span class="cov6" title="2">{
         o := orm.NewOrm()
         mes, _ := c.GetInt("mes")
         anio, _ := c.GetInt("anio")
 
         // Validar parámetros
-        if mes &lt; 1 || mes &gt; 12 || anio &lt; 1 </span><span class="cov0" title="0">{
+        if mes &lt; 1 || mes &gt; 12 || anio &lt; 1 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -3103,7 +3143,7 @@ func (c *NominaTrabajadorController) GetNominasByMes() <span class="cov0" title=
         }</span>
 
         // Consulta SQL
-        <span class="cov0" title="0">var resultados []models.NominaTrabajadorDetalle
+        <span class="cov1" title="1">var resultados []models.NominaTrabajadorDetalle
         sql := `
         SELECT 
                 nt."PK_ID_NOMINA_TRABAJADOR", 
@@ -3127,7 +3167,7 @@ func (c *NominaTrabajadorController) GetNominasByMes() <span class="cov0" title=
         fmt.Printf("Resultados: %+v\n", resultados)
 
         // Validar resultados
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -3200,12 +3240,12 @@ var estadosPagoPermitidos = map[string]bool{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /pagos [get]
-func (c *PagoController) GetAll() <span class="cov0" title="0">{
+func (c *PagoController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var pagos []models.Pago
 
         _, err := o.QueryTable(new(models.Pago)).All(&amp;pagos)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -3292,11 +3332,11 @@ func (c *PagoController) GetAll() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
 // @Security BearerAuth
 // @Router /pagos/search [get]
-func (c *PagoController) GetById() <span class="cov0" title="0">{
+func (c *PagoController) GetById() <span class="cov1" title="1">{
         o := orm.NewOrm()
         id, err := c.GetInt("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -3349,12 +3389,12 @@ func (c *PagoController) GetById() <span class="cov0" title="0">{
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /pagos [post]
-func (c *PagoController) Post() <span class="cov0" title="0">{
+func (c *PagoController) Post() <span class="cov10" title="5">{
         o := orm.NewOrm()
         var input map[string]interface{}
 
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov10" title="5">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -3492,13 +3532,13 @@ func (c *PagoController) Post() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
 // @Security BearerAuth
 // @Router /pagos [put]
-func (c *PagoController) Put() <span class="cov0" title="0">{
+func (c *PagoController) Put() <span class="cov7" title="3">{
         o := orm.NewOrm()
 
         // Obtener el ID del pago desde los parámetros
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -3510,7 +3550,7 @@ func (c *PagoController) Put() <span class="cov0" title="0">{
         }</span>
 
         // Buscar el pago por ID
-        <span class="cov0" title="0">pago := models.Pago{PK_ID_PAGO: id}
+        <span class="cov4" title="2">pago := models.Pago{PK_ID_PAGO: id}
         if err := o.Read(&amp;pago); err == orm.ErrNoRows </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
@@ -3522,8 +3562,8 @@ func (c *PagoController) Put() <span class="cov0" title="0">{
         }</span>
 
         // Deserializar los datos actualizados desde el cuerpo de la solicitud
-        <span class="cov0" title="0">var input map[string]interface{}
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        <span class="cov4" title="2">var input map[string]interface{}
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov4" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -3645,12 +3685,12 @@ func (c *PagoController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
 // @Security BearerAuth
 // @Router /pagos [delete]
-func (c *PagoController) Delete() <span class="cov0" title="0">{
+func (c *PagoController) Delete() <span class="cov4" title="2">{
         o := orm.NewOrm()
 
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -3661,7 +3701,7 @@ func (c *PagoController) Delete() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">pago := models.Pago{PK_ID_PAGO: id}
+        <span class="cov1" title="1">pago := models.Pago{PK_ID_PAGO: id}
 
         if _, err := o.Delete(&amp;pago); err == nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
@@ -3670,7 +3710,7 @@ func (c *PagoController) Delete() <span class="cov0" title="0">{
                         Message: "Pago eliminado",
                 }
                 c.ServeJSON()
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -3708,12 +3748,12 @@ type PedidoClienteController struct {
 // @Security BearerAuth
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Router /pedido_clientes [get]
-func (c *PedidoClienteController) GetAll() <span class="cov0" title="0">{
+func (c *PedidoClienteController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var relaciones []models.PedidoCliente
 
         _, err := o.QueryTable(new(models.PedidoCliente)).All(&amp;relaciones)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -3746,12 +3786,12 @@ func (c *PedidoClienteController) GetAll() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /pedido_clientes [post]
-func (c *PedidoClienteController) Post() <span class="cov0" title="0">{
+func (c *PedidoClienteController) Post() <span class="cov10" title="3">{
         o := orm.NewOrm()
         var relacion models.PedidoCliente
 
         // Parsear el cuerpo de la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;relacion); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;relacion); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -3763,7 +3803,7 @@ func (c *PedidoClienteController) Post() <span class="cov0" title="0">{
         }</span>
 
         // ¡VALIDACIÓN IMPORTANTE!
-        <span class="cov0" title="0">if relacion.PK_DOCUMENTO_CLIENTE == 0 || relacion.PK_ID_PEDIDO == 0 </span><span class="cov0" title="0">{
+        <span class="cov6" title="2">if relacion.PK_DOCUMENTO_CLIENTE == 0 || relacion.PK_ID_PEDIDO == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -3774,7 +3814,7 @@ func (c *PedidoClienteController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Ejecutar transacción
-        <span class="cov0" title="0">err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error </span><span class="cov0" title="0">{
                 // Validar que el cliente existe
                 cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: int(relacion.PK_DOCUMENTO_CLIENTE)}
                 if err := txOrm.Read(&amp;cliente); err != nil </span><span class="cov0" title="0">{
@@ -3833,7 +3873,7 @@ func (c *PedidoClienteController) Post() <span class="cov0" title="0">{
         })
 
         // Manejo de errores
-        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if err != nil </span><span class="cov1" title="1">{
                 return
         }</span>
 
@@ -3881,7 +3921,7 @@ type PedidoController struct {
 // @Failure 500 {object} models.ApiResponse "Error al obtener los pedidos"
 // @Security BearerAuth
 // @Router /pedidos [get]
-func (c *PedidoController) GetAll() <span class="cov0" title="0">{
+func (c *PedidoController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
 
         // Construcción de la consulta SQL
@@ -3911,12 +3951,12 @@ func (c *PedidoController) GetAll() <span class="cov0" title="0">{
                 params = append(params, fecha)
         }</span>
 
-        <span class="cov0" title="0">if desde != "" &amp;&amp; hasta != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if desde != "" &amp;&amp; hasta != "" </span><span class="cov0" title="0">{
                 query += ` AND p."FECHA" BETWEEN ? AND ?`
                 params = append(params, desde, hasta)
         }</span>
 
-        <span class="cov0" title="0">if mes &gt; 0 &amp;&amp; mes &lt;= 12 </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if mes &gt; 0 &amp;&amp; mes &lt;= 12 </span><span class="cov0" title="0">{
                 query += ` AND EXTRACT(MONTH FROM p."FECHA") = ?`
                 params = append(params, mes)
                 if anio &gt; 0 </span><span class="cov0" title="0">{
@@ -3925,17 +3965,17 @@ func (c *PedidoController) GetAll() <span class="cov0" title="0">{
                 }</span>
         }
 
-        <span class="cov0" title="0">if cliente &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if cliente &gt; 0 </span><span class="cov0" title="0">{
                 query += ` AND pc."PK_DOCUMENTO_CLIENTE" = ?`
                 params = append(params, cliente)
         }</span>
 
-        <span class="cov0" title="0">if metodoPago != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if metodoPago != "" </span><span class="cov0" title="0">{
                 query += ` AND mp."TIPO" ILIKE ?`
                 params = append(params, metodoPago)
         }</span>
 
-        <span class="cov0" title="0">if errDomicilio == nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if errDomicilio == nil </span><span class="cov0" title="0">{
                 if domicilio </span><span class="cov0" title="0">{
                         query += ` AND p."PK_ID_DOMICILIO" IS NOT NULL`
                 }</span> else<span class="cov0" title="0"> {
@@ -3944,9 +3984,9 @@ func (c *PedidoController) GetAll() <span class="cov0" title="0">{
         }
 
         // Ejecutar la consulta y obtener los resultados
-        <span class="cov0" title="0">var pedidos []models.Pedido
+        <span class="cov1" title="1">var pedidos []models.Pedido
         _, err := o.Raw(query, params...).QueryRows(&amp;pedidos)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    500,
                         Message: "Error al obtener los pedidos",
@@ -3987,7 +4027,7 @@ func (c *PedidoController) GetAll() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
 // @Security BearerAuth
 // @Router /pedidos [post]
-func (c *PedidoController) Post() <span class="cov0" title="0">{
+func (c *PedidoController) Post() <span class="cov1" title="1">{
         var pedido models.Pedido
 
         if err := c.ParseForm(&amp;pedido); err != nil </span><span class="cov0" title="0">{
@@ -4001,14 +4041,14 @@ func (c *PedidoController) Post() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">now := time.Now()
+        <span class="cov1" title="1">now := time.Now()
         pedido.FECHA = now
         // Asigna la hora formateada como string
         pedido.HORA = now.Format("15:04:05")
         pedido.ESTADO_PEDIDO = "INICIADO"
 
         o := orm.NewOrm()
-        if _, err := o.Insert(&amp;pedido); err != nil </span><span class="cov0" title="0">{
+        if _, err := o.Insert(&amp;pedido); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(500)
                 c.Data["json"] = models.ApiResponse{
                         Code:    500,
@@ -4043,14 +4083,14 @@ func (c *PedidoController) Post() <span class="cov0" title="0">{
 // @Router /pedidos/asignar-domicilio [post]
 // controllers/PedidoController.go
 
-func (c *PedidoController) AssignDomicilio() <span class="cov0" title="0">{
+func (c *PedidoController) AssignDomicilio() <span class="cov1" title="1">{
         pedidoID, _ := c.GetInt("pedido_id")
         domicilioID, _ := c.GetInt("domicilio_id")
         o := orm.NewOrm()
 
         // Leer pedido
         pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
-        if err := o.Read(&amp;pedido); err != nil </span><span class="cov0" title="0">{
+        if err := o.Read(&amp;pedido); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(404)
                 c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
                 c.ServeJSON()
@@ -4083,14 +4123,14 @@ func (c *PedidoController) AssignDomicilio() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error al asignar pago"
 // @Security BearerAuth
 // @Router /pedidos/asignar-pago [post]
-func (c *PedidoController) AssignPago() <span class="cov0" title="0">{
+func (c *PedidoController) AssignPago() <span class="cov1" title="1">{
         pedidoID, _ := c.GetInt("pedido_id")
         pagoID, _ := c.GetInt("pago_id")
         o := orm.NewOrm()
 
         // Leer pedido
         pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
-        if err := o.Read(&amp;pedido); err != nil </span><span class="cov0" title="0">{
+        if err := o.Read(&amp;pedido); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(404)
                 c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
                 c.ServeJSON()
@@ -4131,7 +4171,7 @@ func (c *PedidoController) AssignPago() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error al actualizar estado del pedido"
 // @Security BearerAuth
 // @Router /pedidos/actualizar-estado [put]
-func (c *PedidoController) UpdateEstadoPedido() <span class="cov0" title="0">{
+func (c *PedidoController) UpdateEstadoPedido() <span class="cov1" title="1">{
         pedidoID, _ := c.GetInt("pedido_id")
         estado := c.GetString("estado")
 
@@ -4139,7 +4179,7 @@ func (c *PedidoController) UpdateEstadoPedido() <span class="cov0" title="0">{
 
         // Buscar el pedido
         pedido := models.Pedido{PK_ID_PEDIDO: pedidoID}
-        if err := o.Read(&amp;pedido); err != nil </span><span class="cov0" title="0">{
+        if err := o.Read(&amp;pedido); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(404)
                 c.Data["json"] = models.ApiResponse{
                         Code:    404,
@@ -4185,12 +4225,12 @@ func (c *PedidoController) UpdateEstadoPedido() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error al obtener los detalles del pedido"
 // @Security BearerAuth
 // @Router /pedidos/detalles [get]
-func (c *PedidoController) GetPedidoDetails() <span class="cov0" title="0">{
+func (c *PedidoController) GetPedidoDetails() <span class="cov10" title="2">{
         o := orm.NewOrm()
 
         // Parámetro
         pedidoID, _ := c.GetInt64("pedido_id")
-        if pedidoID == 0 </span><span class="cov0" title="0">{
+        if pedidoID == 0 </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    400,
                         Message: "El parámetro 'pedido_id' es obligatorio.",
@@ -4200,7 +4240,7 @@ func (c *PedidoController) GetPedidoDetails() <span class="cov0" title="0">{
         }</span>
 
         // Consulta para obtener detalles del pedido
-        <span class="cov0" title="0">query := `
+        <span class="cov1" title="1">query := `
         SELECT 
             p."PK_ID_PEDIDO",
             p."FECHA",
@@ -4231,7 +4271,7 @@ func (c *PedidoController) GetPedidoDetails() <span class="cov0" title="0">{
 
         // Ejecutar consulta
         err := o.Raw(query, pedidoID).QueryRow(&amp;details)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    500,
                         Message: "Error al obtener los detalles del pedido",
@@ -4282,7 +4322,7 @@ type ProductoController struct {
 // @Success 200 {array} models.Producto "Lista de productos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [get]
-func (c *ProductoController) GetAll() <span class="cov0" title="0">{
+func (c *ProductoController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var productos []models.Producto
 
@@ -4297,16 +4337,16 @@ func (c *ProductoController) GetAll() <span class="cov0" title="0">{
         if onlyActive </span><span class="cov0" title="0">{
                 query = query.Filter("ESTADO_PRODUCTO", "DISPONIBLE")
         }</span>
-        <span class="cov0" title="0">if categoria != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if categoria != "" </span><span class="cov0" title="0">{
                 query = query.Filter("CATEGORIA__icontains", categoria)
         }</span>
-        <span class="cov0" title="0">if subcategoria != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if subcategoria != "" </span><span class="cov0" title="0">{
                 query = query.Filter("SUBCATEGORIA__icontains", subcategoria)
         }</span>
 
         // Ejecutar la consulta
-        <span class="cov0" title="0">_, err := query.All(&amp;productos)
-        if err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">_, err := query.All(&amp;productos)
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -4345,11 +4385,11 @@ func (c *ProductoController) GetAll() <span class="cov0" title="0">{
 // @Success 200 {object} models.Producto "Producto encontrado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos/search [get]
-func (c *ProductoController) GetById() <span class="cov0" title="0">{
+func (c *ProductoController) GetById() <span class="cov4" title="2">{
         o := orm.NewOrm()
         id, err := c.GetInt("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -4360,8 +4400,8 @@ func (c *ProductoController) GetById() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">producto, err := getProductoByID(int64(id), o)
-        if err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">producto, err := getProductoByID(int64(id), o)
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -4398,7 +4438,7 @@ func (c *ProductoController) GetById() <span class="cov0" title="0">{
 // @Success 201 {object} models.Producto "Producto creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /productos [post]
-func (c *ProductoController) Post() <span class="cov0" title="0">{
+func (c *ProductoController) Post() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var producto models.Producto
 
@@ -4413,7 +4453,7 @@ func (c *ProductoController) Post() <span class="cov0" title="0">{
         producto.PRECIO, _ = c.GetInt64("PRECIO")
         producto.CANTIDAD, _ = c.GetInt("CANTIDAD")
 
-        if err := validateProducto(&amp;producto); err != nil </span><span class="cov0" title="0">{
+        if err := validateProducto(&amp;producto); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -4475,13 +4515,13 @@ func (c *ProductoController) Post() <span class="cov0" title="0">{
 // @Success 200 {object} models.Producto "Producto actualizado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos [put]
-func (c *ProductoController) Put() <span class="cov0" title="0">{
+func (c *ProductoController) Put() <span class="cov1" title="1">{
         o := orm.NewOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -4585,13 +4625,13 @@ func (c *ProductoController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [delete]
-func (c *ProductoController) Delete() <span class="cov0" title="0">{
+func (c *ProductoController) Delete() <span class="cov1" title="1">{
         o := orm.NewOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -4644,50 +4684,50 @@ func (c *ProductoController) Delete() <span class="cov0" title="0">{
 }
 
 // Funciones auxiliares
-func handleImageUpload(c *web.Controller) (string, error) <span class="cov0" title="0">{
+func handleImageUpload(c *web.Controller) (string, error) <span class="cov6" title="3">{
         file, fileHeader, err := c.GetFile("IMAGEN")
-        if err != nil </span><span class="cov0" title="0">{
-                if err == http.ErrMissingFile </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
+                if err == http.ErrMissingFile </span><span class="cov1" title="1">{
                         return "", nil
                 }</span>
                 <span class="cov0" title="0">return "", fmt.Errorf("error al obtener la imagen: %v", err)</span>
         }
-        <span class="cov0" title="0">defer file.Close()
+        <span class="cov4" title="2">defer file.Close()
 
-        if fileHeader.Size &gt; 1024*1024 </span><span class="cov0" title="0">{
+        if fileHeader.Size &gt; 1024*1024 </span><span class="cov1" title="1">{
                 return "", fmt.Errorf("la imagen no debe superar los 1MB")
         }</span>
 
-        <span class="cov0" title="0">fileBytes, err := ioutil.ReadAll(file)
+        <span class="cov1" title="1">fileBytes, err := ioutil.ReadAll(file)
         if err != nil </span><span class="cov0" title="0">{
                 return "", fmt.Errorf("error al leer la imagen: %v", err)
         }</span>
-        <span class="cov0" title="0">return base64.StdEncoding.EncodeToString(fileBytes), nil</span>
+        <span class="cov1" title="1">return base64.StdEncoding.EncodeToString(fileBytes), nil</span>
 }
 
-func validateProducto(producto *models.Producto) error <span class="cov0" title="0">{
-        if producto.NOMBRE == "" </span><span class="cov0" title="0">{
+func validateProducto(producto *models.Producto) error <span class="cov10" title="6">{
+        if producto.NOMBRE == "" </span><span class="cov4" title="2">{
                 return fmt.Errorf("el campo 'NOMBRE' es obligatorio")
         }</span>
-        <span class="cov0" title="0">if producto.PRECIO &lt;= 0 </span><span class="cov0" title="0">{
+        <span class="cov7" title="4">if producto.PRECIO &lt;= 0 </span><span class="cov1" title="1">{
                 return fmt.Errorf("el campo 'PRECIO' debe ser un número mayor a 0")
         }</span>
-        <span class="cov0" title="0">if producto.CALORIAS != nil &amp;&amp; *producto.CALORIAS &lt; 0 </span><span class="cov0" title="0">{
+        <span class="cov6" title="3">if producto.CALORIAS != nil &amp;&amp; *producto.CALORIAS &lt; 0 </span><span class="cov1" title="1">{
                 return fmt.Errorf("el campo 'CALORIAS' debe ser un número positivo")
         }</span>
-        <span class="cov0" title="0">if producto.ESTADO_PRODUCTO != "DISPONIBLE" &amp;&amp; producto.ESTADO_PRODUCTO != "NO DISPONIBLE" </span><span class="cov0" title="0">{
+        <span class="cov4" title="2">if producto.ESTADO_PRODUCTO != "DISPONIBLE" &amp;&amp; producto.ESTADO_PRODUCTO != "NO DISPONIBLE" </span><span class="cov1" title="1">{
                 return fmt.Errorf("el campo 'ESTADO_PRODUCTO' debe ser 'DISPONIBLE' o 'NO DISPONIBLE'")
         }</span>
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov1" title="1">return nil</span>
 }
 
-func getProductoByID(id int64, o orm.Ormer) (*models.Producto, error) <span class="cov0" title="0">{
+func getProductoByID(id int64, o orm.Ormer) (*models.Producto, error) <span class="cov1" title="1">{
         producto := &amp;models.Producto{PK_ID_PRODUCTO: id}
-        if err := o.Read(producto); err != nil </span><span class="cov0" title="0">{
+        if err := o.Read(producto); err != nil </span><span class="cov1" title="1">{
                 if err == orm.ErrNoRows </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("producto no encontrado")
                 }</span>
-                <span class="cov0" title="0">return nil, fmt.Errorf("error al buscar el producto: %v", err)</span>
+                <span class="cov1" title="1">return nil, fmt.Errorf("error al buscar el producto: %v", err)</span>
         }
         <span class="cov0" title="0">return producto, nil</span>
 }
@@ -4726,9 +4766,9 @@ type ProductoPedidoResponse struct {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /producto_pedido [get]
-func (c *ProductoPedidoController) GetAll() <span class="cov0" title="0">{
+func (c *ProductoPedidoController) GetAll() <span class="cov5" title="2">{
         pedidoID, err := c.GetInt64("pedido_id")
-        if err != nil || pedidoID == 0 </span><span class="cov0" title="0">{
+        if err != nil || pedidoID == 0 </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "El parámetro 'pedido_id' es obligatorio y debe ser válido",
@@ -4737,7 +4777,7 @@ func (c *ProductoPedidoController) GetAll() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">o := orm.NewOrm()
+        <span class="cov1" title="1">o := orm.NewOrm()
         var productoPedido models.ProductoPedido
 
         err = o.QueryTable(new(models.ProductoPedido)).
@@ -4751,7 +4791,7 @@ func (c *ProductoPedidoController) GetAll() <span class="cov0" title="0">{
                 }
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov0" title="0"> if err != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov1" title="1"> if err != nil </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al obtener los productos del pedido",
@@ -4812,13 +4852,13 @@ func (c *ProductoPedidoController) GetAll() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [post]
-func (c *ProductoPedidoController) Post() <span class="cov0" title="0">{
+func (c *ProductoPedidoController) Post() <span class="cov8" title="3">{
         var input struct {
                 PedidoId          int64                    `json:"pedidoId"`
                 DetallesProductos []map[string]interface{} `json:"detallesProductos"`
         }
 
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "Datos inválidos",
@@ -4829,7 +4869,7 @@ func (c *ProductoPedidoController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Validar que se proporcione el pedido y los detalles
-        <span class="cov0" title="0">if input.PedidoId == 0 || len(input.DetallesProductos) == 0 </span><span class="cov0" title="0">{
+        <span class="cov5" title="2">if input.PedidoId == 0 || len(input.DetallesProductos) == 0 </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "El pedido y los detalles de los productos son obligatorios",
@@ -4839,7 +4879,7 @@ func (c *ProductoPedidoController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Convertir los detalles a JSON
-        <span class="cov0" title="0">detallesJSON, err := json.Marshal(input.DetallesProductos)
+        <span class="cov1" title="1">detallesJSON, err := json.Marshal(input.DetallesProductos)
         if err != nil </span><span class="cov0" title="0">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -4850,14 +4890,14 @@ func (c *ProductoPedidoController) Post() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">productoPedido := models.ProductoPedido{
+        <span class="cov1" title="1">productoPedido := models.ProductoPedido{
                 PK_ID_PEDIDO:       input.PedidoId,
                 DETALLES_PRODUCTOS: string(detallesJSON),
         }
 
         o := orm.NewOrm()
         _, err = o.Insert(&amp;productoPedido)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al crear el pedido con productos",
@@ -4889,9 +4929,9 @@ func (c *ProductoPedidoController) Post() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [put]
-func (c *ProductoPedidoController) Update() <span class="cov0" title="0">{
+func (c *ProductoPedidoController) Update() <span class="cov10" title="4">{
         pedidoID, err := c.GetInt64("pedido_id")
-        if err != nil || pedidoID == 0 </span><span class="cov0" title="0">{
+        if err != nil || pedidoID == 0 </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "El parámetro 'pedido_id' es obligatorio y debe ser válido",
@@ -4901,8 +4941,8 @@ func (c *ProductoPedidoController) Update() <span class="cov0" title="0">{
         }</span>
 
         // Parsear los datos del cuerpo de la solicitud
-        <span class="cov0" title="0">var nuevosProductos []map[string]interface{}
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;nuevosProductos); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="3">var nuevosProductos []map[string]interface{}
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;nuevosProductos); err != nil </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "Datos inválidos",
@@ -4912,7 +4952,7 @@ func (c *ProductoPedidoController) Update() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">if len(nuevosProductos) == 0 </span><span class="cov0" title="0">{
+        <span class="cov5" title="2">if len(nuevosProductos) == 0 </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "La lista de productos no puede estar vacía",
@@ -4921,7 +4961,7 @@ func (c *ProductoPedidoController) Update() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">o := orm.NewOrm()
+        <span class="cov1" title="1">o := orm.NewOrm()
         productoPedido := models.ProductoPedido{}
 
         // Verificar si existe el pedido en la base de datos
@@ -4935,7 +4975,7 @@ func (c *ProductoPedidoController) Update() <span class="cov0" title="0">{
                 }
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov0" title="0"> if err != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov1" title="1"> if err != nil </span><span class="cov1" title="1">{
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al buscar el pedido",
@@ -5013,12 +5053,12 @@ var estadosPermitidos = map[string]bool{
 // @Success 200 {array} models.Reserva "Lista de reservas"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas [get]
-func (c *ReservaController) GetAll() <span class="cov0" title="0">{
+func (c *ReservaController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var reservas []models.Reserva
 
         _, err := o.QueryTable(new(models.Reserva)).All(&amp;reservas)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -5059,11 +5099,11 @@ func (c *ReservaController) GetAll() <span class="cov0" title="0">{
 // @Success 200 {object} models.Reserva "Reserva encontrada"
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas/search [get]
-func (c *ReservaController) GetById() <span class="cov0" title="0">{
+func (c *ReservaController) GetById() <span class="cov1" title="1">{
         o := orm.NewOrm()
         id, err := c.GetInt("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5113,12 +5153,12 @@ func (c *ReservaController) GetById() <span class="cov0" title="0">{
 // @Success 201 {object} models.Reserva "Reserva creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /reservas [post]
-func (c *ReservaController) Post() <span class="cov0" title="0">{
+func (c *ReservaController) Post() <span class="cov10" title="3">{
         o := orm.NewOrm()
         var input map[string]interface{}
 
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5130,12 +5170,12 @@ func (c *ReservaController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Validar y procesar los campos requeridos
-        <span class="cov0" title="0">var reserva models.Reserva
+        <span class="cov6" title="2">var reserva models.Reserva
 
         // Procesar FECHA
-        if fechaStr, ok := input["fechaReserva"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov0" title="0">{
+        if fechaStr, ok := input["fechaReserva"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov6" title="2">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
-                if err != nil </span><span class="cov0" title="0">{
+                if err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusBadRequest,
@@ -5145,7 +5185,7 @@ func (c *ReservaController) Post() <span class="cov0" title="0">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">reserva.FECHA = parsedDate</span>
+                <span class="cov1" title="1">reserva.FECHA = parsedDate</span>
         } else<span class="cov0" title="0"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -5157,7 +5197,7 @@ func (c *ReservaController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Procesar HORA
-        <span class="cov0" title="0">if horaStr, ok := input["horaReserva"].(string); ok &amp;&amp; horaStr != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if horaStr, ok := input["horaReserva"].(string); ok &amp;&amp; horaStr != "" </span><span class="cov0" title="0">{
                 _, err := time.Parse("15:04:05", horaStr)
                 if err != nil </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -5170,7 +5210,7 @@ func (c *ReservaController) Post() <span class="cov0" title="0">{
                         return
                 }</span>
                 <span class="cov0" title="0">reserva.HORA = horaStr</span>
-        } else<span class="cov0" title="0"> {
+        } else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5275,13 +5315,13 @@ func (c *ReservaController) Post() <span class="cov0" title="0">{
 // @Success 200 {object} models.Reserva "Reserva actualizada"
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas [put]
-func (c *ReservaController) Put() <span class="cov0" title="0">{
+func (c *ReservaController) Put() <span class="cov1" title="1">{
         o := orm.NewOrm()
 
         // Obtener el ID de la reserva desde los parámetros
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5420,7 +5460,7 @@ func (c *ReservaController) Put() <span class="cov0" title="0">{
 // @Failure 400 {object} models.ApiResponse "Error en los parámetros"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas/parameter [get]
-func (c *ReservaController) GetByParameter() <span class="cov0" title="0">{
+func (c *ReservaController) GetByParameter() <span class="cov6" title="2">{
         o := orm.NewOrm()
         var reservas []models.Reserva
 
@@ -5431,13 +5471,13 @@ func (c *ReservaController) GetByParameter() <span class="cov0" title="0">{
         // Construir la consulta con filtros dinámicos
         query := o.QueryTable(new(models.Reserva))
 
-        if errDoc == nil &amp;&amp; documentoCliente != 0 </span><span class="cov0" title="0">{
+        if errDoc == nil &amp;&amp; documentoCliente != 0 </span><span class="cov1" title="1">{
                 query = query.Filter("DOCUMENTO_CLIENTE", documentoCliente)
         }</span>
 
-        <span class="cov0" title="0">if fechaReserva != "" </span><span class="cov0" title="0">{
-                _, err := time.Parse("2006-01-02", fechaReserva)
-                if err != nil </span><span class="cov0" title="0">{
+        <span class="cov6" title="2">if fechaReserva != "" </span><span class="cov6" title="2">{
+                parsedDate, err := time.Parse("2006-01-02", fechaReserva)
+                if err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusBadRequest,
@@ -5446,12 +5486,12 @@ func (c *ReservaController) GetByParameter() <span class="cov0" title="0">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">query = query.Filter("FECHA", fechaReserva)</span>
+                <span class="cov1" title="1">query = query.Filter("FECHA", parsedDate)</span>
         }
 
         // Ejecutar la consulta
-        <span class="cov0" title="0">_, err := query.All(&amp;reservas)
-        if err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">_, err := query.All(&amp;reservas)
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -5491,13 +5531,13 @@ func (c *ReservaController) GetByParameter() <span class="cov0" title="0">{
 // @Success 200 {object} models.ApiResponse "Reserva cancelada"
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas [delete]
-func (c *ReservaController) Delete() <span class="cov0" title="0">{
+func (c *ReservaController) Delete() <span class="cov1" title="1">{
         o := orm.NewOrm()
 
         // Obtener el ID de la reserva desde los parámetros
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5573,12 +5613,12 @@ type RestauranteController struct {
 // @Success 200 {array} models.Restaurante "Lista de restaurantes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /restaurantes [get]
-func (c *RestauranteController) GetAll() <span class="cov8" title="1">{
+func (c *RestauranteController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var restaurantes []models.Restaurante
 
         _, err := o.QueryTable(new(models.Restaurante)).All(&amp;restaurantes)
-        if err != nil </span><span class="cov8" title="1">{
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -5614,11 +5654,11 @@ func (c *RestauranteController) GetAll() <span class="cov8" title="1">{
 // @Success 200 {object} models.Restaurante "Restaurante encontrado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes/search [get]
-func (c *RestauranteController) GetById() <span class="cov0" title="0">{
+func (c *RestauranteController) GetById() <span class="cov10" title="2">{
         o := orm.NewOrm()
         id, err := c.GetInt("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5629,7 +5669,7 @@ func (c *RestauranteController) GetById() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
+        <span class="cov1" title="1">restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
 
         err = o.Read(&amp;restaurante)
         if err == orm.ErrNoRows </span><span class="cov0" title="0">{
@@ -5643,7 +5683,7 @@ func (c *RestauranteController) GetById() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Restaurante encontrado",
@@ -5662,12 +5702,12 @@ func (c *RestauranteController) GetById() <span class="cov0" title="0">{
 // @Success 201 {object} models.Restaurante "Restaurante creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /restaurantes [post]
-func (c *RestauranteController) Post() <span class="cov0" title="0">{
+func (c *RestauranteController) Post() <span class="cov10" title="2">{
         o := orm.NewOrm()
         var restaurante models.Restaurante
 
         // Deserializar el JSON del cuerpo de la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;restaurante); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;restaurante); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5679,15 +5719,15 @@ func (c *RestauranteController) Post() <span class="cov0" title="0">{
         }</span>
 
         // Si se envían los días laborales como array de strings, usar SetDiasLaborales
-        <span class="cov0" title="0">if len(restaurante.DIAS_LABORALES) &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if len(restaurante.DIAS_LABORALES) &gt; 0 </span><span class="cov0" title="0">{
                 var dias []string
                 if err := json.Unmarshal([]byte(restaurante.DIAS_LABORALES), &amp;dias); err == nil </span><span class="cov0" title="0">{
                         restaurante.SetDiasLaborales(dias)
                 }</span>
         }
 
-        <span class="cov0" title="0">_, err := o.Insert(&amp;restaurante)
-        if err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">_, err := o.Insert(&amp;restaurante)
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -5718,13 +5758,13 @@ func (c *RestauranteController) Post() <span class="cov0" title="0">{
 // @Success 200 {object} models.Restaurante "Restaurante actualizado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes [put]
-func (c *RestauranteController) Put() <span class="cov0" title="0">{
+func (c *RestauranteController) Put() <span class="cov10" title="2">{
         o := orm.NewOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5735,7 +5775,7 @@ func (c *RestauranteController) Put() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
+        <span class="cov1" title="1">restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
 
         if o.Read(&amp;restaurante) == nil </span><span class="cov0" title="0">{
                 var updatedRestaurante models.Restaurante
@@ -5780,7 +5820,7 @@ func (c *RestauranteController) Put() <span class="cov0" title="0">{
                         Data:    updatedRestaurante,
                 }
                 c.ServeJSON()</span>
-        } else<span class="cov0" title="0"> {
+        } else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -5800,13 +5840,13 @@ func (c *RestauranteController) Put() <span class="cov0" title="0">{
 // @Success 204 {object} nil "Restaurante eliminado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes [delete]
-func (c *RestauranteController) Delete() <span class="cov0" title="0">{
+func (c *RestauranteController) Delete() <span class="cov10" title="2">{
         o := orm.NewOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -5817,7 +5857,7 @@ func (c *RestauranteController) Delete() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
+        <span class="cov1" title="1">restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
 
         if _, err := o.Delete(&amp;restaurante); err == nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
@@ -5826,7 +5866,7 @@ func (c *RestauranteController) Delete() <span class="cov0" title="0">{
                         Message: "Restaurante eliminado",
                 }
                 c.ServeJSON()
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -5859,22 +5899,22 @@ type TrabajadorController struct {
 }
 
 // Función para hash de contraseñas
-func hashPassword(password string) (string, error) <span class="cov0" title="0">{
+func hashPassword(password string) (string, error) <span class="cov1" title="1">{
         hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
         if err != nil </span><span class="cov0" title="0">{
                 return "", err
         }</span>
-        <span class="cov0" title="0">return string(hashedPassword), nil</span>
+        <span class="cov1" title="1">return string(hashedPassword), nil</span>
 }
 
 // Validar fechas relacionadas con el trabajador
-func validateDates(fechaIngreso, fechaRetiro *time.Time) error <span class="cov0" title="0">{
-        if fechaIngreso != nil &amp;&amp; fechaRetiro != nil </span><span class="cov0" title="0">{
-                if fechaRetiro.Before(*fechaIngreso) </span><span class="cov0" title="0">{
+func validateDates(fechaIngreso, fechaRetiro *time.Time) error <span class="cov10" title="3">{
+        if fechaIngreso != nil &amp;&amp; fechaRetiro != nil </span><span class="cov6" title="2">{
+                if fechaRetiro.Before(*fechaIngreso) </span><span class="cov1" title="1">{
                         return fmt.Errorf("la fecha de retiro no puede ser anterior a la fecha de ingreso")
                 }</span>
         }
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov6" title="2">return nil</span>
 }
 
 // @Title GetAll
@@ -5891,7 +5931,7 @@ func validateDates(fechaIngreso, fechaRetiro *time.Time) error <span class="cov0
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /trabajadores [get]
-func (c *TrabajadorController) GetAll() <span class="cov0" title="0">{
+func (c *TrabajadorController) GetAll() <span class="cov1" title="1">{
         o := orm.NewOrm()
         var trabajadores []models.Trabajador
 
@@ -5905,21 +5945,21 @@ func (c *TrabajadorController) GetAll() <span class="cov0" title="0">{
         query := o.QueryTable(new(models.Trabajador))
         if soloRetirados </span><span class="cov0" title="0">{
                 query = query.Filter("FECHA_RETIRO__isnull", false)
-        }</span> else<span class="cov0" title="0"> if !incluirRetirados </span><span class="cov0" title="0">{
+        }</span> else<span class="cov1" title="1"> if !incluirRetirados </span><span class="cov1" title="1">{
                 query = query.Filter("FECHA_RETIRO__isnull", true)
         }</span>
 
         // Aplicar filtros adicionales
-        <span class="cov0" title="0">if fechaIngreso != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if fechaIngreso != "" </span><span class="cov0" title="0">{
                 query = query.Filter("FECHA_INGRESO__exact", fechaIngreso)
         }</span>
-        <span class="cov0" title="0">if rol != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if rol != "" </span><span class="cov0" title="0">{
                 query = query.Filter("ROL__exact", rol)
         }</span>
 
         // Ejecutar consulta
-        <span class="cov0" title="0">_, err := query.All(&amp;trabajadores)
-        if err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">_, err := query.All(&amp;trabajadores)
+        if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -5976,11 +6016,11 @@ func (c *TrabajadorController) GetAll() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
 // @Security BearerAuth
 // @Router /trabajadores/search [get]
-func (c *TrabajadorController) GetById() <span class="cov0" title="0">{
+func (c *TrabajadorController) GetById() <span class="cov1" title="1">{
         o := orm.NewOrm()
         id, err := c.GetInt64("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -6023,12 +6063,12 @@ func (c *TrabajadorController) GetById() <span class="cov0" title="0">{
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /trabajadores [post]
-func (c *TrabajadorController) Post() <span class="cov0" title="0">{
+func (c *TrabajadorController) Post() <span class="cov6" title="2">{
         o := orm.NewOrm()
         var input map[string]interface{}
 
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -6038,14 +6078,14 @@ func (c *TrabajadorController) Post() <span class="cov0" title="0">{
                 c.ServeJSON()
                 return
         }</span>
-        <span class="cov0" title="0">fmt.Println("Este es el input recibido:", input)
+        <span class="cov1" title="1">fmt.Println("Este es el input recibido:", input)
         // Crear instancia del modelo Trabajador
         var trabajador models.Trabajador
 
         // Procesar PK_DOCUMENTO_TRABAJADOR
         if doc, ok := input["documentoTrabajador"].(float64); ok </span><span class="cov0" title="0">{
                 trabajador.PK_DOCUMENTO_TRABAJADOR = int64(doc)
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -6219,11 +6259,11 @@ func (c *TrabajadorController) Post() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
 // @Security BearerAuth
 // @Router /trabajadores [put]
-func (c *TrabajadorController) Put() <span class="cov0" title="0">{
+func (c *TrabajadorController) Put() <span class="cov1" title="1">{
         o := orm.NewOrm()
         id, err := c.GetInt64("id")
 
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -6396,13 +6436,13 @@ func (c *TrabajadorController) Put() <span class="cov0" title="0">{
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
 // @Security BearerAuth
 // @Router /trabajadores [delete]
-func (c *TrabajadorController) Delete() <span class="cov0" title="0">{
+func (c *TrabajadorController) Delete() <span class="cov6" title="2">{
         o := orm.NewOrm()
 
         // Obtener el ID del query parameter
         idStr := c.GetString("id")
         id, err := strconv.Atoi(idStr)
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -6414,15 +6454,15 @@ func (c *TrabajadorController) Delete() <span class="cov0" title="0">{
         }</span>
 
         // Buscar al trabajador
-        <span class="cov0" title="0">trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
-        if err := o.Read(&amp;trabajador); err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(id)}
+        if err := o.Read(&amp;trabajador); err != nil </span><span class="cov1" title="1">{
                 if err == orm.ErrNoRows </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusOK)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusNotFound,
                                 Message: "Trabajador no encontrado",
                         }
-                }</span> else<span class="cov0" title="0"> {
+                }</span> else<span class="cov1" title="1"> {
                         c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                         c.Data["json"] = models.ApiResponse{
                                 Code:    http.StatusInternalServerError,
@@ -6430,7 +6470,7 @@ func (c *TrabajadorController) Delete() <span class="cov0" title="0">{
                                 Cause:   err.Error(),
                         }
                 }</span>
-                <span class="cov0" title="0">c.ServeJSON()
+                <span class="cov1" title="1">c.ServeJSON()
                 return</span>
         }
 
@@ -6473,7 +6513,13 @@ import (
         _ "github.com/lib/pq"
 )
 
-func InitDB() error <span class="cov0" title="0">{
+// registerDataBase allows tests to stub orm.RegisterDataBase.
+var registerDataBase = orm.RegisterDataBase
+
+// loadLocation allows tests to stub time.LoadLocation.
+var loadLocation = time.LoadLocation
+
+func InitDB() error <span class="cov10" title="2">{
         dbHost, _ := web.AppConfig.String("db_host")
         dbPort, _ := web.AppConfig.String("db_port")
         dbUser, _ := web.AppConfig.String("db_user")
@@ -6483,13 +6529,13 @@ func InitDB() error <span class="cov0" title="0">{
         connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable TimeZone=UTC",
                 dbUser, dbPass, dbHost, dbPort, dbName)
 
-        err := orm.RegisterDataBase("default", "postgres", connStr)
+        err := registerDataBase("default", "postgres", connStr)
 
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov1" title="1">{
                 return err
         }</span>
 
-        <span class="cov0" title="0">fmt.Println("Conexión a la base de datos exitosa!")
+        <span class="cov1" title="1">fmt.Println("Conexión a la base de datos exitosa!")
         fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
 
         return nil</span>
@@ -6497,10 +6543,10 @@ func InitDB() error <span class="cov0" title="0">{
 
 var BogotaZone *time.Location
 
-func InitTimezone() <span class="cov0" title="0">{
+func InitTimezone() <span class="cov10" title="2">{
         var err error
-        BogotaZone, err = time.LoadLocation("America/Bogota")
-        if err != nil </span><span class="cov0" title="0">{
+        BogotaZone, err = loadLocation("America/Bogota")
+        if err != nil </span><span class="cov1" title="1">{
                 log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
                 BogotaZone = time.FixedZone("UTC-5", -5*60*60)
         }</span>
@@ -11075,6 +11121,8 @@ import (
         "github.com/beego/beego/v2/client/orm"
 )
 
+var jsonMarshal = json.Marshal
+
 type Restaurante struct {
         PK_ID_RESTAURANTE    int    `orm:"column(PK_ID_RESTAURANTE);pk" json:"restauranteId"`
         NOMBRE_RESTAURANTE   string `orm:"column(NOMBRE_RESTAURANTE)" json:"nombreRestaurante"`
@@ -11089,9 +11137,9 @@ func (t *Restaurante) TableName() string <span class="cov1" title="1">{
 }</span>
 
 // Método para establecer los días laborales como una cadena JSON
-func (r *Restaurante) SetDiasLaborales(dias []string) error <span class="cov1" title="1">{
-        diasJSON, err := json.Marshal(dias)
-        if err != nil </span><span class="cov0" title="0">{
+func (r *Restaurante) SetDiasLaborales(dias []string) error <span class="cov10" title="2">{
+        diasJSON, err := jsonMarshal(dias)
+        if err != nil </span><span class="cov1" title="1">{
                 return err
         }</span>
         <span class="cov1" title="1">r.DIAS_LABORALES = string(diasJSON)
@@ -11143,7 +11191,7 @@ func init() <span class="cov1" title="1">{
         orm.RegisterModel(new(Trabajador))
 }</span>
 
-func (d Trabajador) MarshalJSON() ([]byte, error) <span class="cov1" title="1">{
+func (d Trabajador) MarshalJSON() ([]byte, error) <span class="cov10" title="2">{
         type Alias Trabajador
         return json.Marshal(&amp;struct {
                 FECHA_NACIMIENTO *string `json:"fechaNacimiento,omitempty"`
@@ -11151,20 +11199,20 @@ func (d Trabajador) MarshalJSON() ([]byte, error) <span class="cov1" title="1">{
                 FECHA_RETIRO     *string `json:"fechaRetiro,omitempty"`
                 Alias
         }{
-                FECHA_NACIMIENTO: func() *string </span><span class="cov1" title="1">{
+                FECHA_NACIMIENTO: func() *string </span><span class="cov10" title="2">{
                         if d.FECHA_NACIMIENTO != nil </span><span class="cov1" title="1">{
                                 str := d.FECHA_NACIMIENTO.Format("02-01-2006")
                                 return &amp;str
                         }</span>
-                        <span class="cov0" title="0">return nil</span>
+                        <span class="cov1" title="1">return nil</span>
                 }(),
                 FECHA_INGRESO: d.FECHA_INGRESO.Format("02-01-2006 15:04:05"),
-                FECHA_RETIRO: func() *string <span class="cov1" title="1">{
+                FECHA_RETIRO: func() *string <span class="cov10" title="2">{
                         if d.FECHA_RETIRO != nil </span><span class="cov1" title="1">{
                                 str := d.FECHA_RETIRO.Format("02-01-2006 15:04:05")
                                 return &amp;str
                         }</span>
-                        <span class="cov0" title="0">return nil</span>
+                        <span class="cov1" title="1">return nil</span>
                 }(),
                 Alias: (Alias)(d),
         })
@@ -11302,6 +11350,26 @@ func init() <span class="cov8" title="1">{
         // IMPORTANTE: agregar namespaces en orden: primero público, luego protegido
         beego.AddNamespace(public)
         beego.AddNamespace(protected)
+}</span>
+</pre>
+		
+		<pre class="file" id="file35" style="display: none">package test
+
+import (
+    "net/http"
+    "net/http/httptest"
+
+    beego "github.com/beego/beego/v2/server/web"
+)
+
+// sendRequest helps execute an HTTP request against the Beego
+// application and returns the recorder with the response. It is
+// used across tests to reduce boilerplate and provides statements
+// so coverage reporting works for this package.
+func sendRequest(req *http.Request) *httptest.ResponseRecorder <span class="cov10" title="4">{
+    w := httptest.NewRecorder()
+    beego.BeeApp.Handlers.ServeHTTP(w, req)
+    return w
 }</span>
 </pre>
 		
