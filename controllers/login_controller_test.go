@@ -16,13 +16,17 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-type mockOrmer struct {
-	orm.Ormer
-	ReadFunc func(interface{}, ...string) error
+// mockLoginOrmer implements only the Read method of orm.Ormer, allowing tests
+// to customize the behaviour while satisfying the interface. Other methods are
+// promoted from the embedded orm.Ormer and will panic if used since the field
+// is nil, but our tests only rely on Read.
+type mockLoginOrmer struct {
+        orm.Ormer
+        ReadFunc func(interface{}, ...string) error
 }
 
-func (m mockOrmer) Read(v interface{}, cols ...string) error {
-	return m.ReadFunc(v, cols...)
+func (m mockLoginOrmer) Read(v interface{}, cols ...string) error {
+        return m.ReadFunc(v, cols...)
 }
 
 func TestGenerateJWT(t *testing.T) {
@@ -84,8 +88,8 @@ func TestLoginTrabajadorSuccess(t *testing.T) {
 
 	origNewOrm := newOrm
 	defer func() { newOrm = origNewOrm }()
-	newOrm = func() orm.Ormer {
-		return &mockOrmer{ReadFunc: func(v interface{}, cols ...string) error {
+        newOrm = func() orm.Ormer {
+                return &mockLoginOrmer{ReadFunc: func(v interface{}, cols ...string) error {
 			if trab, ok := v.(*models.Trabajador); ok {
 				trab.NOMBRE = "Foo"
 				trab.APELLIDO = "Bar"
@@ -139,8 +143,8 @@ func TestLoginClienteSuccess(t *testing.T) {
 
 	origNewOrm := newOrm
 	defer func() { newOrm = origNewOrm }()
-	newOrm = func() orm.Ormer {
-		return &mockOrmer{ReadFunc: func(v interface{}, cols ...string) error {
+        newOrm = func() orm.Ormer {
+                return &mockLoginOrmer{ReadFunc: func(v interface{}, cols ...string) error {
 			switch val := v.(type) {
 			case *models.Trabajador:
 				return errors.New("not found")
@@ -192,8 +196,8 @@ func TestLoginClienteSuccess(t *testing.T) {
 func TestLoginTrabajadorInvalidPassword(t *testing.T) {
 	origNewOrm := newOrm
 	defer func() { newOrm = origNewOrm }()
-	newOrm = func() orm.Ormer {
-		return &mockOrmer{ReadFunc: func(v interface{}, cols ...string) error {
+        newOrm = func() orm.Ormer {
+                return &mockLoginOrmer{ReadFunc: func(v interface{}, cols ...string) error {
 			if trab, ok := v.(*models.Trabajador); ok {
 				trab.PASSWORD = "hashed"
 				return nil
@@ -226,8 +230,8 @@ func TestLoginTrabajadorInvalidPassword(t *testing.T) {
 func TestLoginClienteInvalidPassword(t *testing.T) {
 	origNewOrm := newOrm
 	defer func() { newOrm = origNewOrm }()
-	newOrm = func() orm.Ormer {
-		return &mockOrmer{ReadFunc: func(v interface{}, cols ...string) error {
+        newOrm = func() orm.Ormer {
+                return &mockLoginOrmer{ReadFunc: func(v interface{}, cols ...string) error {
 			switch val := v.(type) {
 			case *models.Trabajador:
 				return errors.New("not found")
@@ -263,8 +267,8 @@ func TestLoginClienteInvalidPassword(t *testing.T) {
 func TestLoginUserNotFound(t *testing.T) {
 	origNewOrm := newOrm
 	defer func() { newOrm = origNewOrm }()
-	newOrm = func() orm.Ormer {
-		return &mockOrmer{ReadFunc: func(v interface{}, cols ...string) error {
+        newOrm = func() orm.Ormer {
+                return &mockLoginOrmer{ReadFunc: func(v interface{}, cols ...string) error {
 			return errors.New("not found")
 		}}
 	}
