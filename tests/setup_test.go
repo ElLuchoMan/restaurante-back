@@ -20,12 +20,14 @@ func TestMain(m *testing.M) {
 	os.Chdir(appPath)
 	beego.TestBeegoInit(appPath)
 
-	// Initialize the database using the test configuration
-	if err := database.InitDB(); err != nil {
-		log.Println("Skipping tests: database unavailable:", err)
-		os.Exit(0)
-	}
+        // Initialize the database using the test configuration
+        if err := database.InitDB(); err != nil {
+                // Log the error but allow tests that do not require the
+                // database to run. This avoids reporting a coverage of
+                // "[no statements]" when the database is unavailable.
+                log.Println("Database unavailable, tests will run without DB:", err)
+        }
 
-	code := m.Run()
-	os.Exit(code)
+        code := m.Run()
+        os.Exit(code)
 }
