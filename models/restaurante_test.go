@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -31,5 +32,18 @@ func TestRestauranteGetDiasLaboralesInvalidJSON(t *testing.T) {
 	r := Restaurante{DIAS_LABORALES: "not-json"}
 	if _, err := r.GetDiasLaborales(); err == nil {
 		t.Errorf("expected error for invalid JSON")
+	}
+}
+
+func TestRestauranteSetDiasLaboralesError(t *testing.T) {
+	original := jsonMarshal
+	jsonMarshal = func(v any) ([]byte, error) {
+		return nil, errors.New("marshal error")
+	}
+	defer func() { jsonMarshal = original }()
+
+	r := Restaurante{}
+	if err := r.SetDiasLaborales([]string{"Lunes"}); err == nil {
+		t.Errorf("expected error but got nil")
 	}
 }
