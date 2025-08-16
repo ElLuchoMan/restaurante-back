@@ -88,3 +88,119 @@ func TestIncidenciaPostInvalidJSON(t *testing.T) {
 		t.Fatalf("expected status 400, got %d", w.Code)
 	}
 }
+
+func TestIncidenciaPostMissingFecha(t *testing.T) {
+	body := `{"MONTO":100,"RESTA":false,"MOTIVO":"test"}`
+	r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestIncidenciaPostInvalidFecha(t *testing.T) {
+	body := `{"FECHA":"invalid","MONTO":100,"RESTA":false,"MOTIVO":"test"}`
+	r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestIncidenciaPostMissingMonto(t *testing.T) {
+	body := `{"FECHA":"2024-01-01","RESTA":false,"MOTIVO":"test"}`
+	r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestIncidenciaPutInvalidID(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPut, "/incidencias?id=abc", strings.NewReader("{}"))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Put()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestIncidenciaPutInvalidJSON(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPut, "/incidencias?id=1", strings.NewReader("notjson"))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Put()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestIncidenciaPutInvalidFecha(t *testing.T) {
+	body := `{"FECHA":"invalid"}`
+	r := httptest.NewRequest(http.MethodPut, "/incidencias?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Put()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestIncidenciaDeleteInvalidID(t *testing.T) {
+	r := httptest.NewRequest(http.MethodDelete, "/incidencias?id=abc", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Delete()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
