@@ -16,6 +16,15 @@ type ClienteController struct {
 	web.Controller
 }
 
+// Options responde a las solicitudes preflight de CORS
+// permitiendo que el navegador verifique los permisos
+// antes de enviar la petición real.
+func (c *ClienteController) Options() {
+	c.Ctx.ResponseWriter.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	c.Ctx.ResponseWriter.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	c.Ctx.Output.SetStatus(http.StatusOK)
+}
+
 func normalizeEmail(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
 }
