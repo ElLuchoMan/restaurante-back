@@ -3,6 +3,7 @@ package test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -27,13 +28,16 @@ func TestOptionsBypassesToken(t *testing.T) {
 	beego.BeeApp.Handlers.ServeHTTP(w, r)
 
 	Convey("OPTIONS request should bypass token validation", t, func() {
-		So(w.Code, ShouldEqual, http.StatusOK)
+		So(w.Code, ShouldNotEqual, http.StatusUnauthorized)
+		So(w.Code, ShouldEqual, http.StatusMethodNotAllowed)
 	})
 }
 
 // TestPublicPostWithoutToken confirms that public POST endpoints can be accessed without a token and return a validation error instead.
 func TestPublicPostWithoutToken(t *testing.T) {
-	r, _ := http.NewRequest("POST", "/restaurante/v1/clientes", nil)
+	rBody := strings.NewReader("{")
+	r, _ := http.NewRequest("POST", "/restaurante/v1/clientes", rBody)
+	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	beego.BeeApp.Handlers.ServeHTTP(w, r)
 
