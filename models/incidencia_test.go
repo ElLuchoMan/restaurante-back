@@ -1,0 +1,33 @@
+package models
+
+import (
+	"encoding/json"
+	"testing"
+	"time"
+)
+
+func TestIncidenciaMarshalJSON(t *testing.T) {
+	fecha := time.Date(2024, time.June, 3, 0, 0, 0, 0, time.UTC)
+	i := Incidencia{FECHA: fecha}
+
+	b, err := json.Marshal(i)
+	if err != nil {
+		t.Fatalf("json.Marshal returned error: %v", err)
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		t.Fatalf("json.Unmarshal returned error: %v", err)
+	}
+
+	if data["fechaIncidencia"] != "03-06-2024" {
+		t.Errorf("expected fechaIncidencia 03-06-2024, got %v", data["fechaIncidencia"])
+	}
+}
+
+func TestIncidenciaTableName(t *testing.T) {
+	i := Incidencia{}
+	if i.TableName() != "INCIDENCIA" {
+		t.Errorf("expected table name INCIDENCIA, got %s", i.TableName())
+	}
+}

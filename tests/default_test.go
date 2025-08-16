@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"runtime"
+
 	"testing"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -20,7 +21,6 @@ func init() {
 	apppath, _ := filepath.Abs(filepath.Dir(filepath.Join(file, ".."+string(filepath.Separator))))
 	beego.TestBeegoInit(apppath)
 }
-
 // TestBeego is a sample to run an endpoint test
 func TestBeego(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/", nil)
