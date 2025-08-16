@@ -17,6 +17,11 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
+var (
+	newOrm                 = orm.NewOrm
+	compareHashAndPassword = bcrypt.CompareHashAndPassword
+)
+
 type LoginController struct {
 	web.Controller
 }
@@ -56,7 +61,7 @@ func (c *LoginController) Login() {
 		return
 	}
 
-	o := orm.NewOrm()
+	o := newOrm()
 
 	// Primero, intenta encontrar al usuario como trabajador
 	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(loginRequest.Documento)}
@@ -64,7 +69,7 @@ func (c *LoginController) Login() {
 
 	if err == nil {
 		// Verificar la contraseña
-		if err := bcrypt.CompareHashAndPassword([]byte(trabajador.PASSWORD), []byte(loginRequest.Password)); err != nil {
+		if err := compareHashAndPassword([]byte(trabajador.PASSWORD), []byte(loginRequest.Password)); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusUnauthorized)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusUnauthorized,
@@ -85,7 +90,7 @@ func (c *LoginController) Login() {
 
 	if err == nil {
 		// Verificar la contraseña
-		if err := bcrypt.CompareHashAndPassword([]byte(cliente.PASSWORD), []byte(loginRequest.Password)); err != nil {
+		if err := compareHashAndPassword([]byte(cliente.PASSWORD), []byte(loginRequest.Password)); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusUnauthorized)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusUnauthorized,
