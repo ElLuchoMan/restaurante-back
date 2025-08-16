@@ -20,6 +20,25 @@ var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.Cambios
 	return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)
 }
 
+// database operation hooks allow tests to mock database interactions.
+var (
+	queryAllCambiosHorario = func(o orm.Ormer, horarios *[]models.CambiosHorario) (int64, error) {
+		return o.QueryTable(new(models.CambiosHorario)).All(horarios)
+	}
+	insertCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
+		return o.Insert(horario)
+	}
+	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error {
+		return o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).One(horario)
+	}
+	updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
+		return o.Update(horario)
+	}
+	deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) {
+		return o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).Delete()
+	}
+)
+
 // @Title GetAll
 // @Summary Obtener todos los cambios de horario
 // @Description Obtiene un listado de todos los cambios de horario registrados en la base de datos
@@ -33,7 +52,7 @@ func (c *CambiosHorarioController) GetAll() {
 	o := orm.NewOrm()
 	var horarios []models.CambiosHorario
 
-	_, err := o.QueryTable(new(models.CambiosHorario)).All(&horarios)
+	_, err := queryAllCambiosHorario(o, &horarios)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -259,7 +278,7 @@ func (c *CambiosHorarioController) Post() {
 	}
 
 	// Insertar en la base de datos
-	_, err := o.Insert(&horario)
+	_, err := insertCambioHorario(o, &horario)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -334,7 +353,7 @@ func (c *CambiosHorarioController) Put() {
 
 	// Buscar el cambio de horario por ID
 	var horario models.CambiosHorario
-	if err := o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).One(&horario); err == orm.ErrNoRows {
+	if err := queryCambioHorarioByID(o, id, &horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -412,7 +431,7 @@ func (c *CambiosHorarioController) Put() {
 	}
 
 	// Guardar los cambios
-	if _, err := o.Update(&horario); err != nil {
+	if _, err := updateCambioHorario(o, &horario); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -471,9 +490,7 @@ func (c *CambiosHorarioController) Delete() {
 	}
 
 	// Eliminar el cambio de horario
-	if num, err := o.QueryTable(new(models.CambiosHorario)).
-		Filter("cambioHorarioId", id).
-		Delete(); err != nil {
+	if num, err := deleteCambioHorarioByID(o, id); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
