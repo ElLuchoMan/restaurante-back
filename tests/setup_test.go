@@ -17,7 +17,6 @@ func TestMain(m *testing.M) {
 	_, file, _, _ := runtime.Caller(0)
 	appPath, _ := filepath.Abs(filepath.Dir(filepath.Join(file, ".."+string(filepath.Separator))))
 	os.Setenv("BEEGO_APP_CONFIG_FILE", filepath.Join(appPath, "conf", "app.test.conf"))
-	os.Setenv("cocina-de-maria", "test-secret")
 	os.Chdir(appPath)
 	beego.TestBeegoInit(appPath)
 
