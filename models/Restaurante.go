@@ -6,6 +6,8 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
+var jsonMarshal = json.Marshal
+
 type Restaurante struct {
 	PK_ID_RESTAURANTE    int    `orm:"column(PK_ID_RESTAURANTE);pk" json:"restauranteId"`
 	NOMBRE_RESTAURANTE   string `orm:"column(NOMBRE_RESTAURANTE)" json:"nombreRestaurante"`
@@ -21,7 +23,7 @@ func (t *Restaurante) TableName() string {
 
 // Método para establecer los días laborales como una cadena JSON
 func (r *Restaurante) SetDiasLaborales(dias []string) error {
-	diasJSON, err := json.Marshal(dias)
+	diasJSON, err := jsonMarshal(dias)
 	if err != nil {
 		return err
 	}

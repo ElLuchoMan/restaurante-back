@@ -43,3 +43,28 @@ func TestTrabajadorTableName(t *testing.T) {
 		t.Errorf("expected table name TRABAJADOR, got %s", tr.TableName())
 	}
 }
+
+func TestTrabajadorMarshalJSONNil(t *testing.T) {
+	ingreso := time.Date(2023, time.February, 10, 9, 15, 30, 0, time.UTC)
+	tr := Trabajador{FECHA_INGRESO: ingreso}
+
+	b, err := json.Marshal(tr)
+	if err != nil {
+		t.Fatalf("json.Marshal returned error: %v", err)
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		t.Fatalf("json.Unmarshal returned error: %v", err)
+	}
+
+	if _, ok := data["fechaNacimiento"]; ok {
+		t.Errorf("expected fechaNacimiento to be omitted")
+	}
+	if data["fechaIngreso"] != "10-02-2023 09:15:30" {
+		t.Errorf("expected fechaIngreso 10-02-2023 09:15:30, got %v", data["fechaIngreso"])
+	}
+	if _, ok := data["fechaRetiro"]; ok {
+		t.Errorf("expected fechaRetiro to be omitted")
+	}
+}
