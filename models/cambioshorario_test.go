@@ -1,0 +1,33 @@
+package models
+
+import (
+	"encoding/json"
+	"testing"
+	"time"
+)
+
+func TestCambiosHorarioMarshalJSON(t *testing.T) {
+	fecha := time.Date(2024, time.January, 2, 0, 0, 0, 0, time.UTC)
+	c := CambiosHorario{FECHA: fecha}
+
+	b, err := json.Marshal(c)
+	if err != nil {
+		t.Fatalf("json.Marshal returned error: %v", err)
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		t.Fatalf("json.Unmarshal returned error: %v", err)
+	}
+
+	if data["fechaCambioHorario"] != "02-01-2024" {
+		t.Errorf("expected fechaCambioHorario 02-01-2024, got %v", data["fechaCambioHorario"])
+	}
+}
+
+func TestCambiosHorarioTableName(t *testing.T) {
+	c := CambiosHorario{}
+	if c.TableName() != "CAMBIOS_HORARIO" {
+		t.Errorf("expected table name CAMBIOS_HORARIO, got %s", c.TableName())
+	}
+}
