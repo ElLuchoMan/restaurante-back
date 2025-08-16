@@ -1,12 +1,17 @@
 package controllers
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web/context"
+	"restaurante/models"
 )
 
 func TestMetodoPagoGetByIdInvalidID(t *testing.T) {
@@ -118,5 +123,238 @@ func TestMetodoPagoDeleteNotFound(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
+type mockOrmer struct {
+	data   map[int]models.MetodoPago
+	nextID int
+}
+
+func newMockOrmer() *mockOrmer {
+	return &mockOrmer{data: make(map[int]models.MetodoPago), nextID: 1}
+}
+
+func (m *mockOrmer) QueryTable(_ interface{}) metodoPagoQuerySeter {
+	return m
+}
+
+func (m *mockOrmer) All(res interface{}, _ ...string) (int64, error) {
+	slice, ok := res.(*[]models.MetodoPago)
+	if !ok {
+		return 0, errors.New("invalid result type")
+	}
+	for _, v := range m.data {
+		*slice = append(*slice, v)
+	}
+	return int64(len(m.data)), nil
+}
+
+func (m *mockOrmer) Read(v interface{}, _ ...string) error {
+	mp := v.(*models.MetodoPago)
+	item, ok := m.data[mp.PK_ID_METODO_PAGO]
+	if !ok {
+		return orm.ErrNoRows
+	}
+	*mp = item
+	return nil
+}
+
+func (m *mockOrmer) Insert(v interface{}) (int64, error) {
+	mp := v.(*models.MetodoPago)
+	mp.PK_ID_METODO_PAGO = m.nextID
+	m.nextID++
+	m.data[mp.PK_ID_METODO_PAGO] = *mp
+	return 1, nil
+}
+
+func (m *mockOrmer) Update(v interface{}, _ ...string) (int64, error) {
+	mp := v.(*models.MetodoPago)
+	if _, ok := m.data[mp.PK_ID_METODO_PAGO]; !ok {
+		return 0, orm.ErrNoRows
+	}
+	m.data[mp.PK_ID_METODO_PAGO] = *mp
+	return 1, nil
+}
+
+func (m *mockOrmer) Delete(v interface{}, _ ...string) (int64, error) {
+	mp := v.(*models.MetodoPago)
+	if _, ok := m.data[mp.PK_ID_METODO_PAGO]; !ok {
+		return 0, orm.ErrNoRows
+	}
+	delete(m.data, mp.PK_ID_METODO_PAGO)
+	return 1, nil
+}
+func TestMetodoPagoGetByIdSuccess(t *testing.T) {
+	m := newMockOrmer()
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return m }
+	defer func() { getOrm = original }()
+
+	mp := models.MetodoPago{TIPO: "efectivo"}
+	if _, err := m.Insert(&mp); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/metodos_pago/search?id=%d", mp.PK_ID_METODO_PAGO), nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetById()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	var resp models.ApiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected code 200, got %d", resp.Code)
+	}
+}
+
+func TestMetodoPagoGetByIdNotFound(t *testing.T) {
+	m := newMockOrmer()
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return m }
+	defer func() { getOrm = original }()
+
+	r := httptest.NewRequest(http.MethodGet, "/metodos_pago/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetById()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	var resp models.ApiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("expected code 404, got %d", resp.Code)
+	}
+}
+
+func TestMetodoPagoPostSuccess(t *testing.T) {
+	m := newMockOrmer()
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return m }
+	defer func() { getOrm = original }()
+
+	body := `{"tipo":"tarjeta","detalle":"visa"}`
+	r := httptest.NewRequest(http.MethodPost, "/metodos_pago", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d", w.Code)
+	}
+	if len(m.data) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(m.data))
+	}
+}
+
+func TestMetodoPagoPutSuccess(t *testing.T) {
+	m := newMockOrmer()
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return m }
+	defer func() { getOrm = original }()
+
+	mp := models.MetodoPago{TIPO: "efectivo"}
+	if _, err := m.Insert(&mp); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	body := `{"tipo":"tarjeta"}`
+	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/metodos_pago?id=%d", mp.PK_ID_METODO_PAGO), strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Put()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if m.data[mp.PK_ID_METODO_PAGO].TIPO != "tarjeta" {
+		t.Fatalf("expected tipo updated to tarjeta, got %s", m.data[mp.PK_ID_METODO_PAGO].TIPO)
+	}
+}
+
+func TestMetodoPagoPutInvalidJSONWithRecord(t *testing.T) {
+	m := newMockOrmer()
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return m }
+	defer func() { getOrm = original }()
+
+	mp := models.MetodoPago{TIPO: "efectivo"}
+	if _, err := m.Insert(&mp); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/metodos_pago?id=%d", mp.PK_ID_METODO_PAGO), strings.NewReader("notjson"))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte("notjson")
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Put()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestMetodoPagoDeleteSuccess(t *testing.T) {
+	m := newMockOrmer()
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return m }
+	defer func() { getOrm = original }()
+
+	mp := models.MetodoPago{TIPO: "efectivo"}
+	if _, err := m.Insert(&mp); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/metodos_pago?id=%d", mp.PK_ID_METODO_PAGO), nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Delete()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if len(m.data) != 0 {
+		t.Fatalf("expected 0 records, got %d", len(m.data))
 	}
 }

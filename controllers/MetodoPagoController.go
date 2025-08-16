@@ -10,6 +10,36 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type metodoPagoQuerySeter interface {
+	All(interface{}, ...string) (int64, error)
+}
+
+type metodoPagoOrmer interface {
+	QueryTable(interface{}) metodoPagoQuerySeter
+	Read(interface{}, ...string) error
+	Insert(interface{}) (int64, error)
+	Update(interface{}, ...string) (int64, error)
+	Delete(interface{}, ...string) (int64, error)
+}
+
+type defaultQuerySeter struct {
+	orm.QuerySeter
+}
+
+func (d *defaultQuerySeter) All(res interface{}, cols ...string) (int64, error) {
+	return d.QuerySeter.All(res, cols...)
+}
+
+type defaultOrmer struct {
+	orm.Ormer
+}
+
+func (d *defaultOrmer) QueryTable(v interface{}) metodoPagoQuerySeter {
+	return &defaultQuerySeter{d.Ormer.QueryTable(v)}
+}
+
+var getOrm func() metodoPagoOrmer = func() metodoPagoOrmer { return &defaultOrmer{orm.NewOrm()} }
+
 type MetodoPagoController struct {
 	web.Controller
 }
@@ -25,7 +55,7 @@ type MetodoPagoController struct {
 // @Security BearerAuth
 // @Router /metodos_pago [get]
 func (c *MetodoPagoController) GetAll() {
-	o := orm.NewOrm()
+	o := getOrm()
 	var metodos []models.MetodoPago
 
 	_, err := o.QueryTable(new(models.MetodoPago)).All(&metodos)
@@ -61,7 +91,7 @@ func (c *MetodoPagoController) GetAll() {
 // @Security BearerAuth
 // @Router /metodos_pago/search [get]
 func (c *MetodoPagoController) GetById() {
-	o := orm.NewOrm()
+	o := getOrm()
 	id, err := c.GetInt("id")
 
 	if err != nil || id == 0 {
@@ -110,7 +140,7 @@ func (c *MetodoPagoController) GetById() {
 // @Security BearerAuth
 // @Router /metodos_pago [post]
 func (c *MetodoPagoController) Post() {
-	o := orm.NewOrm()
+	o := getOrm()
 	var metodo models.MetodoPago
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &metodo); err != nil {
@@ -158,7 +188,7 @@ func (c *MetodoPagoController) Post() {
 // @Security BearerAuth
 // @Router /metodos_pago [put]
 func (c *MetodoPagoController) Put() {
-	o := orm.NewOrm()
+	o := getOrm()
 
 	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
@@ -231,7 +261,7 @@ func (c *MetodoPagoController) Put() {
 // @Security BearerAuth
 // @Router /metodos_pago [delete]
 func (c *MetodoPagoController) Delete() {
-	o := orm.NewOrm()
+	o := getOrm()
 
 	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
