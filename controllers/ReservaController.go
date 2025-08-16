@@ -456,7 +456,7 @@ func (c *ReservaController) GetByParameter() {
 	}
 
 	if fechaReserva != "" {
-		_, err := time.Parse("2006-01-02", fechaReserva)
+		parsedDate, err := time.Parse("2006-01-02", fechaReserva)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -466,7 +466,7 @@ func (c *ReservaController) GetByParameter() {
 			c.ServeJSON()
 			return
 		}
-		query = query.Filter("FECHA", fechaReserva)
+		query = query.Filter("FECHA", parsedDate)
 	}
 
 	// Ejecutar la consulta

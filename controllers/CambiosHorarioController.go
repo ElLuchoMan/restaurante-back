@@ -15,6 +15,11 @@ type CambiosHorarioController struct {
 	web.Controller
 }
 
+// queryCambioHorarioByDate allows tests to mock the database query used in GetByCurrentDate.
+var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
+	return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)
+}
+
 // @Title GetAll
 // @Summary Obtener todos los cambios de horario
 // @Description Obtiene un listado de todos los cambios de horario registrados en la base de datos
@@ -87,12 +92,10 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 	currentDate := time.Now().In(database.BogotaZone)
 
 	// Consultar si hay un cambio de horario para la fecha actual
-	err := o.QueryTable(new(models.CambiosHorario)).
-		Filter("FECHA", currentDate.Format("2006-01-02")).
-		One(&cambioHorario)
+	err := queryCambioHorarioByDate(o, currentDate.Format("2006-01-02"), &cambioHorario)
 
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No hay cambios de horario para la fecha actual",
