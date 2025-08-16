@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"restaurante/database"
 	_ "restaurante/docs"
 	_ "restaurante/routers"
@@ -15,9 +16,16 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+var dbReady bool
+
 func init() {
 	// Inicializar la base de datos y la zona horaria
-	database.InitDB()
+	if err := database.InitDB(); err != nil {
+		log.Println("Error al conectar a la base de datos:", err)
+		dbReady = false
+	} else {
+		dbReady = true
+	}
 	database.InitTimezone()
 	fmt.Println("Loaded timezone:", database.BogotaZone)
 }
@@ -80,8 +88,10 @@ func main() {
 	web.BConfig.WebConfig.DirectoryIndex = true
 	web.Handler("/swagger/*", httpSwagger.WrapHandler)
 
-	// Iniciar el cron job en un goroutine
-	go generarNominaAutomatica()
+	// Iniciar el cron job en un goroutine solo si la DB está disponible
+	if dbReady {
+		go generarNominaAutomatica()
+	}
 
 	// Iniciar el servidor
 	web.Run()

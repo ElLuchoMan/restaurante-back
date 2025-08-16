@@ -26,7 +26,8 @@ func TestInitDB_Integration(t *testing.T) {
 		t.Skip("Sin configuración real de DB; omitiendo integración")
 	}
 
-	// InitDB no retorna valor; solo error vía log.Fatal si falla.
-	// Si llegara a hacer panic/fatal, este test lo evidenciaría.
-	InitDB()
+	// InitDB returns an error, fail the test if connection is not possible.
+	if err := InitDB(); err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
 }

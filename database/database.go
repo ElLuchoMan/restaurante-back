@@ -10,7 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func InitDB() {
+func InitDB() error {
 	dbHost, _ := web.AppConfig.String("db_host")
 	dbPort, _ := web.AppConfig.String("db_port")
 	dbUser, _ := web.AppConfig.String("db_user")
@@ -23,12 +23,13 @@ func InitDB() {
 	err := orm.RegisterDataBase("default", "postgres", connStr)
 
 	if err != nil {
-		log.Fatal("Error al conectar a la base de datos:", err)
+		return err
 	}
 
 	fmt.Println("Conexión a la base de datos exitosa!")
 	fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
 
+	return nil
 }
 
 var BogotaZone *time.Location
