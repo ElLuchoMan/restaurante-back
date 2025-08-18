@@ -24,6 +24,33 @@ var estadosPermitidos = map[string]bool{
 	"CUMPLIDA":   true,
 }
 
+var queryAllReservas = func(o orm.Ormer, reservas *[]models.Reserva) (int64, error) {
+	return o.QueryTable(new(models.Reserva)).All(reservas)
+}
+
+var readReserva = func(o orm.Ormer, r *models.Reserva) error {
+	return o.Read(r)
+}
+
+var insertReserva = func(o orm.Ormer, r *models.Reserva) (int64, error) {
+	return o.Insert(r)
+}
+
+var updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
+	return o.Update(r, cols...)
+}
+
+var queryReservasByParam = func(o orm.Ormer, documentoCliente int64, fecha time.Time, useDoc, useFecha bool, reservas *[]models.Reserva) (int64, error) {
+	qs := o.QueryTable(new(models.Reserva))
+	if useDoc {
+		qs = qs.Filter("DOCUMENTO_CLIENTE", documentoCliente)
+	}
+	if useFecha {
+		qs = qs.Filter("FECHA", fecha)
+	}
+	return qs.All(reservas)
+}
+
 // @Title GetAll
 // @Summary Obtener todas las reservas
 // @Description Devuelve todas las reservas registradas en la base de datos.
@@ -34,10 +61,10 @@ var estadosPermitidos = map[string]bool{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas [get]
 func (c *ReservaController) GetAll() {
-	o := orm.NewOrm()
+	o := ormNew()
 	var reservas []models.Reserva
 
-	_, err := o.QueryTable(new(models.Reserva)).All(&reservas)
+	_, err := queryAllReservas(o, &reservas)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -80,7 +107,7 @@ func (c *ReservaController) GetAll() {
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas/search [get]
 func (c *ReservaController) GetById() {
-	o := orm.NewOrm()
+	o := ormNew()
 	id, err := c.GetInt("id")
 
 	if err != nil || id == 0 {
@@ -96,7 +123,7 @@ func (c *ReservaController) GetById() {
 
 	reserva := models.Reserva{PK_ID_RESERVA: id}
 
-	err = o.Read(&reserva)
+	err = readReserva(o, &reserva)
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -134,7 +161,7 @@ func (c *ReservaController) GetById() {
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /reservas [post]
 func (c *ReservaController) Post() {
-	o := orm.NewOrm()
+	o := ormNew()
 	var input map[string]interface{}
 
 	// Decodificar la solicitud
@@ -262,7 +289,7 @@ func (c *ReservaController) Post() {
 	reserva.UPDATED_AT = time.Time{}
 
 	// Insertar en la base de datos
-	_, err := o.Insert(&reserva)
+	_, err := insertReserva(o, &reserva)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -296,7 +323,7 @@ func (c *ReservaController) Post() {
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas [put]
 func (c *ReservaController) Put() {
-	o := orm.NewOrm()
+	o := ormNew()
 
 	// Obtener el ID de la reserva desde los parámetros
 	idStr := c.GetString("id")
@@ -314,7 +341,7 @@ func (c *ReservaController) Put() {
 
 	// Buscar la reserva por ID
 	reserva := models.Reserva{PK_ID_RESERVA: id}
-	if err := o.Read(&reserva); err != nil {
+	if err := readReserva(o, &reserva); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -407,7 +434,7 @@ func (c *ReservaController) Put() {
 	reserva.UPDATED_AT = time.Now().UTC()
 
 	// Actualizar los datos en la base de datos
-	if _, err := o.Update(&reserva); err != nil {
+	if _, err := updateReserva(o, &reserva); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -441,22 +468,18 @@ func (c *ReservaController) Put() {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas/parameter [get]
 func (c *ReservaController) GetByParameter() {
-	o := orm.NewOrm()
+	o := ormNew()
 	var reservas []models.Reserva
 
-	// Obtener parámetros de la consulta
 	documentoCliente, errDoc := c.GetInt64("documentoCliente")
 	fechaReserva := c.GetString("fecha")
 
-	// Construir la consulta con filtros dinámicos
-	query := o.QueryTable(new(models.Reserva))
-
-	if errDoc == nil && documentoCliente != 0 {
-		query = query.Filter("DOCUMENTO_CLIENTE", documentoCliente)
-	}
-
+	useDoc := errDoc == nil && documentoCliente != 0
+	var parsedDate time.Time
+	useFecha := false
 	if fechaReserva != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaReserva)
+		var err error
+		parsedDate, err = time.Parse("2006-01-02", fechaReserva)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -466,11 +489,10 @@ func (c *ReservaController) GetByParameter() {
 			c.ServeJSON()
 			return
 		}
-		query = query.Filter("FECHA", parsedDate)
+		useFecha = true
 	}
 
-	// Ejecutar la consulta
-	_, err := query.All(&reservas)
+	_, err := queryReservasByParam(o, documentoCliente, parsedDate, useDoc, useFecha, &reservas)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -512,7 +534,7 @@ func (c *ReservaController) GetByParameter() {
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas [delete]
 func (c *ReservaController) Delete() {
-	o := orm.NewOrm()
+	o := ormNew()
 
 	// Obtener el ID de la reserva desde los parámetros
 	idStr := c.GetString("id")
@@ -530,7 +552,7 @@ func (c *ReservaController) Delete() {
 
 	// Buscar la reserva por ID
 	reserva := models.Reserva{PK_ID_RESERVA: id}
-	if err := o.Read(&reserva); err != nil {
+	if err := readReserva(o, &reserva); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -546,7 +568,7 @@ func (c *ReservaController) Delete() {
 	reserva.UPDATED_AT = time.Now() // Actualizar la fecha de modificación
 
 	// Guardar los cambios en la base de datos
-	if _, err := o.Update(&reserva, "estadoReserva", "updatedAt"); err != nil {
+	if _, err := updateReserva(o, &reserva, "estadoReserva", "updatedAt"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
