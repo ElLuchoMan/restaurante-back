@@ -1,13 +1,67 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web/context"
+	"restaurante/database"
+	"restaurante/models"
 )
+
+type fakeQuery struct {
+	orm.QuerySeter
+	all func(interface{}, ...string) (int64, error)
+}
+
+func (q fakeQuery) All(container interface{}, cols ...string) (int64, error) {
+	return q.all(container, cols...)
+}
+
+type fakeOrmer struct {
+	queryAll func(interface{}, ...string) (int64, error)
+	read     func(interface{}, ...string) error
+	insert   func(interface{}) (int64, error)
+	update   func(interface{}, ...string) (int64, error)
+	delete   func(interface{}, ...string) (int64, error)
+}
+
+func (f fakeOrmer) QueryTable(i interface{}) orm.QuerySeter {
+	return fakeQuery{all: f.queryAll}
+}
+
+func (f fakeOrmer) Read(m interface{}, cols ...string) error {
+	if f.read != nil {
+		return f.read(m, cols...)
+	}
+	return nil
+}
+
+func (f fakeOrmer) Insert(m interface{}) (int64, error) {
+	if f.insert != nil {
+		return f.insert(m)
+	}
+	return 0, nil
+}
+
+func (f fakeOrmer) Update(m interface{}, cols ...string) (int64, error) {
+	if f.update != nil {
+		return f.update(m, cols...)
+	}
+	return 0, nil
+}
+
+func (f fakeOrmer) Delete(m interface{}, cols ...string) (int64, error) {
+	if f.delete != nil {
+		return f.delete(m, cols...)
+	}
+	return 0, nil
+}
 
 func TestPagoGetByIdInvalidID(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/pagos/search", nil)
@@ -65,6 +119,7 @@ func TestPagoPostMissingFecha(t *testing.T) {
 	c := PagoController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
 
 	c.Post()
 
@@ -82,6 +137,7 @@ func TestPagoPostInvalidHora(t *testing.T) {
 	c := PagoController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
 
 	c.Post()
 
@@ -99,6 +155,7 @@ func TestPagoPostInvalidEstado(t *testing.T) {
 	c := PagoController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
 
 	c.Post()
 
@@ -117,8 +174,57 @@ func TestPagoPostMissingMetodoPago(t *testing.T) {
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
 
+	c.Ctx.Input.RequestBody = []byte(body)
 	c.Post()
 
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestPagoPostMissingHora(t *testing.T) {
+	body := `{"FECHA":"2024-01-01","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestPagoPostMissingMonto(t *testing.T) {
+	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestPagoPostInvalidFecha(t *testing.T) {
+	body := `{"FECHA":"2024-13-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Post()
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", w.Code)
 	}
@@ -140,6 +246,24 @@ func TestPagoPutInvalidID(t *testing.T) {
 	}
 }
 
+func TestPagoPutInvalidJSON(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer { return fakeOrmer{read: func(m interface{}, cols ...string) error { return nil }} }
+	t.Cleanup(func() { pagoNewOrm = orig })
+	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader("notjson"))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte("notjson")
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
 func TestPagoPutMissingHora(t *testing.T) {
 	body := `{"FECHA":"2024-01-01"}`
 	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
@@ -149,6 +273,7 @@ func TestPagoPutMissingHora(t *testing.T) {
 	c := PagoController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
 
 	c.Put()
 
@@ -158,6 +283,9 @@ func TestPagoPutMissingHora(t *testing.T) {
 }
 
 func TestPagoPutMissingMetodoPago(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer { return fakeOrmer{read: func(m interface{}, cols ...string) error { return nil }} }
+	t.Cleanup(func() { pagoNewOrm = orig })
 	body := `{"FECHA":"2024-01-01","HORA":"10:00:00"}`
 	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()
@@ -166,9 +294,30 @@ func TestPagoPutMissingMetodoPago(t *testing.T) {
 	c := PagoController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
-
+	c.Ctx.Input.RequestBody = []byte(body)
 	c.Put()
 
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestPagoPutInvalidFecha(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{read: func(m interface{}, cols ...string) error { return nil }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	body := `{"FECHA":"2024-13-01","HORA":"10:00:00","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Put()
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", w.Code)
 	}
@@ -203,5 +352,326 @@ func TestPagoDeleteNotFound(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestPagoGetAllSuccess(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		pagos := []models.Pago{{PK_ID_PAGO: 1, FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "2024-01-01T10:00:00Z", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1}}
+		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
+			ptr := res.(*[]models.Pago)
+			*ptr = pagos
+			return int64(len(pagos)), nil
+		}}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	r := httptest.NewRequest(http.MethodGet, "/pagos", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestPagoGetAllFilterFecha(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		pagos := []models.Pago{
+			{PK_ID_PAGO: 1, FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00"},
+			{PK_ID_PAGO: 2, FECHA: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), HORA: "11:00:00"},
+		}
+		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
+			ptr := res.(*[]models.Pago)
+			*ptr = pagos
+			return int64(len(pagos)), nil
+		}}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	r := httptest.NewRequest(http.MethodGet, "/pagos?fecha=2024-01-01", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestPagoGetAllFilterOthers(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		pagos := []models.Pago{
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "NO PAGO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 2},
+		}
+		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
+			ptr := res.(*[]models.Pago)
+			*ptr = pagos
+			return int64(len(pagos)), nil
+		}}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	r := httptest.NewRequest(http.MethodGet, "/pagos?dia=1&mes=1&anio=2024&estado=PAGADO&metodo_pago=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestPagoGetAllNoResults(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		pagos := []models.Pago{{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1}}
+		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
+			ptr := res.(*[]models.Pago)
+			*ptr = pagos
+			return int64(len(pagos)), nil
+		}}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	r := httptest.NewRequest(http.MethodGet, "/pagos?estado=NO%20PAGO", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestPagoGetByIdNotFound(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{read: func(m interface{}, cols ...string) error { return orm.ErrNoRows }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	r := httptest.NewRequest(http.MethodGet, "/pagos/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetById()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestPagoGetByIdSuccess(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{read: func(m interface{}, cols ...string) error {
+			p := m.(*models.Pago)
+			*p = models.Pago{PK_ID_PAGO: 1, FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "2024-01-01T10:00:00Z", UPDATED_AT: time.Now()}
+			return nil
+		}}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	database.BogotaZone = time.UTC
+	r := httptest.NewRequest(http.MethodGet, "/pagos/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetById()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestPagoPostSuccess(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{insert: func(m interface{}) (int64, error) { return 1, nil }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Post()
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d body %s", w.Code, w.Body.String())
+	}
+}
+
+func TestPagoPostInsertError(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{insert: func(m interface{}) (int64, error) { return 0, fmt.Errorf("fail") }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Post()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
+func TestPagoPutSuccess(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{
+			read:   func(m interface{}, cols ...string) error { return nil },
+			update: func(m interface{}, cols ...string) (int64, error) { return 1, nil },
+		}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	body := `{"FECHA":"2024-02-02","HORA":"11:00:00","MONTO":2000,"ESTADO_PAGO":"PENDIENTE","UPDATED_BY":"me","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Put()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body %s", w.Code, w.Body.String())
+	}
+}
+
+func TestPagoPutInvalidHora(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{read: func(m interface{}, cols ...string) error { return nil }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	body := `{"FECHA":"2024-02-02","HORA":"25:00:00","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestPagoPutInvalidEstado(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{read: func(m interface{}, cols ...string) error { return nil }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	body := `{"FECHA":"2024-02-02","HORA":"11:00:00","ESTADO_PAGO":"MALO","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestPagoPutNotFound(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{read: func(m interface{}, cols ...string) error { return orm.ErrNoRows }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Put()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestPagoPutUpdateError(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{
+			read:   func(m interface{}, cols ...string) error { return nil },
+			update: func(m interface{}, cols ...string) (int64, error) { return 0, fmt.Errorf("fail") },
+		}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","PK_ID_METODO_PAGO":1}`
+	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+	c.Put()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
+func TestPagoDeleteSuccess(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{delete: func(m interface{}, cols ...string) (int64, error) { return 1, nil }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+	r := httptest.NewRequest(http.MethodDelete, "/pagos?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Delete()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
