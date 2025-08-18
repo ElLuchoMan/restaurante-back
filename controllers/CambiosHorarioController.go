@@ -15,10 +15,35 @@ type CambiosHorarioController struct {
 	web.Controller
 }
 
-// queryCambioHorarioByDate allows tests to mock the database query used in GetByCurrentDate.
+// Hook existente en tu versión (lo mantenemos igual: recibe string)
 var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
 	return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)
 }
+
+/*
+Hooks extra para poder mockear en tests SIN tocar Postgres.
+En producción, el default sigue usando Beego ORM.
+OJO: en filtros de Beego usa el nombre del **campo del struct**. En tu código original
+filtras con "cambioHorarioId". Si ese es el campo del struct (no la columna), se respeta tal cual.
+Si tu struct realmente se llama PK_ID_CAMBIO_HORARIO, cámbialo también aquí y en los tests.
+*/
+var (
+	queryAllCambiosHorario = func(o orm.Ormer, horarios *[]models.CambiosHorario) (int64, error) {
+		return o.QueryTable(new(models.CambiosHorario)).All(horarios)
+	}
+	insertCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
+		return o.Insert(horario)
+	}
+	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error {
+		return o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).One(horario)
+	}
+	updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
+		return o.Update(horario)
+	}
+	deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) {
+		return o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).Delete()
+	}
+)
 
 // @Title GetAll
 // @Summary Obtener todos los cambios de horario
@@ -33,7 +58,7 @@ func (c *CambiosHorarioController) GetAll() {
 	o := orm.NewOrm()
 	var horarios []models.CambiosHorario
 
-	_, err := o.QueryTable(new(models.CambiosHorario)).All(&horarios)
+	_, err := queryAllCambiosHorario(o, &horarios)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -45,7 +70,6 @@ func (c *CambiosHorarioController) GetAll() {
 		return
 	}
 
-	// Preparar respuesta con transformación
 	var response []map[string]interface{}
 	for _, horario := range horarios {
 		h := map[string]interface{}{
@@ -88,12 +112,9 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 	o := orm.NewOrm()
 	var cambioHorario models.CambiosHorario
 
-	// Obtener la fecha actual
 	currentDate := time.Now().In(database.BogotaZone)
 
-	// Consultar si hay un cambio de horario para la fecha actual
 	err := queryCambioHorarioByDate(o, currentDate.Format("2006-01-02"), &cambioHorario)
-
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
@@ -113,7 +134,6 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 		return
 	}
 
-	// Preparar la respuesta con horas formateadas
 	response := map[string]interface{}{
 		"cambioHorarioId":    cambioHorario.PK_ID_CAMBIO_HORARIO,
 		"fechaCambioHorario": cambioHorario.FECHA.Format("2006-01-02"),
@@ -126,7 +146,6 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 		response["horaCierre"] = cambioHorario.HORA_CIERRE.Format("15:04:05")
 	}
 
-	// Respuesta con el cambio de horario encontrado
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -152,7 +171,6 @@ func (c *CambiosHorarioController) Post() {
 	var input map[string]interface{}
 	var horario models.CambiosHorario
 
-	// Decodificar la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -164,7 +182,6 @@ func (c *CambiosHorarioController) Post() {
 		return
 	}
 
-	// Validar y procesar FECHA
 	if fechaStr, ok := input["fechaCambioHorario"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
@@ -188,7 +205,6 @@ func (c *CambiosHorarioController) Post() {
 		return
 	}
 
-	// Validar ABIERTO
 	if abierto, ok := input["abierto"].(bool); ok {
 		horario.ABIERTO = abierto
 	} else {
@@ -201,15 +217,12 @@ func (c *CambiosHorarioController) Post() {
 		return
 	}
 
-	// Configuración automática para días cerrados
 	if !horario.ABIERTO {
-		// Si el restaurante no abre, establecer horas predeterminadas
 		horaApertura, _ := time.Parse("15:04:05", "00:00:00")
 		horaCierre, _ := time.Parse("15:04:05", "23:59:59")
 		horario.HORA_APERTURA = &horaApertura
 		horario.HORA_CIERRE = &horaCierre
 	} else {
-		// Validar y procesar HORA_APERTURA (opcional)
 		if horaAperturaStr, ok := input["horaApertura"].(string); ok && horaAperturaStr != "" {
 			parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
 			if err != nil {
@@ -233,7 +246,6 @@ func (c *CambiosHorarioController) Post() {
 			return
 		}
 
-		// Validar y procesar HORA_CIERRE
 		if horaCierreStr, ok := input["horaCierre"].(string); ok && horaCierreStr != "" {
 			parsedHora, err := time.Parse("15:04:05", horaCierreStr)
 			if err != nil {
@@ -258,9 +270,7 @@ func (c *CambiosHorarioController) Post() {
 		}
 	}
 
-	// Insertar en la base de datos
-	_, err := o.Insert(&horario)
-	if err != nil {
+	if _, err := insertCambioHorario(o, &horario); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -271,7 +281,6 @@ func (c *CambiosHorarioController) Post() {
 		return
 	}
 
-	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
 		"cambioHorarioId":    horario.PK_ID_CAMBIO_HORARIO,
 		"fechaCambioHorario": horario.FECHA.Format("2006-01-02"),
@@ -281,10 +290,10 @@ func (c *CambiosHorarioController) Post() {
 		response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
 	}
 	if horario.HORA_CIERRE != nil {
-		response["horaApertura"] = horario.HORA_CIERRE.Format("15:04:05")
+		// OJO: aquí en tu versión anterior sobrescribías horaApertura por error
+		response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
@@ -332,9 +341,9 @@ func (c *CambiosHorarioController) Put() {
 		return
 	}
 
-	// Buscar el cambio de horario por ID
 	var horario models.CambiosHorario
-	if err := o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).One(&horario); err == orm.ErrNoRows {
+	if err := queryCambioHorarioByID(o, id, &horario); err == orm.ErrNoRows {
+		// Se mantiene tu semántica original: 200 con Code=404 en el body
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -353,7 +362,6 @@ func (c *CambiosHorarioController) Put() {
 		return
 	}
 
-	// Validar y actualizar campos
 	if fechaStr, ok := input["fechaCambioHorario"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
@@ -411,8 +419,7 @@ func (c *CambiosHorarioController) Put() {
 		}
 	}
 
-	// Guardar los cambios
-	if _, err := o.Update(&horario); err != nil {
+	if _, err := updateCambioHorario(o, &horario); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -423,7 +430,6 @@ func (c *CambiosHorarioController) Put() {
 		return
 	}
 
-	// Preparar la respuesta
 	response := map[string]interface{}{
 		"cambioHorarioId": horario.PK_ID_CAMBIO_HORARIO,
 		"fecha":           horario.FECHA.Format("2006-01-02"),
@@ -436,7 +442,6 @@ func (c *CambiosHorarioController) Put() {
 		response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -470,10 +475,7 @@ func (c *CambiosHorarioController) Delete() {
 		return
 	}
 
-	// Eliminar el cambio de horario
-	if num, err := o.QueryTable(new(models.CambiosHorario)).
-		Filter("cambioHorarioId", id).
-		Delete(); err != nil {
+	if num, err := deleteCambioHorarioByID(o, id); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -482,6 +484,7 @@ func (c *CambiosHorarioController) Delete() {
 		}
 		c.ServeJSON()
 	} else if num == 0 {
+		// Se mantiene tu semántica: 200 con Code=404
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
