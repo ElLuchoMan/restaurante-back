@@ -1,192 +1,483 @@
 package controllers
 
 import (
-	"errors"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
+        "encoding/json"
+        "errors"
+        "net/http"
+        "net/http/httptest"
+        "strings"
+        "testing"
 
-	"github.com/beego/beego/v2/server/web/context"
+        "github.com/beego/beego/v2/client/orm"
+        "github.com/beego/beego/v2/server/web/context"
+       "golang.org/x/crypto/bcrypt"
+        "restaurante/models"
 )
 
+func resetMocks() {
+        ormNew = orm.NewOrm
+        queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
+                return o.QueryTable(new(models.Cliente)).All(clientes)
+        }
+        readCliente = func(o orm.Ormer, c *models.Cliente) error { return o.Read(c) }
+        insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Insert(c) }
+        updateCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Update(c) }
+        deleteCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Delete(c) }
+       bcryptGenerate = bcrypt.GenerateFromPassword
+}
+
 func TestNormalizeEmail(t *testing.T) {
-	got := normalizeEmail("  Foo@Example.COM  ")
-	if got != "foo@example.com" {
-		t.Errorf("expected foo@example.com, got %s", got)
-	}
+        got := normalizeEmail("  Foo@Example.COM  ")
+        if got != "foo@example.com" {
+                t.Errorf("expected foo@example.com, got %s", got)
+        }
 }
 
 func TestIsUniqueEmailErr(t *testing.T) {
-	uniqueErr := errors.New("pq: duplicate key value violates unique constraint \"uq_cliente_correo\"")
-	if !isUniqueEmailErr(uniqueErr) {
-		t.Errorf("expected true for unique email error")
-	}
-	otherErr := errors.New("some other error")
-	if isUniqueEmailErr(otherErr) {
-		t.Errorf("expected false for non unique email error")
-	}
+        uniqueErr := errors.New("uq_cliente_correo")
+        if !isUniqueEmailErr(uniqueErr) {
+                t.Errorf("expected true for unique email error")
+        }
+        otherErr := errors.New("other")
+        if isUniqueEmailErr(otherErr) {
+                t.Errorf("expected false for non unique email error")
+        }
+        if isUniqueEmailErr(nil) {
+                t.Errorf("expected false for nil error")
+        }
 }
 
-func TestClienteGetAllWithoutDB(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/restaurante/v1/clientes", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al obtener clientes") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+func TestClienteGetAllSuccess(t *testing.T) {
+        db := map[int]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", APELLIDO: "Bar", TELEFONO: "123", PASSWORD: "pwd"}}
+        ormNew = func() orm.Ormer { return nil }
+        queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
+                for _, c := range db {
+                        *clientes = append(*clientes, c)
+                }
+                return int64(len(db)), nil
+        }
+        t.Cleanup(resetMocks)
+        r := httptest.NewRequest(http.MethodGet, "/clientes", nil)
+        w := httptest.NewRecorder()
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+       c := ClienteController{}
+       c.Ctx = ctx
+       c.Data = map[interface{}]interface{}{}
+        c.GetAll()
+        if w.Code != http.StatusOK {
+                t.Fatalf("expected 200, got %d", w.Code)
+        }
+        if strings.Contains(w.Body.String(), "pwd") {
+                t.Fatalf("password should be removed")
+        }
 }
 
-func TestClienteGetByIdInvalidID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/clientes/search", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetById()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
+func TestClienteGetAllFiltered(t *testing.T) {
+        db := map[int]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", APELLIDO: "Bar", TELEFONO: "123", PASSWORD: "pwd"}}
+        ormNew = func() orm.Ormer { return nil }
+        queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
+                for _, c := range db {
+                        *clientes = append(*clientes, c)
+                }
+                return 1, nil
+        }
+        t.Cleanup(resetMocks)
+        r := httptest.NewRequest(http.MethodGet, "/clientes?fields=nombre_completo_telefono", nil)
+        w := httptest.NewRecorder()
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        c := ClienteController{}
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.GetAll()
+        if w.Code != http.StatusOK {
+                t.Fatalf("expected 200, got %d", w.Code)
+        }
+        if !strings.Contains(w.Body.String(), "nombre_completo") {
+                t.Fatalf("expected filtered response")
+        }
 }
 
-func TestClienteGetByIdDatabaseError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/clientes/search?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetById()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al consultar el cliente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+func TestClienteGetAllDBError(t *testing.T) {
+        ormNew = func() orm.Ormer { return nil }
+        queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
+                return 0, errors.New("db error")
+        }
+        t.Cleanup(resetMocks)
+        r := httptest.NewRequest(http.MethodGet, "/clientes", nil)
+        w := httptest.NewRecorder()
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        c := ClienteController{}
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.GetAll()
+        if w.Code != http.StatusInternalServerError {
+                t.Fatalf("expected 500, got %d", w.Code)
+        }
 }
 
-func TestClientePostInvalidJSON(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader("notjson"))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
+func TestClienteGetByIdScenarios(t *testing.T) {
+       db := map[int]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", PASSWORD: "pwd"}}
+       ormNew = func() orm.Ormer { return nil }
+       var readErr error
+       readCliente = func(o orm.Ormer, c *models.Cliente) error {
+               if readErr != nil {
+                       return readErr
+               }
+               cli, ok := db[c.PK_DOCUMENTO_CLIENTE]
+               if !ok {
+                       return orm.ErrNoRows
+               }
+               *c = cli
+               return nil
+       }
+        t.Cleanup(resetMocks)
+        // invalid id
+        r := httptest.NewRequest(http.MethodGet, "/clientes/search", nil)
+        w := httptest.NewRecorder()
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        c := ClienteController{}
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.GetById()
+        if w.Code != http.StatusBadRequest {
+                t.Fatalf("expected 400, got %d", w.Code)
+        }
+        // not found
+        r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=2", nil)
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.GetById()
+        if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
+                t.Fatalf("not found case failed")
+        }
+       // db error
+       readErr = errors.New("db error")
+       r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=1", nil)
+       w = httptest.NewRecorder()
+       ctx = context.NewContext()
+       ctx.Reset(w, r)
+       c.Ctx = ctx
+       c.Data = map[interface{}]interface{}{}
+       c.GetById()
+       if w.Code != http.StatusInternalServerError {
+               t.Fatalf("expected 500, got %d", w.Code)
+       }
+       // success
+       readErr = nil
+       r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=1", nil)
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.GetById()
+        if w.Code != http.StatusOK {
+                t.Fatalf("expected 200, got %d", w.Code)
+        }
+        if strings.Contains(w.Body.String(), "pwd") {
+                t.Fatalf("password should be removed")
+        }
 }
 
-func TestClientePostDatabaseError(t *testing.T) {
-	body := "{\"documentoCliente\":1,\"nombre\":\"Foo\",\"apellido\":\"Bar\",\"direccion\":\"Calle\",\"telefono\":\"123\",\"password\":\"secret\"}"
-	r := httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al crear el cliente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+func TestClientePostScenarios(t *testing.T) {
+        db := make(map[int]models.Cliente)
+        ormNew = func() orm.Ormer { return nil }
+        insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
+                if _, ok := db[c.PK_DOCUMENTO_CLIENTE]; ok {
+                        return 0, errors.New("unique correo")
+                }
+                db[c.PK_DOCUMENTO_CLIENTE] = *c
+                return 1, nil
+        }
+        t.Cleanup(resetMocks)
+        // invalid json
+        r := httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader("notjson"))
+        w := httptest.NewRecorder()
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c := ClienteController{}
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Post()
+        if w.Code != http.StatusBadRequest {
+                t.Fatalf("expected 400, got %d", w.Code)
+        }
+        // db error
+        insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return 0, errors.New("db error") }
+        body := `{"documentoCliente":1,"nombre":"Foo","apellido":"B","direccion":"C","telefono":"1","password":"pass","correo":" TeSt@Email.com "}`
+        r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Post()
+        if w.Code != http.StatusInternalServerError {
+                t.Fatalf("expected 500, got %d", w.Code)
+        }
+        // unique error
+        insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return 0, errors.New("unique correo") }
+        r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Post()
+        if w.Code != http.StatusConflict {
+                t.Fatalf("expected 409, got %d", w.Code)
+        }
+       // hash error
+       bcryptGenerate = func([]byte, int) ([]byte, error) { return nil, errors.New("hash") }
+       r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
+       w = httptest.NewRecorder()
+       ctx = context.NewContext()
+       ctx.Reset(w, r)
+       ctx.Input.CopyBody(1 << 20)
+       c.Ctx = ctx
+       c.Data = map[interface{}]interface{}{}
+       c.Post()
+       if w.Code != http.StatusInternalServerError {
+               t.Fatalf("expected 500, got %d", w.Code)
+       }
+       bcryptGenerate = bcrypt.GenerateFromPassword
+        // success
+        insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
+                db[c.PK_DOCUMENTO_CLIENTE] = *c
+                return 1, nil
+        }
+        r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Post()
+       if w.Code != http.StatusCreated {
+               t.Fatalf("expected 201, got %d", w.Code)
+       }
+       var resp struct {
+               Data models.Cliente `json:"data"`
+       }
+       if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+               t.Fatalf("invalid json: %v", err)
+       }
+       if resp.Data.PASSWORD != "" {
+               t.Fatalf("password should be empty")
+       }
 }
 
-func TestClientePutInvalidID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/clientes", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Put()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
+func TestClientePutScenarios(t *testing.T) {
+        db := map[int]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", PASSWORD: "old"}, 2: {PK_DOCUMENTO_CLIENTE: 2, NOMBRE: "Bar", CORREO: ptr("a@a.com"), PASSWORD: "x"}}
+        ormNew = func() orm.Ormer { return nil }
+       readCliente = func(o orm.Ormer, c *models.Cliente) error {
+               cli, ok := db[c.PK_DOCUMENTO_CLIENTE]
+               if !ok {
+                       return orm.ErrNoRows
+               }
+               *c = cli
+               return nil
+       }
+       updateCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
+                if c.NOMBRE == "fail" {
+                        return 0, errors.New("db error")
+                }
+                for id, cli := range db {
+                        if id != c.PK_DOCUMENTO_CLIENTE && cli.CORREO != nil && c.CORREO != nil && *cli.CORREO == *c.CORREO {
+                                return 0, errors.New("unique correo")
+                        }
+                }
+                db[c.PK_DOCUMENTO_CLIENTE] = *c
+                return 1, nil
+        }
+        t.Cleanup(resetMocks)
+       // invalid id
+       r := httptest.NewRequest(http.MethodPut, "/clientes", nil)
+        w := httptest.NewRecorder()
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        c := ClienteController{}
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Put()
+       if w.Code != http.StatusBadRequest {
+               t.Fatalf("expected 400, got %d", w.Code)
+       }
+       // read error
+       readCliente = func(o orm.Ormer, c *models.Cliente) error { return errors.New("db") }
+       r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"Foo"}`))
+       w = httptest.NewRecorder()
+       ctx = context.NewContext()
+       ctx.Reset(w, r)
+       ctx.Input.CopyBody(1 << 20)
+       c.Ctx = ctx
+       c.Data = map[interface{}]interface{}{}
+       c.Put()
+       if w.Code != http.StatusInternalServerError {
+               t.Fatalf("expected 500, got %d", w.Code)
+       }
+       readCliente = func(o orm.Ormer, c *models.Cliente) error {
+               cli, ok := db[c.PK_DOCUMENTO_CLIENTE]
+               if !ok {
+                       return orm.ErrNoRows
+               }
+               *c = cli
+               return nil
+       }
+       // not found
+        r = httptest.NewRequest(http.MethodPut, "/clientes?id=3", strings.NewReader(`{"nombre":"Foo"}`))
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Put()
+        if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
+                t.Fatalf("not found failed")
+        }
+        // decode error
+        r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader("notjson"))
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Put()
+        if w.Code != http.StatusBadRequest {
+                t.Fatalf("expected 400, got %d", w.Code)
+        }
+        // unique error
+        r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"correo":"a@a.com"}`))
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Put()
+        if w.Code != http.StatusConflict {
+                t.Fatalf("expected 409, got %d", w.Code)
+        }
+       // update error
+       r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"fail"}`))
+       w = httptest.NewRecorder()
+       ctx = context.NewContext()
+       ctx.Reset(w, r)
+       ctx.Input.CopyBody(1 << 20)
+       c.Ctx = ctx
+       c.Data = map[interface{}]interface{}{}
+       c.Put()
+       if w.Code != http.StatusInternalServerError {
+               t.Fatalf("expected 500, got %d", w.Code)
+       }
+       // hash error
+       bcryptGenerate = func([]byte, int) ([]byte, error) { return nil, errors.New("hash") }
+       r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"password":"n"}`))
+       w = httptest.NewRecorder()
+       ctx = context.NewContext()
+       ctx.Reset(w, r)
+       ctx.Input.CopyBody(1 << 20)
+       c.Ctx = ctx
+       c.Data = map[interface{}]interface{}{}
+       c.Put()
+       if w.Code != http.StatusInternalServerError {
+               t.Fatalf("expected 500, got %d", w.Code)
+       }
+       bcryptGenerate = bcrypt.GenerateFromPassword
+       // success with password
+       r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"New","password":"newpass"}`))
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Put()
+        if w.Code != http.StatusOK {
+                t.Fatalf("expected 200, got %d", w.Code)
+        }
+        if strings.Contains(w.Body.String(), "newpass") {
+                t.Fatalf("password should be hidden")
+        }
+        if db[1].PASSWORD == "newpass" {
+                t.Fatalf("password should be hashed")
+        }
+        // success without password
+        r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"Other"}`))
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        ctx.Input.CopyBody(1 << 20)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Put()
+        if w.Code != http.StatusOK {
+                t.Fatalf("expected 200, got %d", w.Code)
+        }
+        if db[1].PASSWORD == "" {
+                t.Fatalf("password should remain")
+        }
 }
 
-func TestClientePutDatabaseError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"Foo"}`))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+func ptr(s string) *string { return &s }
 
-	c.Put()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al buscar el cliente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+func TestClienteDeleteScenarios(t *testing.T) {
+        db := map[int]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1}}
+        ormNew = func() orm.Ormer { return nil }
+        deleteCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
+                if _, ok := db[c.PK_DOCUMENTO_CLIENTE]; ok {
+                        delete(db, c.PK_DOCUMENTO_CLIENTE)
+                        return 1, nil
+                }
+                return 0, errors.New("not found")
+        }
+        t.Cleanup(resetMocks)
+        // invalid id
+        r := httptest.NewRequest(http.MethodDelete, "/clientes", nil)
+        w := httptest.NewRecorder()
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        c := ClienteController{}
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Delete()
+        if w.Code != http.StatusBadRequest {
+                t.Fatalf("expected 400, got %d", w.Code)
+        }
+        // not found
+        r = httptest.NewRequest(http.MethodDelete, "/clientes?id=2", nil)
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Delete()
+        if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
+                t.Fatalf("expected not found response")
+        }
+        // success
+        r = httptest.NewRequest(http.MethodDelete, "/clientes?id=1", nil)
+        w = httptest.NewRecorder()
+        ctx = context.NewContext()
+        ctx.Reset(w, r)
+        c.Ctx = ctx
+        c.Data = map[interface{}]interface{}{}
+        c.Delete()
+        if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente eliminado") {
+                t.Fatalf("expected success")
+        }
 }
 
-func TestClienteDeleteInvalidID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodDelete, "/clientes", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Delete()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-}
-
-func TestClienteDeleteNotFound(t *testing.T) {
-	r := httptest.NewRequest(http.MethodDelete, "/clientes?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Delete()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Cliente no encontrado") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
