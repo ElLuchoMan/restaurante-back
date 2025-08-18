@@ -16,6 +16,16 @@ type PagoController struct {
 	web.Controller
 }
 
+type ormer interface {
+        QueryTable(interface{}) orm.QuerySeter
+	Read(interface{}, ...string) error
+	Insert(interface{}) (int64, error)
+	Update(interface{}, ...string) (int64, error)
+	Delete(interface{}, ...string) (int64, error)
+}
+
+var pagoNewOrm = func() ormer { return orm.NewOrm() }
+
 // Estados permitidos para los pagos
 var estadosPagoPermitidos = map[string]bool{
 	"PAGADO":    true,
@@ -40,7 +50,7 @@ var estadosPagoPermitidos = map[string]bool{
 // @Security BearerAuth
 // @Router /pagos [get]
 func (c *PagoController) GetAll() {
-	o := orm.NewOrm()
+	o := pagoNewOrm()
 	var pagos []models.Pago
 
 	_, err := o.QueryTable(new(models.Pago)).All(&pagos)
@@ -132,7 +142,7 @@ func (c *PagoController) GetAll() {
 // @Security BearerAuth
 // @Router /pagos/search [get]
 func (c *PagoController) GetById() {
-	o := orm.NewOrm()
+	o := pagoNewOrm()
 	id, err := c.GetInt("id")
 
 	if err != nil || id == 0 {
@@ -189,7 +199,7 @@ func (c *PagoController) GetById() {
 // @Security BearerAuth
 // @Router /pagos [post]
 func (c *PagoController) Post() {
-	o := orm.NewOrm()
+	o := pagoNewOrm()
 	var input map[string]interface{}
 
 	// Decodificar la solicitud
@@ -332,7 +342,7 @@ func (c *PagoController) Post() {
 // @Security BearerAuth
 // @Router /pagos [put]
 func (c *PagoController) Put() {
-	o := orm.NewOrm()
+	o := pagoNewOrm()
 
 	// Obtener el ID del pago desde los parámetros
 	idStr := c.GetString("id")
@@ -485,7 +495,7 @@ func (c *PagoController) Put() {
 // @Security BearerAuth
 // @Router /pagos [delete]
 func (c *PagoController) Delete() {
-	o := orm.NewOrm()
+	o := pagoNewOrm()
 
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
