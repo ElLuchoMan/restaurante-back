@@ -14,12 +14,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// newTrabajadorOrm allows tests to replace orm.NewOrm.
+var newTrabajadorOrm = orm.NewOrm
+
 type TrabajadorController struct {
 	web.Controller
 }
 
-// Función para hash de contraseñas
-func hashPassword(password string) (string, error) {
+// hashPassword allows tests to stub the hash function.
+var hashPassword = func(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -52,7 +55,7 @@ func validateDates(fechaIngreso, fechaRetiro *time.Time) error {
 // @Security BearerAuth
 // @Router /trabajadores [get]
 func (c *TrabajadorController) GetAll() {
-	o := orm.NewOrm()
+	o := newTrabajadorOrm()
 	var trabajadores []models.Trabajador
 
 	// Leer parámetros de la URL
@@ -137,7 +140,7 @@ func (c *TrabajadorController) GetAll() {
 // @Security BearerAuth
 // @Router /trabajadores/search [get]
 func (c *TrabajadorController) GetById() {
-	o := orm.NewOrm()
+	o := newTrabajadorOrm()
 	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
@@ -184,7 +187,7 @@ func (c *TrabajadorController) GetById() {
 // @Security BearerAuth
 // @Router /trabajadores [post]
 func (c *TrabajadorController) Post() {
-	o := orm.NewOrm()
+	o := newTrabajadorOrm()
 	var input map[string]interface{}
 
 	// Decodificar la solicitud
@@ -380,7 +383,7 @@ func (c *TrabajadorController) Post() {
 // @Security BearerAuth
 // @Router /trabajadores [put]
 func (c *TrabajadorController) Put() {
-	o := orm.NewOrm()
+	o := newTrabajadorOrm()
 	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
@@ -557,7 +560,7 @@ func (c *TrabajadorController) Put() {
 // @Security BearerAuth
 // @Router /trabajadores [delete]
 func (c *TrabajadorController) Delete() {
-	o := orm.NewOrm()
+	o := newTrabajadorOrm()
 
 	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
