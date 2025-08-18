@@ -205,9 +205,9 @@ func TestCambiosHorario_Put_NotFoundPath(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), `"Code":404`) {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+       if !strings.Contains(w.Body.String(), `"code":404`) || !strings.Contains(w.Body.String(), `"message":"Cambio de horario no encontrado"`) {
+               t.Errorf("unexpected body: %s", w.Body.String())
+       }
 }
 
 func TestCambiosHorario_Put_UpdateSuccess(t *testing.T) {
@@ -260,9 +260,9 @@ func TestCambiosHorario_Delete_NotFound(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), `"Code":404`) {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+       if !strings.Contains(w.Body.String(), `"code":404`) || !strings.Contains(w.Body.String(), `"message":"Cambio de horario no encontrado"`) {
+               t.Errorf("unexpected body: %s", w.Body.String())
+       }
 }
 
 func TestCambiosHorario_Delete_Success(t *testing.T) {
