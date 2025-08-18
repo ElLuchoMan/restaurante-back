@@ -14,6 +14,48 @@ type PedidoClienteController struct {
 	web.Controller
 }
 
+var (
+	pcQueryAll                   func(o orm.Ormer, relaciones *[]models.PedidoCliente) (int64, error)
+	pcDoTx                       func(o orm.Ormer, f func(context.Context, orm.TxOrmer) error) error
+	pcReadCliente                func(txOrm orm.TxOrmer, cliente *models.Cliente) error
+	pcReadPedido                 func(txOrm orm.TxOrmer, pedido *models.Pedido) error
+	pcCheckExistingPedidoCliente func(txOrm orm.TxOrmer, pedidoID int, rel *models.PedidoCliente) error
+	pcInsertPedidoCliente        func(txOrm orm.TxOrmer, rel *models.PedidoCliente) (int64, error)
+)
+
+func defaultPCQueryAll(o orm.Ormer, relaciones *[]models.PedidoCliente) (int64, error) {
+	return o.QueryTable(new(models.PedidoCliente)).All(relaciones)
+}
+
+func defaultPCDoTx(o orm.Ormer, f func(context.Context, orm.TxOrmer) error) error {
+	return o.DoTx(f)
+}
+
+func defaultPCReadCliente(txOrm orm.TxOrmer, cliente *models.Cliente) error {
+	return txOrm.Read(cliente)
+}
+
+func defaultPCReadPedido(txOrm orm.TxOrmer, pedido *models.Pedido) error {
+	return txOrm.Read(pedido)
+}
+
+func defaultPCCheckExistingPedidoCliente(txOrm orm.TxOrmer, pedidoID int, rel *models.PedidoCliente) error {
+	return txOrm.QueryTable(new(models.PedidoCliente)).Filter("PK_ID_PEDIDO", pedidoID).One(rel)
+}
+
+func defaultPCInsertPedidoCliente(txOrm orm.TxOrmer, rel *models.PedidoCliente) (int64, error) {
+	return txOrm.Insert(rel)
+}
+
+func init() {
+	pcQueryAll = defaultPCQueryAll
+	pcDoTx = defaultPCDoTx
+	pcReadCliente = defaultPCReadCliente
+	pcReadPedido = defaultPCReadPedido
+	pcCheckExistingPedidoCliente = defaultPCCheckExistingPedidoCliente
+	pcInsertPedidoCliente = defaultPCInsertPedidoCliente
+}
+
 // @Title GetAll
 // @Summary Obtener todas las relaciones pedido-cliente
 // @Description Devuelve todas las relaciones entre pedidos y clientes.
@@ -25,10 +67,9 @@ type PedidoClienteController struct {
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Router /pedido_clientes [get]
 func (c *PedidoClienteController) GetAll() {
-	o := orm.NewOrm()
+	o := newOrm()
 	var relaciones []models.PedidoCliente
-
-	_, err := o.QueryTable(new(models.PedidoCliente)).All(&relaciones)
+	_, err := pcQueryAll(o, &relaciones)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -63,7 +104,7 @@ func (c *PedidoClienteController) GetAll() {
 // @Security BearerAuth
 // @Router /pedido_clientes [post]
 func (c *PedidoClienteController) Post() {
-	o := orm.NewOrm()
+	o := newOrm()
 	var relacion models.PedidoCliente
 
 	// Parsear el cuerpo de la solicitud
@@ -90,10 +131,10 @@ func (c *PedidoClienteController) Post() {
 	}
 
 	// Ejecutar transacción
-	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+	err := pcDoTx(o, func(ctx context.Context, txOrm orm.TxOrmer) error {
 		// Validar que el cliente existe
 		cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: int(relacion.PK_DOCUMENTO_CLIENTE)}
-		if err := txOrm.Read(&cliente); err != nil {
+		if err := pcReadCliente(txOrm, &cliente); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
@@ -106,7 +147,7 @@ func (c *PedidoClienteController) Post() {
 
 		// Validar que el pedido existe
 		pedido := models.Pedido{PK_ID_PEDIDO: relacion.PK_ID_PEDIDO}
-		if err := txOrm.Read(&pedido); err != nil {
+		if err := pcReadPedido(txOrm, &pedido); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
@@ -119,9 +160,7 @@ func (c *PedidoClienteController) Post() {
 
 		// Validar que el pedido no pertenece ya a otro cliente
 		existingRelacion := models.PedidoCliente{}
-		err := txOrm.QueryTable(new(models.PedidoCliente)).
-			Filter("PK_ID_PEDIDO", relacion.PK_ID_PEDIDO).
-			One(&existingRelacion)
+		err := pcCheckExistingPedidoCliente(txOrm, relacion.PK_ID_PEDIDO, &existingRelacion)
 		if err == nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -133,7 +172,7 @@ func (c *PedidoClienteController) Post() {
 		}
 
 		// Crear la relación
-		id, err := txOrm.Insert(&relacion)
+		id, err := pcInsertPedidoCliente(txOrm, &relacion)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
