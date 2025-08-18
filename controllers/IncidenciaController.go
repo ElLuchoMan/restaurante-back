@@ -11,6 +11,52 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+// ormer defines the subset of orm.Ormer methods used by this controller.
+// It allows the tests to replace the database layer with a mock implementation
+// and exercise all the controller branches without hitting a real database.
+type ormer interface {
+	QueryTable(interface{}) querySeter
+	Insert(interface{}) (int64, error)
+	Read(interface{}, ...string) error
+	Update(interface{}, ...string) (int64, error)
+	Delete(interface{}, ...string) (int64, error)
+}
+
+// querySeter captures the methods of orm.QuerySeter that are used by the
+// controller. Only Filter and All are required for the operations below.
+type querySeter interface {
+	Filter(string, interface{}) querySeter
+	All(interface{}) (int64, error)
+}
+
+// real implementations that wrap the orm package types so that the controller
+// can work with the narrow interfaces defined above.
+type realOrmer struct {
+	orm.Ormer
+}
+
+func (r *realOrmer) QueryTable(table interface{}) querySeter {
+	return &realQuerySeter{r.Ormer.QueryTable(table)}
+}
+
+type realQuerySeter struct {
+	orm.QuerySeter
+}
+
+func (r *realQuerySeter) Filter(field string, value interface{}) querySeter {
+	return &realQuerySeter{r.QuerySeter.Filter(field, value)}
+}
+
+func (r *realQuerySeter) All(container interface{}) (int64, error) {
+	return r.QuerySeter.All(container)
+}
+
+// newOrmer returns the default database implementation. Tests may replace this
+// variable to provide a mocked version.
+var newOrmer = func() ormer {
+	return &realOrmer{orm.NewOrm()}
+}
+
 type IncidenciaController struct {
 	web.Controller
 }
@@ -26,7 +72,7 @@ type IncidenciaController struct {
 // @Security BearerAuth
 // @Router /incidencias [get]
 func (c *IncidenciaController) GetAll() {
-	o := orm.NewOrm()
+	o := newOrmer()
 	var incidencias []models.Incidencia
 
 	_, err := o.QueryTable(new(models.Incidencia)).All(&incidencias)
@@ -66,7 +112,7 @@ func (c *IncidenciaController) GetAll() {
 // @Security BearerAuth
 // @Router /incidencias/search [get]
 func (c *IncidenciaController) GetByDocumentAndDate() {
-	o := orm.NewOrm()
+	o := newOrmer()
 
 	// Obtener parámetros de la consulta
 	documento, err := c.GetInt64("documento")
@@ -156,7 +202,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 // @Security BearerAuth
 // @Router /incidencias [post]
 func (c *IncidenciaController) Post() {
-	o := orm.NewOrm()
+	o := newOrmer()
 	var input map[string]interface{}
 	var incidencia models.Incidencia
 
@@ -289,7 +335,7 @@ func (c *IncidenciaController) Post() {
 // @Security BearerAuth
 // @Router /incidencias [put]
 func (c *IncidenciaController) Put() {
-	o := orm.NewOrm()
+	o := newOrmer()
 
 	// Obtener el ID de la incidencia desde los parámetros
 	idStr := c.GetString("id")
@@ -406,7 +452,7 @@ func (c *IncidenciaController) Put() {
 // @Security BearerAuth
 // @Router /incidencias [delete]
 func (c *IncidenciaController) Delete() {
-	o := orm.NewOrm()
+	o := newOrmer()
 	id, err := c.GetInt64("id")
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
