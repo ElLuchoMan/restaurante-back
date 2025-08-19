@@ -52,6 +52,11 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
 go test ./...
 ```
 
+## Testing with coverage file
+```sh
+powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
+```
+
 ## Production
 1. Build the binary:
    ```sh
@@ -75,4 +80,4 @@ go test ./...
 [PLACEHOLDER]
 
 ## License
-© 2025 [Organization Name]
+© 2025 ElLuchoMan
