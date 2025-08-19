@@ -26,8 +26,8 @@ type PedidoDetails struct {
 	Hora         string `json:"horaPedido" orm:"column(HORA)"`
 	Delivery     bool   `json:"delivery" orm:"column(DELIVERY)"`
 	EstadoPedido string `json:"estadoPedido" orm:"column(ESTADO_PEDIDO)"`
-	MetodoPago   string `json:"metodoPago"`
-	Productos    string `json:"productos"`
+	MetodoPago   string `json:"metodoPago" orm:"column(metodo_pago)"`
+	Productos    string `json:"productos" orm:"column(productos)"`
 }
 
 func (p *Pedido) TableName() string {
