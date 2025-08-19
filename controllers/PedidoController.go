@@ -351,33 +351,25 @@ func (c *PedidoController) GetPedidoDetails() {
 
 	// Consulta para obtener detalles del pedido
 	query := `
-        SELECT 
-            p."PK_ID_PEDIDO",
-            p."FECHA",
-            p."HORA",
-            p."DELIVERY",
-            p."ESTADO_PEDIDO",
-            mp."TIPO" AS metodo_pago,
-            COALESCE((SELECT jsonb_agg(elementos)::text FROM (
-                SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
-                FROM "PRODUCTO_PEDIDO" pp
-                WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-            ) subquery), '[]') AS productos
-        FROM "PEDIDO" p
-        LEFT JOIN "PAGO" pa ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
-        LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
-        WHERE p."PK_ID_PEDIDO" = ?;
+SELECT
+    p."PK_ID_PEDIDO" AS PK_ID_PEDIDO,
+    TO_CHAR(p."FECHA", 'YYYY-MM-DD') AS FECHA,
+    TO_CHAR(p."HORA", 'HH24:MI:SS') AS HORA,
+    p."DELIVERY" AS DELIVERY,
+    p."ESTADO_PEDIDO" AS ESTADO_PEDIDO,
+    mp."TIPO" AS metodo_pago,
+    COALESCE((SELECT jsonb_agg(elementos)::text FROM (
+        SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
+        FROM "PRODUCTO_PEDIDO" pp
+        WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+    ) subquery), '[]') AS productos
+FROM "PEDIDO" p
+LEFT JOIN "PAGO" pa ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
+LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
+WHERE p."PK_ID_PEDIDO" = ?;
     `
 
-	var details struct {
-		PKIDPedido   int64  `json:"PK_ID_PEDIDO"`
-		Fecha        string `json:"FECHA"`
-		Hora         string `json:"HORA"`
-		Delivery     bool   `json:"DELIVERY"`
-		EstadoPedido string `json:"ESTADO_PEDIDO"`
-		MetodoPago   string `json:"METODO_PAGO"`
-		Productos    string `json:"PRODUCTOS"`
-	}
+	var details models.PedidoDetails
 
 	// Ejecutar consulta
 	err := o.Raw(query, pedidoID).QueryRow(&details)

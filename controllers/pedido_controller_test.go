@@ -478,12 +478,17 @@ func TestPedidoGetPedidoDetailsSuccess(t *testing.T) {
         c.Ctx = ctx
         c.Data = make(map[interface{}]interface{})
 
-        c.GetPedidoDetails()
+       c.GetPedidoDetails()
+       body := w.Body.String()
 
         if w.Code != http.StatusOK {
                 t.Fatalf("expected status 200, got %d", w.Code)
         }
-        if !strings.Contains(w.Body.String(), "Detalles del pedido obtenidos exitosamente") {
-                t.Errorf("unexpected body: %s", w.Body.String())
+        if !strings.Contains(body, "Detalles del pedido obtenidos exitosamente") ||
+                !strings.Contains(body, "\"fechaPedido\":\"2024-01-01\"") ||
+                !strings.Contains(body, "\"horaPedido\":\"12:00:00\"") ||
+                !strings.Contains(body, "\"delivery\":false") ||
+                !strings.Contains(body, "\"estadoPedido\":\"TERMINADO\"") {
+                t.Errorf("unexpected body: %s", body)
         }
 }
