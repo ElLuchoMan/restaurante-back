@@ -352,19 +352,22 @@ func (c *PedidoController) GetPedidoDetails() {
 	// Consulta para obtener detalles del pedido
 	query := `
 SELECT
-    p."PK_ID_PEDIDO" AS PK_ID_PEDIDO,
-    TO_CHAR(p."FECHA", 'YYYY-MM-DD') AS FECHA,
-    TO_CHAR(p."HORA", 'HH24:MI:SS') AS HORA,
-    p."DELIVERY" AS DELIVERY,
-    p."ESTADO_PEDIDO" AS ESTADO_PEDIDO,
-    mp."TIPO" AS metodo_pago,
-    COALESCE((SELECT jsonb_agg(elementos)::text FROM (
-        SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
-        FROM "PRODUCTO_PEDIDO" pp
-        WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-    ) subquery), '[]') AS productos
+    p."PK_ID_PEDIDO"                                   AS pedido_id,
+    COALESCE(TO_CHAR(p."FECHA", 'YYYY-MM-DD'), '')     AS fecha,
+    COALESCE(TO_CHAR(p."HORA",  'HH24:MI:SS'), '')     AS hora,
+    COALESCE(p."DELIVERY", false)                      AS delivery,
+    COALESCE(p."ESTADO_PEDIDO", '')                    AS estado_pedido,
+    COALESCE(mp."TIPO", '')                            AS metodo_pago,
+    COALESCE((
+        SELECT jsonb_agg(elementos)::text
+        FROM (
+            SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
+            FROM "PRODUCTO_PEDIDO" pp
+            WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+        ) subq
+    ), '[]')                                           AS productos
 FROM "PEDIDO" p
-LEFT JOIN "PAGO" pa ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
+LEFT JOIN "PAGO" pa        ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
 LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
 WHERE p."PK_ID_PEDIDO" = ?;
     `

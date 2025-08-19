@@ -21,11 +21,11 @@ type Pedido struct {
 }
 
 type PedidoDetails struct {
-	PKIDPedido   int64  `json:"pedidoId" orm:"column(PK_ID_PEDIDO)"`
-	Fecha        string `json:"fechaPedido" orm:"column(FECHA)"`
-	Hora         string `json:"horaPedido" orm:"column(HORA)"`
-	Delivery     bool   `json:"delivery" orm:"column(DELIVERY)"`
-	EstadoPedido string `json:"estadoPedido" orm:"column(ESTADO_PEDIDO)"`
+	PedidoID     int64  `json:"pedidoId" orm:"column(pk_id_pedido)"`
+	Fecha        string `json:"fechaPedido" orm:"column(fecha)"`
+	Hora         string `json:"horaPedido" orm:"column(hora)"`
+	Delivery     bool   `json:"delivery" orm:"column(delivery)"`
+	EstadoPedido string `json:"estadoPedido" orm:"column(estado_pedido)"`
 	MetodoPago   string `json:"metodoPago" orm:"column(metodo_pago)"`
 	Productos    string `json:"productos" orm:"column(productos)"`
 }
