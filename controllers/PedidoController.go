@@ -192,7 +192,6 @@ func (c *PedidoController) Post() {
 // @Security BearerAuth
 // @Router /pedidos/asignar-domicilio [post]
 // controllers/PedidoController.go
-
 func (c *PedidoController) AssignDomicilio() {
 	pedidoID, _ := c.GetInt("pedido_id")
 	domicilioID, _ := c.GetInt("domicilio_id")

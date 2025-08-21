@@ -2257,6 +2257,62 @@ const docTemplate = `{
                 }
             }
         },
+        "/pedidos/asignar-domicilio": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Asigna un domicilio existente a un pedido y actualiza su estado a \"EN CAMINO\".",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido"
+                ],
+                "summary": "Asignar un domicilio a un pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del domicilio",
+                        "name": "domicilio_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Domicilio asignado al pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido o domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al asignar domicilio",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pedidos/asignar-pago": {
             "post": {
                 "security": [
