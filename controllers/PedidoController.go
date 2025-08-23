@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"restaurante/models" // Ajusta la ruta según tu proyecto
 	"time"
 
@@ -127,35 +128,49 @@ func (c *PedidoController) GetAll() {
 
 // @Title PostPedido
 // @Summary Crear un nuevo pedido
-// @Description Crea un nuevo pedido en el sistema sin domicilio ni pago asociados.
+// @Description Crea un nuevo pedido. Fuerza FECHA/HORA (Bogotá) y ESTADO_PEDIDO=INICIADO. Lee 'delivery' del JSON.
 // @Tags pedido
 // @Accept json
 // @Produce json
-// @Param body body models.Pedido true "Datos del pedido"
+// @Param body body models.Pedido true "Datos del pedido (sólo se respeta 'delivery')"
 // @Success 200 {object} models.ApiResponse "Pedido creado"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
 // @Security BearerAuth
 // @Router /pedidos [post]
 func (c *PedidoController) Post() {
-	var pedido models.Pedido
+	// Estructura mínima para leer el JSON de entrada sin acoplarse al modelo
+	var in struct {
+		Delivery *bool `json:"delivery"`
+		// Ignoramos 'pagoId', 'estadoPedido', etc. por contrato actual
+	}
 
-	if err := c.ParseForm(&pedido); err != nil {
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = models.ApiResponse{
 			Code:    400,
-			Message: "Datos inválidos",
+			Message: "Datos inválidos (JSON mal formado)",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	now := time.Now()
+	loc, _ := time.LoadLocation("America/Bogota")
+	now := time.Now().In(loc)
+
+	// Construimos el pedido conforme a las reglas
+	var pedido models.Pedido
 	pedido.FECHA = now
-	// Asigna la hora formateada como string
-	pedido.HORA = now.Format("15:04:05")
+	pedido.HORA = now.Format("15:04:05") // string HH:mm:ss
 	pedido.ESTADO_PEDIDO = "INICIADO"
+
+	// Si el cliente mandó delivery en el body, lo respetamos; si no, false
+	if in.Delivery != nil {
+		pedido.DELIVERY = *in.Delivery
+	} else {
+		pedido.DELIVERY = false
+	}
 
 	o := orm.NewOrm()
 	if _, err := o.Insert(&pedido); err != nil {
@@ -180,7 +195,7 @@ func (c *PedidoController) Post() {
 
 // @Title AssignDomicilio
 // @Summary Asignar un domicilio a un pedido
-// @Description Asigna un domicilio existente a un pedido y actualiza su estado a "EN CAMINO".
+// @Description Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -191,7 +206,6 @@ func (c *PedidoController) Post() {
 // @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
 // @Security BearerAuth
 // @Router /pedidos/asignar-domicilio [post]
-// controllers/PedidoController.go
 func (c *PedidoController) AssignDomicilio() {
 	pedidoID, _ := c.GetInt("pedido_id")
 	domicilioID, _ := c.GetInt("domicilio_id")
@@ -206,7 +220,7 @@ func (c *PedidoController) AssignDomicilio() {
 		return
 	}
 
-	// Sólo actualizamos la FK al domicilio
+	// Sólo actualizamos la FK al domicilio (por contrato actual)
 	pedido.PK_ID_DOMICILIO = &domicilioID
 	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
@@ -221,7 +235,7 @@ func (c *PedidoController) AssignDomicilio() {
 
 // @Title AssignPago
 // @Summary Asignar un pago a un pedido
-// @Description Asigna un pago existente a un pedido y actualiza su estado a "PAGADO".
+// @Description Asigna un pago existente a un pedido y actualiza su estado a "TERMINADO" y el pago a "PAGADO".
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -246,9 +260,9 @@ func (c *PedidoController) AssignPago() {
 		return
 	}
 
-	// Actualizamos la FK al pago y, opcionalmente, marcamos la orden como terminada
+	// Actualizamos la FK al pago y marcamos la orden como terminada
 	pedido.PK_ID_PAGO = &pagoID
-	pedido.ESTADO_PEDIDO = "TERMINADO" // valor válido según tu CHECK
+	pedido.ESTADO_PEDIDO = "TERMINADO"
 	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar pago", Cause: err.Error()}
