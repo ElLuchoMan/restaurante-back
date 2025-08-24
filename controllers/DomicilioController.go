@@ -15,6 +15,13 @@ type DomicilioController struct {
 	web.Controller
 }
 
+// DomicilioDetail representa un domicilio junto con información del cliente asociado.
+type DomicilioDetail struct {
+	models.Domicilio
+	NombreCliente    string `orm:"column(nombre_cliente)" json:"nombreCliente"`
+	DocumentoCliente int    `orm:"column(documento_cliente)" json:"documentoCliente"`
+}
+
 // @Title GetAll
 // @Summary Obtener todos los domicilios con posibilidad de filtrar
 // @Description Devuelve todos los domicilios registrados en la base de datos, filtrando según criterios específicos.
@@ -125,14 +132,44 @@ func (c *DomicilioController) GetById() {
 		return
 	}
 
-	domicilio := models.Domicilio{PK_ID_DOMICILIO: id}
+	query := `
+SELECT
+    d."PK_ID_DOMICILIO"         AS PK_ID_DOMICILIO,
+    d."DIRECCION"               AS DIRECCION,
+    d."TELEFONO"                AS TELEFONO,
+    d."ESTADO_PAGO"             AS ESTADO_PAGO,
+    d."ENTREGADO"               AS ENTREGADO,
+    d."FECHA"                   AS FECHA,
+    d."OBSERVACIONES"           AS OBSERVACIONES,
+    d."CREATED_AT"              AS CREATED_AT,
+    d."UPDATED_AT"              AS UPDATED_AT,
+    d."CREATED_BY"              AS CREATED_BY,
+    d."UPDATED_BY"              AS UPDATED_BY,
+    d."PK_DOCUMENTO_TRABAJADOR" AS PK_DOCUMENTO_TRABAJADOR,
+    c."NOMBRE"                  AS nombre_cliente,
+    c."PK_DOCUMENTO_CLIENTE"    AS documento_cliente
+FROM "DOMICILIO" d
+LEFT JOIN "PEDIDO" p ON d."PK_ID_DOMICILIO" = p."PK_ID_DOMICILIO"
+LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
+LEFT JOIN "CLIENTE" c ON pc."PK_DOCUMENTO_CLIENTE" = c."PK_DOCUMENTO_CLIENTE"
+WHERE d."PK_ID_DOMICILIO" = ?`
 
-	err = o.Read(&domicilio)
+	var domicilio DomicilioDetail
+	err = o.Raw(query, id).QueryRow(&domicilio)
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Domicilio no encontrado",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	} else if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al obtener el domicilio",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
