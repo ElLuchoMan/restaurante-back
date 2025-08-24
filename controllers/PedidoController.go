@@ -27,7 +27,7 @@ type PedidoController struct {
 // @Param cliente query int false "ID del cliente (PK_DOCUMENTO_CLIENTE)"
 // @Param metodo_pago query string false "Tipo de método de pago (NEQUI, DAVIPLATA, EFECTIVO)"
 // @Param domicilio query bool false "Indica si el pedido tiene domicilio (true/false)"
-// @Success 200 {object} models.ApiResponse "Pedidos obtenidos exitosamente"
+// @Success 200 {object} models.ApiResponse{data=[]models.Pedido} "Pedidos obtenidos exitosamente, cada uno con pagoId, metodoPagoId, domicilioId y documentoCliente cuando apliquen"
 // @Failure 400 {object} models.ApiResponse "Error en los parámetros de filtro"
 // @Failure 500 {object} models.ApiResponse "Error al obtener los pedidos"
 // @Security BearerAuth
@@ -133,7 +133,7 @@ func (c *PedidoController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param body body models.Pedido true "Datos del pedido (sólo se respeta 'delivery')"
-// @Success 200 {object} models.ApiResponse "Pedido creado"
+// @Success 200 {object} models.ApiResponse{data=models.Pedido} "Pedido creado con identificadores pagoId, metodoPagoId, domicilioId y documentoCliente cuando existan"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
 // @Security BearerAuth

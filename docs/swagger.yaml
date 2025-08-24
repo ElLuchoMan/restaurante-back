@@ -1683,9 +1683,17 @@ paths:
       - application/json
       responses:
         "200":
-          description: Pedidos obtenidos exitosamente
+          description: Pedidos obtenidos exitosamente, cada uno con pagoId, metodoPagoId,
+            domicilioId y documentoCliente cuando apliquen
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Pedido'
+                  type: array
+              type: object
         "400":
           description: Error en los parámetros de filtro
           schema:
@@ -1702,9 +1710,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea un nuevo pedido en el sistema sin domicilio ni pago asociados.
+      description: Crea un nuevo pedido. Fuerza FECHA/HORA (Bogotá) y ESTADO_PEDIDO=INICIADO.
+        Lee 'delivery' del JSON.
       parameters:
-      - description: Datos del pedido
+      - description: Datos del pedido (sólo se respeta 'delivery')
         in: body
         name: body
         required: true
@@ -1714,9 +1723,15 @@ paths:
       - application/json
       responses:
         "200":
-          description: Pedido creado
+          description: Pedido creado con identificadores pagoId, metodoPagoId, domicilioId
+            y documentoCliente cuando existan
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Pedido'
+              type: object
         "400":
           description: Datos inválidos
           schema:
@@ -1770,8 +1785,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Asigna un domicilio existente a un pedido y actualiza su estado
-        a "EN CAMINO".
+      description: Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).
       parameters:
       - description: ID del pedido
         in: query
@@ -1807,7 +1821,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Asigna un pago existente a un pedido y actualiza su estado a "PAGADO".
+      description: Asigna un pago existente a un pedido y actualiza su estado a "TERMINADO"
+        y el pago a "PAGADO".
       parameters:
       - description: ID del pedido
         in: query

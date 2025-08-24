@@ -33,6 +33,14 @@
                 }
             }
         },
+        "models.ApiResponse{data=[]models.Pedido}": {
+            "title": "Pedido}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Pedido}": {
+            "title": "Pedido}",
+            "type": "object"
+        },
         "models.CambiosHorario": {
             "title": "CambiosHorario",
             "type": "object",

@@ -2132,9 +2132,24 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Pedidos obtenidos exitosamente",
+                        "description": "Pedidos obtenidos exitosamente, cada uno con pagoId, metodoPagoId, domicilioId y documentoCliente cuando apliquen",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Pedido"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -2157,7 +2172,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo pedido en el sistema sin domicilio ni pago asociados.",
+                "description": "Crea un nuevo pedido. Fuerza FECHA/HORA (Bogotá) y ESTADO_PEDIDO=INICIADO. Lee 'delivery' del JSON.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2170,7 +2185,7 @@ const docTemplate = `{
                 "summary": "Crear un nuevo pedido",
                 "parameters": [
                     {
-                        "description": "Datos del pedido",
+                        "description": "Datos del pedido (sólo se respeta 'delivery')",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2181,9 +2196,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Pedido creado",
+                        "description": "Pedido creado con identificadores pagoId, metodoPagoId, domicilioId y documentoCliente cuando existan",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Pedido"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -2264,7 +2291,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un domicilio existente a un pedido y actualiza su estado a \"EN CAMINO\".",
+                "description": "Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2320,7 +2347,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un pago existente a un pedido y actualiza su estado a \"PAGADO\".",
+                "description": "Asigna un pago existente a un pedido y actualiza su estado a \"TERMINADO\" y el pago a \"PAGADO\".",
                 "consumes": [
                     "application/json"
                 ],
