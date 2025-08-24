@@ -365,7 +365,7 @@ func (c *PedidoController) GetPedidoDetails() {
 	// Consulta para obtener detalles del pedido
 	query := `
 SELECT
-    p."PK_ID_PEDIDO"                                   AS pedido_id,
+    p."PK_ID_PEDIDO"                                   AS pk_id_pedido,
     COALESCE(TO_CHAR(p."FECHA", 'YYYY-MM-DD'), '')     AS fecha,
     COALESCE(TO_CHAR(p."HORA",  'HH24:MI:SS'), '')     AS hora,
     COALESCE(p."DELIVERY", false)                      AS delivery,
@@ -378,10 +378,15 @@ SELECT
             FROM "PRODUCTO_PEDIDO" pp
             WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
         ) subq
-    ), '[]')                                           AS productos
+    ), '[]')                                           AS productos,
+    COALESCE(p."PK_ID_PAGO", 0)                        AS pago_id,
+    COALESCE(pa."PK_ID_METODO_PAGO", 0)                AS metodo_pago_id,
+    COALESCE(p."PK_ID_DOMICILIO", 0)                   AS domicilio_id,
+    COALESCE(pc."PK_DOCUMENTO_CLIENTE", 0)             AS documento_cliente
 FROM "PEDIDO" p
 LEFT JOIN "PAGO" pa        ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
 LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
+LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
 WHERE p."PK_ID_PEDIDO" = ?;
     `
 
