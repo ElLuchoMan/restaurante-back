@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"restaurante/models"
@@ -100,13 +101,13 @@ func (c *DomicilioController) GetAll() {
 }
 
 // @Title GetById
-// @Summary Obtener domicilio por ID (incluye cliente asociado si existe)
-// @Description Devuelve un domicilio por ID y, si está asociado a un pedido, incluye documento y nombre del cliente.
+// @Summary Obtener domicilio por ID (incluye cliente y pedido asociado si existen)
+// @Description Devuelve un domicilio por ID y, si está asociado a un pedido, incluye documento/nombre del cliente y resumen del pedido (monto/productos).
 // @Tags domicilios
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Domicilio"
-// @Success 200 {object} models.ApiResponse "Domicilio encontrado (con cliente si aplica)"
+// @Success 200 {object} models.ApiResponse "Domicilio encontrado (con cliente/pedido si aplica)"
 // @Failure 400 {object} models.ApiResponse "Parámetro inválido"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
@@ -138,30 +139,108 @@ func (c *DomicilioController) GetById() {
 		return
 	}
 
-	// 2) Buscar cliente asociado a través del pedido que usa este domicilio
-	//    DOMICILIO -> PEDIDO (PK_ID_DOMICILIO) -> PEDIDO_CLIENTE -> CLIENTE
-	var docCliente int
-	var nombreCliente string
-	clienteQuery := `
-SELECT pc."PK_DOCUMENTO_CLIENTE",
-       COALESCE(c."NOMBRE",'') || CASE WHEN c."APELLIDO" IS NULL OR c."APELLIDO" = '' THEN '' ELSE ' ' || c."APELLIDO" END AS "nombreCompleto"
+	// 2) Cliente asociado (vía pedido) — usar UN struct para QueryRow
+	type clienteRow struct {
+		Documento int64  `orm:"column(documento)"`
+		Nombre    string `orm:"column(nombre)"`
+		Apellido  string `orm:"column(apellido)"`
+	}
+	var cli clienteRow
+
+	qCliente := `
+SELECT
+  pc."PK_DOCUMENTO_CLIENTE" AS documento,
+  c."NOMBRE"                AS nombre,
+  c."APELLIDO"              AS apellido
 FROM "PEDIDO" p
 JOIN "PEDIDO_CLIENTE" pc ON pc."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-LEFT JOIN "CLIENTE" c     ON c."PK_DOCUMENTO_CLIENTE" = pc."PK_DOCUMENTO_CLIENTE"
+JOIN "CLIENTE" c        ON c."PK_DOCUMENTO_CLIENTE" = pc."PK_DOCUMENTO_CLIENTE"
 WHERE p."PK_ID_DOMICILIO" = ?
-LIMIT 1;
-`
-	cliErr := o.Raw(clienteQuery, id).QueryRow(&docCliente, &nombreCliente)
+ORDER BY p."PK_ID_PEDIDO" DESC
+LIMIT 1;`
 
-	// 3) Construir respuesta combinada
+	cliErr := o.Raw(qCliente, id).QueryRow(&cli)
+
+	// 3) Pedido asociado — también UN struct
+	type pedidoRow struct {
+		PedidoID          int64           `orm:"column(pedido_id)"`
+		PagoID            sql.NullInt64   `orm:"column(pago_id)"`
+		PagoMonto         sql.NullFloat64 `orm:"column(pago_monto)"`
+		SubtotalProductos sql.NullFloat64 `orm:"column(subtotal_productos)"`
+		Productos         string          `orm:"column(productos)"` // json string
+	}
+	var ped pedidoRow
+
+	qPedido := `
+SELECT
+  p."PK_ID_PEDIDO" AS pedido_id,
+  pa."PK_ID_PAGO"  AS pago_id,
+  pa."MONTO"::numeric AS pago_monto,
+  (
+    SELECT COALESCE(SUM((elem->>'SUBTOTAL')::numeric), 0)
+    FROM (
+      SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elem
+      FROM "PRODUCTO_PEDIDO" pp
+      WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+    ) s
+  ) AS subtotal_productos,
+  (
+    SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)::text
+    FROM (
+      SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elem
+      FROM "PRODUCTO_PEDIDO" pp
+      WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+    ) s
+  ) AS productos
+FROM "PEDIDO" p
+LEFT JOIN "PAGO" pa ON pa."PK_ID_PAGO" = p."PK_ID_PAGO"
+WHERE p."PK_ID_DOMICILIO" = ?
+ORDER BY p."PK_ID_PEDIDO" DESC
+LIMIT 1;`
+
+	pedErr := o.Raw(qPedido, id).QueryRow(&ped)
+
+	// 4) Construir respuesta
 	resp := map[string]interface{}{
 		"domicilio": domicilio,
 	}
 
 	if cliErr == nil {
 		resp["cliente"] = map[string]interface{}{
-			"documento": docCliente,
-			"nombre":    nombreCliente,
+			"documento": cli.Documento,
+			"nombre":    cli.Nombre,
+			"apellido":  cli.Apellido,
+		}
+	}
+
+	if pedErr == nil {
+		// Parsear productos
+		var productos []map[string]interface{}
+		if ped.Productos != "" {
+			_ = json.Unmarshal([]byte(ped.Productos), &productos)
+		}
+
+		// Total: prioriza pago; si no hay, usa subtotal de productos
+		total := 0.0
+		if ped.PagoMonto.Valid {
+			total = ped.PagoMonto.Float64
+		} else if ped.SubtotalProductos.Valid {
+			total = ped.SubtotalProductos.Float64
+		}
+
+		var pagoIdPtr *int64
+		if ped.PagoID.Valid {
+			v := ped.PagoID.Int64
+			pagoIdPtr = &v
+		}
+
+		resp["pedido"] = map[string]interface{}{
+			"pedidoId":          ped.PedidoID,
+			"pagoId":            pagoIdPtr,                     // puede ser null
+			"montoPago":         ped.PagoMonto.Float64,         // 0 si null
+			"subtotalProductos": ped.SubtotalProductos.Float64, // 0 si null
+			"total":             total,
+			"productos":         productos,
 		}
 	}
 

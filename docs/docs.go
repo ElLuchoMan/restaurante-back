@@ -733,7 +733,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un domicilio por ID y, si está asociado a un pedido, incluye documento y nombre del cliente.",
+                "description": "Devuelve un domicilio por ID y, si está asociado a un pedido, incluye documento/nombre del cliente y resumen del pedido (monto/productos).",
                 "consumes": [
                     "application/json"
                 ],
@@ -743,7 +743,7 @@ const docTemplate = `{
                 "tags": [
                     "domicilios"
                 ],
-                "summary": "Obtener domicilio por ID (incluye cliente asociado si existe)",
+                "summary": "Obtener domicilio por ID (incluye cliente y pedido asociado si existen)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -755,7 +755,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Domicilio encontrado (con cliente si aplica)",
+                        "description": "Domicilio encontrado (con cliente/pedido si aplica)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
