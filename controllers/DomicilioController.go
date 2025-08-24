@@ -100,20 +100,20 @@ func (c *DomicilioController) GetAll() {
 }
 
 // @Title GetById
-// @Summary Obtener domicilio por ID
-// @Description Devuelve un domicilio específico por ID utilizando query parameters.
+// @Summary Obtener domicilio por ID (incluye cliente asociado si existe)
+// @Description Devuelve un domicilio por ID y, si está asociado a un pedido, incluye documento y nombre del cliente.
 // @Tags domicilios
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Domicilio"
-// @Success 200 {object} models.Domicilio "Domicilio encontrado"
+// @Success 200 {object} models.ApiResponse "Domicilio encontrado (con cliente si aplica)"
+// @Failure 400 {object} models.ApiResponse "Parámetro inválido"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
 // @Router /domicilios/search [get]
 func (c *DomicilioController) GetById() {
 	o := orm.NewOrm()
 	id, err := c.GetInt("id")
-
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -125,10 +125,9 @@ func (c *DomicilioController) GetById() {
 		return
 	}
 
+	// 1) Leer el domicilio
 	domicilio := models.Domicilio{PK_ID_DOMICILIO: id}
-
-	err = o.Read(&domicilio)
-	if err == orm.ErrNoRows {
+	if err := o.Read(&domicilio); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -139,11 +138,38 @@ func (c *DomicilioController) GetById() {
 		return
 	}
 
+	// 2) Buscar cliente asociado a través del pedido que usa este domicilio
+	//    DOMICILIO -> PEDIDO (PK_ID_DOMICILIO) -> PEDIDO_CLIENTE -> CLIENTE
+	var docCliente int
+	var nombreCliente string
+	clienteQuery := `
+SELECT pc."PK_DOCUMENTO_CLIENTE",
+       COALESCE(c."NOMBRE",'') || CASE WHEN c."APELLIDO" IS NULL OR c."APELLIDO" = '' THEN '' ELSE ' ' || c."APELLIDO" END AS "nombreCompleto"
+FROM "PEDIDO" p
+JOIN "PEDIDO_CLIENTE" pc ON pc."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+LEFT JOIN "CLIENTE" c     ON c."PK_DOCUMENTO_CLIENTE" = pc."PK_DOCUMENTO_CLIENTE"
+WHERE p."PK_ID_DOMICILIO" = ?
+LIMIT 1;
+`
+	cliErr := o.Raw(clienteQuery, id).QueryRow(&docCliente, &nombreCliente)
+
+	// 3) Construir respuesta combinada
+	resp := map[string]interface{}{
+		"domicilio": domicilio,
+	}
+
+	if cliErr == nil {
+		resp["cliente"] = map[string]interface{}{
+			"documento": docCliente,
+			"nombre":    nombreCliente,
+		}
+	}
+
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Domicilio encontrado",
-		Data:    domicilio,
+		Data:    resp,
 	}
 	c.ServeJSON()
 }

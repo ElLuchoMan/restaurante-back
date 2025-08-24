@@ -733,7 +733,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un domicilio específico por ID utilizando query parameters.",
+                "description": "Devuelve un domicilio por ID y, si está asociado a un pedido, incluye documento y nombre del cliente.",
                 "consumes": [
                     "application/json"
                 ],
@@ -743,7 +743,7 @@ const docTemplate = `{
                 "tags": [
                     "domicilios"
                 ],
-                "summary": "Obtener domicilio por ID",
+                "summary": "Obtener domicilio por ID (incluye cliente asociado si existe)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -755,9 +755,15 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Domicilio encontrado",
+                        "description": "Domicilio encontrado (con cliente si aplica)",
                         "schema": {
-                            "$ref": "#/definitions/models.Domicilio"
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {

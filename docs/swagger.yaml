@@ -782,7 +782,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve un domicilio específico por ID utilizando query parameters.
+      description: Devuelve un domicilio por ID y, si está asociado a un pedido, incluye
+        documento y nombre del cliente.
       parameters:
       - description: ID del Domicilio
         in: query
@@ -793,16 +794,20 @@ paths:
       - application/json
       responses:
         "200":
-          description: Domicilio encontrado
+          description: Domicilio encontrado (con cliente si aplica)
           schema:
-            $ref: '#/definitions/models.Domicilio'
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Parámetro inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Domicilio no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener domicilio por ID
+      summary: Obtener domicilio por ID (incluye cliente asociado si existe)
       tags:
       - domicilios
   /incidencias:
