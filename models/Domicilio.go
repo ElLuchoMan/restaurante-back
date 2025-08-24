@@ -22,19 +22,12 @@ type Domicilio struct {
 	PK_DOCUMENTO_TRABAJADOR *int      `orm:"column(PK_DOCUMENTO_TRABAJADOR);null" json:"trabajadorAsignado,omitempty"`
 }
 
-// DomicilioDetail extiende la información de un domicilio con datos del cliente asociado.
-type DomicilioDetail struct {
-        Domicilio
-        NombreCliente    string `json:"nombreCliente" orm:"column(nombre_cliente)"`
-        DocumentoCliente int64  `json:"documentoCliente" orm:"column(documento_cliente)"`
-}
-
 func (d *Domicilio) TableName() string {
 	return "DOMICILIO"
 }
 
 func init() {
-        orm.RegisterModel(new(Domicilio))
+	orm.RegisterModel(new(Domicilio))
 }
 
 // Personalizar el formato de fecha para la API
@@ -51,20 +44,4 @@ func (d Domicilio) MarshalJSON() ([]byte, error) {
 		UPDATED_AT: d.UPDATED_AT.Format("02-01-2006 15:04:05"),
 		Alias:      (Alias)(d),
 	})
-}
-
-// MarshalJSON para DomicilioDetail formatea las fechas igual que el modelo base.
-func (d DomicilioDetail) MarshalJSON() ([]byte, error) {
-        type Alias DomicilioDetail
-        return json.Marshal(&struct {
-                FECHA      string `json:"fechaDomicilio"`
-                CREATED_AT string `json:"createdAt"`
-                UPDATED_AT string `json:"updatedAt"`
-                Alias
-        }{
-                FECHA:      d.FECHA.Format("02-01-2006"),
-                CREATED_AT: d.CREATED_AT.Format("02-01-2006 15:04:05"),
-                UPDATED_AT: d.UPDATED_AT.Format("02-01-2006 15:04:05"),
-                Alias:      (Alias)(d),
-        })
 }

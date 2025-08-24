@@ -106,77 +106,46 @@ func (c *DomicilioController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Domicilio"
-// @Success 200 {object} models.DomicilioDetail "Domicilio encontrado"
+// @Success 200 {object} models.Domicilio "Domicilio encontrado"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
 // @Router /domicilios/search [get]
 func (c *DomicilioController) GetById() {
-        o := orm.NewOrm()
-        id, err := c.GetInt("id")
+	o := orm.NewOrm()
+	id, err := c.GetInt("id")
 
-        if err != nil || id == 0 {
-                c.Ctx.Output.SetStatus(http.StatusBadRequest)
-                c.Data["json"] = models.ApiResponse{
-                        Code:    http.StatusBadRequest,
-                        Message: "El parámetro 'id' es inválido o está ausente",
-                        Cause:   err.Error(),
-                }
-                c.ServeJSON()
-                return
-        }
+	if err != nil || id == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El parámetro 'id' es inválido o está ausente",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
 
-        query := `
-SELECT
-    d."PK_ID_DOMICILIO"                AS pk_id_domicilio,
-    d."DIRECCION"                      AS direccion,
-    d."TELEFONO"                       AS telefono,
-    d."ESTADO_PAGO"                   AS estado_pago,
-    d."ENTREGADO"                     AS entregado,
-    d."FECHA"                         AS fecha,
-    d."OBSERVACIONES"                 AS observaciones,
-    d."CREATED_AT"                    AS created_at,
-    d."UPDATED_AT"                    AS updated_at,
-    d."CREATED_BY"                    AS created_by,
-    d."UPDATED_BY"                    AS updated_by,
-    d."PK_DOCUMENTO_TRABAJADOR"       AS pk_documento_trabajador,
-    COALESCE(c."NOMBRE", '')          AS nombre_cliente,
-    COALESCE(pc."PK_DOCUMENTO_CLIENTE",0) AS documento_cliente
-FROM "DOMICILIO" d
-LEFT JOIN "PEDIDO" p ON d."PK_ID_DOMICILIO" = p."PK_ID_DOMICILIO"
-LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
-LEFT JOIN "CLIENTE" c ON pc."PK_DOCUMENTO_CLIENTE" = c."PK_DOCUMENTO_CLIENTE"
-WHERE d."PK_ID_DOMICILIO" = ?`
+	domicilio := models.Domicilio{PK_ID_DOMICILIO: id}
 
-        var detalle models.DomicilioDetail
-        err = o.Raw(query, id).QueryRow(&detalle)
-        if err == orm.ErrNoRows {
-                c.Ctx.Output.SetStatus(http.StatusOK)
-                c.Data["json"] = models.ApiResponse{
-                        Code:    http.StatusNotFound,
-                        Message: "Domicilio no encontrado",
-                        Cause:   err.Error(),
-                }
-                c.ServeJSON()
-                return
-        }
-        if err != nil {
-                c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-                c.Data["json"] = models.ApiResponse{
-                        Code:    http.StatusInternalServerError,
-                        Message: "Error al obtener el domicilio",
-                        Cause:   err.Error(),
-                }
-                c.ServeJSON()
-                return
-        }
+	err = o.Read(&domicilio)
+	if err == orm.ErrNoRows {
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusNotFound,
+			Message: "Domicilio no encontrado",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
 
-        c.Ctx.Output.SetStatus(http.StatusOK)
-        c.Data["json"] = models.ApiResponse{
-                Code:    http.StatusOK,
-                Message: "Domicilio encontrado",
-                Data:    detalle,
-        }
-        c.ServeJSON()
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Domicilio encontrado",
+		Data:    domicilio,
+	}
+	c.ServeJSON()
 }
 
 // @Title Create
