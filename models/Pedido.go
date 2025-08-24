@@ -21,13 +21,17 @@ type Pedido struct {
 }
 
 type PedidoDetails struct {
-	PedidoID     int64  `json:"pedidoId" orm:"column(pk_id_pedido)"`
-	Fecha        string `json:"fechaPedido" orm:"column(fecha)"`
-	Hora         string `json:"horaPedido" orm:"column(hora)"`
-	Delivery     bool   `json:"delivery" orm:"column(delivery)"`
-	EstadoPedido string `json:"estadoPedido" orm:"column(estado_pedido)"`
-	MetodoPago   string `json:"metodoPago" orm:"column(metodo_pago)"`
-	Productos    string `json:"productos" orm:"column(productos)"`
+	PedidoID         int64  `json:"pedidoId" orm:"column(pk_id_pedido)"`
+	Fecha            string `json:"fechaPedido" orm:"column(fecha)"`
+	Hora             string `json:"horaPedido" orm:"column(hora)"`
+	Delivery         bool   `json:"delivery" orm:"column(delivery)"`
+	EstadoPedido     string `json:"estadoPedido" orm:"column(estado_pedido)"`
+	MetodoPago       string `json:"metodoPago" orm:"column(metodo_pago)"`
+	Productos        string `json:"productos" orm:"column(productos)"`
+	PagoID           int64  `json:"pagoId" orm:"column(pago_id)"`
+	MetodoPagoID     int64  `json:"metodoPagoId" orm:"column(metodo_pago_id)"`
+	DomicilioID      int64  `json:"domicilioId" orm:"column(domicilio_id)"`
+	DocumentoCliente int64  `json:"documentoCliente" orm:"column(documento_cliente)"`
 }
 
 func (p *Pedido) TableName() string {
