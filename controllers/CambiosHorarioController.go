@@ -105,7 +105,7 @@ func (c *CambiosHorarioController) GetAll() {
 // @Accept json
 // @Produce json
 // @Success 200 {object} map[string]interface{} "Cambio de horario para la fecha actual"
-// @Failure 404 {object} models.ApiResponse "No hay cambios de horario para la fecha actual"
+// @Failure 200 {object} models.ApiResponse "No hay cambios de horario para la fecha actual"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario/actual [get]
 func (c *CambiosHorarioController) GetByCurrentDate() {
@@ -116,9 +116,9 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 
 	err := queryCambioHorarioByDate(o, currentDate.Format("2006-01-02"), &cambioHorario)
 	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
+		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
+			Code:    http.StatusOK,
 			Message: "No hay cambios de horario para la fecha actual",
 		}
 		c.ServeJSON()
