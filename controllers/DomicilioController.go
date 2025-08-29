@@ -176,25 +176,25 @@ SELECT
   p."PK_ID_PEDIDO" AS pedido_id,
   pa."PK_ID_PAGO"  AS pago_id,
   pa."MONTO"::numeric AS pago_monto,
-  (
-    SELECT COALESCE(SUM((elem->>'SUBTOTAL')::numeric), 0)
-    FROM (
-      SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elem
-      FROM "PRODUCTO_PEDIDO" pp
-      WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-    ) s
-  ) AS subtotal_productos,
-  (
-    SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)::text
-    FROM (
-      SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elem
-      FROM "PRODUCTO_PEDIDO" pp
-      WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-    ) s
-  ) AS productos
+  COALESCE(SUM(ppd."SUBTOTAL"), 0) AS subtotal_productos,
+  COALESCE(
+    json_agg(
+      json_build_object(
+        'PK_ID_PRODUCTO', pr."PK_ID_PRODUCTO",
+        'NOMBRE', pr."NOMBRE",
+        'CANTIDAD', ppd."CANTIDAD",
+        'PRECIO_UNITARIO', ppd."PRECIO_UNITARIO",
+        'SUBTOTAL', ppd."SUBTOTAL"
+      )
+    ) FILTER (WHERE ppd."PK_ID_PRODUCTO_PEDIDO_DETALLE" IS NOT NULL), '[]'
+  )::text AS productos
 FROM "PEDIDO" p
 LEFT JOIN "PAGO" pa ON pa."PK_ID_PAGO" = p."PK_ID_PAGO"
+LEFT JOIN "PRODUCTO_PEDIDO" pp ON pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+LEFT JOIN "PRODUCTO_PEDIDO_DETALLE" ppd ON ppd."PK_ID_PRODUCTO_PEDIDO" = pp."PK_ID_PRODUCTO_PEDIDO"
+LEFT JOIN "PRODUCTO" pr ON pr."PK_ID_PRODUCTO" = ppd."PK_ID_PRODUCTO"
 WHERE p."PK_ID_DOMICILIO" = ?
+GROUP BY p."PK_ID_PEDIDO", pa."PK_ID_PAGO", pa."MONTO"
 ORDER BY p."PK_ID_PEDIDO" DESC
 LIMIT 1;`
 

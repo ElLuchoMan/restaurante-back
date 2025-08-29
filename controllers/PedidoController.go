@@ -371,14 +371,17 @@ SELECT
     COALESCE(p."DELIVERY", false)                      AS delivery,
     COALESCE(p."ESTADO_PEDIDO", '')                    AS estado_pedido,
     COALESCE(mp."TIPO", '')                            AS metodo_pago,
-    COALESCE((
-        SELECT jsonb_agg(elementos)::text
-        FROM (
-            SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
-            FROM "PRODUCTO_PEDIDO" pp
-            WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-        ) subq
-    ), '[]')                                           AS productos,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'PK_ID_PRODUCTO', pr."PK_ID_PRODUCTO",
+                'NOMBRE', pr."NOMBRE",
+                'CANTIDAD', ppd."CANTIDAD",
+                'PRECIO_UNITARIO', ppd."PRECIO_UNITARIO",
+                'SUBTOTAL', ppd."SUBTOTAL"
+            )
+        ) FILTER (WHERE ppd."PK_ID_PRODUCTO_PEDIDO_DETALLE" IS NOT NULL), '[]'
+    )::text                                           AS productos,
     COALESCE(p."PK_ID_PAGO", 0)                        AS pago_id,
     COALESCE(pa."PK_ID_METODO_PAGO", 0)                AS metodo_pago_id,
     COALESCE(p."PK_ID_DOMICILIO", 0)                   AS domicilio_id,
@@ -387,13 +390,31 @@ FROM "PEDIDO" p
 LEFT JOIN "PAGO" pa        ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
 LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
 LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
-WHERE p."PK_ID_PEDIDO" = ?;
-    `
+LEFT JOIN "PRODUCTO_PEDIDO" pp ON pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+LEFT JOIN "PRODUCTO_PEDIDO_DETALLE" ppd ON ppd."PK_ID_PRODUCTO_PEDIDO" = pp."PK_ID_PRODUCTO_PEDIDO"
+LEFT JOIN "PRODUCTO" pr ON pr."PK_ID_PRODUCTO" = ppd."PK_ID_PRODUCTO"
+WHERE p."PK_ID_PEDIDO" = ?
+GROUP BY p."PK_ID_PEDIDO", p."FECHA", p."HORA", p."DELIVERY", p."ESTADO_PEDIDO",
+         mp."TIPO", p."PK_ID_PAGO", pa."PK_ID_METODO_PAGO", p."PK_ID_DOMICILIO", pc."PK_DOCUMENTO_CLIENTE";`
 
-	var details models.PedidoDetails
+	// Estructura auxiliar para procesar resultados
+	type detailsRow struct {
+		PedidoID         int64  `orm:"column(pk_id_pedido)"`
+		Fecha            string `orm:"column(fecha)"`
+		Hora             string `orm:"column(hora)"`
+		Delivery         bool   `orm:"column(delivery)"`
+		EstadoPedido     string `orm:"column(estado_pedido)"`
+		MetodoPago       string `orm:"column(metodo_pago)"`
+		Productos        string `orm:"column(productos)"`
+		PagoID           int64  `orm:"column(pago_id)"`
+		MetodoPagoID     int64  `orm:"column(metodo_pago_id)"`
+		DomicilioID      int64  `orm:"column(domicilio_id)"`
+		DocumentoCliente int64  `orm:"column(documento_cliente)"`
+	}
 
+	var row detailsRow
 	// Ejecutar consulta
-	err := o.Raw(query, pedidoID).QueryRow(&details)
+	err := o.Raw(query, pedidoID).QueryRow(&row)
 	if err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    500,
@@ -404,11 +425,30 @@ WHERE p."PK_ID_PEDIDO" = ?;
 		return
 	}
 
+	var productos []map[string]interface{}
+	if row.Productos != "" {
+		_ = json.Unmarshal([]byte(row.Productos), &productos)
+	}
+
+	data := map[string]interface{}{
+		"pedidoId":         row.PedidoID,
+		"fechaPedido":      row.Fecha,
+		"horaPedido":       row.Hora,
+		"delivery":         row.Delivery,
+		"estadoPedido":     row.EstadoPedido,
+		"metodoPago":       row.MetodoPago,
+		"productos":        productos,
+		"pagoId":           row.PagoID,
+		"metodoPagoId":     row.MetodoPagoID,
+		"domicilioId":      row.DomicilioID,
+		"documentoCliente": row.DocumentoCliente,
+	}
+
 	// Respuesta exitosa
 	c.Data["json"] = models.ApiResponse{
 		Code:    200,
 		Message: "Detalles del pedido obtenidos exitosamente",
-		Data:    details,
+		Data:    data,
 	}
 	c.ServeJSON()
 }
