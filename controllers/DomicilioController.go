@@ -161,13 +161,12 @@ LIMIT 1;`
 
 	cliErr := o.Raw(qCliente, id).QueryRow(&cli)
 
-	// 3) Pedido asociado — también UN struct
+	// 3) Pedido asociado y productos
 	type pedidoRow struct {
 		PedidoID          int64           `orm:"column(pedido_id)"`
 		PagoID            sql.NullInt64   `orm:"column(pago_id)"`
 		PagoMonto         sql.NullFloat64 `orm:"column(pago_monto)"`
 		SubtotalProductos sql.NullFloat64 `orm:"column(subtotal_productos)"`
-		Productos         string          `orm:"column(productos)"` // json string
 	}
 	var ped pedidoRow
 
@@ -176,29 +175,49 @@ SELECT
   p."PK_ID_PEDIDO" AS pedido_id,
   pa."PK_ID_PAGO"  AS pago_id,
   pa."MONTO"::numeric AS pago_monto,
-  (
-    SELECT COALESCE(SUM((elem->>'SUBTOTAL')::numeric), 0)
-    FROM (
-      SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elem
-      FROM "PRODUCTO_PEDIDO" pp
-      WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-    ) s
-  ) AS subtotal_productos,
-  (
-    SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)::text
-    FROM (
-      SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elem
-      FROM "PRODUCTO_PEDIDO" pp
-      WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-    ) s
-  ) AS productos
+  COALESCE(SUM(ppd."SUBTOTAL"),0) AS subtotal_productos
 FROM "PEDIDO" p
 LEFT JOIN "PAGO" pa ON pa."PK_ID_PAGO" = p."PK_ID_PAGO"
+LEFT JOIN "PRODUCTO_PEDIDO_DETALLE" ppd ON ppd."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
 WHERE p."PK_ID_DOMICILIO" = ?
+GROUP BY p."PK_ID_PEDIDO", pa."PK_ID_PAGO", pa."MONTO"
 ORDER BY p."PK_ID_PEDIDO" DESC
 LIMIT 1;`
 
 	pedErr := o.Raw(qPedido, id).QueryRow(&ped)
+
+	var productos []map[string]interface{}
+	if pedErr == nil {
+		type prodRow struct {
+			ProductoID     int64   `orm:"column(producto_id)"`
+			Nombre         string  `orm:"column(nombre)"`
+			Cantidad       int     `orm:"column(cantidad)"`
+			PrecioUnitario float64 `orm:"column(precio_unitario)"`
+			Subtotal       float64 `orm:"column(subtotal)"`
+		}
+		var prodRows []prodRow
+		qProductos := `
+SELECT pr."PK_ID_PRODUCTO" AS producto_id,
+       pr."NOMBRE" AS nombre,
+       ppd."CANTIDAD" AS cantidad,
+       ppd."PRECIO_UNITARIO" AS precio_unitario,
+       ppd."SUBTOTAL" AS subtotal
+FROM "PEDIDO" p
+JOIN "PRODUCTO_PEDIDO_DETALLE" ppd ON ppd."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+JOIN "PRODUCTO" pr ON pr."PK_ID_PRODUCTO" = ppd."PK_ID_PRODUCTO"
+WHERE p."PK_ID_DOMICILIO" = ?
+ORDER BY p."PK_ID_PEDIDO" DESC`
+		_, _ = o.Raw(qProductos, id).QueryRows(&prodRows)
+		for _, r := range prodRows {
+			productos = append(productos, map[string]interface{}{
+				"productoId":     r.ProductoID,
+				"nombre":         r.Nombre,
+				"cantidad":       r.Cantidad,
+				"precioUnitario": r.PrecioUnitario,
+				"subtotal":       r.Subtotal,
+			})
+		}
+	}
 
 	// 4) Construir respuesta
 	resp := map[string]interface{}{
@@ -214,13 +233,6 @@ LIMIT 1;`
 	}
 
 	if pedErr == nil {
-		// Parsear productos
-		var productos []map[string]interface{}
-		if ped.Productos != "" {
-			_ = json.Unmarshal([]byte(ped.Productos), &productos)
-		}
-
-		// Total: prioriza pago; si no hay, usa subtotal de productos
 		total := 0.0
 		if ped.PagoMonto.Valid {
 			total = ped.PagoMonto.Float64
@@ -236,9 +248,9 @@ LIMIT 1;`
 
 		resp["pedido"] = map[string]interface{}{
 			"pedidoId":          ped.PedidoID,
-			"pagoId":            pagoIdPtr,                     // puede ser null
-			"montoPago":         ped.PagoMonto.Float64,         // 0 si null
-			"subtotalProductos": ped.SubtotalProductos.Float64, // 0 si null
+			"pagoId":            pagoIdPtr,
+			"montoPago":         ped.PagoMonto.Float64,
+			"subtotalProductos": ped.SubtotalProductos.Float64,
 			"total":             total,
 			"productos":         productos,
 		}

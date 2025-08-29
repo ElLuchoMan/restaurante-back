@@ -468,9 +468,16 @@ func TestPedidoUpdateEstadoPedidoSuccess(t *testing.T) {
 }
 
 func TestPedidoGetPedidoDetailsSuccess(t *testing.T) {
+	call := 0
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "metodo_pago", "productos", "pago_id", "metodo_pago_id", "domicilio_id", "documento_cliente"}
-		vals := [][]driver.Value{{int64(1), "2024-01-01", "12:00:00", false, "TERMINADO", "NEQUI", "[]", int64(2), int64(3), int64(4), int64(5)}}
+		if call == 0 {
+			call++
+			cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "metodo_pago", "pago_id", "metodo_pago_id", "domicilio_id", "documento_cliente"}
+			vals := [][]driver.Value{{int64(1), "2024-01-01", "12:00:00", false, "TERMINADO", "NEQUI", int64(2), int64(3), int64(4), int64(5)}}
+			return &mockRows{columns: cols, values: vals}, nil
+		}
+		cols := []string{"producto_id", "nombre", "cantidad", "precio_unitario", "subtotal"}
+		vals := [][]driver.Value{{int64(1), "Cafe", int64(1), float64(10), float64(10)}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	defer func() { MockQuery = nil }()

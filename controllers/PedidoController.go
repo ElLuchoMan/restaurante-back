@@ -351,7 +351,6 @@ func (c *PedidoController) UpdateEstadoPedido() {
 func (c *PedidoController) GetPedidoDetails() {
 	o := orm.NewOrm()
 
-	// Parámetro
 	pedidoID, _ := c.GetInt64("pedido_id")
 	if pedidoID == 0 {
 		c.Data["json"] = models.ApiResponse{
@@ -362,8 +361,22 @@ func (c *PedidoController) GetPedidoDetails() {
 		return
 	}
 
-	// Consulta para obtener detalles del pedido
-	query := `
+	// Información base del pedido
+	type pedidoRow struct {
+		PedidoID         int64  `orm:"column(pk_id_pedido)"`
+		Fecha            string `orm:"column(fecha)"`
+		Hora             string `orm:"column(hora)"`
+		Delivery         bool   `orm:"column(delivery)"`
+		EstadoPedido     string `orm:"column(estado_pedido)"`
+		MetodoPago       string `orm:"column(metodo_pago)"`
+		PagoID           int64  `orm:"column(pago_id)"`
+		MetodoPagoID     int64  `orm:"column(metodo_pago_id)"`
+		DomicilioID      int64  `orm:"column(domicilio_id)"`
+		DocumentoCliente int64  `orm:"column(documento_cliente)"`
+	}
+
+	var base pedidoRow
+	baseQuery := `
 SELECT
     p."PK_ID_PEDIDO"                                   AS pk_id_pedido,
     COALESCE(TO_CHAR(p."FECHA", 'YYYY-MM-DD'), '')     AS fecha,
@@ -371,14 +384,6 @@ SELECT
     COALESCE(p."DELIVERY", false)                      AS delivery,
     COALESCE(p."ESTADO_PEDIDO", '')                    AS estado_pedido,
     COALESCE(mp."TIPO", '')                            AS metodo_pago,
-    COALESCE((
-        SELECT jsonb_agg(elementos)::text
-        FROM (
-            SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
-            FROM "PRODUCTO_PEDIDO" pp
-            WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-        ) subq
-    ), '[]')                                           AS productos,
     COALESCE(p."PK_ID_PAGO", 0)                        AS pago_id,
     COALESCE(pa."PK_ID_METODO_PAGO", 0)                AS metodo_pago_id,
     COALESCE(p."PK_ID_DOMICILIO", 0)                   AS domicilio_id,
@@ -387,13 +392,37 @@ FROM "PEDIDO" p
 LEFT JOIN "PAGO" pa        ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
 LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
 LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
-WHERE p."PK_ID_PEDIDO" = ?;
-    `
+WHERE p."PK_ID_PEDIDO" = ?`
 
-	var details models.PedidoDetails
+	if err := o.Raw(baseQuery, pedidoID).QueryRow(&base); err != nil {
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al obtener los detalles del pedido",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
 
-	// Ejecutar consulta
-	err := o.Raw(query, pedidoID).QueryRow(&details)
+	type prodRow struct {
+		ProductoID     int64   `orm:"column(producto_id)"`
+		Nombre         string  `orm:"column(nombre)"`
+		Cantidad       int     `orm:"column(cantidad)"`
+		PrecioUnitario float64 `orm:"column(precio_unitario)"`
+		Subtotal       float64 `orm:"column(subtotal)"`
+	}
+
+	var prodRows []prodRow
+	_, err := o.Raw(`
+SELECT pr."PK_ID_PRODUCTO" AS producto_id,
+       pr."NOMBRE" AS nombre,
+       ppd."CANTIDAD" AS cantidad,
+       ppd."PRECIO_UNITARIO" AS precio_unitario,
+       ppd."SUBTOTAL" AS subtotal
+FROM "PRODUCTO_PEDIDO" pp
+JOIN "PRODUCTO_PEDIDO_DETALLE" ppd ON pp."PK_ID_PEDIDO" = ppd."PK_ID_PEDIDO"
+JOIN "PRODUCTO" pr ON pr."PK_ID_PRODUCTO" = ppd."PK_ID_PRODUCTO"
+WHERE pp."PK_ID_PEDIDO" = ?`, pedidoID).QueryRows(&prodRows)
 	if err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    500,
@@ -404,11 +433,35 @@ WHERE p."PK_ID_PEDIDO" = ?;
 		return
 	}
 
-	// Respuesta exitosa
+	productos := make([]map[string]interface{}, 0, len(prodRows))
+	for _, r := range prodRows {
+		productos = append(productos, map[string]interface{}{
+			"productoId":     r.ProductoID,
+			"nombre":         r.Nombre,
+			"cantidad":       r.Cantidad,
+			"precioUnitario": r.PrecioUnitario,
+			"subtotal":       r.Subtotal,
+		})
+	}
+
+	resp := map[string]interface{}{
+		"pedidoId":         base.PedidoID,
+		"fechaPedido":      base.Fecha,
+		"horaPedido":       base.Hora,
+		"delivery":         base.Delivery,
+		"estadoPedido":     base.EstadoPedido,
+		"metodoPago":       base.MetodoPago,
+		"pagoId":           base.PagoID,
+		"metodoPagoId":     base.MetodoPagoID,
+		"domicilioId":      base.DomicilioID,
+		"documentoCliente": base.DocumentoCliente,
+		"productos":        productos,
+	}
+
 	c.Data["json"] = models.ApiResponse{
 		Code:    200,
 		Message: "Detalles del pedido obtenidos exitosamente",
-		Data:    details,
+		Data:    resp,
 	}
 	c.ServeJSON()
 }

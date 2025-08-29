@@ -2,48 +2,21 @@ package controllers
 
 import (
 	"bytes"
+	stdctx "context"
+	"database/sql/driver"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/server/web/context"
-	"restaurante/models"
+	beegoCtx "github.com/beego/beego/v2/server/web/context"
 )
-
-type fakeQueryPP struct {
-	orm.QuerySeter
-	one func(interface{}, ...string) error
-}
-
-func (f fakeQueryPP) Filter(string, ...interface{}) orm.QuerySeter { return f }
-func (f fakeQueryPP) One(res interface{}, cols ...string) error    { return f.one(res, cols...) }
-
-type fakeOrmerPP struct {
-	query  func(interface{}) orm.QuerySeter
-	insert func(interface{}) (int64, error)
-	update func(interface{}, ...string) (int64, error)
-}
-
-func (f fakeOrmerPP) QueryTable(i interface{}) orm.QuerySeter { return f.query(i) }
-func (f fakeOrmerPP) Insert(m interface{}) (int64, error) {
-	if f.insert != nil {
-		return f.insert(m)
-	}
-	return 1, nil
-}
-func (f fakeOrmerPP) Update(m interface{}, cols ...string) (int64, error) {
-	if f.update != nil {
-		return f.update(m, cols...)
-	}
-	return 1, nil
-}
 
 func TestProductoPedidoGetAllMissingParam(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/producto_pedido", nil)
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	c := ProductoPedidoController{}
 	c.Ctx = ctx
@@ -60,9 +33,14 @@ func TestProductoPedidoGetAllMissingParam(t *testing.T) {
 }
 
 func TestProductoPedidoGetAllDBError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		return nil, errors.New("db error")
+	}
+	defer func() { MockQuery = nil }()
+
 	r := httptest.NewRequest(http.MethodGet, "/producto_pedido?pedido_id=1", nil)
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	c := ProductoPedidoController{}
 	c.Ctx = ctx
@@ -78,11 +56,37 @@ func TestProductoPedidoGetAllDBError(t *testing.T) {
 	}
 }
 
+func TestProductoPedidoGetAllSuccess(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"producto_id", "nombre", "cantidad", "precio_unitario", "subtotal"}
+		vals := [][]driver.Value{{int64(1), "Cafe", int64(1), float64(10), float64(10)}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	defer func() { MockQuery = nil }()
+
+	r := httptest.NewRequest(http.MethodGet, "/producto_pedido?pedido_id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := ProductoPedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetAll()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "detallesProductos") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
 func TestProductoPedidoPostInvalidJSON(t *testing.T) {
 	body := "{"
 	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", bytes.NewBufferString(body))
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = []byte(body)
 	c := ProductoPedidoController{}
@@ -104,7 +108,7 @@ func TestProductoPedidoPostMissingFields(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = []byte(body)
 	c := ProductoPedidoController{}
@@ -122,11 +126,16 @@ func TestProductoPedidoPostMissingFields(t *testing.T) {
 }
 
 func TestProductoPedidoPostDBError(t *testing.T) {
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("db error")
+	}
+	defer func() { MockExec = nil }()
+
 	body := `{"pedidoId":1,"detallesProductos":[{"productoId":1,"cantidad":1}]}`
 	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = []byte(body)
 	c := ProductoPedidoController{}
@@ -143,12 +152,39 @@ func TestProductoPedidoPostDBError(t *testing.T) {
 	}
 }
 
+func TestProductoPedidoPostSuccess(t *testing.T) {
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return mockResult{}, nil
+	}
+	defer func() { MockExec = nil }()
+
+	body := `{"pedidoId":1,"detallesProductos":[{"productoId":1,"cantidad":1}]}`
+	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := ProductoPedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "pedidoId") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
 func TestProductoPedidoUpdateMissingParam(t *testing.T) {
 	body := "[]"
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = []byte(body)
 	c := ProductoPedidoController{}
@@ -169,7 +205,7 @@ func TestProductoPedidoUpdateInvalidJSON(t *testing.T) {
 	body := "{"
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", bytes.NewBufferString(body))
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = []byte(body)
 	c := ProductoPedidoController{}
@@ -191,7 +227,7 @@ func TestProductoPedidoUpdateEmptyList(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = []byte(body)
 	c := ProductoPedidoController{}
@@ -209,11 +245,16 @@ func TestProductoPedidoUpdateEmptyList(t *testing.T) {
 }
 
 func TestProductoPedidoUpdateDBError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		return nil, errors.New("db error")
+	}
+	defer func() { MockQuery = nil }()
+
 	body := `[{"productoId":1,"cantidad":1}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	ctx := context.NewContext()
+	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = []byte(body)
 	c := ProductoPedidoController{}
@@ -226,66 +267,6 @@ func TestProductoPedidoUpdateDBError(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
 	if !strings.Contains(w.Body.String(), "Error al buscar el pedido") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoGetAllSuccess(t *testing.T) {
-	original := productoPedidoNewOrm
-	productoPedidoNewOrm = func() productoPedidoOrmer {
-		return fakeOrmerPP{query: func(interface{}) orm.QuerySeter {
-			return fakeQueryPP{one: func(res interface{}, cols ...string) error {
-				pp := res.(*models.ProductoPedido)
-				pp.PK_ID_PEDIDO = 1
-				pp.DETALLES_PRODUCTOS = `[{"PK_ID_PRODUCTO":1,"NOMBRE":"Cafe","CANTIDAD":1,"PRECIO_UNITARIO":10,"SUBTOTAL":10}]`
-				return nil
-			}}
-		}}
-	}
-	defer func() { productoPedidoNewOrm = original }()
-
-	r := httptest.NewRequest(http.MethodGet, "/producto_pedido?pedido_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "detallesProductos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoPostSuccess(t *testing.T) {
-	original := productoPedidoNewOrm
-	productoPedidoNewOrm = func() productoPedidoOrmer {
-		return fakeOrmerPP{insert: func(interface{}) (int64, error) { return 1, nil }}
-	}
-	defer func() { productoPedidoNewOrm = original }()
-
-	body := `{"pedidoId":1,"detallesProductos":[{"productoId":1,"cantidad":1}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "pedidoId") {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
