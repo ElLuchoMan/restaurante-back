@@ -2,6 +2,7 @@ package test
 
 import (
 	"log"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"restaurante/models"
@@ -26,10 +27,10 @@ func SeedTestData() {
 	}
 
 	if _, err := o.Insert(&models.HorarioTrabajador{
-		DocumentoTrabajador: 1,
-		Dia:                 "Lunes",
-		HoraInicio:          "08:00:00",
-		HoraFin:             "16:00:00",
+		PK_DOCUMENTO_TRABAJADOR: 1,
+		DIA:                     "Lunes",
+		HORA_INICIO:             time.Date(0, 1, 1, 8, 0, 0, 0, time.UTC),
+		HORA_FIN:                time.Date(0, 1, 1, 16, 0, 0, 0, time.UTC),
 	}); err != nil {
 		log.Println("seed HORARIO_TRABAJADOR:", err)
 	}

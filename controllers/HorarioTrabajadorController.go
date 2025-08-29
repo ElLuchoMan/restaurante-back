@@ -10,6 +10,15 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type horarioOrmer interface {
+	QueryTable(interface{}) orm.QuerySeter
+	Insert(interface{}) (int64, error)
+	Update(interface{}, ...string) (int64, error)
+}
+
+// horarioTrabajadorNewOrm allows tests to stub orm.NewOrm.
+var horarioTrabajadorNewOrm = func() horarioOrmer { return orm.NewOrm() }
+
 type HorarioTrabajadorController struct {
 	web.Controller
 }
@@ -27,7 +36,7 @@ type HorarioTrabajadorController struct {
 // @Security BearerAuth
 // @Router /horario_trabajador [get]
 func (c *HorarioTrabajadorController) GetAll() {
-	o := orm.NewOrm()
+	o := horarioTrabajadorNewOrm()
 	qs := o.QueryTable(new(models.HorarioTrabajador))
 
 	if doc, err := c.GetInt64("documento"); err == nil && doc != 0 {
@@ -108,7 +117,7 @@ func (c *HorarioTrabajadorController) Post() {
 		HORA_FIN:                horaFin,
 	}
 
-	o := orm.NewOrm()
+	o := horarioTrabajadorNewOrm()
 	if _, err := o.Insert(&horario); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -161,7 +170,7 @@ func (c *HorarioTrabajadorController) Put() {
 	}
 
 	var horario models.HorarioTrabajador
-	o := orm.NewOrm()
+	o := horarioTrabajadorNewOrm()
 	if err := o.QueryTable(new(models.HorarioTrabajador)).
 		Filter("PK_DOCUMENTO_TRABAJADOR", doc).
 		Filter("DIA", dia).
@@ -248,7 +257,7 @@ func (c *HorarioTrabajadorController) Delete() {
 		return
 	}
 
-	o := orm.NewOrm()
+	o := horarioTrabajadorNewOrm()
 	if _, err := o.QueryTable(new(models.HorarioTrabajador)).
 		Filter("PK_DOCUMENTO_TRABAJADOR", doc).
 		Filter("DIA", dia).

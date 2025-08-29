@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -60,6 +61,14 @@ func TestProductoPedidoGetAllMissingParam(t *testing.T) {
 }
 
 func TestProductoPedidoGetAllDBError(t *testing.T) {
+	original := productoPedidoNewOrm
+	productoPedidoNewOrm = func() productoPedidoOrmer {
+		return fakeOrmerPP{query: func(interface{}) orm.QuerySeter {
+			return fakeQueryPP{one: func(interface{}, ...string) error { return errors.New("db") }}
+		}}
+	}
+	defer func() { productoPedidoNewOrm = original }()
+
 	r := httptest.NewRequest(http.MethodGet, "/producto_pedido?pedido_id=1", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -122,7 +131,7 @@ func TestProductoPedidoPostMissingFields(t *testing.T) {
 }
 
 func TestProductoPedidoPostDBError(t *testing.T) {
-	body := `{"pedidoId":1,"detallesProductos":[{"productoId":1,"cantidad":1}]}`
+	body := `{"pedidoId":1,"detallesProductos":[{"productoId":1,"cantidad":1,"precioUnitario":10,"subtotal":10}]}`
 	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -209,7 +218,15 @@ func TestProductoPedidoUpdateEmptyList(t *testing.T) {
 }
 
 func TestProductoPedidoUpdateDBError(t *testing.T) {
-	body := `[{"productoId":1,"cantidad":1}]`
+	original := productoPedidoNewOrm
+	productoPedidoNewOrm = func() productoPedidoOrmer {
+		return fakeOrmerPP{query: func(interface{}) orm.QuerySeter {
+			return fakeQueryPP{one: func(interface{}, ...string) error { return errors.New("db") }}
+		}}
+	}
+	defer func() { productoPedidoNewOrm = original }()
+
+	body := `[{"productoId":1,"cantidad":1,"precioUnitario":10,"subtotal":10}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -269,7 +286,7 @@ func TestProductoPedidoPostSuccess(t *testing.T) {
 	}
 	defer func() { productoPedidoNewOrm = original }()
 
-	body := `{"pedidoId":1,"detallesProductos":[{"productoId":1,"cantidad":1}]}`
+	body := `{"pedidoId":1,"detallesProductos":[{"productoId":1,"cantidad":1,"precioUnitario":10,"subtotal":10}]}`
 	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

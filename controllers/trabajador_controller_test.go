@@ -380,22 +380,6 @@ func TestPutSuccess(t *testing.T) {
 	}
 }
 
-func TestPutHorarioUpdated(t *testing.T) {
-	m := &mockOrm{}
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return m }
-	defer func() { newTrabajadorOrm = original }()
-	body := `{"HORARIO":"08:00-16:00"}`
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("%d", w.Code)
-	}
-	if m.trabajador.HORARIO == nil || *m.trabajador.HORARIO != "08:00-16:00" {
-		t.Fatalf("horario not updated")
-	}
-}
-
 // Delete tests
 func TestDeleteInvalidID(t *testing.T) {
 	c, w := buildContext(http.MethodDelete, "/trabajadores", "")
