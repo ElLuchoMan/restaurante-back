@@ -4,12 +4,10 @@ import "github.com/beego/beego/v2/client/orm"
 
 // ProductoPedidoDetalle representa cada producto asociado a un pedido.
 type ProductoPedidoDetalle struct {
-	PKIDProductoPedidoDetalle int64   `orm:"column(PK_ID_PRODUCTO_PEDIDO_DETALLE);pk;auto" json:"detalleId"`
-	PKIDPedido                int64   `orm:"column(PK_ID_PEDIDO)" json:"pedidoId"`
-	PKIDProducto              int64   `orm:"column(PK_ID_PRODUCTO)" json:"productoId"`
-	CANTIDAD                  int     `orm:"column(CANTIDAD)" json:"cantidad"`
-	PRECIOUNITARIO            float64 `orm:"column(PRECIO_UNITARIO);null" json:"precioUnitario,omitempty"`
-	SUBTOTAL                  float64 `orm:"column(SUBTOTAL);null" json:"subtotal,omitempty"`
+	PKIDProductoPedido int64   `orm:"column(PK_ID_PRODUCTO_PEDIDO);pk" json:"productoPedidoId"`
+	PKIDProducto       int64   `orm:"column(PK_ID_PRODUCTO);pk" json:"productoId"`
+	CANTIDAD           int     `orm:"column(CANTIDAD)" json:"cantidad"`
+	PRECIO             float64 `orm:"column(PRECIO);null" json:"precio,omitempty"`
 }
 
 // TableName especifica el nombre de la tabla en la base de datos.
