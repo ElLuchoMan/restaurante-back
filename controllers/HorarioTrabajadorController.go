@@ -160,12 +160,9 @@ func (c *HorarioTrabajadorController) Put() {
 		return
 	}
 
-	var horario models.HorarioTrabajador
+	horario := models.HorarioTrabajador{PK_DOCUMENTO_TRABAJADOR: doc, DIA: dia}
 	o := orm.NewOrm()
-	if err := o.QueryTable(new(models.HorarioTrabajador)).
-		Filter("PK_DOCUMENTO_TRABAJADOR", doc).
-		Filter("DIA", dia).
-		One(&horario); err == orm.ErrNoRows {
+	if err := o.Read(&horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
 		c.ServeJSON()
@@ -248,11 +245,21 @@ func (c *HorarioTrabajadorController) Delete() {
 		return
 	}
 
+	horario := models.HorarioTrabajador{PK_DOCUMENTO_TRABAJADOR: doc, DIA: dia}
 	o := orm.NewOrm()
-	if _, err := o.QueryTable(new(models.HorarioTrabajador)).
-		Filter("PK_DOCUMENTO_TRABAJADOR", doc).
-		Filter("DIA", dia).
-		Delete(); err != nil {
+	if err := o.Read(&horario); err == orm.ErrNoRows {
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
+		c.ServeJSON()
+		return
+	} else if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar horario", Cause: err.Error()}
+		c.ServeJSON()
+		return
+	}
+
+	if _, err := o.Delete(&horario); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar horario", Cause: err.Error()}
 		c.ServeJSON()
