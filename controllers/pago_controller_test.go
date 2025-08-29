@@ -198,6 +198,32 @@ func TestPagoPostMissingHora(t *testing.T) {
 	}
 }
 
+func TestPagoPostSuccess(t *testing.T) {
+	body := `{"estadoPago":"PAGADO","fechaPago":"2024-01-01","horaPago":"10:00:00","metodoPagoId":1,"monto":1000}`
+	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+
+	original := pagoNewOrm
+	pagoNewOrm = func() ormer { return fakeOrmer{insert: func(interface{}) (int64, error) { return 1, nil }} }
+	defer func() { pagoNewOrm = original }()
+
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Pago creado") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
 func TestPagoPostMissingMonto(t *testing.T) {
 	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
@@ -504,34 +530,13 @@ func TestPagoGetByIdSuccess(t *testing.T) {
 	}
 }
 
-func TestPagoPostSuccess(t *testing.T) {
-	orig := pagoNewOrm
-	pagoNewOrm = func() ormer {
-		return fakeOrmer{insert: func(m interface{}) (int64, error) { return 1, nil }}
-	}
-	t.Cleanup(func() { pagoNewOrm = orig })
-	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
-	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := PagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Ctx.Input.RequestBody = []byte(body)
-	c.Post()
-	if w.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d body %s", w.Code, w.Body.String())
-	}
-}
-
 func TestPagoPostInsertError(t *testing.T) {
 	orig := pagoNewOrm
 	pagoNewOrm = func() ormer {
 		return fakeOrmer{insert: func(m interface{}) (int64, error) { return 0, fmt.Errorf("fail") }}
 	}
 	t.Cleanup(func() { pagoNewOrm = orig })
-	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	body := `{"estadoPago":"PAGADO","fechaPago":"2024-01-01","horaPago":"10:00:00","metodoPagoId":1,"monto":1000}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
