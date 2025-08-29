@@ -9,6 +9,15 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type productoPedidoOrmer interface {
+	QueryTable(interface{}) orm.QuerySeter
+	Insert(interface{}) (int64, error)
+	Update(interface{}, ...string) (int64, error)
+}
+
+// productoPedidoNewOrm allows tests to stub orm.NewOrm.
+var productoPedidoNewOrm = func() productoPedidoOrmer { return orm.NewOrm() }
+
 type ProductoPedidoController struct {
 	web.Controller
 }
@@ -42,7 +51,7 @@ func (c *ProductoPedidoController) GetAll() {
 		return
 	}
 
-	o := orm.NewOrm()
+	o := productoPedidoNewOrm()
 	var productoPedido models.ProductoPedido
 
 	err = o.QueryTable(new(models.ProductoPedido)).
@@ -160,7 +169,7 @@ func (c *ProductoPedidoController) Post() {
 		DETALLES_PRODUCTOS: string(detallesJSON),
 	}
 
-	o := orm.NewOrm()
+	o := productoPedidoNewOrm()
 	_, err = o.Insert(&productoPedido)
 	if err != nil {
 		c.Data["json"] = models.ApiResponse{
@@ -226,7 +235,7 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 
-	o := orm.NewOrm()
+	o := productoPedidoNewOrm()
 	productoPedido := models.ProductoPedido{}
 
 	// Verificar si existe el pedido en la base de datos
