@@ -1,21 +1,37 @@
 package models
 
-import "github.com/beego/beego/v2/client/orm"
+import (
+	"encoding/json"
+	"time"
 
-// HorarioTrabajador almacena los turnos asignados a un trabajador.
+	"github.com/beego/beego/v2/client/orm"
+)
+
 type HorarioTrabajador struct {
-	PKIDHorarioTrabajador int64  `orm:"column(PK_ID_HORARIO_TRABAJADOR);pk;auto" json:"horarioTrabajadorId"`
-	DocumentoTrabajador   int64  `orm:"column(PK_DOCUMENTO_TRABAJADOR)" json:"documentoTrabajador"`
-	Dia                   string `orm:"column(DIA);size(20)" json:"dia"`
-	HoraInicio            string `orm:"column(HORA_INICIO);type(time)" json:"horaInicio"`
-	HoraFin               string `orm:"column(HORA_FIN);type(time)" json:"horaFin"`
+	PK_DOCUMENTO_TRABAJADOR int64     `orm:"column(PK_DOCUMENTO_TRABAJADOR);pk" json:"documentoTrabajador"`
+	DIA                     string    `orm:"column(DIA);type(text)" json:"dia"`
+	HORA_INICIO             time.Time `orm:"column(HORA_INICIO);type(time)" json:"horaInicio"`
+	HORA_FIN                time.Time `orm:"column(HORA_FIN);type(time)" json:"horaFin"`
 }
 
-// TableName especifica la tabla asociada al modelo.
 func (h *HorarioTrabajador) TableName() string {
 	return "HORARIO_TRABAJADOR"
 }
 
 func init() {
 	orm.RegisterModel(new(HorarioTrabajador))
+}
+
+func (h HorarioTrabajador) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		PK_DOCUMENTO_TRABAJADOR int64  `json:"documentoTrabajador"`
+		DIA                     string `json:"dia"`
+		HORA_INICIO             string `json:"horaInicio"`
+		HORA_FIN                string `json:"horaFin"`
+	}{
+		PK_DOCUMENTO_TRABAJADOR: h.PK_DOCUMENTO_TRABAJADOR,
+		DIA:                     h.DIA,
+		HORA_INICIO:             h.HORA_INICIO.Format("15:04:05"),
+		HORA_FIN:                h.HORA_FIN.Format("15:04:05"),
+	})
 }

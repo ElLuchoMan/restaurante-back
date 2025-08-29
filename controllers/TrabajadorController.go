@@ -105,6 +105,12 @@ func (c *TrabajadorController) GetAll() {
 			trabajadores[i].FECHA_NACIMIENTO = &fechaNacimientoUTC // UTC sin ajuste
 		}
 		trabajadores[i].FECHA_INGRESO = trabajadores[i].FECHA_INGRESO.In(database.BogotaZone)
+		var horarios []models.HorarioTrabajador
+		if _, err := o.QueryTable(new(models.HorarioTrabajador)).
+			Filter("PK_DOCUMENTO_TRABAJADOR", trabajadores[i].PK_DOCUMENTO_TRABAJADOR).
+			All(&horarios); err == nil {
+			trabajadores[i].HORARIOS = horarios
+		}
 	}
 
 	// Si no hay resultados
@@ -166,6 +172,12 @@ func (c *TrabajadorController) GetById() {
 	}
 
 	trabajador.PASSWORD = ""
+	var horarios []models.HorarioTrabajador
+	if _, err := o.QueryTable(new(models.HorarioTrabajador)).
+		Filter("PK_DOCUMENTO_TRABAJADOR", trabajador.PK_DOCUMENTO_TRABAJADOR).
+		All(&horarios); err == nil {
+		trabajador.HORARIOS = horarios
+	}
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -444,10 +456,6 @@ func (c *TrabajadorController) Put() {
 
 	if telefono, ok := input["TELEFONO"].(string); ok && telefono != "" {
 		trabajador.TELEFONO = &telefono
-	}
-
-	if horario, ok := input["HORARIO"].(string); ok && horario != "" {
-		trabajador.HORARIO = &horario
 	}
 
 	if fechaIngresoStr, ok := input["FECHA_INGRESO"].(string); ok && fechaIngresoStr != "" {
