@@ -27,9 +27,13 @@ func (mq *mockQuery) All(result interface{}, cols ...string) (int64, error) {
 	if mq.err != nil {
 		return 0, mq.err
 	}
-	if out, ok := result.(*[]models.Trabajador); ok {
+	switch out := result.(type) {
+	case *[]models.Trabajador:
 		*out = mq.trabajadores
 		return int64(len(mq.trabajadores)), nil
+	case *[]models.HorarioTrabajador:
+		*out = []models.HorarioTrabajador{}
+		return 0, nil
 	}
 	return 0, nil
 }
@@ -43,7 +47,12 @@ type mockOrm struct {
 	trabajador models.Trabajador
 }
 
-func (m *mockOrm) QueryTable(interface{}) orm.QuerySeter { return m.query }
+func (m *mockOrm) QueryTable(interface{}) orm.QuerySeter {
+	if m.query != nil {
+		return m.query
+	}
+	return &mockQuery{}
+}
 func (m *mockOrm) Read(model interface{}, cols ...string) error {
 	if m.readErr != nil {
 		return m.readErr
@@ -363,7 +372,7 @@ func TestPutSuccess(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"NOMBRE":"a","APELLIDO":"b","ROL":"c","SUELDO":1,"NUEVO":true,"TELEFONO":"1","HORARIO":"m","FECHA_INGRESO":"2023-01-01","FECHA_RETIRO":"2023-01-02","FECHA_NACIMIENTO":"2023-01-03","PASSWORD":"p"}`
+	body := `{"NOMBRE":"a","APELLIDO":"b","ROL":"c","SUELDO":1,"NUEVO":true,"TELEFONO":"1","FECHA_INGRESO":"2023-01-01","FECHA_RETIRO":"2023-01-02","FECHA_NACIMIENTO":"2023-01-03","PASSWORD":"p"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusOK {
