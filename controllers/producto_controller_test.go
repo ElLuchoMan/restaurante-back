@@ -80,7 +80,8 @@ func TestValidateProducto(t *testing.T) {
 
 	tests := []models.Producto{
 		{PRECIO: 10, ESTADO_PRODUCTO: "disponible"},                                      // missing name
-		{NOMBRE: "B", PRECIO: 0, ESTADO_PRODUCTO: "disponible"},                          // invalid price
+		{NOMBRE: "B", PRECIO: 0, ESTADO_PRODUCTO: "disponible"},                          // zero price
+		{NOMBRE: "B", PRECIO: -5, ESTADO_PRODUCTO: "disponible"},                         // negative price
 		{NOMBRE: "B", PRECIO: 10, CALORIAS: int64Ptr(-1), ESTADO_PRODUCTO: "disponible"}, // negative calories
 		{NOMBRE: "B", PRECIO: 10, ESTADO_PRODUCTO: "OTRO"},                               // invalid estado
 	}
