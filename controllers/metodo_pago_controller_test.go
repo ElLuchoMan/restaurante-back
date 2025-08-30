@@ -129,16 +129,16 @@ func TestMetodoPagoDeleteNotFound(t *testing.T) {
 // mockMetodoPagoOrmer provides an in-memory implementation of metodoPagoOrmer
 // used to test the controller without touching a real database.
 type mockMetodoPagoOrmer struct {
-        data   map[int]models.MetodoPago
-        nextID int
+	data   map[int]models.MetodoPago
+	nextID int
 }
 
 func newMockMetodoPagoOrmer() *mockMetodoPagoOrmer {
-        return &mockMetodoPagoOrmer{data: make(map[int]models.MetodoPago), nextID: 1}
+	return &mockMetodoPagoOrmer{data: make(map[int]models.MetodoPago), nextID: 1}
 }
 
 func (m *mockMetodoPagoOrmer) QueryTable(_ interface{}) metodoPagoQuerySeter {
-        return m
+	return m
 }
 
 func (m *mockMetodoPagoOrmer) All(res interface{}, _ ...string) (int64, error) {
@@ -188,7 +188,7 @@ func (m *mockMetodoPagoOrmer) Delete(v interface{}, _ ...string) (int64, error) 
 	return 1, nil
 }
 func TestMetodoPagoGetByIdSuccess(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -198,7 +198,7 @@ func TestMetodoPagoGetByIdSuccess(t *testing.T) {
 		t.Fatalf("insert: %v", err)
 	}
 
-        r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/metodos_pago/search?id=%d", mp.PK_ID_METODO_PAGO), nil)
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/metodos_pago/search?id=%d", mp.PK_ID_METODO_PAGO), nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
@@ -221,7 +221,7 @@ func TestMetodoPagoGetByIdSuccess(t *testing.T) {
 }
 
 func TestMetodoPagoGetByIdNotFound(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -249,7 +249,7 @@ func TestMetodoPagoGetByIdNotFound(t *testing.T) {
 }
 
 func TestMetodoPagoPostSuccess(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -275,7 +275,7 @@ func TestMetodoPagoPostSuccess(t *testing.T) {
 }
 
 func TestMetodoPagoPutSuccess(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -306,7 +306,7 @@ func TestMetodoPagoPutSuccess(t *testing.T) {
 }
 
 func TestMetodoPagoPutInvalidJSONWithRecord(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -333,7 +333,7 @@ func TestMetodoPagoPutInvalidJSONWithRecord(t *testing.T) {
 }
 
 func TestMetodoPagoDeleteSuccess(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()

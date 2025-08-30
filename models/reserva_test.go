@@ -27,7 +27,7 @@ func TestReservaMarshalJSON(t *testing.T) {
 
 func TestReservaTableName(t *testing.T) {
 	r := Reserva{}
-	if r.TableName() != "RESERVA" {
+	if r.TableName() != "reserva" {
 		t.Errorf("expected table name RESERVA, got %s", r.TableName())
 	}
 }

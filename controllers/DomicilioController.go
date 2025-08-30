@@ -44,25 +44,25 @@ func (c *DomicilioController) GetAll() {
 
 	// Aplicar filtros opcionales SOLO si se proporcionan
 	if direccion != "" {
-		qs = qs.Filter("DIRECCION__icontains", direccion)
+		qs = qs.Filter("direccion__icontains", direccion)
 	}
 	if telefono != "" {
-		qs = qs.Filter("TELEFONO", telefono)
+		qs = qs.Filter("telefono", telefono)
 	}
 	if updatedBy != "" {
-		qs = qs.Filter("UPDATED_BY__icontains", updatedBy)
+		qs = qs.Filter("updated_by__icontains", updatedBy)
 	}
 	if fecha != "" {
-		qs = qs.Filter("FECHA", fecha)
+		qs = qs.Filter("fecha", fecha)
 	}
 
 	// Aplicar condición para que los domiciliarios solo vean pedidos que pueden tomar
 	if trabajadorID != 0 {
 		cond := orm.NewCondition().
-			Or("PK_DOCUMENTO_TRABAJADOR__isnull", true).
-			Or("PK_DOCUMENTO_TRABAJADOR", trabajadorID)
+			Or("pk_documento_trabajador__isnull", true).
+			Or("pk_documento_trabajador", trabajadorID)
 
-		qs = qs.Filter("ENTREGADO", false).SetCond(cond)
+		qs = qs.Filter("entregado", false).SetCond(cond)
 	}
 
 	// Ejecutar consulta
@@ -149,14 +149,14 @@ func (c *DomicilioController) GetById() {
 
 	qCliente := `
 SELECT
-  pc."PK_DOCUMENTO_CLIENTE" AS documento,
-  c."NOMBRE"                AS nombre,
-  c."APELLIDO"              AS apellido
-FROM "PEDIDO" p
-JOIN "PEDIDO_CLIENTE" pc ON pc."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-JOIN "CLIENTE" c        ON c."PK_DOCUMENTO_CLIENTE" = pc."PK_DOCUMENTO_CLIENTE"
-WHERE p."PK_ID_DOMICILIO" = ?
-ORDER BY p."PK_ID_PEDIDO" DESC
+  pc."pk_documento_cliente" AS documento,
+  c."nombre"                AS nombre,
+  c."apellido"              AS apellido
+FROM "pedido" p
+JOIN "pedido_cliente" pc ON pc."pk_id_pedido" = p."pk_id_pedido"
+JOIN "cliente" c        ON c."pk_documento_cliente" = pc."pk_documento_cliente"
+WHERE p."pk_id_domicilio" = ?
+ORDER BY p."pk_id_pedido" DESC
 LIMIT 1;`
 
 	cliErr := o.Raw(qCliente, id).QueryRow(&cli)
@@ -173,29 +173,29 @@ LIMIT 1;`
 
 	qPedido := `
 SELECT
-  p."PK_ID_PEDIDO" AS pedido_id,
-  pa."PK_ID_PAGO"  AS pago_id,
-  pa."MONTO"::numeric AS pago_monto,
+  p."pk_id_pedido" AS pedido_id,
+  pa."pk_id_pago"  AS pago_id,
+  pa."monto"::numeric AS pago_monto,
   (
     SELECT COALESCE(SUM((elem->>'SUBTOTAL')::numeric), 0)
     FROM (
-      SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elem
-      FROM "PRODUCTO_PEDIDO" pp
-      WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+      SELECT jsonb_array_elements(pp."detalles_productos") AS elem
+      FROM "producto_pedido" pp
+      WHERE pp."pk_id_pedido" = p."pk_id_pedido"
     ) s
   ) AS subtotal_productos,
   (
     SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)::text
     FROM (
-      SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elem
-      FROM "PRODUCTO_PEDIDO" pp
-      WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+      SELECT jsonb_array_elements(pp."detalles_productos") AS elem
+      FROM "producto_pedido" pp
+      WHERE pp."pk_id_pedido" = p."pk_id_pedido"
     ) s
   ) AS productos
-FROM "PEDIDO" p
-LEFT JOIN "PAGO" pa ON pa."PK_ID_PAGO" = p."PK_ID_PAGO"
-WHERE p."PK_ID_DOMICILIO" = ?
-ORDER BY p."PK_ID_PEDIDO" DESC
+FROM "pedido" p
+LEFT JOIN "pago" pa ON pa."pk_id_pago" = p."pk_id_pago"
+WHERE p."pk_id_domicilio" = ?
+ORDER BY p."pk_id_pedido" DESC
 LIMIT 1;`
 
 	pedErr := o.Raw(qPedido, id).QueryRow(&ped)
@@ -558,7 +558,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 	// Asignar el domiciliario
 	domicilio.PK_DOCUMENTO_TRABAJADOR = &trabajadorID
 
-	if _, err := o.Update(&domicilio, "PK_DOCUMENTO_TRABAJADOR"); err != nil {
+	if _, err := o.Update(&domicilio, "pk_documento_trabajador"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

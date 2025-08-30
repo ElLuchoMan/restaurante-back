@@ -46,7 +46,7 @@ func (c *ProductoPedidoController) GetAll() {
 	var productoPedido models.ProductoPedido
 
 	err = o.QueryTable(new(models.ProductoPedido)).
-		Filter("PK_ID_PEDIDO", pedidoID).
+		Filter("pk_id_pedido", pedidoID).
 		One(&productoPedido)
 
 	if err == orm.ErrNoRows {
@@ -82,11 +82,11 @@ func (c *ProductoPedidoController) GetAll() {
 	var detallesCamelCase []map[string]interface{}
 	for _, detalle := range detalles {
 		camelCaseDetalle := map[string]interface{}{
-			"cantidad":       detalle["CANTIDAD"],
-			"nombre":         detalle["NOMBRE"],
-			"productoId":     detalle["PK_ID_PRODUCTO"],
-			"precioUnitario": detalle["PRECIO_UNITARIO"],
-			"subtotal":       detalle["SUBTOTAL"],
+			"cantidad":       detalle["cantidad"],
+			"nombre":         detalle["nombre"],
+			"productoId":     detalle["pk_id_producto"],
+			"precioUnitario": detalle["precio_unitario"],
+			"subtotal":       detalle["subtotal"],
 		}
 		detallesCamelCase = append(detallesCamelCase, camelCaseDetalle)
 	}
@@ -231,7 +231,7 @@ func (c *ProductoPedidoController) Update() {
 
 	// Verificar si existe el pedido en la base de datos
 	err = o.QueryTable(new(models.ProductoPedido)).
-		Filter("PK_ID_PEDIDO", pedidoID).
+		Filter("pk_id_pedido", pedidoID).
 		One(&productoPedido)
 	if err == orm.ErrNoRows {
 		c.Data["json"] = models.ApiResponse{
@@ -264,7 +264,7 @@ func (c *ProductoPedidoController) Update() {
 
 	// Actualizar los detalles en la base de datos
 	productoPedido.DETALLES_PRODUCTOS = string(nuevosDetallesJSON)
-	if _, err := o.Update(&productoPedido, "DETALLES_PRODUCTOS"); err != nil {
+	if _, err := o.Update(&productoPedido, "detalles_productos"); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al actualizar los productos del pedido",

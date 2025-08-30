@@ -362,7 +362,7 @@ func (c *PagoController) Put() {
 	}
 
 	// Validar y actualizar los campos
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
+	if fechaStr, ok := input["fecha"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -378,7 +378,7 @@ func (c *PagoController) Put() {
 	}
 
 	// Procesar HORA
-	if horaStr, ok := input["HORA"].(string); ok && horaStr != "" {
+	if horaStr, ok := input["hora"].(string); ok && horaStr != "" {
 		// Validar el formato de HORA
 		if _, err := time.Parse("15:04:05", horaStr); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -401,11 +401,11 @@ func (c *PagoController) Put() {
 		return
 	}
 
-	if monto, ok := input["MONTO"].(float64); ok {
+	if monto, ok := input["monto"].(float64); ok {
 		pago.MONTO = int64(monto)
 	}
 
-	if estado, ok := input["ESTADO_PAGO"].(string); ok && estado != "" {
+	if estado, ok := input["estado_pago"].(string); ok && estado != "" {
 		if !estadosPagoPermitidos[estado] {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -418,14 +418,14 @@ func (c *PagoController) Put() {
 		pago.ESTADO_PAGO = estado
 	}
 
-	if updatedBy, ok := input["UPDATED_BY"].(string); ok {
+	if updatedBy, ok := input["updated_by"].(string); ok {
 		pago.UPDATED_BY = updatedBy
 	}
 
 	// Actualizar la fecha de modificación
 	pago.UPDATED_AT = time.Now().UTC()
 
-	if pkMetodoPago, ok := input["PK_ID_METODO_PAGO"].(float64); ok {
+	if pkMetodoPago, ok := input["pk_id_metodo_pago"].(float64); ok {
 		valorMetodoPago := int(pkMetodoPago)     // Convertir a int
 		pago.PK_ID_METODO_PAGO = valorMetodoPago // Asignar al puntero
 	} else {

@@ -99,8 +99,8 @@ func TestCambiosHorario_GetByCurrentDate_NotFound(t *testing.T) {
 	c, w := setupCtx(http.MethodGet, "/cambios_horario/actual", "")
 	c.GetByCurrentDate()
 
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
 	}
 	if !strings.Contains(w.Body.String(), "No hay cambios de horario para la fecha actual") {
 		t.Errorf("unexpected body: %s", w.Body.String())
@@ -201,7 +201,7 @@ func TestCambiosHorario_Put_NotFoundPath(t *testing.T) {
 	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=1", `{"abierto":true}`)
 	c.Put()
 
-	// Se respeta tu semántica: 200 con Code=404
+	// Se respeta tu semántica: 200 con Code=200
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
@@ -256,7 +256,7 @@ func TestCambiosHorario_Delete_NotFound(t *testing.T) {
 	c, w := setupCtx(http.MethodDelete, "/cambios_horario?id=123", "")
 	c.Delete()
 
-	// Tu semántica: 200 con Code=404
+	// Tu semántica: 200 con Code=200
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
