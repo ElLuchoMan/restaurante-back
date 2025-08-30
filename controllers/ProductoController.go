@@ -421,7 +421,7 @@ func (c *ProductoController) Delete() {
 		c.ServeJSON()
 		return
 	}
-	// Cambiar el estado del producto a "NO DISPONIBLE" para el borrado lógico
+	// Cambiar el estado del producto a "no disponible" para el borrado lógico
 	producto.ESTADO_PRODUCTO = models.EstadoProductoNoDisponible
 	if _, err := o.Update(producto, "ESTADO_PRODUCTO"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -475,7 +475,7 @@ func validateProducto(producto *models.Producto) error {
 		return fmt.Errorf("el campo 'CALORIAS' debe ser un número positivo")
 	}
 	if producto.ESTADO_PRODUCTO != models.EstadoProductoDisponible && producto.ESTADO_PRODUCTO != models.EstadoProductoNoDisponible {
-		return fmt.Errorf("el campo 'ESTADO_PRODUCTO' debe ser 'DISPONIBLE' o 'NO DISPONIBLE'")
+		return fmt.Errorf("el campo 'ESTADO_PRODUCTO' debe ser 'disponible' o 'no disponible'")
 	}
 	return nil
 }

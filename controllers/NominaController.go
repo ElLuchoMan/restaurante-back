@@ -189,7 +189,7 @@ func (c *NominaController) Post() {
 
 // @Title Update
 // @Summary Actualizar el estado de una nómina
-// @Description Cambia el estado de una nómina existente a "PAGO".
+// @Description Cambia el estado de una nómina existente a "pago".
 // @Tags nominas
 // @Accept json
 // @Produce json
@@ -229,12 +229,12 @@ func (c *NominaController) Put() {
 		return
 	}
 
-	// Cambiar el estado a "PAGO" si no lo está ya
+	// Cambiar el estado a "pago" si no lo está ya
 	if nomina.ESTADO_NOMINA == models.EstadoNominaPago {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "La nómina ya está en estado 'PAGO'",
+			Message: "La nómina ya está en estado 'pago'",
 		}
 		c.ServeJSON()
 		return
@@ -257,7 +257,7 @@ func (c *NominaController) Put() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Estado de la nómina actualizado a 'PAGO' correctamente",
+		Message: "Estado de la nómina actualizado a 'pago' correctamente",
 		Data:    nomina,
 	}
 	c.ServeJSON()
@@ -265,7 +265,7 @@ func (c *NominaController) Put() {
 
 // @Title Delete
 // @Summary Eliminar una nómina (lógica)
-// @Description Marca una nómina como "NO PAGO" en lugar de eliminarla físicamente.
+// @Description Marca una nómina como "no pago" en lugar de eliminarla físicamente.
 // @Tags nominas
 // @Accept json
 // @Produce json
