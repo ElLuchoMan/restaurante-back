@@ -694,3 +694,48 @@ func TestReservaDeleteScenarios(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
+
+func TestReservaPutInvalidEstadoIgnored(t *testing.T) {
+	pend := "pendiente"
+	db := map[int]models.Reserva{1: {PK_ID_RESERVA: 1, ESTADO_RESERVA: &pend}}
+	ormNew = func() orm.Ormer { return nil }
+	readReserva = func(o orm.Ormer, r *models.Reserva) error {
+		if res, ok := db[int(r.PK_ID_RESERVA)]; ok {
+			*r = res
+			return nil
+		}
+		return orm.ErrNoRows
+	}
+	var updated models.Reserva
+	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
+		updated = *r
+		return 1, nil
+	}
+	t.Cleanup(resetReservaMocks)
+
+	payload := map[string]interface{}{
+		"estadoReserva":    "invalido",
+		"fechaReserva":     "2024-01-01",
+		"horaReserva":      "12:00:00",
+		"personas":         2,
+		"documentoCliente": 123,
+	}
+	body, _ := json.Marshal(payload)
+	r := httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = body
+	c := ReservaController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+
+	c.Put()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if updated.ESTADO_RESERVA == nil || *updated.ESTADO_RESERVA != pend {
+		t.Fatalf("estado should remain %s, got %v", pend, updated.ESTADO_RESERVA)
+	}
+}

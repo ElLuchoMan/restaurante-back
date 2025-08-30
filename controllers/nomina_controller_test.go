@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/beego/beego/v2/server/web/context"
+	"restaurante/models"
 )
 
 func TestNominaGetAllWithoutDB(t *testing.T) {
@@ -150,5 +151,14 @@ func TestNominaDeleteNotFound(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), "Nómina no encontrada") {
 		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestEstadosNominaPermitidos(t *testing.T) {
+	if !estadosNominaPermitidos[models.EstadoNominaPago] || !estadosNominaPermitidos[models.EstadoNominaNoPago] {
+		t.Fatalf("expected valid states to be allowed")
+	}
+	if estadosNominaPermitidos[models.EstadoNomina("otro")] {
+		t.Fatalf("unexpected state should not be allowed")
 	}
 }
