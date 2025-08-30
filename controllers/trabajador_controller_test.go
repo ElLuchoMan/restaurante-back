@@ -298,21 +298,21 @@ func TestPutInvalidDates(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"fecha_ingreso":"bad"}`
+	body := `{"FECHA_INGRESO":"bad"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("%d", w.Code)
 	}
 
-	body2 := `{"fecha_retiro":"bad"}`
+	body2 := `{"FECHA_RETIRO":"bad"}`
 	c2, w2 := buildContext(http.MethodPut, "/trabajadores?id=1", body2)
 	c2.Put()
 	if w2.Code != http.StatusBadRequest {
 		t.Fatalf("%d", w2.Code)
 	}
 
-	body3 := `{"fecha_nacimiento":"bad"}`
+	body3 := `{"FECHA_NACIMIENTO":"bad"}`
 	c3, w3 := buildContext(http.MethodPut, "/trabajadores?id=1", body3)
 	c3.Put()
 	if w3.Code != http.StatusBadRequest {
@@ -327,7 +327,7 @@ func TestPutHashError(t *testing.T) {
 	originalHash := hashPassword
 	hashPassword = func(string) (string, error) { return "", errors.New("hash") }
 	defer func() { hashPassword = originalHash }()
-	body := `{"password":"p"}`
+	body := `{"PASSWORD":"p"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusInternalServerError {
@@ -339,7 +339,7 @@ func TestPutValidateDatesError(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"fecha_ingreso":"2023-01-02","fecha_retiro":"2023-01-01"}`
+	body := `{"FECHA_INGRESO":"2023-01-02","FECHA_RETIRO":"2023-01-01"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusBadRequest {
@@ -351,7 +351,7 @@ func TestPutUpdateError(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{updateErr: errors.New("db")} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"nombre":"a"}`
+	body := `{"NOMBRE":"a"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusInternalServerError {
@@ -363,7 +363,7 @@ func TestPutSuccess(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"nombre":"a","apellido":"b","rol":"c","sueldo":1,"NUEVO":true,"telefono":"1","horario":"m","fecha_ingreso":"2023-01-01","fecha_retiro":"2023-01-02","fecha_nacimiento":"2023-01-03","password":"p"}`
+	body := `{"NOMBRE":"a","APELLIDO":"b","ROL":"c","SUELDO":1,"NUEVO":true,"TELEFONO":"1","HORARIO":"m","FECHA_INGRESO":"2023-01-01","FECHA_RETIRO":"2023-01-02","FECHA_NACIMIENTO":"2023-01-03","PASSWORD":"p"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusOK {

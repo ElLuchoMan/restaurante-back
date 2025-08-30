@@ -40,7 +40,7 @@ func defaultPCReadPedido(txOrm orm.TxOrmer, pedido *models.Pedido) error {
 }
 
 func defaultPCCheckExistingPedidoCliente(txOrm orm.TxOrmer, pedidoID int, rel *models.PedidoCliente) error {
-	return txOrm.QueryTable(new(models.PedidoCliente)).Filter("pk_id_pedido", pedidoID).One(rel)
+	return txOrm.QueryTable(new(models.PedidoCliente)).Filter("PK_ID_PEDIDO", pedidoID).One(rel)
 }
 
 func defaultPCInsertPedidoCliente(txOrm orm.TxOrmer, rel *models.PedidoCliente) (int64, error) {

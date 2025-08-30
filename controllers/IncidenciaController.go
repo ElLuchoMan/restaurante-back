@@ -109,9 +109,9 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 	// Filtrar las incidencias
 	var incidencias []models.Incidencia
 	_, err = o.QueryTable(new(models.Incidencia)).
-		Filter("pk_documento_trabajador", documento).
-		Filter("fecha__gte", fechaInicio.Format("2006-01-02")).
-		Filter("fecha__lte", fechaFin.Format("2006-01-02")).
+		Filter("PK_DOCUMENTO_TRABAJADOR", documento).
+		Filter("FECHA__gte", fechaInicio.Format("2006-01-02")).
+		Filter("FECHA__lte", fechaFin.Format("2006-01-02")).
 		All(&incidencias)
 
 	if err == orm.ErrNoRows || len(incidencias) == 0 {
@@ -173,7 +173,7 @@ func (c *IncidenciaController) Post() {
 	}
 
 	// Validar y procesar FECHA
-	if fechaStr, ok := input["fecha"].(string); ok && fechaStr != "" {
+	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -197,7 +197,7 @@ func (c *IncidenciaController) Post() {
 	}
 
 	// Validar y procesar MONTO
-	if monto, ok := input["monto"].(float64); ok {
+	if monto, ok := input["MONTO"].(float64); ok {
 		incidencia.MONTO = int64(monto)
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -210,7 +210,7 @@ func (c *IncidenciaController) Post() {
 	}
 
 	// Validar y procesar RESTA
-	if resta, ok := input["resta"].(bool); ok {
+	if resta, ok := input["RESTA"].(bool); ok {
 		incidencia.RESTA = resta
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -223,7 +223,7 @@ func (c *IncidenciaController) Post() {
 	}
 
 	// Validar y procesar MOTIVO
-	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
+	if motivo, ok := input["MOTIVO"].(string); ok && motivo != "" {
 		incidencia.MOTIVO = motivo
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -236,7 +236,7 @@ func (c *IncidenciaController) Post() {
 	}
 
 	// Procesar PK_DOCUMENTO_TRABAJADOR (opcional)
-	if documento, ok := input["pk_documento_trabajador"].(float64); ok {
+	if documento, ok := input["PK_DOCUMENTO_TRABAJADOR"].(float64); ok {
 		doc := int64(documento)
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
 	}
@@ -256,12 +256,12 @@ func (c *IncidenciaController) Post() {
 
 	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
-		"pk_id_incidencia":        incidencia.PK_ID_INCIDENCIA,
-		"fecha":                   incidencia.FECHA.Format("2006-01-02"),
-		"monto":                   incidencia.MONTO,
-		"resta":                   incidencia.RESTA,
-		"motivo":                  incidencia.MOTIVO,
-		"pk_documento_trabajador": incidencia.PK_DOCUMENTO_TRABAJADOR,
+		"PK_ID_INCIDENCIA":        incidencia.PK_ID_INCIDENCIA,
+		"FECHA":                   incidencia.FECHA.Format("2006-01-02"),
+		"MONTO":                   incidencia.MONTO,
+		"RESTA":                   incidencia.RESTA,
+		"MOTIVO":                  incidencia.MOTIVO,
+		"PK_DOCUMENTO_TRABAJADOR": incidencia.PK_DOCUMENTO_TRABAJADOR,
 	}
 
 	// Responder con éxito
@@ -330,7 +330,7 @@ func (c *IncidenciaController) Put() {
 	}
 
 	// Validar y actualizar los campos
-	if fechaStr, ok := input["fecha"].(string); ok && fechaStr != "" {
+	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -345,19 +345,19 @@ func (c *IncidenciaController) Put() {
 		incidencia.FECHA = parsedDate
 	}
 
-	if monto, ok := input["monto"].(float64); ok {
+	if monto, ok := input["MONTO"].(float64); ok {
 		incidencia.MONTO = int64(monto)
 	}
 
-	if resta, ok := input["resta"].(bool); ok {
+	if resta, ok := input["RESTA"].(bool); ok {
 		incidencia.RESTA = resta
 	}
 
-	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
+	if motivo, ok := input["MOTIVO"].(string); ok && motivo != "" {
 		incidencia.MOTIVO = motivo
 	}
 
-	if documento, ok := input["pk_documento_trabajador"].(float64); ok {
+	if documento, ok := input["PK_DOCUMENTO_TRABAJADOR"].(float64); ok {
 		doc := int64(documento)
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
 	}
@@ -376,12 +376,12 @@ func (c *IncidenciaController) Put() {
 
 	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
-		"pk_id_incidencia":        incidencia.PK_ID_INCIDENCIA,
-		"fecha":                   incidencia.FECHA.Format("2006-01-02"),
-		"monto":                   incidencia.MONTO,
-		"resta":                   incidencia.RESTA,
-		"motivo":                  incidencia.MOTIVO,
-		"pk_documento_trabajador": incidencia.PK_DOCUMENTO_TRABAJADOR,
+		"PK_ID_INCIDENCIA":        incidencia.PK_ID_INCIDENCIA,
+		"FECHA":                   incidencia.FECHA.Format("2006-01-02"),
+		"MONTO":                   incidencia.MONTO,
+		"RESTA":                   incidencia.RESTA,
+		"MOTIVO":                  incidencia.MOTIVO,
+		"PK_DOCUMENTO_TRABAJADOR": incidencia.PK_DOCUMENTO_TRABAJADOR,
 	}
 
 	// Responder con éxito

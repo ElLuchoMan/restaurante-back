@@ -8,23 +8,23 @@ import (
 )
 
 type Trabajador struct {
-	PK_DOCUMENTO_TRABAJADOR int64      `orm:"column(pk_documento_trabajador);pk" json:"documentoTrabajador"`
-	NOMBRE                  string     `orm:"column(nombre);type(text)" json:"nombre"`
-	APELLIDO                string     `orm:"column(apellido);type(text)" json:"apellido"`
-	SUELDO                  int64      `orm:"column(sueldo)" json:"sueldo"`
-	TELEFONO                *string    `orm:"column(telefono);type(text);null" json:"telefono,omitempty"`
-	FECHA_NACIMIENTO        *time.Time `orm:"column(fecha_nacimiento);type(date)" json:"fechaNacimiento,omitempty"`
-	NUEVO                   bool       `orm:"column(nuevo);type(boolean)" json:"nuevo"`
-	ROL                     string     `orm:"column(rol);type(text)" json:"rol"`
-	FECHA_INGRESO           time.Time  `orm:"column(fecha_ingreso);type(date)" json:"fechaIngreso"`
-	FECHA_RETIRO            *time.Time `orm:"column(fecha_retiro);type(date);null" json:"fechaRetiro,omitempty"`
-	PASSWORD                string     `orm:"column(password)" json:"password"`
-	HORARIO                 *string    `orm:"column(horario);type(text);null" json:"horario,omitempty"`
-	PK_ID_RESTAURANTE       *int64     `orm:"column(pk_id_restaurante);null" json:"restauranteId,omitempty"`
+	PK_DOCUMENTO_TRABAJADOR int64      `orm:"column(PK_DOCUMENTO_TRABAJADOR);pk" json:"documentoTrabajador"`
+	NOMBRE                  string     `orm:"column(NOMBRE);type(text)" json:"nombre"`
+	APELLIDO                string     `orm:"column(APELLIDO);type(text)" json:"apellido"`
+	SUELDO                  int64      `orm:"column(SUELDO)" json:"sueldo"`
+	TELEFONO                *string    `orm:"column(TELEFONO);type(text);null" json:"telefono,omitempty"`
+	FECHA_NACIMIENTO        *time.Time `orm:"column(FECHA_NACIMIENTO);type(date)" json:"fechaNacimiento,omitempty"`
+	NUEVO                   bool       `orm:"column(NUEVO);type(boolean)" json:"nuevo"`
+	ROL                     string     `orm:"column(ROL);type(text)" json:"rol"`
+	FECHA_INGRESO           time.Time  `orm:"column(FECHA_INGRESO);type(date)" json:"fechaIngreso"`
+	FECHA_RETIRO            *time.Time `orm:"column(FECHA_RETIRO);type(date);null" json:"fechaRetiro,omitempty"`
+	PASSWORD                string     `orm:"column(PASSWORD)" json:"password"`
+	HORARIO                 *string    `orm:"column(HORARIO);type(text);null" json:"horario,omitempty"`
+	PK_ID_RESTAURANTE       *int64     `orm:"column(PK_ID_RESTAURANTE);null" json:"restauranteId,omitempty"`
 }
 
 func (t *Trabajador) TableName() string {
-	return "trabajador"
+	return "TRABAJADOR"
 }
 
 func init() {

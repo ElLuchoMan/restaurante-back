@@ -38,10 +38,10 @@ func (c *PedidoController) GetAll() {
 	// Construcción de la consulta SQL
 	query := `
         SELECT p.* 
-        FROM "pedido" p
-        LEFT JOIN "pedido_cliente" pc ON p."pk_id_pedido" = pc."pk_id_pedido"
-        LEFT JOIN "pago" pa ON p."pk_id_pago" = pa."pk_id_pago"
-        LEFT JOIN "metodo_pago" mp ON pa."pk_id_metodo_pago" = mp."pk_id_metodo_pago"
+        FROM "PEDIDO" p
+        LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
+        LEFT JOIN "PAGO" pa ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
+        LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
         WHERE 1 = 1
     `
 
@@ -58,39 +58,39 @@ func (c *PedidoController) GetAll() {
 
 	// Agregar filtros según los parámetros proporcionados
 	if fecha != "" {
-		query += ` AND p."fecha" = ?`
+		query += ` AND p."FECHA" = ?`
 		params = append(params, fecha)
 	}
 
 	if desde != "" && hasta != "" {
-		query += ` AND p."fecha" BETWEEN ? AND ?`
+		query += ` AND p."FECHA" BETWEEN ? AND ?`
 		params = append(params, desde, hasta)
 	}
 
 	if mes > 0 && mes <= 12 {
-		query += ` AND EXTRACT(MONTH FROM p."fecha") = ?`
+		query += ` AND EXTRACT(MONTH FROM p."FECHA") = ?`
 		params = append(params, mes)
 		if anio > 0 {
-			query += ` AND EXTRACT(YEAR FROM p."fecha") = ?`
+			query += ` AND EXTRACT(YEAR FROM p."FECHA") = ?`
 			params = append(params, anio)
 		}
 	}
 
 	if cliente > 0 {
-		query += ` AND pc."pk_documento_cliente" = ?`
+		query += ` AND pc."PK_DOCUMENTO_CLIENTE" = ?`
 		params = append(params, cliente)
 	}
 
 	if metodoPago != "" {
-		query += ` AND mp."tipo" ILIKE ?`
+		query += ` AND mp."TIPO" ILIKE ?`
 		params = append(params, metodoPago)
 	}
 
 	if errDomicilio == nil {
 		if domicilio {
-			query += ` AND p."pk_id_domicilio" IS NOT NULL`
+			query += ` AND p."PK_ID_DOMICILIO" IS NOT NULL`
 		} else {
-			query += ` AND p."pk_id_domicilio" IS NULL`
+			query += ` AND p."PK_ID_DOMICILIO" IS NULL`
 		}
 	}
 
@@ -222,7 +222,7 @@ func (c *PedidoController) AssignDomicilio() {
 
 	// Sólo actualizamos la FK al domicilio (por contrato actual)
 	pedido.PK_ID_DOMICILIO = &domicilioID
-	if _, err := o.Update(&pedido, "pk_id_domicilio"); err != nil {
+	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar domicilio", Cause: err.Error()}
 		c.ServeJSON()
@@ -263,7 +263,7 @@ func (c *PedidoController) AssignPago() {
 	// Actualizamos la FK al pago y marcamos la orden como terminada
 	pedido.PK_ID_PAGO = &pagoID
 	pedido.ESTADO_PEDIDO = "TERMINADO"
-	if _, err := o.Update(&pedido, "pk_id_pago", "estado_pedido"); err != nil {
+	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar pago", Cause: err.Error()}
 		c.ServeJSON()
@@ -274,7 +274,7 @@ func (c *PedidoController) AssignPago() {
 	pago := models.Pago{PK_ID_PAGO: pagoID}
 	if err := o.Read(&pago); err == nil {
 		pago.ESTADO_PAGO = "PAGADO"
-		o.Update(&pago, "estado_pago")
+		o.Update(&pago, "ESTADO_PAGO")
 	}
 
 	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Pago asignado correctamente", Data: pedido}
@@ -315,7 +315,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 	// Actualizar el estado del pedido
 	pedido.ESTADO_PEDIDO = estado
 
-	if _, err := o.Update(&pedido, "estado_pedido"); err != nil {
+	if _, err := o.Update(&pedido, "ESTADO_PEDIDO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{
 			Code:    500,
@@ -365,29 +365,29 @@ func (c *PedidoController) GetPedidoDetails() {
 	// Consulta para obtener detalles del pedido
 	query := `
 SELECT
-    p."pk_id_pedido"                                   AS pk_id_pedido,
-    COALESCE(TO_CHAR(p."fecha", 'YYYY-MM-DD'), '')     AS fecha,
-    COALESCE(TO_CHAR(p."hora",  'HH24:MI:SS'), '')     AS hora,
-    COALESCE(p."delivery", false)                      AS delivery,
-    COALESCE(p."estado_pedido", '')                    AS estado_pedido,
-    COALESCE(mp."tipo", '')                            AS metodo_pago,
+    p."PK_ID_PEDIDO"                                   AS pk_id_pedido,
+    COALESCE(TO_CHAR(p."FECHA", 'YYYY-MM-DD'), '')     AS fecha,
+    COALESCE(TO_CHAR(p."HORA",  'HH24:MI:SS'), '')     AS hora,
+    COALESCE(p."DELIVERY", false)                      AS delivery,
+    COALESCE(p."ESTADO_PEDIDO", '')                    AS estado_pedido,
+    COALESCE(mp."TIPO", '')                            AS metodo_pago,
     COALESCE((
         SELECT jsonb_agg(elementos)::text
         FROM (
-            SELECT jsonb_array_elements(pp."detalles_productos") AS elementos
-            FROM "producto_pedido" pp
-            WHERE pp."pk_id_pedido" = p."pk_id_pedido"
+            SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
+            FROM "PRODUCTO_PEDIDO" pp
+            WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
         ) subq
     ), '[]')                                           AS productos,
-    COALESCE(p."pk_id_pago", 0)                        AS pago_id,
-    COALESCE(pa."pk_id_metodo_pago", 0)                AS metodo_pago_id,
-    COALESCE(p."pk_id_domicilio", 0)                   AS domicilio_id,
-    COALESCE(pc."pk_documento_cliente", 0)             AS documento_cliente
-FROM "pedido" p
-LEFT JOIN "pago" pa        ON p."pk_id_pago" = pa."pk_id_pago"
-LEFT JOIN "metodo_pago" mp ON pa."pk_id_metodo_pago" = mp."pk_id_metodo_pago"
-LEFT JOIN "pedido_cliente" pc ON p."pk_id_pedido" = pc."pk_id_pedido"
-WHERE p."pk_id_pedido" = ?;
+    COALESCE(p."PK_ID_PAGO", 0)                        AS pago_id,
+    COALESCE(pa."PK_ID_METODO_PAGO", 0)                AS metodo_pago_id,
+    COALESCE(p."PK_ID_DOMICILIO", 0)                   AS domicilio_id,
+    COALESCE(pc."PK_DOCUMENTO_CLIENTE", 0)             AS documento_cliente
+FROM "PEDIDO" p
+LEFT JOIN "PAGO" pa        ON p."PK_ID_PAGO" = pa."PK_ID_PAGO"
+LEFT JOIN "METODO_PAGO" mp ON pa."PK_ID_METODO_PAGO" = mp."PK_ID_METODO_PAGO"
+LEFT JOIN "PEDIDO_CLIENTE" pc ON p."PK_ID_PEDIDO" = pc."PK_ID_PEDIDO"
+WHERE p."PK_ID_PEDIDO" = ?;
     `
 
 	var details models.PedidoDetails

@@ -8,14 +8,14 @@ import (
 )
 
 type Nomina struct {
-	PK_ID_NOMINA  int64     `orm:"column(pk_id_nomina);pk;auto" json:"nominaId"`
-	FECHA         time.Time `orm:"column(fecha);type(date)" json:"fechaNomina"`
-	MONTO         int64     `orm:"column(monto)" json:"monto"`
-	ESTADO_NOMINA string    `orm:"column(estado_nomina)" json:"estadoNomina"`
+	PK_ID_NOMINA  int64     `orm:"column(PK_ID_NOMINA);pk;auto" json:"nominaId"`
+	FECHA         time.Time `orm:"column(FECHA);type(date)" json:"fechaNomina"`
+	MONTO         int64     `orm:"column(MONTO)" json:"monto"`
+	ESTADO_NOMINA string    `orm:"column(ESTADO_NOMINA)" json:"estadoNomina"`
 }
 
 func (n *Nomina) TableName() string {
-	return "nomina"
+	return "NOMINA"
 }
 
 func init() {
