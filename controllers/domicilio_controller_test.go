@@ -44,7 +44,7 @@ func TestDomicilioPostInvalidJSON(t *testing.T) {
 }
 
 func TestDomicilioGetAllWithoutDB(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/domicilios", nil)
+	r := httptest.NewRequest(http.MethodGet, "/domicilios?estado=pendiente", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
@@ -117,7 +117,7 @@ func TestDomicilioPostMissingTelefono(t *testing.T) {
 }
 
 func TestDomicilioPostValidWithoutDB(t *testing.T) {
-	body := "{\"direccion\":\"A\",\"fechaDomicilio\":\"2024-01-01\",\"telefono\":\"123\"}"
+	body := "{\"direccion\":\"A\",\"fechaDomicilio\":\"2024-01-01\",\"telefono\":\"123\",\"estado\":\"pendiente\"}"
 	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
