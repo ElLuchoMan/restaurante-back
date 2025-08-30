@@ -35,19 +35,12 @@ func (f fakeQueryPP) All(res interface{}, cols ...string) (int64, error) {
 type fakeOrmerPP struct {
 	query  func(interface{}) orm.QuerySeter
 	insert func(interface{}) (int64, error)
-	update func(interface{}, ...string) (int64, error)
 }
 
 func (f fakeOrmerPP) QueryTable(i interface{}) orm.QuerySeter { return f.query(i) }
 func (f fakeOrmerPP) Insert(m interface{}) (int64, error) {
 	if f.insert != nil {
 		return f.insert(m)
-	}
-	return 1, nil
-}
-func (f fakeOrmerPP) Update(m interface{}, cols ...string) (int64, error) {
-	if f.update != nil {
-		return f.update(m, cols...)
 	}
 	return 1, nil
 }
@@ -237,7 +230,7 @@ func TestProductoPedidoUpdateDBError(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "Error al buscar el pedido") {
+	if !strings.Contains(w.Body.String(), "Error al buscar los detalles del pedido") {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
@@ -247,16 +240,10 @@ func TestProductoPedidoGetAllSuccess(t *testing.T) {
 	productoPedidoNewOrm = func() productoPedidoOrmer {
 		return fakeOrmerPP{query: func(i interface{}) orm.QuerySeter {
 			switch i.(type) {
-			case *models.ProductoPedido:
-				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
-					pp := res.(*models.ProductoPedido)
-					pp.PK_ID_PEDIDO = 1
-					return nil
-				}}
-			case *models.ProductoPedidoDetalle:
+			case *models.DetallePedido:
 				return fakeQueryPP{all: func(res interface{}, cols ...string) (int64, error) {
-					detalles := res.(*[]models.ProductoPedidoDetalle)
-					*detalles = append(*detalles, models.ProductoPedidoDetalle{PKIDPedido: 1, PKIDProducto: 1, CANTIDAD: 1})
+					detalles := res.(*[]models.DetallePedido)
+					*detalles = append(*detalles, models.DetallePedido{PKIDPedido: 1, PKIDProducto: 1, Cantidad: 1, Precio: 1000})
 					return 1, nil
 				}}
 			default:

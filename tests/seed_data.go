@@ -16,15 +16,13 @@ func SeedTestData() {
 		log.Println("seed METODO_PAGO:", err)
 	}
 
-	if _, err := o.Insert(&models.ProductoPedidoDetalle{
-		PKIDProductoPedido: 1,
-		PKIDPedido:         1,
-		PKIDProducto:       1,
-		CANTIDAD:           1,
-		PRECIOUNITARIO:     1000,
-		SUBTOTAL:           1000,
+	if _, err := o.Insert(&models.DetallePedido{
+		PKIDPedido:   1,
+		PKIDProducto: 1,
+		Precio:       1000,
+		Cantidad:     1,
 	}); err != nil {
-		log.Println("seed PRODUCTO_PEDIDO_DETALLE:", err)
+		log.Println("seed DETALLE_PEDIDO:", err)
 	}
 
 	inicio, _ := time.Parse("15:04:05", "08:00:00")

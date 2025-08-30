@@ -376,10 +376,10 @@ SELECT
             'pk_id_producto', d.pk_id_producto,
             'nombre', pr.nombre,
             'cantidad', d.cantidad,
-            'precio_unitario', d.precio_unitario,
-            'subtotal', d.subtotal
+            'precio', d.precio,
+            'subtotal', d.cantidad * d.precio
         ))::text
-        FROM producto_pedido_detalle d
+        FROM detalle_pedido d
         JOIN producto pr ON pr.pk_id_producto = d.pk_id_producto
         WHERE d.pk_id_pedido = p.pk_id_pedido
     ), '[]')                                           AS productos,

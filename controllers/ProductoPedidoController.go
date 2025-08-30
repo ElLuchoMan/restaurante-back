@@ -12,7 +12,6 @@ import (
 type productoPedidoOrmer interface {
 	QueryTable(interface{}) orm.QuerySeter
 	Insert(interface{}) (int64, error)
-	Update(interface{}, ...string) (int64, error)
 }
 
 // productoPedidoNewOrm allows tests to stub orm.NewOrm.
@@ -52,32 +51,9 @@ func (c *ProductoPedidoController) GetAll() {
 	}
 
 	o := productoPedidoNewOrm()
-	var productoPedido models.ProductoPedido
-
-	err = o.QueryTable(new(models.ProductoPedido)).
-		Filter("PK_ID_PEDIDO", pedidoID).
-		One(&productoPedido)
-
-	if err == orm.ErrNoRows {
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "No se encontraron productos asociados a este pedido",
-		}
-		c.ServeJSON()
-		return
-	} else if err != nil {
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener los productos del pedido",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	var detalles []models.ProductoPedidoDetalle
-	if _, err := o.QueryTable(new(models.ProductoPedidoDetalle)).
-		Filter("PK_ID_PEDIDO", pedidoID).
+	var detalles []models.DetallePedido
+	if _, err := o.QueryTable(new(models.DetallePedido)).
+		Filter("PKIDPedido", pedidoID).
 		All(&detalles); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -98,7 +74,7 @@ func (c *ProductoPedidoController) GetAll() {
 	}
 
 	response := map[string]interface{}{
-		"pedidoId": productoPedido.PK_ID_PEDIDO,
+		"pedidoId": pedidoID,
 		"detalles": detalles,
 	}
 
@@ -116,7 +92,7 @@ func (c *ProductoPedidoController) GetAll() {
 // @Tags producto_pedido
 // @Accept json
 // @Produce json
-// @Param body body models.ProductoPedido true "Datos del pedido con productos"
+// @Param body body map[string]interface{} true "Datos del pedido con productos"
 // @Success 201 {object} models.ApiResponse "Pedido con productos agregado exitosamente"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -124,8 +100,8 @@ func (c *ProductoPedidoController) GetAll() {
 // @Router /producto_pedido [post]
 func (c *ProductoPedidoController) Post() {
 	var input struct {
-		PedidoId int64                          `json:"pedidoId"`
-		Detalles []models.ProductoPedidoDetalle `json:"detalles"`
+		PedidoId int64                  `json:"pedidoId"`
+		Detalles []models.DetallePedido `json:"detalles"`
 	}
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
@@ -147,23 +123,14 @@ func (c *ProductoPedidoController) Post() {
 		return
 	}
 
-	productoPedido := models.ProductoPedido{PK_ID_PEDIDO: input.PedidoId}
 	o := productoPedidoNewOrm()
-	if _, err := o.Insert(&productoPedido); err != nil {
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el pedido con productos",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
+	var detalles []models.DetallePedido
 	for _, d := range input.Detalles {
-		detalle := models.ProductoPedidoDetalle{
+		detalle := models.DetallePedido{
 			PKIDPedido:   input.PedidoId,
 			PKIDProducto: d.PKIDProducto,
-			CANTIDAD:     d.CANTIDAD,
+			Precio:       d.Precio,
+			Cantidad:     d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
 			c.Data["json"] = models.ApiResponse{
@@ -174,13 +141,18 @@ func (c *ProductoPedidoController) Post() {
 			c.ServeJSON()
 			return
 		}
-		productoPedido.Detalles = append(productoPedido.Detalles, detalle)
+		detalles = append(detalles, detalle)
+	}
+
+	response := map[string]interface{}{
+		"pedidoId": input.PedidoId,
+		"detalles": detalles,
 	}
 
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
 		Message: "Pedido con productos agregado exitosamente",
-		Data:    productoPedido,
+		Data:    response,
 	}
 	c.ServeJSON()
 }
@@ -211,7 +183,7 @@ func (c *ProductoPedidoController) Update() {
 	}
 
 	// Parsear los datos del cuerpo de la solicitud
-	var nuevosProductos []models.ProductoPedidoDetalle
+	var nuevosProductos []models.DetallePedido
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &nuevosProductos); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -232,32 +204,19 @@ func (c *ProductoPedidoController) Update() {
 	}
 
 	o := productoPedidoNewOrm()
-	productoPedido := models.ProductoPedido{}
-
-	// Verificar si existe el pedido en la base de datos
-	err = o.QueryTable(new(models.ProductoPedido)).
-		Filter("PK_ID_PEDIDO", pedidoID).
-		One(&productoPedido)
-	if err == orm.ErrNoRows {
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Pedido no encontrado",
-		}
-		c.ServeJSON()
-		return
-	} else if err != nil {
+	qs := o.QueryTable(new(models.DetallePedido)).
+		Filter("PKIDPedido", pedidoID)
+	if _, err := qs.All(&[]models.DetallePedido{}); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al buscar el pedido",
+			Message: "Error al buscar los detalles del pedido",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	if _, err := o.QueryTable(new(models.ProductoPedidoDetalle)).
-		Filter("PK_ID_PEDIDO", pedidoID).
-		Delete(); err != nil {
+	if _, err := qs.Delete(); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al actualizar los productos del pedido",
@@ -268,10 +227,11 @@ func (c *ProductoPedidoController) Update() {
 	}
 
 	for _, d := range nuevosProductos {
-		detalle := models.ProductoPedidoDetalle{
+		detalle := models.DetallePedido{
 			PKIDPedido:   pedidoID,
 			PKIDProducto: d.PKIDProducto,
-			CANTIDAD:     d.CANTIDAD,
+			Precio:       d.Precio,
+			Cantidad:     d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
 			c.Data["json"] = models.ApiResponse{
@@ -282,7 +242,6 @@ func (c *ProductoPedidoController) Update() {
 			c.ServeJSON()
 			return
 		}
-		productoPedido.Detalles = append(productoPedido.Detalles, detalle)
 	}
 
 	c.Data["json"] = models.ApiResponse{
