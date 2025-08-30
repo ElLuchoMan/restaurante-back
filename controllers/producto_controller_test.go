@@ -73,15 +73,15 @@ func TestProductoHandleImageUploadSuccess(t *testing.T) {
 func int64Ptr(i int64) *int64 { return &i }
 
 func TestValidateProducto(t *testing.T) {
-	valid := &models.Producto{NOMBRE: "A", PRECIO: 10, ESTADO_PRODUCTO: "DISPONIBLE"}
+	valid := &models.Producto{NOMBRE: "A", PRECIO: 10, ESTADO_PRODUCTO: "disponible"}
 	if err := validateProducto(valid); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	tests := []models.Producto{
-		{PRECIO: 10, ESTADO_PRODUCTO: "DISPONIBLE"},                                      // missing name
-		{NOMBRE: "B", PRECIO: 0, ESTADO_PRODUCTO: "DISPONIBLE"},                          // invalid price
-		{NOMBRE: "B", PRECIO: 10, CALORIAS: int64Ptr(-1), ESTADO_PRODUCTO: "DISPONIBLE"}, // negative calories
+		{PRECIO: 10, ESTADO_PRODUCTO: "disponible"},                                      // missing name
+		{NOMBRE: "B", PRECIO: 0, ESTADO_PRODUCTO: "disponible"},                          // invalid price
+		{NOMBRE: "B", PRECIO: 10, CALORIAS: int64Ptr(-1), ESTADO_PRODUCTO: "disponible"}, // negative calories
 		{NOMBRE: "B", PRECIO: 10, ESTADO_PRODUCTO: "OTRO"},                               // invalid estado
 	}
 
@@ -151,7 +151,7 @@ func TestProductoPostMissingNombre(t *testing.T) {
 	writer := multipart.NewWriter(body)
 	writer.WriteField("NOMBRE", "")
 	writer.WriteField("CATEGORIA", "cat")
-	writer.WriteField("ESTADO_PRODUCTO", "DISPONIBLE")
+	writer.WriteField("ESTADO_PRODUCTO", "disponible")
 	writer.WriteField("PRECIO", "10")
 	writer.Close()
 

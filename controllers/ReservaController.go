@@ -18,10 +18,10 @@ type ReservaController struct {
 
 // Estados permitidos para la reserva
 var estadosPermitidos = map[string]bool{
-	"PENDIENTE":  true,
-	"CONFIRMADA": true,
-	"CANCELADA":  true,
-	"CUMPLIDA":   true,
+	"pendiente":  true,
+	"confirmada": true,
+	"cancelada":  true,
+	"cumplida":   true,
 }
 
 var queryAllReservas = func(o orm.Ormer, reservas *[]models.Reserva) (int64, error) {
@@ -247,7 +247,7 @@ func (c *ReservaController) Post() {
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
 				Message: "Estado de reserva inválido",
-				Cause:   "El estado debe ser uno de los siguientes: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA",
+				Cause:   "El estado debe ser uno de los siguientes: pendiente, confirmada, cancelada, cumplida",
 			}
 			c.ServeJSON()
 			return
@@ -525,7 +525,7 @@ func (c *ReservaController) GetByParameter() {
 
 // @Title Delete
 // @Summary Cancelar una reserva
-// @Description Actualiza el estado de una reserva a "CANCELADA".
+// @Description Actualiza el estado de una reserva a "cancelada".
 // @Tags reservas
 // @Accept json
 // @Produce json
@@ -562,8 +562,8 @@ func (c *ReservaController) Delete() {
 		return
 	}
 
-	// Actualizar el estado a CANCELADA
-	estadoCancelada := "CANCELADA"
+	// Actualizar el estado a cancelada
+	estadoCancelada := "cancelada"
 	reserva.ESTADO_RESERVA = &estadoCancelada
 	reserva.UPDATED_AT = time.Now() // Actualizar la fecha de modificación
 

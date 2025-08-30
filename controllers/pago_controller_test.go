@@ -111,7 +111,7 @@ func TestPagoGetAllWithoutDB(t *testing.T) {
 	}
 }
 func TestPagoPostMissingFecha(t *testing.T) {
-	body := `{"HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	body := `{"HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"pagado","PK_ID_METODO_PAGO":1}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -129,7 +129,7 @@ func TestPagoPostMissingFecha(t *testing.T) {
 }
 
 func TestPagoPostInvalidHora(t *testing.T) {
-	body := `{"FECHA":"2024-01-01","HORA":"25:00","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	body := `{"FECHA":"2024-01-01","HORA":"25:00","MONTO":1000,"ESTADO_PAGO":"pagado","PK_ID_METODO_PAGO":1}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -165,7 +165,7 @@ func TestPagoPostInvalidEstado(t *testing.T) {
 }
 
 func TestPagoPostMissingMetodoPago(t *testing.T) {
-	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"PAGADO"}`
+	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"pagado"}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -183,7 +183,7 @@ func TestPagoPostMissingMetodoPago(t *testing.T) {
 }
 
 func TestPagoPostMissingHora(t *testing.T) {
-	body := `{"FECHA":"2024-01-01","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	body := `{"FECHA":"2024-01-01","MONTO":1000,"ESTADO_PAGO":"pagado","PK_ID_METODO_PAGO":1}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -199,7 +199,7 @@ func TestPagoPostMissingHora(t *testing.T) {
 }
 
 func TestPagoPostSuccess(t *testing.T) {
-	body := `{"estadoPago":"PAGADO","fechaPago":"2024-01-01","horaPago":"10:00:00","metodoPagoId":1,"monto":1000}`
+	body := `{"estadoPago":"pagado","fechaPago":"2024-01-01","horaPago":"10:00:00","metodoPagoId":1,"monto":1000}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -225,7 +225,7 @@ func TestPagoPostSuccess(t *testing.T) {
 }
 
 func TestPagoPostMissingMonto(t *testing.T) {
-	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	body := `{"FECHA":"2024-01-01","HORA":"10:00:00","ESTADO_PAGO":"pagado","PK_ID_METODO_PAGO":1}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -241,7 +241,7 @@ func TestPagoPostMissingMonto(t *testing.T) {
 }
 
 func TestPagoPostInvalidFecha(t *testing.T) {
-	body := `{"FECHA":"2024-13-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"PAGADO","PK_ID_METODO_PAGO":1}`
+	body := `{"FECHA":"2024-13-01","HORA":"10:00:00","MONTO":1000,"ESTADO_PAGO":"pagado","PK_ID_METODO_PAGO":1}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -384,7 +384,7 @@ func TestPagoDeleteNotFound(t *testing.T) {
 func TestPagoGetAllSuccess(t *testing.T) {
 	orig := pagoNewOrm
 	pagoNewOrm = func() ormer {
-		pagos := []models.Pago{{PK_ID_PAGO: 1, FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "2024-01-01T10:00:00Z", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1}}
+		pagos := []models.Pago{{PK_ID_PAGO: 1, FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "2024-01-01T10:00:00Z", ESTADO_PAGO: "pagado", PK_ID_METODO_PAGO: 1}}
 		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
 			ptr := res.(*[]models.Pago)
 			*ptr = pagos
@@ -436,12 +436,12 @@ func TestPagoGetAllFilterOthers(t *testing.T) {
 	orig := pagoNewOrm
 	pagoNewOrm = func() ormer {
 		pagos := []models.Pago{
-			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
-			{FECHA: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
-			{FECHA: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
-			{FECHA: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
-			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "NO PAGO", PK_ID_METODO_PAGO: 1},
-			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 2},
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "pagado", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "pagado", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "pagado", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "pagado", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "no pago", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "pagado", PK_ID_METODO_PAGO: 2},
 		}
 		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
 			ptr := res.(*[]models.Pago)
@@ -450,7 +450,7 @@ func TestPagoGetAllFilterOthers(t *testing.T) {
 		}}
 	}
 	t.Cleanup(func() { pagoNewOrm = orig })
-	r := httptest.NewRequest(http.MethodGet, "/pagos?dia=1&mes=1&anio=2024&estado=PAGADO&metodo_pago=1", nil)
+	r := httptest.NewRequest(http.MethodGet, "/pagos?dia=1&mes=1&anio=2024&estado=pagado&metodo_pago=1", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
@@ -466,7 +466,7 @@ func TestPagoGetAllFilterOthers(t *testing.T) {
 func TestPagoGetAllNoResults(t *testing.T) {
 	orig := pagoNewOrm
 	pagoNewOrm = func() ormer {
-		pagos := []models.Pago{{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1}}
+		pagos := []models.Pago{{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: "10:00:00", ESTADO_PAGO: "pagado", PK_ID_METODO_PAGO: 1}}
 		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
 			ptr := res.(*[]models.Pago)
 			*ptr = pagos
@@ -474,7 +474,7 @@ func TestPagoGetAllNoResults(t *testing.T) {
 		}}
 	}
 	t.Cleanup(func() { pagoNewOrm = orig })
-	r := httptest.NewRequest(http.MethodGet, "/pagos?estado=NO%20PAGO", nil)
+	r := httptest.NewRequest(http.MethodGet, "/pagos?estado=no%20pago", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
@@ -536,7 +536,7 @@ func TestPagoPostInsertError(t *testing.T) {
 		return fakeOrmer{insert: func(m interface{}) (int64, error) { return 0, fmt.Errorf("fail") }}
 	}
 	t.Cleanup(func() { pagoNewOrm = orig })
-	body := `{"estadoPago":"PAGADO","fechaPago":"2024-01-01","horaPago":"10:00:00","metodoPagoId":1,"monto":1000}`
+	body := `{"estadoPago":"pagado","fechaPago":"2024-01-01","horaPago":"10:00:00","metodoPagoId":1,"monto":1000}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -560,7 +560,7 @@ func TestPagoPutSuccess(t *testing.T) {
 		}
 	}
 	t.Cleanup(func() { pagoNewOrm = orig })
-	body := `{"FECHA":"2024-02-02","HORA":"11:00:00","MONTO":2000,"ESTADO_PAGO":"PENDIENTE","UPDATED_BY":"me","PK_ID_METODO_PAGO":1}`
+	body := `{"FECHA":"2024-02-02","HORA":"11:00:00","MONTO":2000,"ESTADO_PAGO":"pendiente","UPDATED_BY":"me","PK_ID_METODO_PAGO":1}`
 	r := httptest.NewRequest(http.MethodPut, "/pagos?id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()

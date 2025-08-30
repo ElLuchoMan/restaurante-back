@@ -28,9 +28,9 @@ var pagoNewOrm = func() ormer { return orm.NewOrm() }
 
 // Estados permitidos para los pagos
 var estadosPagoPermitidos = map[string]bool{
-	"PAGADO":    true,
-	"PENDIENTE": true,
-	"NO PAGO":   true,
+	"pagado":    true,
+	"pendiente": true,
+	"no pago":   true,
 }
 
 // @Title GetAll
@@ -43,7 +43,7 @@ var estadosPagoPermitidos = map[string]bool{
 // @Param   dia      query   int      false   "Filtrar por dia (1-31)"
 // @Param   mes      query   int      false   "Filtrar por mes (1-12)"
 // @Param   anio     query   int      false   "Filtrar por año (YYYY)"
-// @Param   estado   query   string   false   "Filtrar por estado del pago (PAGADO, PENDIENTE, NO PAGO)"
+// @Param   estado   query   string   false   "Filtrar por estado del pago (pagado, pendiente, no pago)"
 // @Param   metodo_pago     query   int      false   "Filtrar por metodo de pago"
 // @Success 200 {array} models.Pago "Lista de pagos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
@@ -265,7 +265,7 @@ func (c *PagoController) Post() {
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
 				Message: "Estado de pago inválido",
-				Cause:   "El estado debe ser 'PAGADO', 'PENDIENTE' o 'NO PAGO'",
+				Cause:   "El estado debe ser 'pagado', 'pendiente' o 'no pago'",
 			}
 			c.ServeJSON()
 			return
@@ -284,7 +284,7 @@ func (c *PagoController) Post() {
 		FECHA:             fecha,
 		HORA:              in.HoraPago,
 		MONTO:             in.Monto,
-		ESTADO_PAGO:       in.EstadoPago,   // e.g. "PAGADO"
+		ESTADO_PAGO:       in.EstadoPago,   // e.g. "pagado"
 		PK_ID_METODO_PAGO: in.MetodoPagoId, // FK
 		UPDATED_BY:        in.UpdatedBy,    // opcional
 		// UPDATED_AT se maneja con auto_now en el modelo
@@ -410,7 +410,7 @@ func (c *PagoController) Put() {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
-				Message: "Estado de pago inválido. Debe ser 'PAGADO', 'PENDIENTE' o 'NO PAGO'",
+				Message: "Estado de pago inválido. Debe ser 'pagado', 'pendiente' o 'no pago'",
 			}
 			c.ServeJSON()
 			return
