@@ -8,7 +8,7 @@ import (
 
 type RestauranteDia struct {
 	PKIDRestaurante int64     `orm:"column(pk_id_restaurante);pk" json:"restauranteId"`
-	Dia             DiaSemana `orm:"column(dia);type(text);pk" json:"dia"`
+	Dia             DiaSemana `orm:"column(dia);type(text)" json:"dia"`
 	HoraApertura    time.Time `orm:"column(hora_apertura);type(time)" json:"horaApertura"`
 	HoraCierre      time.Time `orm:"column(hora_cierre);type(time)" json:"horaCierre"`
 }
