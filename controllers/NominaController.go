@@ -103,6 +103,9 @@ func (c *NominaController) Post() {
 	o := orm.NewOrm()
 	var input models.Nomina
 
+	gen, _ := c.GetBool("generar_nomina_automatica", false)
+	ver, _ := c.GetBool("verificar_nomina", false)
+
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -113,7 +116,6 @@ func (c *NominaController) Post() {
 		c.ServeJSON()
 		return
 	}
-
 	if input.FECHA.IsZero() {
 		input.FECHA = time.Now()
 	}
@@ -123,6 +125,44 @@ func (c *NominaController) Post() {
 	}
 
 	input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
+
+	var fechaInicio, fechaFin time.Time
+	if gen {
+		fechaInicioStr := c.GetString("fecha_inicio")
+		fechaFinStr := c.GetString("fecha_fin")
+		if fechaInicioStr == "" || fechaFinStr == "" {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Se requieren los parámetros fecha_inicio y fecha_fin",
+			}
+			c.ServeJSON()
+			return
+		}
+		var err error
+		fechaInicio, err = time.Parse("2006-01-02", fechaInicioStr)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Formato de fecha inválido para fecha_inicio",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		fechaFin, err = time.Parse("2006-01-02", fechaFinStr)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Formato de fecha inválido para fecha_fin",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+	}
 
 	_, err := o.Insert(&input)
 	if err != nil {
@@ -137,8 +177,8 @@ func (c *NominaController) Post() {
 	}
 
 	// Ejecutar funciones adicionales si se solicitan
-	if gen, _ := c.GetBool("generar_nomina_automatica", false); gen {
-		if _, err := o.Raw("CALL generar_nomina_automatica()").Exec(); err != nil {
+	if gen {
+		if _, err := o.Raw("CALL generar_nomina_automatica(?, ?)", fechaInicio.Format("2006-01-02"), fechaFin.Format("2006-01-02")).Exec(); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -150,8 +190,8 @@ func (c *NominaController) Post() {
 		}
 	}
 
-	if ver, _ := c.GetBool("verificar_nomina", false); ver {
-		if _, err := o.Raw("CALL verificar_nomina()").Exec(); err != nil {
+	if ver {
+		if _, err := o.Raw("CALL verificar_nomina(?)", input.PK_ID_NOMINA).Exec(); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,

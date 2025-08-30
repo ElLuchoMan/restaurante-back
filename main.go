@@ -40,8 +40,11 @@ func generarNominaAutomatica() {
 		if now.Hour() == 0 && now.Minute() == 0 {
 			fmt.Println("Ejecutando generación automática de nómina...")
 
-			// Llamar a la función de nómina
-			_, err := o.Raw("CALL generar_nomina_automatica()").Exec()
+			inicio := now.AddDate(0, 0, -1).Format("2006-01-02")
+			fin := now.AddDate(0, 0, -1).Format("2006-01-02")
+
+			// Llamar a la función de nómina con rango de fechas
+			_, err := o.Raw("CALL generar_nomina_automatica(?, ?)", inicio, fin).Exec()
 			if err != nil {
 				fmt.Println("Error al generar la nómina automática:", err)
 			} else {

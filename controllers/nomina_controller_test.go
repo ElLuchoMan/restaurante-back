@@ -44,6 +44,25 @@ func TestNominaPostInvalidJSON(t *testing.T) {
 	}
 }
 
+func TestNominaPostMissingDatesForAutoGeneration(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPost, "/nominas?generar_nomina_automatica=true", strings.NewReader("{}"))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := NominaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "fecha_inicio") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
 func TestNominaPostDBError(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
 	w := httptest.NewRecorder()
