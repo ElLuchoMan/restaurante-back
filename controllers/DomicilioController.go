@@ -149,14 +149,14 @@ func (c *DomicilioController) GetById() {
 
 	qCliente := `
 SELECT
-  pc."PK_DOCUMENTO_CLIENTE" AS documento,
-  c."NOMBRE"                AS nombre,
-  c."APELLIDO"              AS apellido
-FROM "PEDIDO" p
-JOIN "PEDIDO_CLIENTE" pc ON pc."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-JOIN "CLIENTE" c        ON c."PK_DOCUMENTO_CLIENTE" = pc."PK_DOCUMENTO_CLIENTE"
-WHERE p."PK_ID_DOMICILIO" = ?
-ORDER BY p."PK_ID_PEDIDO" DESC
+  pc.pk_documento_cliente AS documento,
+  c.nombre                AS nombre,
+  c.apellido              AS apellido
+FROM pedido p
+JOIN pedido_cliente pc ON pc.pk_id_pedido = p.pk_id_pedido
+JOIN cliente c        ON c.pk_documento_cliente = pc.pk_documento_cliente
+WHERE p.pk_id_domicilio = ?
+ORDER BY p.pk_id_pedido DESC
 LIMIT 1;`
 
 	cliErr := o.Raw(qCliente, id).QueryRow(&cli)
@@ -173,30 +173,30 @@ LIMIT 1;`
 
 	qPedido := `
 SELECT
-  p."PK_ID_PEDIDO" AS pedido_id,
-  pa."PK_ID_PAGO"  AS pago_id,
-  pa."MONTO"::numeric AS pago_monto,
+  p.pk_id_pedido AS pedido_id,
+  pa.pk_id_pago  AS pago_id,
+  pa.monto::numeric AS pago_monto,
   (
-    SELECT COALESCE(SUM(d."SUBTOTAL"), 0)
-    FROM "PRODUCTO_PEDIDO_DETALLE" d
-    WHERE d."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+    SELECT COALESCE(SUM(d.subtotal), 0)
+    FROM producto_pedido_detalle d
+    WHERE d.pk_id_pedido = p.pk_id_pedido
   ) AS subtotal_productos,
   (
     SELECT COALESCE(jsonb_agg(json_build_object(
-      'PK_ID_PRODUCTO', d."PK_ID_PRODUCTO",
-      'NOMBRE', pr."NOMBRE",
-      'CANTIDAD', d."CANTIDAD",
-      'PRECIO_UNITARIO', d."PRECIO_UNITARIO",
-      'SUBTOTAL', d."SUBTOTAL"
+      'pk_id_producto', d.pk_id_producto,
+      'nombre', pr.nombre,
+      'cantidad', d.cantidad,
+      'precio_unitario', d.precio_unitario,
+      'subtotal', d.subtotal
     )), '[]'::jsonb)::text
-    FROM "PRODUCTO_PEDIDO_DETALLE" d
-    JOIN "PRODUCTO" pr ON pr."PK_ID_PRODUCTO" = d."PK_ID_PRODUCTO"
-    WHERE d."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
+    FROM producto_pedido_detalle d
+    JOIN producto pr ON pr.pk_id_producto = d.pk_id_producto
+    WHERE d.pk_id_pedido = p.pk_id_pedido
   ) AS productos
-FROM "PEDIDO" p
-LEFT JOIN "PAGO" pa ON pa."PK_ID_PAGO" = p."PK_ID_PAGO"
-WHERE p."PK_ID_DOMICILIO" = ?
-ORDER BY p."PK_ID_PEDIDO" DESC
+FROM pedido p
+LEFT JOIN pago pa ON pa.pk_id_pago = p.pk_id_pago
+WHERE p.pk_id_domicilio = ?
+ORDER BY p.pk_id_pedido DESC
 LIMIT 1;`
 
 	pedErr := o.Raw(qPedido, id).QueryRow(&ped)

@@ -16,9 +16,9 @@ type NominaController struct {
 }
 
 // Estados permitidos para la nómina
-var estadosNominaPermitidos = map[string]bool{
-	"PAGO":    true,
-	"NO PAGO": true,
+var estadosNominaPermitidos = map[models.EstadoNomina]bool{
+	models.EstadoNominaPago:   true,
+	models.EstadoNominaNoPago: true,
 }
 
 // @Title GetAll
@@ -119,7 +119,7 @@ func (c *NominaController) Post() {
 	}
 
 	if !estadosNominaPermitidos[input.ESTADO_NOMINA] {
-		input.ESTADO_NOMINA = "NO PAGO"
+		input.ESTADO_NOMINA = models.EstadoNominaNoPago
 	}
 
 	input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
@@ -134,6 +134,33 @@ func (c *NominaController) Post() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	// Ejecutar funciones adicionales si se solicitan
+	if gen, _ := c.GetBool("generar_nomina_automatica", false); gen {
+		if _, err := o.Raw("CALL generar_nomina_automatica()").Exec(); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al generar nómina automática",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+	}
+
+	if ver, _ := c.GetBool("verificar_nomina", false); ver {
+		if _, err := o.Raw("CALL verificar_nomina()").Exec(); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al verificar nómina",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
 	}
 
 	var updatedNomina models.Nomina
@@ -203,7 +230,7 @@ func (c *NominaController) Put() {
 	}
 
 	// Cambiar el estado a "PAGO" si no lo está ya
-	if nomina.ESTADO_NOMINA == "PAGO" {
+	if nomina.ESTADO_NOMINA == models.EstadoNominaPago {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -212,7 +239,7 @@ func (c *NominaController) Put() {
 		c.ServeJSON()
 		return
 	}
-	nomina.ESTADO_NOMINA = "PAGO"
+	nomina.ESTADO_NOMINA = models.EstadoNominaPago
 
 	// Guardar los cambios
 	if _, err := o.Update(&nomina, "ESTADO_NOMINA"); err != nil {
@@ -274,7 +301,7 @@ func (c *NominaController) Delete() {
 		return
 	}
 
-	nomina.ESTADO_NOMINA = "NO PAGO"
+	nomina.ESTADO_NOMINA = models.EstadoNominaNoPago
 	if _, err := o.Update(&nomina, "ESTADO_NOMINA"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
