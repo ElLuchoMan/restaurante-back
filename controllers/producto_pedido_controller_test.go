@@ -274,7 +274,12 @@ func TestProductoPedidoGetAllSuccess(t *testing.T) {
 func TestProductoPedidoPostSuccess(t *testing.T) {
 	original := productoPedidoNewOrm
 	productoPedidoNewOrm = func() productoPedidoOrmer {
-		return fakeOrmerPP{insert: func(interface{}) (int64, error) { return 1, nil }}
+		return fakeOrmerPP{insert: func(m interface{}) (int64, error) {
+			if d, ok := m.(*models.DetallePedido); ok {
+				d.Precio = 1000
+			}
+			return 1, nil
+		}}
 	}
 	defer func() { productoPedidoNewOrm = original }()
 
@@ -294,7 +299,7 @@ func TestProductoPedidoPostSuccess(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "pedidoId") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	if !strings.Contains(w.Body.String(), "\"precio\":1000") {
+		t.Errorf("expected price in response, got %s", w.Body.String())
 	}
 }

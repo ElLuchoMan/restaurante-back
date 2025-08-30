@@ -129,7 +129,6 @@ func (c *ProductoPedidoController) Post() {
 		detalle := models.DetallePedido{
 			PKIDPedido:   input.PedidoId,
 			PKIDProducto: d.PKIDProducto,
-			Precio:       d.Precio,
 			Cantidad:     d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
@@ -230,7 +229,6 @@ func (c *ProductoPedidoController) Update() {
 		detalle := models.DetallePedido{
 			PKIDPedido:   pedidoID,
 			PKIDProducto: d.PKIDProducto,
-			Precio:       d.Precio,
 			Cantidad:     d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
