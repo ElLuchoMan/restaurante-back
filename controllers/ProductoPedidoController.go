@@ -27,6 +27,12 @@ type ProductoPedidoResponse struct {
 	Detalles interface{} `json:"detalles"`
 }
 
+// detallePedidoInput represents the payload for DetallePedido without precio.
+type detallePedidoInput struct {
+	PKIDProducto int64 `json:"productoId"`
+	Cantidad     int   `json:"cantidad"`
+}
+
 // @Title GetAll
 // @Summary Obtener los productos de un pedido
 // @Description Devuelve los productos consolidados en un pedido específico
@@ -100,8 +106,8 @@ func (c *ProductoPedidoController) GetAll() {
 // @Router /producto_pedido [post]
 func (c *ProductoPedidoController) Post() {
 	var input struct {
-		PedidoId int64                  `json:"pedidoId"`
-		Detalles []models.DetallePedido `json:"detalles"`
+		PedidoId int64                `json:"pedidoId"`
+		Detalles []detallePedidoInput `json:"detalles"`
 	}
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
@@ -182,7 +188,7 @@ func (c *ProductoPedidoController) Update() {
 	}
 
 	// Parsear los datos del cuerpo de la solicitud
-	var nuevosProductos []models.DetallePedido
+	var nuevosProductos []detallePedidoInput
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &nuevosProductos); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,

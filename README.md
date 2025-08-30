@@ -54,6 +54,8 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
   - Additional enums exist for domicilios, pagos, pedidos, productos y días de la semana.
 - **Price history** for products is stored in the `precio_producto_hist` table. A new entry is
   created when a product is registered or its price changes, closing the previous record.
+- `POST /producto_pedido` and `PUT /producto_pedido` no longer accept `precio` in the payload; the
+  database trigger assigns it automatically.
 - **Payroll (nómina)** operations:
   - `POST /nominas` accepts optional `generar_nomina_automatica` parameters
     (`fecha_inicio` y `fecha_fin`) to auto-generate payments.
