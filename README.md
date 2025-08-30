@@ -47,6 +47,16 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
   go run main.go
   ```
 
+## Database Migrations
+Migration scripts live under `migrations/`. Apply them in numeric order and run the seed script after the schema is created:
+
+```sh
+psql -f migrations/001_create_schema.sql
+psql -f migrations/seed/001_seed.sql
+```
+
+To rollback, execute the `Down` section of `001_create_schema.sql` in reverse order.
+
 ## Testing
 ```sh
 go test ./...
