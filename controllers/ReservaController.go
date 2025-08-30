@@ -17,11 +17,11 @@ type ReservaController struct {
 }
 
 // Estados permitidos para la reserva
-var estadosPermitidos = map[string]bool{
-	"pendiente":  true,
-	"confirmada": true,
-	"cancelada":  true,
-	"cumplida":   true,
+var estadosPermitidos = map[models.EstadoReserva]bool{
+	models.EstadoReservaPendiente:  true,
+	models.EstadoReservaConfirmada: true,
+	models.EstadoReservaCancelada:  true,
+	models.EstadoReservaCumplida:   true,
 }
 
 var queryAllReservas = func(o orm.Ormer, reservas *[]models.Reserva) (int64, error) {
@@ -241,18 +241,21 @@ func (c *ReservaController) Post() {
 	}
 
 	// Procesar ESTADO_RESERVA si existe
-	if estado, ok := input["estadoReserva"].(string); ok && estado != "" {
-		if !estadosPermitidos[estado] {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Estado de reserva inválido",
-				Cause:   "El estado debe ser uno de los siguientes: pendiente, confirmada, cancelada, cumplida",
+	if estadoStr, ok := input["estadoReserva"].(string); ok {
+		estado := models.EstadoReserva(estadoStr)
+		if estado != "" {
+			if !estadosPermitidos[estado] {
+				c.Ctx.Output.SetStatus(http.StatusBadRequest)
+				c.Data["json"] = models.ApiResponse{
+					Code:    http.StatusBadRequest,
+					Message: "Estado de reserva inválido",
+					Cause:   "El estado debe ser uno de los siguientes: pendiente, confirmada, cancelada, cumplida",
+				}
+				c.ServeJSON()
+				return
 			}
-			c.ServeJSON()
-			return
+			reserva.ESTADO_RESERVA = &estado
 		}
-		reserva.ESTADO_RESERVA = &estado
 	}
 
 	// Procesar INDICACIONES si existe
@@ -399,8 +402,11 @@ func (c *ReservaController) Put() {
 		reserva.PERSONAS = int(personas)
 	}
 
-	if estado, ok := input["estadoReserva"].(string); ok && estadosPermitidos[estado] {
-		reserva.ESTADO_RESERVA = &estado
+	if estadoStr, ok := input["estadoReserva"].(string); ok {
+		estado := models.EstadoReserva(estadoStr)
+		if estadosPermitidos[estado] {
+			reserva.ESTADO_RESERVA = &estado
+		}
 	}
 
 	if indicaciones, ok := input["indicaciones"].(string); ok {

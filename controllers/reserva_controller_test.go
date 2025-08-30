@@ -446,7 +446,7 @@ func TestReservaPostSuccess(t *testing.T) {
 		"horaReserva":      "12:00:00",
 		"personas":         2,
 		"documentoCliente": 123,
-		"estadoReserva":    "confirmada",
+		"estadoReserva":    models.EstadoReservaConfirmada,
 		"indicaciones":     "Ninguna",
 		"createdBy":        "admin",
 		"nombreCompleto":   "John Doe",
@@ -586,7 +586,7 @@ func TestReservaPutScenarios(t *testing.T) {
 		"fechaReserva":     "2024-01-02",
 		"horaReserva":      "13:00:00",
 		"personas":         3,
-		"estadoReserva":    "confirmada",
+		"estadoReserva":    models.EstadoReservaConfirmada,
 		"indicaciones":     "OK",
 		"updatedBy":        "admin",
 		"nombreCompleto":   "John",
@@ -696,7 +696,7 @@ func TestReservaDeleteScenarios(t *testing.T) {
 }
 
 func TestReservaPutInvalidEstadoIgnored(t *testing.T) {
-	pend := "pendiente"
+	pend := models.EstadoReservaPendiente
 	db := map[int]models.Reserva{1: {PK_ID_RESERVA: 1, ESTADO_RESERVA: &pend}}
 	ormNew = func() orm.Ormer { return nil }
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {

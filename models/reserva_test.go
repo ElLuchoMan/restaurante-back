@@ -8,7 +8,8 @@ import (
 
 func TestReservaMarshalJSON(t *testing.T) {
 	fecha := time.Date(2024, time.September, 12, 0, 0, 0, 0, time.UTC)
-	r := Reserva{FECHA: fecha}
+	estado := EstadoReservaConfirmada
+	r := Reserva{FECHA: fecha, ESTADO_RESERVA: &estado}
 
 	b, err := json.Marshal(r)
 	if err != nil {
@@ -22,6 +23,9 @@ func TestReservaMarshalJSON(t *testing.T) {
 
 	if data["fechaReserva"] != "12-09-2024" {
 		t.Errorf("expected fechaReserva 12-09-2024, got %v", data["fechaReserva"])
+	}
+	if data["estadoReserva"] != string(EstadoReservaConfirmada) {
+		t.Errorf("expected estadoReserva %s, got %v", EstadoReservaConfirmada, data["estadoReserva"])
 	}
 }
 
