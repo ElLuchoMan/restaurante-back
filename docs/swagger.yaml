@@ -1928,7 +1928,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea un registro de productos consolidados en un pedido
+      description: Crea un registro de productos consolidados en un pedido. Los precios de cada
+        producto se calculan mediante un trigger en la base de datos; no incluir el campo
+        'precio' en los detalles.
       parameters:
       - description: Datos del pedido con productos
         in: body
@@ -1959,7 +1961,9 @@ paths:
     put:
       consumes:
       - application/json
-      description: Permite agregar o modificar productos en un pedido consolidado
+      description: Permite agregar o modificar productos en un pedido consolidado. Los precios se
+        establecen automáticamente en la base de datos, por lo que los detalles no deben enviar
+        el campo 'precio'.
       parameters:
       - description: ID del pedido a actualizar
         in: query

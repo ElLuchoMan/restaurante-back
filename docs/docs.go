@@ -2510,7 +2510,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Permite agregar o modificar productos en un pedido consolidado",
+                "description": "Permite agregar o modificar productos en un pedido consolidado. Los precios se establecen automáticamente en la base de datos, por lo que los detalles no deben enviar el campo 'precio'.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2576,7 +2576,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un registro de productos consolidados en un pedido",
+                "description": "Crea un registro de productos consolidados en un pedido. Los precios de cada producto se calculan mediante un trigger en la base de datos; no incluir el campo 'precio' en los detalles.",
                 "consumes": [
                     "application/json"
                 ],

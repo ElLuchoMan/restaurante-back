@@ -266,8 +266,12 @@ func TestProductoPedidoGetAllSuccess(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "detalles") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	body := w.Body.String()
+	if !strings.Contains(body, "detalles") {
+		t.Errorf("unexpected body: %s", body)
+	}
+	if !strings.Contains(body, "\"precio\":1000") {
+		t.Errorf("expected price in response, got %s", body)
 	}
 }
 
