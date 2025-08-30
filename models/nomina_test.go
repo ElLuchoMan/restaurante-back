@@ -27,7 +27,7 @@ func TestNominaMarshalJSON(t *testing.T) {
 
 func TestNominaTableName(t *testing.T) {
 	n := Nomina{}
-	if n.TableName() != "nomina" {
+	if n.TableName() != "NOMINA" {
 		t.Errorf("expected table name NOMINA, got %s", n.TableName())
 	}
 }

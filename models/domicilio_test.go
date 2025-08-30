@@ -39,7 +39,7 @@ func TestDomicilioMarshalJSON(t *testing.T) {
 
 func TestDomicilioTableName(t *testing.T) {
 	d := Domicilio{}
-	if d.TableName() != "domicilio" {
+	if d.TableName() != "DOMICILIO" {
 		t.Errorf("expected table name DOMICILIO, got %s", d.TableName())
 	}
 }

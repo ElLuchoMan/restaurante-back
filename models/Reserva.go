@@ -8,23 +8,23 @@ import (
 )
 
 type Reserva struct {
-	PK_ID_RESERVA     int       `orm:"column(pk_id_reserva);pk;auto" json:"reservaId"`
-	FECHA             time.Time `orm:"column(fecha);type(date)" json:"fechaReserva"`
-	HORA              string    `orm:"column(hora);type(time);size(8)" json:"horaReserva"`
-	PERSONAS          int       `orm:"column(personas)" json:"personas"`
-	ESTADO_RESERVA    *string   `orm:"column(estado_reserva);null" json:"estadoReserva,omitempty"`
-	INDICACIONES      *string   `orm:"column(indicaciones);null" json:"indicaciones,omitempty"`
-	CREATED_AT        time.Time `orm:"column(created_at);type(timestamp);auto_now_add" json:"createdAt"`
-	UPDATED_AT        time.Time `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
-	CREATED_BY        *string   `orm:"column(created_by);type(date)" json:"createdBy,omitempty"`
-	UPDATED_BY        *string   `orm:"column(updated_by);type(date)" json:"updatedBy,omitempty"`
-	NOMBRE_COMPLETO   *string   `orm:"column(nombre_completo);type(text);null" json:"nombreCompleto,omitempty"`
-	TELEFONO          *string   `orm:"column(telefono);type(text);null" json:"telefono,omitempty"`
-	DOCUMENTO_CLIENTE *int64    `orm:"column(documento_cliente);null" json:"documentoCliente,omitempty"`
+	PK_ID_RESERVA     int       `orm:"column(PK_ID_RESERVA);pk;auto" json:"reservaId"`
+	FECHA             time.Time `orm:"column(FECHA);type(date)" json:"fechaReserva"`
+	HORA              string    `orm:"column(HORA);type(time);size(8)" json:"horaReserva"`
+	PERSONAS          int       `orm:"column(PERSONAS)" json:"personas"`
+	ESTADO_RESERVA    *string   `orm:"column(ESTADO_RESERVA);null" json:"estadoReserva,omitempty"`
+	INDICACIONES      *string   `orm:"column(INDICACIONES);null" json:"indicaciones,omitempty"`
+	CREATED_AT        time.Time `orm:"column(CREATED_AT);type(timestamp);auto_now_add" json:"createdAt"`
+	UPDATED_AT        time.Time `orm:"column(UPDATED_AT);type(timestamp);auto_now" json:"updatedAt"`
+	CREATED_BY        *string   `orm:"column(CREATED_BY);type(date)" json:"createdBy,omitempty"`
+	UPDATED_BY        *string   `orm:"column(UPDATED_BY);type(date)" json:"updatedBy,omitempty"`
+	NOMBRE_COMPLETO   *string   `orm:"column(NOMBRE_COMPLETO);type(text);null" json:"nombreCompleto,omitempty"`
+	TELEFONO          *string   `orm:"column(TELEFONO);type(text);null" json:"telefono,omitempty"`
+	DOCUMENTO_CLIENTE *int64    `orm:"column(DOCUMENTO_CLIENTE);null" json:"documentoCliente,omitempty"`
 }
 
 func (r *Reserva) TableName() string {
-	return "reserva"
+	return "RESERVA"
 }
 
 func init() {

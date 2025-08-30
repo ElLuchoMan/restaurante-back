@@ -8,16 +8,16 @@ import (
 )
 
 type Incidencia struct {
-	PK_ID_INCIDENCIA        int64     `orm:"column(pk_id_incidencia);pk;auto" json:"incidenciaId"`
-	FECHA                   time.Time `orm:"column(fecha);type(date)" json:"fechaIncidencia"`
-	MONTO                   int64     `orm:"column(monto)" json:"monto"`
-	RESTA                   bool      `orm:"column(resta);type(boolean)" json:"resta"`
-	MOTIVO                  string    `orm:"column(motivo);type(text)" json:"motivo"`
-	PK_DOCUMENTO_TRABAJADOR *int64    `orm:"column(pk_documento_trabajador);null" json:"documentoTrabajador,omitempty"`
+	PK_ID_INCIDENCIA        int64     `orm:"column(PK_ID_INCIDENCIA);pk;auto" json:"incidenciaId"`
+	FECHA                   time.Time `orm:"column(FECHA);type(date)" json:"fechaIncidencia"`
+	MONTO                   int64     `orm:"column(MONTO)" json:"monto"`
+	RESTA                   bool      `orm:"column(RESTA);type(boolean)" json:"resta"`
+	MOTIVO                  string    `orm:"column(MOTIVO);type(text)" json:"motivo"`
+	PK_DOCUMENTO_TRABAJADOR *int64    `orm:"column(PK_DOCUMENTO_TRABAJADOR);null" json:"documentoTrabajador,omitempty"`
 }
 
 func (i *Incidencia) TableName() string {
-	return "incidencia"
+	return "INCIDENCIA"
 }
 
 func init() {

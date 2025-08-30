@@ -8,16 +8,16 @@ import (
 )
 
 type Pedido struct {
-	PK_ID_PEDIDO      int       `orm:"column(pk_id_pedido);pk;auto" json:"pedidoId"`
-	FECHA             time.Time `orm:"column(fecha);type(date)" json:"fechaPedido"`
-	HORA              string    `orm:"column(hora);type(time)" json:"horaPedido"`
-	DELIVERY          bool      `orm:"column(delivery); type(boolean)" json:"delivery"`
-	ESTADO_PEDIDO     string    `orm:"column(estado_pedido)" json:"estadoPedido"`
-	PK_ID_DOMICILIO   *int      `orm:"column(pk_id_domicilio);null" json:"domicilioId,omitempty"`
-	PK_ID_PAGO        *int      `orm:"column(pk_id_pago);null" json:"pagoId"`
-	PK_ID_RESTAURANTE *int      `orm:"column(pk_id_restaurante);null" json:"restauranteId"`
-	UPDATED_AT        time.Time `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
-	UPDATED_BY        string    `orm:"column(updated_by)" json:"updatedBy"`
+	PK_ID_PEDIDO      int       `orm:"column(PK_ID_PEDIDO);pk;auto" json:"pedidoId"`
+	FECHA             time.Time `orm:"column(FECHA);type(date)" json:"fechaPedido"`
+	HORA              string    `orm:"column(HORA);type(time)" json:"horaPedido"`
+	DELIVERY          bool      `orm:"column(DELIVERY); type(boolean)" json:"delivery"`
+	ESTADO_PEDIDO     string    `orm:"column(ESTADO_PEDIDO)" json:"estadoPedido"`
+	PK_ID_DOMICILIO   *int      `orm:"column(PK_ID_DOMICILIO);null" json:"domicilioId,omitempty"`
+	PK_ID_PAGO        *int      `orm:"column(PK_ID_PAGO);null" json:"pagoId"`
+	PK_ID_RESTAURANTE *int      `orm:"column(PK_ID_RESTAURANTE);null" json:"restauranteId"`
+	UPDATED_AT        time.Time `orm:"column(UPDATED_AT);type(timestamp);auto_now" json:"updatedAt"`
+	UPDATED_BY        string    `orm:"column(UPDATED_BY)" json:"updatedBy"`
 }
 
 type PedidoDetails struct {
@@ -35,7 +35,7 @@ type PedidoDetails struct {
 }
 
 func (p *Pedido) TableName() string {
-	return "pedido"
+	return "PEDIDO"
 }
 
 func init() {

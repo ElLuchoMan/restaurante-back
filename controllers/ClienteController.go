@@ -1,37 +1,37 @@
 package controllers
 
 import (
-	"encoding/json"
-	"net/http"
-	"restaurante/models"
-	"strconv"
-	"strings"
+        "encoding/json"
+        "net/http"
+        "restaurante/models"
+        "strconv"
+        "strings"
 
-	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/server/web"
-	"golang.org/x/crypto/bcrypt"
+        "github.com/beego/beego/v2/client/orm"
+        "github.com/beego/beego/v2/server/web"
+        "golang.org/x/crypto/bcrypt"
 )
 
 var ormNew = orm.NewOrm
 
 var queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
-	return o.QueryTable(new(models.Cliente)).All(clientes)
+        return o.QueryTable(new(models.Cliente)).All(clientes)
 }
 
 var readCliente = func(o orm.Ormer, c *models.Cliente) error {
-	return o.Read(c)
+        return o.Read(c)
 }
 
 var insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-	return o.Insert(c)
+        return o.Insert(c)
 }
 
 var updateCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-	return o.Update(c)
+        return o.Update(c)
 }
 
 var deleteCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-	return o.Delete(c)
+        return o.Delete(c)
 }
 
 var bcryptGenerate = bcrypt.GenerateFromPassword
@@ -68,13 +68,13 @@ func isUniqueEmailErr(err error) bool {
 // @Security BearerAuth
 // @Router /clientes [get]
 func (c *ClienteController) GetAll() {
-	o := ormNew()
+        o := ormNew()
 	var clientes []models.Cliente
 
 	// Obtener el valor del parámetro fields
 	fields := c.GetString("fields")
 
-	_, err := queryAllClientes(o, &clientes)
+       _, err := queryAllClientes(o, &clientes)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -132,7 +132,7 @@ func (c *ClienteController) GetAll() {
 // @Security BearerAuth
 // @Router /clientes/search [get]
 func (c *ClienteController) GetById() {
-	o := ormNew()
+        o := ormNew()
 	id, err := c.GetInt("id")
 
 	if err != nil || id == 0 {
@@ -148,7 +148,7 @@ func (c *ClienteController) GetById() {
 
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
-	err = readCliente(o, &cliente)
+       err = readCliente(o, &cliente)
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -192,7 +192,7 @@ func (c *ClienteController) GetById() {
 // @Failure 409 {object} models.ApiResponse "Correo ya registrado"
 // @Router /clientes [post]
 func (c *ClienteController) Post() {
-	o := ormNew()
+        o := ormNew()
 	var cliente models.Cliente
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &cliente); err != nil {
@@ -213,7 +213,7 @@ func (c *ClienteController) Post() {
 	}
 
 	// Hash de la contraseña antes de insertar
-	hashedPassword, err := bcryptGenerate([]byte(cliente.PASSWORD), bcrypt.DefaultCost)
+       hashedPassword, err := bcryptGenerate([]byte(cliente.PASSWORD), bcrypt.DefaultCost)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -227,7 +227,7 @@ func (c *ClienteController) Post() {
 	cliente.PASSWORD = string(hashedPassword)
 
 	// Inserción en la base de datos
-	if _, err = insertCliente(o, &cliente); err != nil {
+       if _, err = insertCliente(o, &cliente); err != nil {
 		if isUniqueEmailErr(err) {
 			c.Ctx.Output.SetStatus(http.StatusConflict)
 			c.Data["json"] = models.ApiResponse{
@@ -274,7 +274,7 @@ func (c *ClienteController) Post() {
 // @Security BearerAuth
 // @Router /clientes [put]
 func (c *ClienteController) Put() {
-	o := ormNew()
+        o := ormNew()
 
 	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
@@ -292,7 +292,7 @@ func (c *ClienteController) Put() {
 
 	// Verificar si el cliente existe
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
-	if err := readCliente(o, &cliente); err != nil {
+       if err := readCliente(o, &cliente); err != nil {
 		if err == orm.ErrNoRows {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
@@ -342,7 +342,7 @@ func (c *ClienteController) Put() {
 
 	// Si se proporciona una nueva contraseña, hashéala; de lo contrario conserva la actual
 	if updatedCliente.PASSWORD != "" {
-		hashedPassword, err := bcryptGenerate([]byte(updatedCliente.PASSWORD), bcrypt.DefaultCost)
+               hashedPassword, err := bcryptGenerate([]byte(updatedCliente.PASSWORD), bcrypt.DefaultCost)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
@@ -360,7 +360,7 @@ func (c *ClienteController) Put() {
 	}
 
 	// Actualizar en la base de datos
-	if _, err = updateCliente(o, &updatedCliente); err != nil {
+       if _, err = updateCliente(o, &updatedCliente); err != nil {
 		if isUniqueEmailErr(err) {
 			c.Ctx.Output.SetStatus(http.StatusConflict)
 			c.Data["json"] = models.ApiResponse{
@@ -405,7 +405,7 @@ func (c *ClienteController) Put() {
 // @Security BearerAuth
 // @Router /clientes [delete]
 func (c *ClienteController) Delete() {
-	o := ormNew()
+        o := ormNew()
 
 	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
@@ -422,7 +422,7 @@ func (c *ClienteController) Delete() {
 
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 
-	if _, err := deleteCliente(o, &cliente); err == nil {
+       if _, err := deleteCliente(o, &cliente); err == nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,

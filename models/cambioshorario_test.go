@@ -27,7 +27,7 @@ func TestCambiosHorarioMarshalJSON(t *testing.T) {
 
 func TestCambiosHorarioTableName(t *testing.T) {
 	c := CambiosHorario{}
-	if c.TableName() != "cambios_horario" {
+	if c.TableName() != "CAMBIOS_HORARIO" {
 		t.Errorf("expected table name CAMBIOS_HORARIO, got %s", c.TableName())
 	}
 }

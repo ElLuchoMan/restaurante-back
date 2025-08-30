@@ -8,18 +8,18 @@ import (
 )
 
 type Pago struct {
-	PK_ID_PAGO        int       `orm:"column(pk_id_pago);pk;auto" json:"pagoId"`
-	FECHA             time.Time `orm:"column(fecha);type(date)" json:"fechaPago"`
-	HORA              string    `orm:"column(hora);type(time)" json:"horaPago"`
-	MONTO             int64     `orm:"column(monto)" json:"monto"`
-	ESTADO_PAGO       string    `orm:"column(estado_pago);type(text)" json:"estadoPago"`
-	PK_ID_METODO_PAGO int       `orm:"column(pk_id_metodo_pago);null" json:"metodoPagoId"`
-	UPDATED_AT        time.Time `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
-	UPDATED_BY        string    `orm:"column(updated_by)" json:"updatedBy"`
+	PK_ID_PAGO        int       `orm:"column(PK_ID_PAGO);pk;auto" json:"pagoId"`
+	FECHA             time.Time `orm:"column(FECHA);type(date)" json:"fechaPago"`
+	HORA              string    `orm:"column(HORA);type(time)" json:"horaPago"`
+	MONTO             int64     `orm:"column(MONTO)" json:"monto"`
+	ESTADO_PAGO       string    `orm:"column(ESTADO_PAGO);type(text)" json:"estadoPago"`
+	PK_ID_METODO_PAGO int       `orm:"column(PK_ID_METODO_PAGO);null" json:"metodoPagoId"`
+	UPDATED_AT        time.Time `orm:"column(UPDATED_AT);type(timestamp);auto_now" json:"updatedAt"`
+	UPDATED_BY        string    `orm:"column(UPDATED_BY)" json:"updatedBy"`
 }
 
 func (p *Pago) TableName() string {
-	return "pago"
+	return "PAGO"
 }
 
 func init() {
