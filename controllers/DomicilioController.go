@@ -25,6 +25,7 @@ type DomicilioController struct {
 // @Param   direccion    query   string   false   "Filtrar por dirección"
 // @Param   telefono     query   string   false   "Filtrar por teléfono"
 // @Param   fecha        query   string   false   "Filtrar por fecha"
+// @Param   estado       query   string   false   "Filtrar por estado del domicilio"
 // @Param   updated_by   query   string   false   "Filtrar por usuario que realizó la última actualización"
 // @Param   trabajador   query   int      false   "ID del domiciliario solicitante"
 // @Success 200 {array} models.Domicilio "Lista de domicilios"
@@ -40,6 +41,7 @@ func (c *DomicilioController) GetAll() {
 	telefono := c.GetString("telefono")
 	updatedBy := c.GetString("updated_by")
 	fecha := c.GetString("fecha")
+	estado := c.GetString("estado")
 	trabajadorID, _ := c.GetInt("trabajador") // ID del domiciliario solicitante
 
 	// Aplicar filtros opcionales SOLO si se proporcionan
@@ -54,6 +56,9 @@ func (c *DomicilioController) GetAll() {
 	}
 	if fecha != "" {
 		qs = qs.Filter("FECHA", fecha)
+	}
+	if estado != "" {
+		qs = qs.Filter("ESTADO_DOMICILIO", estado)
 	}
 
 	// Aplicar condición para que los domiciliarios solo vean pedidos que pueden tomar
@@ -331,6 +336,9 @@ func (c *DomicilioController) Post() {
 	}
 
 	// Procesar campos opcionales
+	if estado, ok := input["estado"].(string); ok {
+		domicilio.ESTADO_DOMICILIO = estado
+	}
 	if estadoPago, ok := input["estadoPago"].(string); ok {
 		domicilio.ESTADO_PAGO = estadoPago
 	}
@@ -431,6 +439,9 @@ func (c *DomicilioController) Put() {
 	}
 	if telefono, ok := input["telefono"].(string); ok {
 		domicilio.TELEFONO = telefono
+	}
+	if estado, ok := input["estado"].(string); ok {
+		domicilio.ESTADO_DOMICILIO = estado
 	}
 	if estadoPago, ok := input["estadoPago"].(string); ok {
 		domicilio.ESTADO_PAGO = estadoPago

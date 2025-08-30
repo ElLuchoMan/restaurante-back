@@ -11,9 +11,10 @@ func TestDomicilioMarshalJSON(t *testing.T) {
 	created := time.Date(2024, time.August, 9, 14, 30, 0, 0, time.UTC)
 	updated := time.Date(2024, time.August, 11, 15, 45, 0, 0, time.UTC)
 	d := Domicilio{
-		FECHA:      fecha,
-		CREATED_AT: created,
-		UPDATED_AT: updated,
+		FECHA:            fecha,
+		ESTADO_DOMICILIO: EstadoDomicilioEnCamino,
+		CREATED_AT:       created,
+		UPDATED_AT:       updated,
 	}
 
 	b, err := json.Marshal(d)
@@ -28,6 +29,9 @@ func TestDomicilioMarshalJSON(t *testing.T) {
 
 	if data["fechaDomicilio"] != "10-08-2024" {
 		t.Errorf("expected fechaDomicilio 10-08-2024, got %v", data["fechaDomicilio"])
+	}
+	if data["estado"] != EstadoDomicilioEnCamino {
+		t.Errorf("expected estado %s, got %v", EstadoDomicilioEnCamino, data["estado"])
 	}
 	if data["createdAt"] != "09-08-2024 14:30:00" {
 		t.Errorf("expected createdAt 09-08-2024 14:30:00, got %v", data["createdAt"])
