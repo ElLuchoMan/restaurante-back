@@ -19,7 +19,6 @@ func SeedTestData() {
 	if _, err := o.Insert(&models.DetallePedido{
 		PKIDPedido:   1,
 		PKIDProducto: 1,
-		Precio:       1000,
 		Cantidad:     1,
 	}); err != nil {
 		log.Println("seed DETALLE_PEDIDO:", err)
