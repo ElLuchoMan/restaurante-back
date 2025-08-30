@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"restaurante/models"
 	"strconv"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -42,7 +43,7 @@ func (c *ProductoController) GetAll() {
 	// Construir la consulta con filtros
 	query := o.QueryTable(new(models.Producto))
 	if onlyActive {
-		query = query.Filter("ESTADO_PRODUCTO", "DISPONIBLE")
+		query = query.Filter("ESTADO_PRODUCTO", models.EstadoProductoDisponible)
 	}
 	if categoria != "" {
 		query = query.Filter("CATEGORIA__icontains", categoria)
@@ -196,6 +197,23 @@ func (c *ProductoController) Post() {
 		return
 	}
 
+	// Registrar historial de precios
+	hist := models.PrecioProductoHist{
+		PKIDProducto: producto.PK_ID_PRODUCTO,
+		Precio:       float64(producto.PRECIO),
+		FechaInicio:  time.Now(),
+	}
+	if _, err := o.Insert(&hist); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al registrar historial de precios",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
@@ -303,6 +321,40 @@ func (c *ProductoController) Put() {
 			return
 		}
 
+		// Si cambió el precio, actualizar historial
+		if producto.PRECIO != original.PRECIO {
+			now := time.Now()
+			if _, err := o.QueryTable(new(models.PrecioProductoHist)).
+				Filter("pk_id_producto", producto.PK_ID_PRODUCTO).
+				Filter("fecha_fin__isnull", true).
+				Update(orm.Params{"fecha_fin": now}); err != nil {
+				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+				c.Data["json"] = models.ApiResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "Error al actualizar historial de precios",
+					Cause:   err.Error(),
+				}
+				c.ServeJSON()
+				return
+			}
+
+			hist := models.PrecioProductoHist{
+				PKIDProducto: producto.PK_ID_PRODUCTO,
+				Precio:       float64(producto.PRECIO),
+				FechaInicio:  now,
+			}
+			if _, err := o.Insert(&hist); err != nil {
+				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+				c.Data["json"] = models.ApiResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "Error al registrar historial de precios",
+					Cause:   err.Error(),
+				}
+				c.ServeJSON()
+				return
+			}
+		}
+
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
@@ -360,7 +412,7 @@ func (c *ProductoController) Delete() {
 		c.ServeJSON()
 		return
 	}
-	if producto.ESTADO_PRODUCTO == "NO DISPONIBLE" {
+	if producto.ESTADO_PRODUCTO == models.EstadoProductoNoDisponible {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -370,7 +422,7 @@ func (c *ProductoController) Delete() {
 		return
 	}
 	// Cambiar el estado del producto a "NO DISPONIBLE" para el borrado lógico
-	producto.ESTADO_PRODUCTO = "NO DISPONIBLE"
+	producto.ESTADO_PRODUCTO = models.EstadoProductoNoDisponible
 	if _, err := o.Update(producto, "ESTADO_PRODUCTO"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -422,7 +474,7 @@ func validateProducto(producto *models.Producto) error {
 	if producto.CALORIAS != nil && *producto.CALORIAS < 0 {
 		return fmt.Errorf("el campo 'CALORIAS' debe ser un número positivo")
 	}
-	if producto.ESTADO_PRODUCTO != "DISPONIBLE" && producto.ESTADO_PRODUCTO != "NO DISPONIBLE" {
+	if producto.ESTADO_PRODUCTO != models.EstadoProductoDisponible && producto.ESTADO_PRODUCTO != models.EstadoProductoNoDisponible {
 		return fmt.Errorf("el campo 'ESTADO_PRODUCTO' debe ser 'DISPONIBLE' o 'NO DISPONIBLE'")
 	}
 	return nil
