@@ -8,22 +8,22 @@ import (
 )
 
 type Domicilio struct {
-	PK_ID_DOMICILIO         int       `orm:"column(PK_ID_DOMICILIO);pk;auto" json:"domicilioId"`
-	DIRECCION               string    `orm:"column(DIRECCION);type(text)" json:"direccion"`
-	TELEFONO                string    `orm:"column(TELEFONO);type(text)" json:"telefono"`
-	ESTADO_PAGO             string    `orm:"column(ESTADO_PAGO);type(text)" json:"estadoPago"`
-	ENTREGADO               bool      `orm:"column(ENTREGADO);type(boolean)" json:"entregado"`
-	FECHA                   time.Time `orm:"column(FECHA);type(date)" json:"fechaDomicilio"`
-	OBSERVACIONES           string    `orm:"column(OBSERVACIONES);type(text)" json:"observaciones"`
-	CREATED_AT              time.Time `orm:"column(CREATED_AT);type(timestamp);auto_now_add" json:"createdAt"`
-	UPDATED_AT              time.Time `orm:"column(UPDATED_AT);type(timestamp);auto_now" json:"updatedAt"`
-	CREATED_BY              *string   `orm:"column(CREATED_BY);type(text)" json:"createdBy,omitempty"`
-	UPDATED_BY              *string   `orm:"column(UPDATED_BY);type(text)" json:"updatedBy,omitempty"`
-	PK_DOCUMENTO_TRABAJADOR *int      `orm:"column(PK_DOCUMENTO_TRABAJADOR);null" json:"trabajadorAsignado,omitempty"`
+	PK_ID_DOMICILIO         int       `orm:"column(pk_id_domicilio);pk;auto" json:"domicilioId"`
+	DIRECCION               string    `orm:"column(direccion);type(text)" json:"direccion"`
+	TELEFONO                string    `orm:"column(telefono);type(text)" json:"telefono"`
+	ESTADO_PAGO             string    `orm:"column(estado_pago);type(text)" json:"estadoPago"`
+	ENTREGADO               bool      `orm:"column(entregado);type(boolean)" json:"entregado"`
+	FECHA                   time.Time `orm:"column(fecha);type(date)" json:"fechaDomicilio"`
+	OBSERVACIONES           string    `orm:"column(observaciones);type(text)" json:"observaciones"`
+	CREATED_AT              time.Time `orm:"column(created_at);type(timestamp);auto_now_add" json:"createdAt"`
+	UPDATED_AT              time.Time `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
+	CREATED_BY              *string   `orm:"column(created_by);type(text)" json:"createdBy,omitempty"`
+	UPDATED_BY              *string   `orm:"column(updated_by);type(text)" json:"updatedBy,omitempty"`
+	PK_DOCUMENTO_TRABAJADOR *int      `orm:"column(pk_documento_trabajador);null" json:"trabajadorAsignado,omitempty"`
 }
 
 func (d *Domicilio) TableName() string {
-	return "DOMICILIO"
+	return "domicilio"
 }
 
 func init() {

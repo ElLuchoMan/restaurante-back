@@ -42,7 +42,7 @@ func (c *ProductoController) GetAll() {
 	// Construir la consulta con filtros
 	query := o.QueryTable(new(models.Producto))
 	if onlyActive {
-		query = query.Filter("ESTADO_PRODUCTO", "DISPONIBLE")
+		query = query.Filter("estado_producto", "DISPONIBLE")
 	}
 	if categoria != "" {
 		query = query.Filter("CATEGORIA__icontains", categoria)
@@ -153,7 +153,7 @@ func (c *ProductoController) Post() {
 	producto.NOMBRE = c.GetString("NOMBRE")
 	producto.CATEGORIA = c.GetString("CATEGORIA")
 	producto.SUBCATEGORIA = c.GetString("SUBCATEGORIA")
-	producto.ESTADO_PRODUCTO = c.GetString("ESTADO_PRODUCTO")
+	producto.ESTADO_PRODUCTO = c.GetString("estado_producto")
 	calorias, _ := c.GetInt64("CALORIAS")
 	producto.CALORIAS = &calorias
 	producto.DESCRIPCION = c.GetString("DESCRIPCION")
@@ -251,7 +251,7 @@ func (c *ProductoController) Put() {
 		producto.CALORIAS = &calorias
 		producto.DESCRIPCION = c.GetString("DESCRIPCION")
 		producto.PRECIO, _ = c.GetInt64("PRECIO")
-		producto.ESTADO_PRODUCTO = c.GetString("ESTADO_PRODUCTO")
+		producto.ESTADO_PRODUCTO = c.GetString("estado_producto")
 		producto.CANTIDAD, _ = c.GetInt("CANTIDAD")
 
 		// Validar datos
@@ -371,7 +371,7 @@ func (c *ProductoController) Delete() {
 	}
 	// Cambiar el estado del producto a "NO DISPONIBLE" para el borrado lógico
 	producto.ESTADO_PRODUCTO = "NO DISPONIBLE"
-	if _, err := o.Update(producto, "ESTADO_PRODUCTO"); err != nil {
+	if _, err := o.Update(producto, "estado_producto"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

@@ -27,7 +27,7 @@ func TestIncidenciaMarshalJSON(t *testing.T) {
 
 func TestIncidenciaTableName(t *testing.T) {
 	i := Incidencia{}
-	if i.TableName() != "INCIDENCIA" {
+	if i.TableName() != "incidencia" {
 		t.Errorf("expected table name INCIDENCIA, got %s", i.TableName())
 	}
 }

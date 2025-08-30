@@ -67,14 +67,14 @@ func (c *TrabajadorController) GetAll() {
 	// Priorizar "solo retirados" sobre "incluir retirados"
 	query := o.QueryTable(new(models.Trabajador))
 	if soloRetirados {
-		query = query.Filter("FECHA_RETIRO__isnull", false)
+		query = query.Filter("fecha_retiro__isnull", false)
 	} else if !incluirRetirados {
-		query = query.Filter("FECHA_RETIRO__isnull", true)
+		query = query.Filter("fecha_retiro__isnull", true)
 	}
 
 	// Aplicar filtros adicionales
 	if fechaIngreso != "" {
-		query = query.Filter("FECHA_INGRESO__exact", fechaIngreso)
+		query = query.Filter("fecha_ingreso__exact", fechaIngreso)
 	}
 	if rol != "" {
 		query = query.Filter("ROL__exact", rol)
@@ -422,35 +422,35 @@ func (c *TrabajadorController) Put() {
 	}
 
 	// Actualizar campos proporcionados
-	if nombre, ok := input["NOMBRE"].(string); ok && nombre != "" {
+	if nombre, ok := input["nombre"].(string); ok && nombre != "" {
 		trabajador.NOMBRE = nombre
 	}
 
-	if apellido, ok := input["APELLIDO"].(string); ok && apellido != "" {
+	if apellido, ok := input["apellido"].(string); ok && apellido != "" {
 		trabajador.APELLIDO = apellido
 	}
 
-	if rol, ok := input["ROL"].(string); ok && rol != "" {
+	if rol, ok := input["rol"].(string); ok && rol != "" {
 		trabajador.ROL = rol
 	}
 
-	if sueldo, ok := input["SUELDO"].(float64); ok {
+	if sueldo, ok := input["sueldo"].(float64); ok {
 		trabajador.SUELDO = int64(sueldo)
 	}
 
-	if nuevo, ok := input["NUEVO"].(bool); ok {
+	if nuevo, ok := input["nuevo"].(bool); ok {
 		trabajador.NUEVO = nuevo
 	}
 
-	if telefono, ok := input["TELEFONO"].(string); ok && telefono != "" {
+	if telefono, ok := input["telefono"].(string); ok && telefono != "" {
 		trabajador.TELEFONO = &telefono
 	}
 
-	if horario, ok := input["HORARIO"].(string); ok && horario != "" {
+	if horario, ok := input["horario"].(string); ok && horario != "" {
 		trabajador.HORARIO = &horario
 	}
 
-	if fechaIngresoStr, ok := input["FECHA_INGRESO"].(string); ok && fechaIngresoStr != "" {
+	if fechaIngresoStr, ok := input["fecha_ingreso"].(string); ok && fechaIngresoStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaIngresoStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -465,7 +465,7 @@ func (c *TrabajadorController) Put() {
 		trabajador.FECHA_INGRESO = parsedDate
 	}
 
-	if fechaRetiroStr, ok := input["FECHA_RETIRO"].(string); ok && fechaRetiroStr != "" {
+	if fechaRetiroStr, ok := input["fecha_retiro"].(string); ok && fechaRetiroStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaRetiroStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -481,7 +481,7 @@ func (c *TrabajadorController) Put() {
 		trabajador.FECHA_RETIRO = &fechaRetiro
 	}
 
-	if fechaNacimientoStr, ok := input["FECHA_NACIMIENTO"].(string); ok && fechaNacimientoStr != "" {
+	if fechaNacimientoStr, ok := input["fecha_nacimiento"].(string); ok && fechaNacimientoStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaNacimientoStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -497,7 +497,7 @@ func (c *TrabajadorController) Put() {
 		trabajador.FECHA_NACIMIENTO = &fechaNacimiento
 	}
 
-	if password, ok := input["PASSWORD"].(string); ok && password != "" {
+	if password, ok := input["password"].(string); ok && password != "" {
 		hashedPassword, err := hashPassword(password)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -602,7 +602,7 @@ func (c *TrabajadorController) Delete() {
 	trabajador.FECHA_RETIRO = &fechaRetiro
 
 	// Actualizar el registro en la base de datos
-	if _, err := o.Update(&trabajador, "FECHA_RETIRO"); err != nil {
+	if _, err := o.Update(&trabajador, "fecha_retiro"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

@@ -138,7 +138,7 @@ func (c *NominaController) Post() {
 
 	var updatedNomina models.Nomina
 	err = o.QueryTable(new(models.Nomina)).
-		Filter("PK_ID_NOMINA", input.PK_ID_NOMINA).
+		Filter("pk_id_nomina", input.PK_ID_NOMINA).
 		One(&updatedNomina)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -215,7 +215,7 @@ func (c *NominaController) Put() {
 	nomina.ESTADO_NOMINA = "PAGO"
 
 	// Guardar los cambios
-	if _, err := o.Update(&nomina, "ESTADO_NOMINA"); err != nil {
+	if _, err := o.Update(&nomina, "estado_nomina"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -275,7 +275,7 @@ func (c *NominaController) Delete() {
 	}
 
 	nomina.ESTADO_NOMINA = "NO PAGO"
-	if _, err := o.Update(&nomina, "ESTADO_NOMINA"); err != nil {
+	if _, err := o.Update(&nomina, "estado_nomina"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

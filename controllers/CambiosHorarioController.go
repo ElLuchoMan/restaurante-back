@@ -17,7 +17,7 @@ type CambiosHorarioController struct {
 
 // Hook existente en tu versión (lo mantenemos igual: recibe string)
 var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
-	return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)
+	return o.QueryTable(new(models.CambiosHorario)).Filter("fecha", date).One(ch)
 }
 
 /*

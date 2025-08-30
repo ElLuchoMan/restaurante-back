@@ -43,10 +43,10 @@ var updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64,
 var queryReservasByParam = func(o orm.Ormer, documentoCliente int64, fecha time.Time, useDoc, useFecha bool, reservas *[]models.Reserva) (int64, error) {
 	qs := o.QueryTable(new(models.Reserva))
 	if useDoc {
-		qs = qs.Filter("DOCUMENTO_CLIENTE", documentoCliente)
+		qs = qs.Filter("documento_cliente", documentoCliente)
 	}
 	if useFecha {
-		qs = qs.Filter("FECHA", fecha)
+		qs = qs.Filter("fecha", fecha)
 	}
 	return qs.All(reservas)
 }
