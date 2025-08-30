@@ -8,14 +8,14 @@ import (
 )
 
 type HorarioTrabajador struct {
-	PK_DOCUMENTO_TRABAJADOR int64     `orm:"column(PK_DOCUMENTO_TRABAJADOR);pk" json:"documentoTrabajador"`
-	DIA                     string    `orm:"column(DIA);type(text);pk" json:"dia"`
-	HORA_INICIO             time.Time `orm:"column(HORA_INICIO);type(time)" json:"horaInicio"`
-	HORA_FIN                time.Time `orm:"column(HORA_FIN);type(time)" json:"horaFin"`
+	PK_DOCUMENTO_TRABAJADOR int64     `orm:"column(pk_documento_trabajador);pk" json:"documentoTrabajador"`
+	DIA                     DiaSemana `orm:"column(dia);type(text);pk" json:"dia"`
+	HORA_INICIO             time.Time `orm:"column(hora_inicio);type(time)" json:"horaInicio"`
+	HORA_FIN                time.Time `orm:"column(hora_fin);type(time)" json:"horaFin"`
 }
 
 func (h *HorarioTrabajador) TableName() string {
-	return "HORARIO_TRABAJADOR"
+	return "horario_trabajador"
 }
 
 func init() {
@@ -30,7 +30,7 @@ func (h HorarioTrabajador) MarshalJSON() ([]byte, error) {
 		HORA_FIN                string `json:"horaFin"`
 	}{
 		PK_DOCUMENTO_TRABAJADOR: h.PK_DOCUMENTO_TRABAJADOR,
-		DIA:                     h.DIA,
+		DIA:                     string(h.DIA),
 		HORA_INICIO:             h.HORA_INICIO.Format("15:04:05"),
 		HORA_FIN:                h.HORA_FIN.Format("15:04:05"),
 	})
