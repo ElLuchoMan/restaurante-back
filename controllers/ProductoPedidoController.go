@@ -9,14 +9,23 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type productoPedidoOrmer interface {
+	QueryTable(interface{}) orm.QuerySeter
+	Insert(interface{}) (int64, error)
+	Update(interface{}, ...string) (int64, error)
+}
+
+// productoPedidoNewOrm allows tests to stub orm.NewOrm.
+var productoPedidoNewOrm = func() productoPedidoOrmer { return orm.NewOrm() }
+
 type ProductoPedidoController struct {
 	web.Controller
 }
 
 // Estructura para mapear las respuestas en camelCase
 type ProductoPedidoResponse struct {
-	PedidoID          int64       `json:"pedidoId"`
-	DetallesProductos interface{} `json:"detallesProductos"`
+	PedidoID int64       `json:"pedidoId"`
+	Detalles interface{} `json:"detalles"`
 }
 
 // @Title GetAll
@@ -42,7 +51,7 @@ func (c *ProductoPedidoController) GetAll() {
 		return
 	}
 
-	o := orm.NewOrm()
+	o := productoPedidoNewOrm()
 	var productoPedido models.ProductoPedido
 
 	err = o.QueryTable(new(models.ProductoPedido)).
@@ -66,35 +75,31 @@ func (c *ProductoPedidoController) GetAll() {
 		return
 	}
 
-	// Convertir el JSONB a un formato de salida legible
-	var detalles []map[string]interface{}
-	if err := json.Unmarshal([]byte(productoPedido.DETALLES_PRODUCTOS), &detalles); err != nil {
+	var detalles []models.ProductoPedidoDetalle
+	if _, err := o.QueryTable(new(models.ProductoPedidoDetalle)).
+		Filter("PK_ID_PEDIDO", pedidoID).
+		All(&detalles); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Error al procesar los detalles del pedido",
+			Message: "Error al obtener los productos del pedido",
 			Cause:   err.Error(),
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Transformar las claves de los detalles a camelCase
-	var detallesCamelCase []map[string]interface{}
-	for _, detalle := range detalles {
-		camelCaseDetalle := map[string]interface{}{
-			"cantidad":       detalle["CANTIDAD"],
-			"nombre":         detalle["NOMBRE"],
-			"productoId":     detalle["PK_ID_PRODUCTO"],
-			"precioUnitario": detalle["PRECIO_UNITARIO"],
-			"subtotal":       detalle["SUBTOTAL"],
+	if len(detalles) == 0 {
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusNotFound,
+			Message: "No se encontraron productos asociados a este pedido",
 		}
-		detallesCamelCase = append(detallesCamelCase, camelCaseDetalle)
+		c.ServeJSON()
+		return
 	}
 
-	// Construir la respuesta
 	response := map[string]interface{}{
-		"pedidoId":          productoPedido.PK_ID_PEDIDO,
-		"detallesProductos": detallesCamelCase,
+		"pedidoId": productoPedido.PK_ID_PEDIDO,
+		"detalles": detalles,
 	}
 
 	c.Data["json"] = models.ApiResponse{
@@ -119,8 +124,8 @@ func (c *ProductoPedidoController) GetAll() {
 // @Router /producto_pedido [post]
 func (c *ProductoPedidoController) Post() {
 	var input struct {
-		PedidoId          int64                    `json:"pedidoId"`
-		DetallesProductos []map[string]interface{} `json:"detallesProductos"`
+		PedidoId int64                          `json:"pedidoId"`
+		Detalles []models.ProductoPedidoDetalle `json:"detalles"`
 	}
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
@@ -133,8 +138,7 @@ func (c *ProductoPedidoController) Post() {
 		return
 	}
 
-	// Validar que se proporcione el pedido y los detalles
-	if input.PedidoId == 0 || len(input.DetallesProductos) == 0 {
+	if input.PedidoId == 0 || len(input.Detalles) == 0 {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "El pedido y los detalles de los productos son obligatorios",
@@ -143,26 +147,9 @@ func (c *ProductoPedidoController) Post() {
 		return
 	}
 
-	// Convertir los detalles a JSON
-	detallesJSON, err := json.Marshal(input.DetallesProductos)
-	if err != nil {
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al procesar los detalles del pedido",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	productoPedido := models.ProductoPedido{
-		PK_ID_PEDIDO:       input.PedidoId,
-		DETALLES_PRODUCTOS: string(detallesJSON),
-	}
-
-	o := orm.NewOrm()
-	_, err = o.Insert(&productoPedido)
-	if err != nil {
+	productoPedido := models.ProductoPedido{PK_ID_PEDIDO: input.PedidoId}
+	o := productoPedidoNewOrm()
+	if _, err := o.Insert(&productoPedido); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al crear el pedido con productos",
@@ -170,6 +157,26 @@ func (c *ProductoPedidoController) Post() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	for _, d := range input.Detalles {
+		detalle := models.ProductoPedidoDetalle{
+			PKIDPedido:     input.PedidoId,
+			PKIDProducto:   d.PKIDProducto,
+			CANTIDAD:       d.CANTIDAD,
+			PRECIOUNITARIO: d.PRECIOUNITARIO,
+			SUBTOTAL:       d.SUBTOTAL,
+		}
+		if _, err := o.Insert(&detalle); err != nil {
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al crear el pedido con productos",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		productoPedido.Detalles = append(productoPedido.Detalles, detalle)
 	}
 
 	c.Data["json"] = models.ApiResponse{
@@ -206,7 +213,7 @@ func (c *ProductoPedidoController) Update() {
 	}
 
 	// Parsear los datos del cuerpo de la solicitud
-	var nuevosProductos []map[string]interface{}
+	var nuevosProductos []models.ProductoPedidoDetalle
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &nuevosProductos); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -226,7 +233,7 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 
-	o := orm.NewOrm()
+	o := productoPedidoNewOrm()
 	productoPedido := models.ProductoPedido{}
 
 	// Verificar si existe el pedido en la base de datos
@@ -250,21 +257,9 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 
-	// Convertir la nueva lista de productos a JSON
-	nuevosDetallesJSON, err := json.Marshal(nuevosProductos)
-	if err != nil {
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al procesar los detalles actualizados",
-			Cause:   err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-
-	// Actualizar los detalles en la base de datos
-	productoPedido.DETALLES_PRODUCTOS = string(nuevosDetallesJSON)
-	if _, err := o.Update(&productoPedido, "DETALLES_PRODUCTOS"); err != nil {
+	if _, err := o.QueryTable(new(models.ProductoPedidoDetalle)).
+		Filter("PK_ID_PEDIDO", pedidoID).
+		Delete(); err != nil {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al actualizar los productos del pedido",
@@ -272,6 +267,26 @@ func (c *ProductoPedidoController) Update() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	for _, d := range nuevosProductos {
+		detalle := models.ProductoPedidoDetalle{
+			PKIDPedido:     pedidoID,
+			PKIDProducto:   d.PKIDProducto,
+			CANTIDAD:       d.CANTIDAD,
+			PRECIOUNITARIO: d.PRECIOUNITARIO,
+			SUBTOTAL:       d.SUBTOTAL,
+		}
+		if _, err := o.Insert(&detalle); err != nil {
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al actualizar los productos del pedido",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+		productoPedido.Detalles = append(productoPedido.Detalles, detalle)
 	}
 
 	c.Data["json"] = models.ApiResponse{

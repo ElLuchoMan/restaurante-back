@@ -59,6 +59,12 @@ func init() {
 			beego.NSRouter("/search", &controllers.TrabajadorController{}, "get:GetById"),
 		),
 
+		// Horario de trabajador (protegido)
+		beego.NSNamespace("/horario_trabajador",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.HorarioTrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+		),
+
 		// Productos (público según tu definición actual)
 		beego.NSNamespace("/productos",
 			beego.NSRouter("/", &controllers.ProductoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),

@@ -372,12 +372,16 @@ SELECT
     COALESCE(p."ESTADO_PEDIDO", '')                    AS estado_pedido,
     COALESCE(mp."TIPO", '')                            AS metodo_pago,
     COALESCE((
-        SELECT jsonb_agg(elementos)::text
-        FROM (
-            SELECT jsonb_array_elements(pp."DETALLES_PRODUCTOS") AS elementos
-            FROM "PRODUCTO_PEDIDO" pp
-            WHERE pp."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
-        ) subq
+        SELECT jsonb_agg(json_build_object(
+            'PK_ID_PRODUCTO', d."PK_ID_PRODUCTO",
+            'NOMBRE', pr."NOMBRE",
+            'CANTIDAD', d."CANTIDAD",
+            'PRECIO_UNITARIO', d."PRECIO_UNITARIO",
+            'SUBTOTAL', d."SUBTOTAL"
+        ))::text
+        FROM "PRODUCTO_PEDIDO_DETALLE" d
+        JOIN "PRODUCTO" pr ON pr."PK_ID_PRODUCTO" = d."PK_ID_PRODUCTO"
+        WHERE d."PK_ID_PEDIDO" = p."PK_ID_PEDIDO"
     ), '[]')                                           AS productos,
     COALESCE(p."PK_ID_PAGO", 0)                        AS pago_id,
     COALESCE(pa."PK_ID_METODO_PAGO", 0)                AS metodo_pago_id,

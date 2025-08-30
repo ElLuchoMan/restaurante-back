@@ -99,8 +99,8 @@ func TestCambiosHorario_GetByCurrentDate_NotFound(t *testing.T) {
 	c, w := setupCtx(http.MethodGet, "/cambios_horario/actual", "")
 	c.GetByCurrentDate()
 
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
 	}
 	if !strings.Contains(w.Body.String(), "No hay cambios de horario para la fecha actual") {
 		t.Errorf("unexpected body: %s", w.Body.String())

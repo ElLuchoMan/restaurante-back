@@ -8,6 +8,7 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 	_ "github.com/lib/pq"
+	"restaurante/models"
 )
 
 // registerDataBase allows tests to stub orm.RegisterDataBase.
@@ -35,6 +36,10 @@ func InitDB() error {
 	fmt.Println("Conexión a la base de datos exitosa!")
 	fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
 
+	if err := seedMetodoPago(); err != nil {
+		fmt.Println("Error al poblar METODO_PAGO:", err)
+	}
+
 	return nil
 }
 
@@ -47,4 +52,27 @@ func InitTimezone() {
 		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
 		BogotaZone = time.FixedZone("UTC-5", -5*60*60)
 	}
+}
+
+func seedMetodoPago() error {
+	o := orm.NewOrm()
+
+	defaults := []models.MetodoPago{
+		{TIPO: "Efectivo"},
+		{TIPO: "Tarjeta"},
+	}
+
+	for _, m := range defaults {
+		cnt, err := o.QueryTable(new(models.MetodoPago)).Filter("TIPO", m.TIPO).Count()
+		if err != nil {
+			return err
+		}
+		if cnt == 0 {
+			if _, err := o.Insert(&m); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
