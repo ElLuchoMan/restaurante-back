@@ -14,14 +14,36 @@ import (
 )
 
 func TestProductoPriceHistoryLifecycle(t *testing.T) {
-	// Create product via controller
+	o, err := getOrmer()
+	if err != nil {
+		t.Fatalf("orm not available: %v", err)
+	}
+
+	// Ensure required subcategory exists
+	var sub models.Subcategoria
+	if err := o.QueryTable(new(models.Subcategoria)).Filter("PK_ID_SUBCATEGORIA", 1).One(&sub); err != nil {
+		t.Fatalf("subcategoria not found: %v", err)
+	}
+
 	name := "HistTest" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	// Cleanup product and history even if the test fails
+	defer func() {
+		var p models.Producto
+		if err := o.QueryTable(new(models.Producto)).Filter("NOMBRE", name).One(&p); err == nil {
+			o.QueryTable(new(models.PrecioProductoHist)).Filter("PKIDProducto", p.PK_ID_PRODUCTO).Delete()
+			o.Delete(&p)
+		}
+	}()
+
+	// Create product via controller including description and calories
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.WriteField("NOMBRE", name)
+	writer.WriteField("DESCRIPCION", "desc "+name)
+	writer.WriteField("CALORIAS", "100")
 	writer.WriteField("ESTADO_PRODUCTO", string(models.EstadoProductoDisponible))
 	writer.WriteField("PRECIO", "100")
-	writer.WriteField("PK_ID_SUBCATEGORIA", "1")
+	writer.WriteField("PK_ID_SUBCATEGORIA", strconv.FormatInt(sub.PK_ID_SUBCATEGORIA, 10))
 	writer.Close()
 
 	req := httptest.NewRequest(http.MethodPost, "/productos", body)
@@ -31,16 +53,10 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 		t.Fatalf("product creation failed or DB unavailable: %d %s", w.Code, w.Body.String())
 	}
 
-	o, err := getOrmer()
-	if err != nil {
-		t.Fatalf("orm not available: %v", err)
-	}
 	var p models.Producto
 	if err := o.QueryTable(new(models.Producto)).Filter("NOMBRE", name).One(&p); err != nil {
 		t.Fatalf("producto not found: %v", err)
 	}
-	defer o.QueryTable(new(models.PrecioProductoHist)).Filter("PKIDProducto", p.PK_ID_PRODUCTO).Delete()
-	defer o.Delete(&p)
 
 	var hist []models.PrecioProductoHist
 	if _, err := o.QueryTable(new(models.PrecioProductoHist)).Filter("PKIDProducto", p.PK_ID_PRODUCTO).All(&hist); err != nil {
@@ -52,9 +68,11 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 
 	values := url.Values{}
 	values.Set("NOMBRE", name)
+	values.Set("DESCRIPCION", "desc "+name)
+	values.Set("CALORIAS", "200")
 	values.Set("ESTADO_PRODUCTO", string(models.EstadoProductoDisponible))
 	values.Set("PRECIO", "200")
-	values.Set("PK_ID_SUBCATEGORIA", "1")
+	values.Set("PK_ID_SUBCATEGORIA", strconv.FormatInt(sub.PK_ID_SUBCATEGORIA, 10))
 
 	req = httptest.NewRequest(http.MethodPut, "/productos?id="+strconv.FormatInt(p.PK_ID_PRODUCTO, 10), strings.NewReader(values.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
