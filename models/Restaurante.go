@@ -9,16 +9,16 @@ import (
 var jsonMarshal = json.Marshal
 
 type Restaurante struct {
-	PK_ID_RESTAURANTE    int    `orm:"column(PK_ID_RESTAURANTE);pk" json:"restauranteId"`
-	NOMBRE_RESTAURANTE   string `orm:"column(NOMBRE_RESTAURANTE)" json:"nombreRestaurante"`
-	HORA_APERTURA        string `orm:"column(HORA_APERTURA);type(time)" json:"horaApertura"`
-	DIAS_LABORALES       string `orm:"column(DIAS_LABORALES)" json:"diasLaborales"`
-	PK_ID_CAMBIO_HORARIO *int   `orm:"column(PK_ID_CAMBIO_HORARIO);null" json:"-"`
-	PK_ID_RESERVA        *int   `orm:"column(PK_ID_RESERVA);null" json:"-"`
+	PK_ID_RESTAURANTE    int    `orm:"column(pk_id_restaurante);pk" json:"restauranteId"`
+	NOMBRE_RESTAURANTE   string `orm:"column(nombre_restaurante)" json:"nombreRestaurante"`
+	HORA_APERTURA        string `orm:"column(hora_apertura);type(time)" json:"horaApertura"`
+	DIAS_LABORALES       string `orm:"column(dias_laborales)" json:"diasLaborales"`
+	PK_ID_CAMBIO_HORARIO *int   `orm:"column(pk_id_cambio_horario);null" json:"-"`
+	PK_ID_RESERVA        *int   `orm:"column(pk_id_reserva);null" json:"-"`
 }
 
 func (t *Restaurante) TableName() string {
-	return "RESTAURANTE"
+	return "restaurante"
 }
 
 // Método para establecer los días laborales como una cadena JSON
