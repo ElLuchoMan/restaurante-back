@@ -127,7 +127,7 @@ func (c *NominaController) Post() {
 	input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
 
 	var fechaInicio, fechaFin time.Time
-	if gen {
+	if gen || ver {
 		fechaInicioStr := c.GetString("fecha_inicio")
 		fechaFinStr := c.GetString("fecha_fin")
 		if fechaInicioStr == "" || fechaFinStr == "" {
@@ -177,31 +177,31 @@ func (c *NominaController) Post() {
 	}
 
 	// Ejecutar funciones adicionales si se solicitan
-	if gen {
-		if _, err := o.Raw("CALL generar_nomina_automatica(?, ?)", fechaInicio.Format("2006-01-02"), fechaFin.Format("2006-01-02")).Exec(); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al generar nómina automática",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-	}
+       if gen {
+               if _, err := o.Raw("CALL generar_nomina_automatica(?, ?, ?)", input.PK_ID_NOMINA, fechaInicio.Format("2006-01-02"), fechaFin.Format("2006-01-02")).Exec(); err != nil {
+                       c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+                       c.Data["json"] = models.ApiResponse{
+                               Code:    http.StatusInternalServerError,
+                               Message: "Error al generar nómina automática",
+                               Cause:   err.Error(),
+                       }
+                       c.ServeJSON()
+                       return
+               }
+       }
 
-	if ver {
-		if _, err := o.Raw("CALL verificar_nomina(?)", input.PK_ID_NOMINA).Exec(); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al verificar nómina",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-	}
+       if ver {
+               if _, err := o.Raw("CALL verificar_nomina(?, ?, ?)", input.PK_ID_NOMINA, fechaInicio.Format("2006-01-02"), fechaFin.Format("2006-01-02")).Exec(); err != nil {
+                       c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+                       c.Data["json"] = models.ApiResponse{
+                               Code:    http.StatusInternalServerError,
+                               Message: "Error al verificar nómina",
+                               Cause:   err.Error(),
+                       }
+                       c.ServeJSON()
+                       return
+               }
+       }
 
 	var updatedNomina models.Nomina
 	err = o.QueryTable(new(models.Nomina)).
