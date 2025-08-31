@@ -16,8 +16,8 @@ type Reserva struct {
 	INDICACIONES      *string        `orm:"column(indicaciones);null" json:"indicaciones,omitempty"`
 	CREATED_AT        time.Time      `orm:"column(created_at);type(timestamp);auto_now_add" json:"createdAt"`
 	UPDATED_AT        time.Time      `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
-	CREATED_BY        *string        `orm:"column(created_by);type(date)" json:"createdBy,omitempty"`
-	UPDATED_BY        *string        `orm:"column(updated_by);type(date)" json:"updatedBy,omitempty"`
+	CREATED_BY        *string        `orm:"column(created_by);type(text);null" json:"createdBy,omitempty"`
+	UPDATED_BY        *string        `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 	NOMBRE_COMPLETO   *string        `orm:"column(nombre_completo);type(text);null" json:"nombreCompleto,omitempty"`
 	TELEFONO          *string        `orm:"column(telefono);type(text);null" json:"telefono,omitempty"`
 	DOCUMENTO_CLIENTE *int64         `orm:"column(documento_cliente);null" json:"documentoCliente,omitempty"`
