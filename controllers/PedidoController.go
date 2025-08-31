@@ -271,7 +271,7 @@ func (c *PedidoController) AssignPago() {
 	}
 
 	// También cambiamos el estado en la tabla PAGO
-	pago := models.Pago{PK_ID_PAGO: pagoID}
+	pago := models.Pago{PK_ID_PAGO: int64(pagoID)}
 	if err := o.Read(&pago); err == nil {
 		pago.ESTADO_PAGO = models.EstadoPagoPagado
 		o.Update(&pago, "ESTADO_PAGO")
