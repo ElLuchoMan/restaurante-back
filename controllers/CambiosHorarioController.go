@@ -35,13 +35,13 @@ var (
 		return o.Insert(horario)
 	}
 	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error {
-		return o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).One(horario)
+		return o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).One(horario)
 	}
 	updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
 		return o.Update(horario)
 	}
 	deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) {
-		return o.QueryTable(new(models.CambiosHorario)).Filter("cambioHorarioId", id).Delete()
+		return o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).Delete()
 	}
 )
 
