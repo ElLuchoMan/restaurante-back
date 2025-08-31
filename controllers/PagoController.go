@@ -69,11 +69,7 @@ func (c *PagoController) GetAll() {
 	for i := range pagos {
 		pagos[i].UPDATED_AT = pagos[i].UPDATED_AT.UTC()
 		pagos[i].FECHA = pagos[i].FECHA.UTC()
-
-		// Formatear HORA si es necesario
-		if len(pagos[i].HORA) >= 19 {
-			pagos[i].HORA = pagos[i].HORA[11:19] // Solo toma HH:mm:ss
-		}
+		pagos[i].HORA = pagos[i].HORA.UTC()
 	}
 
 	// Leer parámetros de la URL
@@ -102,7 +98,7 @@ func (c *PagoController) GetAll() {
 		if estado != "" && pago.ESTADO_PAGO != estado {
 			continue
 		}
-		if metodo_pago > 0 && pago.PK_ID_METODO_PAGO != metodo_pago {
+		if metodo_pago > 0 && pago.PK_ID_METODO_PAGO != int64(metodo_pago) {
 			continue
 		}
 
@@ -156,7 +152,7 @@ func (c *PagoController) GetById() {
 		return
 	}
 
-	pago := models.Pago{PK_ID_PAGO: id}
+	pago := models.Pago{PK_ID_PAGO: int64(id)}
 	err = o.Read(&pago)
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -172,11 +168,7 @@ func (c *PagoController) GetById() {
 	// Ajustar fechas y hora
 	pago.FECHA = pago.FECHA.In(database.BogotaZone)
 	pago.UPDATED_AT = pago.UPDATED_AT.In(database.BogotaZone)
-
-	// Formatear HORA
-	if len(pago.HORA) >= 19 {
-		pago.HORA = pago.HORA[11:19] // Formato HH:mm:ss
-	}
+	pago.HORA = pago.HORA.In(database.BogotaZone)
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -206,7 +198,7 @@ func (c *PagoController) Post() {
 		EstadoPago   string `json:"estadoPago"`
 		FechaPago    string `json:"fechaPago"`    // YYYY-MM-DD
 		HoraPago     string `json:"horaPago"`     // HH:mm:ss
-		MetodoPagoId int    `json:"metodoPagoId"` // entero
+		MetodoPagoId int64  `json:"metodoPagoId"` // entero
 		Monto        int64  `json:"monto"`        // entero
 		UpdatedAt    string `json:"updatedAt"`    // ignorado al insertar
 		UpdatedBy    string `json:"updatedBy"`
@@ -245,7 +237,8 @@ func (c *PagoController) Post() {
 		c.ServeJSON()
 		return
 	}
-	if _, err := time.Parse("15:04:05", in.HoraPago); err != nil {
+	hora, err := time.Parse("15:04:05", in.HoraPago)
+	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido, debe ser HH:mm:ss", Cause: err.Error()}
 		c.ServeJSON()
@@ -287,7 +280,7 @@ func (c *PagoController) Post() {
 
 	pago := models.Pago{
 		FECHA:             fecha,
-		HORA:              in.HoraPago,
+		HORA:              hora,
 		MONTO:             in.Monto,
 		ESTADO_PAGO:       in.EstadoPago,   // e.g. "pagado"
 		PK_ID_METODO_PAGO: in.MetodoPagoId, // FK
@@ -342,7 +335,7 @@ func (c *PagoController) Put() {
 	}
 
 	// Buscar el pago por ID
-	pago := models.Pago{PK_ID_PAGO: id}
+	pago := models.Pago{PK_ID_PAGO: int64(id)}
 	if err := o.Read(&pago); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -385,7 +378,8 @@ func (c *PagoController) Put() {
 	// Procesar HORA
 	if horaStr, ok := input["HORA"].(string); ok && horaStr != "" {
 		// Validar el formato de HORA
-		if _, err := time.Parse("15:04:05", horaStr); err != nil {
+		parsedHora, err := time.Parse("15:04:05", horaStr)
+		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
@@ -395,7 +389,7 @@ func (c *PagoController) Put() {
 			c.ServeJSON()
 			return
 		}
-		pago.HORA = horaStr
+		pago.HORA = parsedHora
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -431,8 +425,8 @@ func (c *PagoController) Put() {
 	pago.UPDATED_AT = time.Now().UTC()
 
 	if pkMetodoPago, ok := input["PK_ID_METODO_PAGO"].(float64); ok {
-		valorMetodoPago := int(pkMetodoPago)     // Convertir a int
-		pago.PK_ID_METODO_PAGO = valorMetodoPago // Asignar al puntero
+		valorMetodoPago := int64(pkMetodoPago)
+		pago.PK_ID_METODO_PAGO = valorMetodoPago
 	} else {
 		// Opcional: Manejo de errores o acciones si el campo es obligatorio
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -493,7 +487,7 @@ func (c *PagoController) Delete() {
 		return
 	}
 
-	pago := models.Pago{PK_ID_PAGO: id}
+	pago := models.Pago{PK_ID_PAGO: int64(id)}
 
 	if _, err := o.Delete(&pago); err == nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
