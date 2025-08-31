@@ -42,26 +42,12 @@ func (c *NominaTrabajadorController) GetAll() {
 		return
 	}
 
-	// Convertir las claves a camelCase
-	var relacionesCamelCase []map[string]interface{}
-	for _, rel := range relaciones {
-		relacionesCamelCase = append(relacionesCamelCase, map[string]interface{}{
-			"nominaTrabajadorId":  rel.PK_ID_NOMINA_TRABAJADOR,
-			"sueldoBase":          rel.SUELDO_BASE,
-			"montoIncidencias":    rel.MONTO_INCIDENCIAS,
-			"total":               rel.TOTAL,
-			"detalles":            rel.DETALLES,
-			"documentoTrabajador": rel.PK_DOCUMENTO_TRABAJADOR,
-			"nominaId":            rel.PK_ID_NOMINA,
-		})
-	}
-
 	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Relaciones nómina-trabajador obtenidas correctamente",
-		Data:    relacionesCamelCase,
+		Data:    relaciones,
 	}
 	c.ServeJSON()
 }
@@ -100,7 +86,7 @@ func (c *NominaTrabajadorController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo PK_DOCUMENTO_TRABAJADOR es obligatorio y debe ser válido",
+			Message: "El campo documentoTrabajador es obligatorio y debe ser válido",
 		}
 		c.ServeJSON()
 		return
