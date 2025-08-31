@@ -21,7 +21,7 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 	writer.WriteField("NOMBRE", name)
 	writer.WriteField("ESTADO_PRODUCTO", string(models.EstadoProductoDisponible))
 	writer.WriteField("PRECIO", "100")
-	writer.WriteField("CATEGORIA", "cat")
+	writer.WriteField("PK_ID_SUBCATEGORIA", "1")
 	writer.Close()
 
 	req := httptest.NewRequest(http.MethodPost, "/productos", body)
@@ -54,7 +54,7 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 	values.Set("NOMBRE", name)
 	values.Set("ESTADO_PRODUCTO", string(models.EstadoProductoDisponible))
 	values.Set("PRECIO", "200")
-	values.Set("CATEGORIA", "cat")
+	values.Set("PK_ID_SUBCATEGORIA", "1")
 
 	req = httptest.NewRequest(http.MethodPut, "/productos?id="+strconv.FormatInt(p.PK_ID_PRODUCTO, 10), strings.NewReader(values.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

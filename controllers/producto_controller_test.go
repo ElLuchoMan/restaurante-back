@@ -17,7 +17,7 @@ func setupProductoController(t *testing.T, data []byte) *web.Controller {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	if data != nil {
-		part, err := writer.CreateFormFile("imagen", "test.png")
+		part, err := writer.CreateFormFile("IMAGEN", "test.png")
 		if err != nil {
 			t.Fatalf("CreateFormFile: %v", err)
 		}
@@ -42,8 +42,8 @@ func TestProductoHandleImageUploadMissingFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if img != "" {
-		t.Errorf("expected empty string, got %s", img)
+	if img != nil {
+		t.Errorf("expected nil, got %v", img)
 	}
 }
 
@@ -54,8 +54,8 @@ func TestProductoHandleImageUploadTooLarge(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "1MB") {
 		t.Fatalf("expected size error, got %v", err)
 	}
-	if img != "" {
-		t.Errorf("expected empty string on error")
+	if img != nil {
+		t.Errorf("expected nil on error")
 	}
 }
 
@@ -65,8 +65,8 @@ func TestProductoHandleImageUploadSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if img == "" {
-		t.Errorf("expected base64 image string")
+	if !bytes.Equal(img, []byte("hello")) {
+		t.Errorf("unexpected image data: %v", img)
 	}
 }
 
@@ -151,7 +151,6 @@ func TestProductoPostMissingNombre(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.WriteField("nombre", "")
-	writer.WriteField("categoria", "cat")
 	writer.WriteField("estadoProducto", "disponible")
 	writer.WriteField("precio", "10")
 	writer.Close()

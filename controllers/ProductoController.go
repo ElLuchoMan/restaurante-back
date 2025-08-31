@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"restaurante/models"
 	"strconv"
 	"time"
@@ -19,14 +19,12 @@ type ProductoController struct {
 
 // @Title GetAll
 // @Summary Obtener productos con filtros
-// @Description Devuelve productos registrados con filtros opcionales para categoría, subcategoría, imágenes y disponibilidad.
+// @Description Devuelve productos registrados con filtros opcionales para imágenes y disponibilidad.
 // @Tags productos
 // @Accept json
 // @Produce json
 // @Param   includeImage  query    bool   false  "Incluir imágenes Base64 en la respuesta (true o false, por defecto es false)"
 // @Param   onlyActive    query    bool   false  "Filtrar solo productos disponibles (true o false, por defecto es false)"
-// @Param   categoria     query    string false  "Filtrar productos por categoría"
-// @Param   subcategoria  query    string false  "Filtrar productos por subcategoría"
 // @Success 200 {array} models.Producto "Lista de productos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [get]
@@ -37,19 +35,11 @@ func (c *ProductoController) GetAll() {
 	// Obtener valores de los parámetros
 	includeImage, _ := c.GetBool("includeImage", false)
 	onlyActive, _ := c.GetBool("onlyActive", false)
-	categoria := c.GetString("categoria")
-	subcategoria := c.GetString("subcategoria")
 
 	// Construir la consulta con filtros
 	query := o.QueryTable(new(models.Producto))
 	if onlyActive {
 		query = query.Filter("ESTADO_PRODUCTO", models.EstadoProductoDisponible)
-	}
-	if categoria != "" {
-		query = query.Filter("CATEGORIA__icontains", categoria)
-	}
-	if subcategoria != "" {
-		query = query.Filter("SUBCATEGORIA__icontains", subcategoria)
 	}
 
 	// Ejecutar la consulta
@@ -68,9 +58,7 @@ func (c *ProductoController) GetAll() {
 	// Manejar imágenes según el parámetro includeImage
 	for i := range productos {
 		if !includeImage {
-			productos[i].IMAGEN = "" // Excluir imágenes
-		} else if productos[i].IMAGEN != "" {
-			productos[i].IMAGEN = "data:image/jpeg;base64," + productos[i].IMAGEN
+			productos[i].IMAGEN = nil
 		}
 	}
 
@@ -141,8 +129,7 @@ func (c *ProductoController) GetById() {
 // @Param   PRECIO        formData  int     true   "Precio del producto"
 // @Param   IMAGEN        formData  file    false  "Imagen del producto (opcional)"
 // @Param   CANTIDAD      formData  int     false  "Cantidad del producto"
-// @Param   CATEGORIA     formData  string  true   "Categoría del producto"
-// @Param   SUBCATEGORIA  formData  string  false  "Subcategoría del producto"
+// @Param   PK_ID_SUBCATEGORIA formData int true   "ID de la subcategoría del producto"
 // @Success 201 {object} models.Producto "Producto creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /productos [post]
@@ -152,8 +139,7 @@ func (c *ProductoController) Post() {
 
 	// Validar campos obligatorios
 	producto.NOMBRE = c.GetString("NOMBRE")
-	producto.CATEGORIA = c.GetString("CATEGORIA")
-	producto.SUBCATEGORIA = c.GetString("SUBCATEGORIA")
+	producto.PK_ID_SUBCATEGORIA, _ = c.GetInt64("PK_ID_SUBCATEGORIA")
 	producto.ESTADO_PRODUCTO = c.GetString("ESTADO_PRODUCTO")
 	calorias, _ := c.GetInt64("CALORIAS")
 	producto.CALORIAS = &calorias
@@ -294,12 +280,12 @@ func (c *ProductoController) Put() {
 			c.ServeJSON()
 			return
 		}
-		if imagen != "" {
+		if imagen != nil {
 			producto.IMAGEN = imagen
 		}
 
 		// Verificar si hubo cambios
-		if producto == original {
+		if reflect.DeepEqual(producto, original) {
 			c.Ctx.Output.SetStatus(http.StatusNotModified)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotModified,
@@ -443,25 +429,25 @@ func (c *ProductoController) Delete() {
 }
 
 // Funciones auxiliares
-func handleImageUpload(c *web.Controller) (string, error) {
+func handleImageUpload(c *web.Controller) ([]byte, error) {
 	file, fileHeader, err := c.GetFile("IMAGEN")
 	if err != nil {
 		if err == http.ErrMissingFile {
-			return "", nil
+			return nil, nil
 		}
-		return "", fmt.Errorf("error al obtener la imagen: %v", err)
+		return nil, fmt.Errorf("error al obtener la imagen: %v", err)
 	}
 	defer file.Close()
 
 	if fileHeader.Size > 1024*1024 {
-		return "", fmt.Errorf("la imagen no debe superar los 1MB")
+		return nil, fmt.Errorf("la imagen no debe superar los 1MB")
 	}
 
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		return "", fmt.Errorf("error al leer la imagen: %v", err)
+		return nil, fmt.Errorf("error al leer la imagen: %v", err)
 	}
-	return base64.StdEncoding.EncodeToString(fileBytes), nil
+	return fileBytes, nil
 }
 
 func validateProducto(producto *models.Producto) error {
