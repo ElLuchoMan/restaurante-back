@@ -231,7 +231,7 @@ func TestPedidoGetAllWithResults(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
 		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, "12:00:00", false, "iniciado", nil, nil, nil, now, "tester"}}
+		vals := [][]driver.Value{{int64(1), now, now, false, "iniciado", nil, nil, nil, now, "tester"}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	defer func() { MockQuery = nil }()
@@ -283,7 +283,7 @@ func TestPedidoAssignDomicilioUpdateError(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
 		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, "12:00:00", false, "iniciado", nil, nil, nil, now, "tester"}}
+		vals := [][]driver.Value{{int64(1), now, now, false, "iniciado", nil, nil, nil, now, "tester"}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
@@ -313,7 +313,7 @@ func TestPedidoAssignDomicilioSuccess(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
 		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, "12:00:00", false, "iniciado", nil, nil, nil, now, "tester"}}
+		vals := [][]driver.Value{{int64(1), now, now, false, "iniciado", nil, nil, nil, now, "tester"}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
@@ -343,7 +343,7 @@ func TestPedidoAssignPagoUpdateError(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
 		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, "12:00:00", false, "iniciado", nil, nil, nil, now, "tester"}}
+		vals := [][]driver.Value{{int64(1), now, now, false, "iniciado", nil, nil, nil, now, "tester"}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
@@ -376,12 +376,12 @@ func TestPedidoAssignPagoSuccess(t *testing.T) {
 			qCount++
 			cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
 			now := time.Now()
-			vals := [][]driver.Value{{int64(1), now, "12:00:00", false, "iniciado", nil, nil, nil, now, "tester"}}
+			vals := [][]driver.Value{{int64(1), now, now, false, "iniciado", nil, nil, nil, now, "tester"}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
 		cols := []string{"pk_id_pago", "fecha", "hora", "monto", "estado_pago", "pk_id_metodo_pago", "updated_at", "updated_by"}
 		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, "12:00:00", int64(100), "pendiente", int64(1), now, "tester"}}
+		vals := [][]driver.Value{{int64(1), now, now, int64(100), "pendiente", int64(1), now, "tester"}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
@@ -411,7 +411,7 @@ func TestPedidoUpdateEstadoPedidoUpdateError(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
 		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, "12:00:00", false, "iniciado", nil, nil, nil, now, "tester"}}
+		vals := [][]driver.Value{{int64(1), now, now, false, "iniciado", nil, nil, nil, now, "tester"}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
@@ -441,7 +441,7 @@ func TestPedidoUpdateEstadoPedidoSuccess(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
 		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, "12:00:00", false, "iniciado", nil, nil, nil, now, "tester"}}
+		vals := [][]driver.Value{{int64(1), now, now, false, "iniciado", nil, nil, nil, now, "tester"}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
