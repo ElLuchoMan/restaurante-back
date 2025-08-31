@@ -2092,7 +2092,7 @@ paths:
         type: string
       - description: Estado del producto
         in: formData
-        name: ESTADO_PRODUCTO
+      name: estadoProducto
         required: true
         type: string
       - description: Precio del producto
@@ -2157,7 +2157,7 @@ paths:
         type: string
       - description: Estado del producto
         in: formData
-        name: ESTADO_PRODUCTO
+      name: estadoProducto
         required: true
         type: string
       - description: Precio del producto

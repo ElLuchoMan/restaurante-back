@@ -27,10 +27,10 @@ func resetReservaMocks() {
 	queryReservasByParam = func(o orm.Ormer, doc int64, fecha time.Time, useDoc, useFecha bool, reservas *[]models.Reserva) (int64, error) {
 		qs := o.QueryTable(new(models.Reserva))
 		if useDoc {
-			qs = qs.Filter("DOCUMENTO_CLIENTE", doc)
+			qs = qs.Filter("documento_cliente", doc)
 		}
 		if useFecha {
-			qs = qs.Filter("FECHA", fecha)
+			qs = qs.Filter("fecha", fecha)
 		}
 		return qs.All(reservas)
 	}

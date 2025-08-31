@@ -13,7 +13,7 @@ func SeedTestData() {
 	o := orm.NewOrm()
 
 	if _, err := o.Insert(&models.MetodoPago{PK_ID_METODO_PAGO: 1, TIPO: "Efectivo"}); err != nil {
-		log.Println("seed METODO_PAGO:", err)
+		log.Println("seed metodo_pago:", err)
 	}
 
 	if _, err := o.Insert(&models.DetallePedido{
@@ -21,7 +21,7 @@ func SeedTestData() {
 		PKIDProducto: 1,
 		Cantidad:     1,
 	}); err != nil {
-		log.Println("seed DETALLE_PEDIDO:", err)
+		log.Println("seed detalle_pedido:", err)
 	}
 
 	inicio, _ := time.Parse("15:04:05", "08:00:00")
@@ -32,6 +32,6 @@ func SeedTestData() {
 		HORA_INICIO:             inicio,
 		HORA_FIN:                fin,
 	}); err != nil {
-		log.Println("seed HORARIO_TRABAJADOR:", err)
+		log.Println("seed horario_trabajador:", err)
 	}
 }
