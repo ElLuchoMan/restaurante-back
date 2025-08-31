@@ -26,12 +26,10 @@ func SeedTestData() {
 
 	inicio, _ := time.Parse("15:04:05", "08:00:00")
 	fin, _ := time.Parse("15:04:05", "16:00:00")
-	if _, err := o.Insert(&models.HorarioTrabajador{
-		PK_DOCUMENTO_TRABAJADOR: 1,
-		DIA:                     "Lunes",
-		HORA_INICIO:             inicio,
-		HORA_FIN:                fin,
-	}); err != nil {
+	if _, err := o.Raw(
+		"INSERT INTO horario_trabajador (pk_documento_trabajador, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)",
+		1, models.DiaLunes, inicio, fin,
+	).Exec(); err != nil {
 		log.Println("seed horario_trabajador:", err)
 	}
 }

@@ -39,17 +39,24 @@ func isValidDia(dia string) bool {
 // @Router /horario_trabajador [get]
 func (c *HorarioTrabajadorController) GetAll() {
 	o := orm.NewOrm()
-	qs := o.QueryTable(new(models.HorarioTrabajador))
+	query := "SELECT pk_documento_trabajador, dia, hora_inicio, hora_fin FROM horario_trabajador"
+	var args []interface{}
+	var conds []string
 
 	if doc, err := c.GetInt64("documento"); err == nil && doc != 0 {
-		qs = qs.Filter("PK_DOCUMENTO_TRABAJADOR", doc)
+		conds = append(conds, "pk_documento_trabajador = ?")
+		args = append(args, doc)
 	}
 	if dia := c.GetString("dia"); dia != "" {
-		qs = qs.Filter("DIA", dia)
+		conds = append(conds, "dia = ?")
+		args = append(args, dia)
+	}
+	if len(conds) > 0 {
+		query += " WHERE " + strings.Join(conds, " AND ")
 	}
 
 	var horarios []models.HorarioTrabajador
-	if _, err := qs.All(&horarios); err != nil {
+	if _, err := o.Raw(query, args...).QueryRows(&horarios); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -127,7 +134,10 @@ func (c *HorarioTrabajadorController) Post() {
 	}
 
 	o := orm.NewOrm()
-	if _, err := o.Insert(&horario); err != nil {
+	if _, err := o.Raw(
+		"INSERT INTO horario_trabajador (pk_documento_trabajador, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)",
+		horario.PK_DOCUMENTO_TRABAJADOR, horario.DIA, horario.HORA_INICIO, horario.HORA_FIN,
+	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -178,9 +188,12 @@ func (c *HorarioTrabajadorController) Put() {
 		return
 	}
 
-	horario := models.HorarioTrabajador{PK_DOCUMENTO_TRABAJADOR: doc, DIA: dia}
+	var horario models.HorarioTrabajador
 	o := orm.NewOrm()
-	if err := o.Read(&horario); err == orm.ErrNoRows {
+	if err := o.Raw(
+		"SELECT pk_documento_trabajador, dia, hora_inicio, hora_fin FROM horario_trabajador WHERE pk_documento_trabajador = ? AND dia = ?",
+		doc, dia,
+	).QueryRow(&horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
 		c.ServeJSON()
@@ -221,7 +234,10 @@ func (c *HorarioTrabajadorController) Put() {
 		}
 	}
 
-	if _, err := o.Update(&horario); err != nil {
+	if _, err := o.Raw(
+		"UPDATE horario_trabajador SET hora_inicio = ?, hora_fin = ? WHERE pk_documento_trabajador = ? AND dia = ?",
+		horario.HORA_INICIO, horario.HORA_FIN, doc, dia,
+	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar horario", Cause: err.Error()}
 		c.ServeJSON()
@@ -263,9 +279,12 @@ func (c *HorarioTrabajadorController) Delete() {
 		return
 	}
 
-	horario := models.HorarioTrabajador{PK_DOCUMENTO_TRABAJADOR: doc, DIA: dia}
 	o := orm.NewOrm()
-	if err := o.Read(&horario); err == orm.ErrNoRows {
+	var horario models.HorarioTrabajador
+	if err := o.Raw(
+		"SELECT pk_documento_trabajador, dia FROM horario_trabajador WHERE pk_documento_trabajador = ? AND dia = ?",
+		doc, dia,
+	).QueryRow(&horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
 		c.ServeJSON()
@@ -277,7 +296,10 @@ func (c *HorarioTrabajadorController) Delete() {
 		return
 	}
 
-	if _, err := o.Delete(&horario); err != nil {
+	if _, err := o.Raw(
+		"DELETE FROM horario_trabajador WHERE pk_documento_trabajador = ? AND dia = ?",
+		doc, dia,
+	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar horario", Cause: err.Error()}
 		c.ServeJSON()
