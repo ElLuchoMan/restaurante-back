@@ -466,6 +466,16 @@ func TestReservaPostSuccess(t *testing.T) {
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", w.Code)
 	}
+
+	var resp struct {
+		Data map[string]interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if createdBy, ok := resp.Data["createdBy"].(string); !ok || createdBy != "admin" {
+		t.Fatalf("expected createdBy admin, got %v", resp.Data["createdBy"])
+	}
 }
 
 func TestReservaPutScenarios(t *testing.T) {
@@ -603,6 +613,16 @@ func TestReservaPutScenarios(t *testing.T) {
 	c.Put()
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	var resp struct {
+		Data map[string]interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if updatedBy, ok := resp.Data["updatedBy"].(string); !ok || updatedBy != "admin" {
+		t.Fatalf("expected updatedBy admin, got %v", resp.Data["updatedBy"])
 	}
 }
 
