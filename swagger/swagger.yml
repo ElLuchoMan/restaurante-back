@@ -42,6 +42,7 @@ definitions:
         format: datetime
       horaApertura:
         type: string
+        format: date-time
         format: datetime
       horaCierre:
         type: string
@@ -351,6 +352,7 @@ definitions:
     properties:
       horaApertura:
         type: string
+        format: date-time
       nombreRestaurante:
         type: string
       restauranteId:

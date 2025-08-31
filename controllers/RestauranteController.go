@@ -38,13 +38,6 @@ func (c *RestauranteController) GetAll() {
 		c.ServeJSON()
 		return
 	}
-	// Formatear HORA si es necesario
-	for i := range restaurantes {
-		if len(restaurantes[i].HORA_APERTURA) > 19 {
-			restaurantes[i].HORA_APERTURA = restaurantes[i].HORA_APERTURA[11:19] // Solo toma HH:mm:ss
-		}
-	}
-
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -79,7 +72,7 @@ func (c *RestauranteController) GetById() {
 		return
 	}
 
-	restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
+	restaurante := models.Restaurante{PK_ID_RESTAURANTE: int64(id)}
 
 	err = o.Read(&restaurante)
 	if err == orm.ErrNoRows {
@@ -177,7 +170,7 @@ func (c *RestauranteController) Put() {
 		return
 	}
 
-	restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
+	restaurante := models.Restaurante{PK_ID_RESTAURANTE: int64(id)}
 
 	if o.Read(&restaurante) == nil {
 		var updatedRestaurante models.Restaurante
@@ -193,7 +186,7 @@ func (c *RestauranteController) Put() {
 		}
 
 		// Asignar el ID original al modelo actualizado
-		updatedRestaurante.PK_ID_RESTAURANTE = id
+		updatedRestaurante.PK_ID_RESTAURANTE = int64(id)
 
 		_, err := o.Update(&updatedRestaurante)
 		if err != nil {
@@ -251,7 +244,7 @@ func (c *RestauranteController) Delete() {
 		return
 	}
 
-	restaurante := models.Restaurante{PK_ID_RESTAURANTE: id}
+	restaurante := models.Restaurante{PK_ID_RESTAURANTE: int64(id)}
 
 	if _, err := o.Delete(&restaurante); err == nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
