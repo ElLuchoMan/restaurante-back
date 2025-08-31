@@ -2712,7 +2712,7 @@
                     {
                         "type": "string",
                         "description": "Estado del producto",
-                        "name": "ESTADO_PRODUCTO",
+                        "name": "estadoProducto",
                         "in": "formData",
                         "required": true
                     },
@@ -2786,7 +2786,7 @@
                     {
                         "type": "string",
                         "description": "Estado del producto",
-                        "name": "ESTADO_PRODUCTO",
+                        "name": "estadoProducto",
                         "in": "formData",
                         "required": true
                     },

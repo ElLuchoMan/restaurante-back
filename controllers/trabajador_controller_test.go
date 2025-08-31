@@ -201,12 +201,12 @@ func TestPostInvalidJSON(t *testing.T) {
 func TestPostMissingFields(t *testing.T) {
 	cases := []struct{ body, substr string }{
 		{`{"nombre":"a"}`, "documentoTrabajador"},
-		{`{"documentoTrabajador":1}`, "NOMBRE"},
-		{`{"documentoTrabajador":1,"nombre":"a"}`, "APELLIDO"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b"}`, "ROL"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c"}`, "FECHA_INGRESO"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01"}`, "SUELDO"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01","sueldo":1}`, "PASSWORD"},
+		{`{"documentoTrabajador":1}`, "nombre"},
+		{`{"documentoTrabajador":1,"nombre":"a"}`, "apellido"},
+		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b"}`, "rol"},
+		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c"}`, "fechaIngreso"},
+		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01"}`, "sueldo"},
+		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01","sueldo":1}`, "password"},
 	}
 	for _, tc := range cases {
 		c, w := buildContext(http.MethodPost, "/trabajadores", tc.body)
@@ -307,21 +307,21 @@ func TestPutInvalidDates(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"FECHA_INGRESO":"bad"}`
+	body := `{"fechaIngreso":"bad"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("%d", w.Code)
 	}
 
-	body2 := `{"FECHA_RETIRO":"bad"}`
+	body2 := `{"fechaRetiro":"bad"}`
 	c2, w2 := buildContext(http.MethodPut, "/trabajadores?id=1", body2)
 	c2.Put()
 	if w2.Code != http.StatusBadRequest {
 		t.Fatalf("%d", w2.Code)
 	}
 
-	body3 := `{"FECHA_NACIMIENTO":"bad"}`
+	body3 := `{"fechaNacimiento":"bad"}`
 	c3, w3 := buildContext(http.MethodPut, "/trabajadores?id=1", body3)
 	c3.Put()
 	if w3.Code != http.StatusBadRequest {
@@ -336,7 +336,7 @@ func TestPutHashError(t *testing.T) {
 	originalHash := hashPassword
 	hashPassword = func(string) (string, error) { return "", errors.New("hash") }
 	defer func() { hashPassword = originalHash }()
-	body := `{"PASSWORD":"p"}`
+	body := `{"password":"p"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusInternalServerError {
@@ -348,7 +348,7 @@ func TestPutValidateDatesError(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"FECHA_INGRESO":"2023-01-02","FECHA_RETIRO":"2023-01-01"}`
+	body := `{"fechaIngreso":"2023-01-02","fechaRetiro":"2023-01-01"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusBadRequest {
@@ -360,7 +360,7 @@ func TestPutUpdateError(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{updateErr: errors.New("db")} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"NOMBRE":"a"}`
+	body := `{"nombre":"a"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusInternalServerError {
@@ -372,7 +372,7 @@ func TestPutSuccess(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"NOMBRE":"a","APELLIDO":"b","ROL":"c","SUELDO":1,"NUEVO":true,"TELEFONO":"1","FECHA_INGRESO":"2023-01-01","FECHA_RETIRO":"2023-01-02","FECHA_NACIMIENTO":"2023-01-03","PASSWORD":"p"}`
+	body := `{"nombre":"a","apellido":"b","rol":"c","sueldo":1,"nuevo":true,"telefono":"1","fechaIngreso":"2023-01-01","fechaRetiro":"2023-01-02","fechaNacimiento":"2023-01-03","password":"p"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusOK {
@@ -385,7 +385,7 @@ func TestPutTelefonoUpdated(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return m }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"TELEFONO":"123"}`
+	body := `{"telefono":"123"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusOK {

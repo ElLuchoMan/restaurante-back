@@ -2719,7 +2719,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Estado del producto",
-                        "name": "ESTADO_PRODUCTO",
+                        "name": "estadoProducto",
                         "in": "formData",
                         "required": true
                     },
@@ -2793,7 +2793,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Estado del producto",
-                        "name": "ESTADO_PRODUCTO",
+                        "name": "estadoProducto",
                         "in": "formData",
                         "required": true
                     },

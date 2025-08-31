@@ -17,7 +17,7 @@ func setupProductoController(t *testing.T, data []byte) *web.Controller {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	if data != nil {
-		part, err := writer.CreateFormFile("IMAGEN", "test.png")
+		part, err := writer.CreateFormFile("imagen", "test.png")
 		if err != nil {
 			t.Fatalf("CreateFormFile: %v", err)
 		}
@@ -150,10 +150,10 @@ func TestProductoGetByIdNotFound(t *testing.T) {
 func TestProductoPostMissingNombre(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	writer.WriteField("NOMBRE", "")
-	writer.WriteField("CATEGORIA", "cat")
-	writer.WriteField("ESTADO_PRODUCTO", "disponible")
-	writer.WriteField("PRECIO", "10")
+	writer.WriteField("nombre", "")
+	writer.WriteField("categoria", "cat")
+	writer.WriteField("estadoProducto", "disponible")
+	writer.WriteField("precio", "10")
 	writer.Close()
 
 	r := httptest.NewRequest(http.MethodPost, "/productos", body)
@@ -170,7 +170,7 @@ func TestProductoPostMissingNombre(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "NOMBRE") {
+	if !strings.Contains(w.Body.String(), "nombre") {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
