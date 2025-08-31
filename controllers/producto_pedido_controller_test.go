@@ -16,6 +16,7 @@ type fakeQueryPP struct {
 	orm.QuerySeter
 	one func(interface{}, ...string) error
 	all func(interface{}, ...string) (int64, error)
+	del func() (int64, error)
 }
 
 func (f fakeQueryPP) Filter(string, ...interface{}) orm.QuerySeter { return f }
@@ -28,6 +29,12 @@ func (f fakeQueryPP) One(res interface{}, cols ...string) error {
 func (f fakeQueryPP) All(res interface{}, cols ...string) (int64, error) {
 	if f.all != nil {
 		return f.all(res, cols...)
+	}
+	return 0, nil
+}
+func (f fakeQueryPP) Delete() (int64, error) {
+	if f.del != nil {
+		return f.del()
 	}
 	return 0, nil
 }
@@ -278,12 +285,17 @@ func TestProductoPedidoGetAllSuccess(t *testing.T) {
 func TestProductoPedidoPostSuccess(t *testing.T) {
 	original := productoPedidoNewOrm
 	productoPedidoNewOrm = func() productoPedidoOrmer {
-		return fakeOrmerPP{insert: func(m interface{}) (int64, error) {
-			if d, ok := m.(*models.DetallePedido); ok {
-				d.Precio = 1000
-			}
-			return 1, nil
-		}}
+		return fakeOrmerPP{
+			insert: func(m interface{}) (int64, error) { return 1, nil },
+			query: func(i interface{}) orm.QuerySeter {
+				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
+					if d, ok := res.(*models.DetallePedido); ok {
+						*d = models.DetallePedido{PKIDPedido: 1, PKIDProducto: 1, Cantidad: 1, Precio: 1000}
+					}
+					return nil
+				}}
+			},
+		}
 	}
 	defer func() { productoPedidoNewOrm = original }()
 
@@ -299,6 +311,52 @@ func TestProductoPedidoPostSuccess(t *testing.T) {
 	c.Data = make(map[interface{}]interface{})
 
 	c.Post()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "\"precio\":1000") {
+		t.Errorf("expected price in response, got %s", w.Body.String())
+	}
+}
+
+func TestProductoPedidoUpdateSuccess(t *testing.T) {
+	original := productoPedidoNewOrm
+	productoPedidoNewOrm = func() productoPedidoOrmer {
+		call := 0
+		return fakeOrmerPP{
+			query: func(i interface{}) orm.QuerySeter {
+				call++
+				if call == 1 {
+					return fakeQueryPP{
+						all: func(res interface{}, cols ...string) (int64, error) { return 0, nil },
+						del: func() (int64, error) { return 0, nil },
+					}
+				}
+				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
+					if d, ok := res.(*models.DetallePedido); ok {
+						*d = models.DetallePedido{PKIDPedido: 1, PKIDProducto: 1, Cantidad: 1, Precio: 1000}
+					}
+					return nil
+				}}
+			},
+			insert: func(m interface{}) (int64, error) { return 1, nil },
+		}
+	}
+	defer func() { productoPedidoNewOrm = original }()
+
+	body := `[{"productoId":1,"cantidad":1}]`
+	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := ProductoPedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Update()
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)

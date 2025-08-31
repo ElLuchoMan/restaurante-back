@@ -146,7 +146,23 @@ func (c *ProductoPedidoController) Post() {
 			c.ServeJSON()
 			return
 		}
-		detalles = append(detalles, detalle)
+
+		// Reconsultar para obtener el precio definitivo
+		var actualizado models.DetallePedido
+		if err := o.QueryTable(new(models.DetallePedido)).
+			Filter("PKIDPedido", detalle.PKIDPedido).
+			Filter("PKIDProducto", detalle.PKIDProducto).
+			One(&actualizado); err != nil {
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al obtener el precio del producto",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+
+		detalles = append(detalles, actualizado)
 	}
 
 	response := map[string]interface{}{
@@ -231,6 +247,7 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 
+	var detalles []models.DetallePedido
 	for _, d := range nuevosProductos {
 		detalle := models.DetallePedido{
 			PKIDPedido:   pedidoID,
@@ -246,12 +263,34 @@ func (c *ProductoPedidoController) Update() {
 			c.ServeJSON()
 			return
 		}
+
+		// Reconsultar para obtener el precio definitivo
+		var actualizado models.DetallePedido
+		if err := o.QueryTable(new(models.DetallePedido)).
+			Filter("PKIDPedido", detalle.PKIDPedido).
+			Filter("PKIDProducto", detalle.PKIDProducto).
+			One(&actualizado); err != nil {
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al obtener el precio del producto",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+
+		detalles = append(detalles, actualizado)
+	}
+
+	response := map[string]interface{}{
+		"pedidoId": pedidoID,
+		"detalles": detalles,
 	}
 
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Productos del pedido actualizados exitosamente",
-		Data:    nuevosProductos,
+		Data:    response,
 	}
 	c.ServeJSON()
 }
