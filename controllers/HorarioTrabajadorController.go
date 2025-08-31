@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"restaurante/models"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -12,6 +13,16 @@ import (
 
 type HorarioTrabajadorController struct {
 	web.Controller
+}
+
+func isValidDia(dia string) bool {
+	switch models.DiaSemana(strings.ToLower(dia)) {
+	case models.DiaLunes, models.DiaMartes, models.DiaMiercoles,
+		models.DiaJueves, models.DiaViernes, models.DiaSabado, models.DiaDomingo:
+		return true
+	default:
+		return false
+	}
 }
 
 // @Title GetAll
@@ -89,6 +100,13 @@ func (c *HorarioTrabajadorController) Post() {
 		return
 	}
 
+	if !isValidDia(input.DIA) {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Día inválido"}
+		c.ServeJSON()
+		return
+	}
+
 	horaInicio, err1 := time.Parse("15:04:05", input.HORA_INICIO)
 	horaFin, err2 := time.Parse("15:04:05", input.HORA_FIN)
 	if err1 != nil || err2 != nil {
@@ -153,7 +171,7 @@ func (c *HorarioTrabajadorController) Put() {
 		return
 	}
 	dia := c.GetString("dia")
-	if dia == "" {
+	if dia == "" || !isValidDia(dia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}
 		c.ServeJSON()
