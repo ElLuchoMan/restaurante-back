@@ -5,6 +5,7 @@ import (
 	"log"
 	"restaurante/database"
 	_ "restaurante/docs"
+	"restaurante/models"
 	_ "restaurante/routers"
 	"time"
 
@@ -43,12 +44,19 @@ func generarNominaAutomatica() {
 			inicio := now.AddDate(0, 0, -1).Format("2006-01-02")
 			fin := now.AddDate(0, 0, -1).Format("2006-01-02")
 
-			// Llamar a la función de nómina con rango de fechas
-			_, err := o.Raw("CALL generar_nomina_automatica(?, ?)", inicio, fin).Exec()
-			if err != nil {
-				fmt.Println("Error al generar la nómina automática:", err)
+			nomina := models.Nomina{
+				FECHA:         now,
+				ESTADO_NOMINA: models.EstadoNominaNoPago,
+				MONTO:         0,
+			}
+			if _, err := o.Insert(&nomina); err != nil {
+				fmt.Println("Error al crear la nómina:", err)
 			} else {
-				fmt.Println("Nómina generada automáticamente con éxito.")
+				if _, err := o.Raw("CALL generar_nomina_automatica(?, ?, ?)", nomina.PK_ID_NOMINA, inicio, fin).Exec(); err != nil {
+					fmt.Println("Error al generar la nómina automática:", err)
+				} else {
+					fmt.Println("Nómina generada automáticamente con éxito.")
+				}
 			}
 		}
 
