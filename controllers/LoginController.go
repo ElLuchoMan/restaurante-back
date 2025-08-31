@@ -28,7 +28,7 @@ type LoginController struct {
 
 // Estructura para los claims del JWT
 type Claims struct {
-	Documento int    `json:"documento"`
+	Documento int64  `json:"documento"`
 	Rol       string `json:"rol"`
 	Nombre    string `json:"nombre"`
 	jwt.StandardClaims
@@ -64,7 +64,7 @@ func (c *LoginController) Login() {
 	o := newOrm()
 
 	// Primero, intenta encontrar al usuario como trabajador
-	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: int64(loginRequest.Documento)}
+	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: loginRequest.Documento}
 	err := o.Read(&trabajador)
 
 	if err == nil {
@@ -80,7 +80,7 @@ func (c *LoginController) Login() {
 		}
 		nombre := trabajador.NOMBRE + " " + trabajador.APELLIDO
 		// Generar JWT con el rol específico del trabajador (admin, mesero, mensajero, etc.)
-		generateJWT(c, int(trabajador.PK_DOCUMENTO_TRABAJADOR), trabajador.ROL, nombre)
+		generateJWT(c, trabajador.PK_DOCUMENTO_TRABAJADOR, trabajador.ROL, nombre)
 		return
 	}
 
@@ -115,7 +115,7 @@ func (c *LoginController) Login() {
 }
 
 // Función para generar y devolver un token JWT
-func generateJWT(c *LoginController, documento int, rol string, nombre string) {
+func generateJWT(c *LoginController, documento int64, rol string, nombre string) {
 	now := time.Now()
 	expirationTime := now.Add(24 * time.Hour)
 
