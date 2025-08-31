@@ -41,9 +41,6 @@ func generarNominaAutomatica() {
 		if now.Hour() == 0 && now.Minute() == 0 {
 			fmt.Println("Ejecutando generación automática de nómina...")
 
-			inicio := now.AddDate(0, 0, -1).Format("2006-01-02")
-			fin := now.AddDate(0, 0, -1).Format("2006-01-02")
-
 			nomina := models.Nomina{
 				FECHA:         now,
 				ESTADO_NOMINA: models.EstadoNominaNoPago,
@@ -52,7 +49,7 @@ func generarNominaAutomatica() {
 			if _, err := o.Insert(&nomina); err != nil {
 				fmt.Println("Error al crear la nómina:", err)
 			} else {
-				if _, err := o.Raw("CALL generar_nomina_automatica(?, ?, ?)", nomina.PK_ID_NOMINA, inicio, fin).Exec(); err != nil {
+				if _, err := o.Raw("CALL generar_nomina_automatica(?)", nomina.PK_ID_NOMINA).Exec(); err != nil {
 					fmt.Println("Error al generar la nómina automática:", err)
 				} else {
 					fmt.Println("Nómina generada automáticamente con éxito.")

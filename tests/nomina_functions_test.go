@@ -12,7 +12,7 @@ import (
 
 func TestNominaGenerarYVerificar(t *testing.T) {
 	body := strings.NewReader("{}")
-	req := httptest.NewRequest(http.MethodPost, "/nominas?generar_nomina_automatica=true&verificar_nomina=true&fecha_inicio=2023-01-01&fecha_fin=2023-01-31", body)
+	req := httptest.NewRequest(http.MethodPost, "/nominas?generar_nomina_automatica=true&verificar_nomina=true", body)
 	req.Header.Set("Content-Type", "application/json")
 	w := sendRequest(req)
 	if w.Code != http.StatusCreated {
