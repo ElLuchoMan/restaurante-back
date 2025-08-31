@@ -146,7 +146,7 @@ func (c *PedidoClienteController) Post() {
 		}
 
 		// Validar que el pedido existe
-		pedido := models.Pedido{PK_ID_PEDIDO: relacion.PK_ID_PEDIDO}
+		pedido := models.Pedido{PK_ID_PEDIDO: int64(relacion.PK_ID_PEDIDO)}
 		if err := pcReadPedido(txOrm, &pedido); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{

@@ -161,7 +161,7 @@ func (c *PedidoController) Post() {
 	// Construimos el pedido conforme a las reglas
 	var pedido models.Pedido
 	pedido.FECHA = now
-	pedido.HORA = now.Format("15:04:05") // string HH:mm:ss
+	pedido.HORA = now
 	pedido.ESTADO_PEDIDO = models.EstadoPedidoIniciado
 
 	// Si el cliente mandó delivery en el body, lo respetamos; si no, false
@@ -206,7 +206,7 @@ func (c *PedidoController) Post() {
 // @Security BearerAuth
 // @Router /pedidos/asignar-domicilio [post]
 func (c *PedidoController) AssignDomicilio() {
-	pedidoID, _ := c.GetInt("pedido_id")
+	pedidoID, _ := c.GetInt64("pedido_id")
 	domicilioID, _ := c.GetInt64("domicilio_id")
 	o := orm.NewOrm()
 
@@ -246,8 +246,8 @@ func (c *PedidoController) AssignDomicilio() {
 // @Security BearerAuth
 // @Router /pedidos/asignar-pago [post]
 func (c *PedidoController) AssignPago() {
-	pedidoID, _ := c.GetInt("pedido_id")
-	pagoID, _ := c.GetInt("pago_id")
+	pedidoID, _ := c.GetInt64("pedido_id")
+	pagoID, _ := c.GetInt64("pago_id")
 	o := orm.NewOrm()
 
 	// Leer pedido
@@ -270,7 +270,7 @@ func (c *PedidoController) AssignPago() {
 	}
 
 	// También cambiamos el estado en la tabla PAGO
-	pago := models.Pago{PK_ID_PAGO: int64(pagoID)}
+	pago := models.Pago{PK_ID_PAGO: pagoID}
 	if err := o.Read(&pago); err == nil {
 		pago.ESTADO_PAGO = models.EstadoPagoPagado
 		o.Update(&pago, "ESTADO_PAGO")
@@ -294,7 +294,7 @@ func (c *PedidoController) AssignPago() {
 // @Security BearerAuth
 // @Router /pedidos/actualizar-estado [put]
 func (c *PedidoController) UpdateEstadoPedido() {
-	pedidoID, _ := c.GetInt("pedido_id")
+	pedidoID, _ := c.GetInt64("pedido_id")
 	estado := c.GetString("estado")
 
 	o := orm.NewOrm()
