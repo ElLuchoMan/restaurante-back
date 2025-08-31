@@ -3677,9 +3677,6 @@ const docTemplate = `{
                 "entregado": {
                     "type": "boolean"
                 },
-                "estadoPago": {
-                    "type": "string"
-                },
                 "fechaDomicilio": {
                     "type": "string"
                 },

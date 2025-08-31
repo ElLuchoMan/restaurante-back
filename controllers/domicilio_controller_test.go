@@ -39,32 +39,6 @@ func TestPostInvalidEstado(t *testing.T) {
 	}
 }
 
-func TestPostInvalidEstadoPago(t *testing.T) {
-	body := `{"direccion":"Calle 1","fechaDomicilio":"2024-01-01","telefono":"123","estadoPago":"otro"}`
-	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := DomicilioController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-	var resp models.ApiResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
-	}
-	if !strings.Contains(resp.Message, "estadoPago") {
-		t.Fatalf("expected error message about estadoPago, got %s", resp.Message)
-	}
-}
-
 func TestPostEntregadoTrue(t *testing.T) {
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
