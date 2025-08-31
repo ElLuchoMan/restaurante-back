@@ -2119,7 +2119,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "ID del cliente (PK_DOCUMENTO_CLIENTE)",
+                        "description": "ID del cliente (documento_cliente)",
                         "name": "cliente",
                         "in": "query"
                     },
@@ -2297,7 +2297,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).",
+                "description": "Asigna un domicilio existente a un pedido (sólo setea id_domicilio).",
                 "consumes": [
                     "application/json"
                 ],
@@ -3774,13 +3774,13 @@ const docTemplate = `{
                 "MONTO_INCIDENCIAS": {
                     "type": "integer"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
+                "documento_trabajador": {
                     "type": "integer"
                 },
-                "PK_ID_NOMINA": {
+                "id_nomina": {
                     "type": "integer"
                 },
-                "PK_ID_NOMINA_TRABAJADOR": {
+                "id_nomina_trabajador": {
                     "type": "integer"
                 },
                 "SUELDO_BASE": {
@@ -3798,7 +3798,7 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Pago correspondiente al mes de enero"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
+                "documento_trabajador": {
                     "type": "integer",
                     "example": 1015466494
                 }
@@ -3815,7 +3815,7 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 50000
                 },
-                "PK_ID_NOMINA_TRABAJADOR": {
+                "id_nomina_trabajador": {
                     "type": "integer",
                     "example": 1
                 },

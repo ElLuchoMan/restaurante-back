@@ -117,11 +117,11 @@ definitions:
         type: string
       MONTO_INCIDENCIAS:
         type: integer
-      PK_DOCUMENTO_TRABAJADOR:
+      documento_trabajador:
         type: integer
-      PK_ID_NOMINA:
+      id_nomina:
         type: integer
-      PK_ID_NOMINA_TRABAJADOR:
+      id_nomina_trabajador:
         type: integer
       SUELDO_BASE:
         type: integer
@@ -133,7 +133,7 @@ definitions:
       DETALLES:
         example: Pago correspondiente al mes de enero
         type: string
-      PK_DOCUMENTO_TRABAJADOR:
+      documento_trabajador:
         example: 1015466494
         type: integer
     type: object
@@ -145,7 +145,7 @@ definitions:
       MONTO_INCIDENCIAS:
         example: 50000
         type: integer
-      PK_ID_NOMINA_TRABAJADOR:
+      id_nomina_trabajador:
         example: 1
         type: integer
       SUELDO_BASE:
@@ -1672,7 +1672,7 @@ paths:
         in: query
         name: anio
         type: integer
-      - description: ID del cliente (PK_DOCUMENTO_CLIENTE)
+      - description: ID del cliente (documento_cliente)
         in: query
         name: cliente
         type: integer
@@ -1790,7 +1790,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).
+      description: Asigna un domicilio existente a un pedido (sólo setea id_domicilio).
       parameters:
       - description: ID del pedido
         in: query
