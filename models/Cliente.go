@@ -5,7 +5,7 @@ import (
 )
 
 type Cliente struct {
-	PK_DOCUMENTO_CLIENTE int     `orm:"column(pk_documento_cliente);pk" json:"documentoCliente"`
+	PK_DOCUMENTO_CLIENTE int64   `orm:"column(pk_documento_cliente);pk" json:"documentoCliente"`
 	NOMBRE               string  `orm:"column(nombre);type(text)"        json:"nombre"`
 	APELLIDO             string  `orm:"column(apellido);type(text)"      json:"apellido"`
 	CORREO               *string `orm:"column(correo);type(text)"        json:"correo"`

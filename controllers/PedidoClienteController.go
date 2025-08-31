@@ -133,7 +133,7 @@ func (c *PedidoClienteController) Post() {
 	// Ejecutar transacción
 	err := pcDoTx(o, func(ctx context.Context, txOrm orm.TxOrmer) error {
 		// Validar que el cliente existe
-		cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: int(relacion.PK_DOCUMENTO_CLIENTE)}
+		cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: relacion.PK_DOCUMENTO_CLIENTE}
 		if err := pcReadCliente(txOrm, &cliente); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{
