@@ -16,6 +16,22 @@ type DomicilioController struct {
 	web.Controller
 }
 
+func isValidEstadoDomicilio(e string) bool {
+	switch models.EstadoDomicilio(e) {
+	case models.EstadoDomicilioPendiente, models.EstadoDomicilioEnCamino, models.EstadoDomicilioEntregado:
+		return true
+	}
+	return false
+}
+
+func isValidEstadoPago(e string) bool {
+	switch models.EstadoPago(e) {
+	case models.EstadoPagoPagado, models.EstadoPagoPendiente, models.EstadoPagoNoPago:
+		return true
+	}
+	return false
+}
+
 // @Title GetAll
 // @Summary Obtener todos los domicilios con posibilidad de filtrar
 // @Description Devuelve todos los domicilios registrados en la base de datos, filtrando según criterios específicos.
@@ -271,7 +287,6 @@ LIMIT 1;`
 // @Security BearerAuth
 // @Router /domicilios [post]
 func (c *DomicilioController) Post() {
-	o := orm.NewOrm()
 	var input map[string]interface{}
 	var domicilio models.Domicilio
 
@@ -337,9 +352,27 @@ func (c *DomicilioController) Post() {
 
 	// Procesar campos opcionales
 	if estado, ok := input["estado"].(string); ok {
+		if !isValidEstadoDomicilio(estado) {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "El valor de 'estado' no es válido",
+			}
+			c.ServeJSON()
+			return
+		}
 		domicilio.ESTADO_DOMICILIO = estado
 	}
 	if estadoPago, ok := input["estadoPago"].(string); ok {
+		if !isValidEstadoPago(estadoPago) {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "El valor de 'estadoPago' no es válido",
+			}
+			c.ServeJSON()
+			return
+		}
 		domicilio.ESTADO_PAGO = estadoPago
 	}
 	if entregado, ok := input["entregado"].(bool); ok {
@@ -356,6 +389,7 @@ func (c *DomicilioController) Post() {
 	domicilio.CREATED_AT = time.Now().UTC()
 	domicilio.UPDATED_AT = time.Time{} // Inicializa vacío
 
+	o := orm.NewOrm()
 	// Insertar en la base de datos
 	_, err := o.Insert(&domicilio)
 	if err != nil {
@@ -441,9 +475,27 @@ func (c *DomicilioController) Put() {
 		domicilio.TELEFONO = telefono
 	}
 	if estado, ok := input["estado"].(string); ok {
+		if !isValidEstadoDomicilio(estado) {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "El valor de 'estado' no es válido",
+			}
+			c.ServeJSON()
+			return
+		}
 		domicilio.ESTADO_DOMICILIO = estado
 	}
 	if estadoPago, ok := input["estadoPago"].(string); ok {
+		if !isValidEstadoPago(estadoPago) {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "El valor de 'estadoPago' no es válido",
+			}
+			c.ServeJSON()
+			return
+		}
 		domicilio.ESTADO_PAGO = estadoPago
 	}
 	if entregado, ok := input["entregado"].(bool); ok {
