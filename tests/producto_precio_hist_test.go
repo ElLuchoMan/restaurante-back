@@ -46,7 +46,7 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 	if _, err := o.QueryTable(new(models.PrecioProductoHist)).Filter("PKIDProducto", p.PK_ID_PRODUCTO).All(&hist); err != nil {
 		t.Skipf("cannot query history: %v", err)
 	}
-	if len(hist) != 1 || hist[0].Precio != float64(p.PRECIO) || hist[0].FechaFin != nil {
+	if len(hist) != 1 || hist[0].Precio != float64(p.PRECIO) || hist[0].FechaVigencia.IsZero() {
 		t.Errorf("unexpected initial history: %+v", hist)
 	}
 
@@ -72,19 +72,14 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 	}
 	var oldOK, newOK bool
 	for _, h := range hist {
+		if h.FechaVigencia.IsZero() {
+			t.Errorf("missing FechaVigencia in history: %+v", h)
+		}
 		if h.Precio == 100 {
-			if h.FechaFin == nil {
-				t.Errorf("old history missing FechaFin")
-			} else {
-				oldOK = true
-			}
+			oldOK = true
 		}
 		if h.Precio == 200 {
-			if h.FechaFin != nil {
-				t.Errorf("new history should not have FechaFin")
-			} else {
-				newOK = true
-			}
+			newOK = true
 		}
 	}
 	if !oldOK || !newOK {
