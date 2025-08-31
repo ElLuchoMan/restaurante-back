@@ -3,12 +3,10 @@ package models
 import "github.com/beego/beego/v2/client/orm"
 
 type NominaTrabajador struct {
-	PK_ID_NOMINA_TRABAJADOR int64   `orm:"column(pk_id_nomina_trabajador);pk;auto" json:"nominaTrabajadorId"`
 	SUELDO_BASE             int64   `orm:"column(sueldo_base)" json:"sueldoBase"`
 	MONTO_INCIDENCIAS       *int64  `orm:"column(monto_incidencias);null" json:"montoIncidencias,omitempty"`
-	TOTAL                   *int64  `orm:"column(total);null" json:"total,omitempty"`
 	DETALLES                *string `orm:"column(detalles);type(text);null" json:"detalles,omitempty"`
-	PK_DOCUMENTO_TRABAJADOR int64   `orm:"column(pk_documento_trabajador);null" json:"documentoTrabajador,omitempty"`
+	PK_DOCUMENTO_TRABAJADOR int64   `orm:"column(pk_documento_trabajador);pk" json:"documentoTrabajador"`
 	PK_ID_NOMINA            *int64  `orm:"column(pk_id_nomina);null" json:"nominaId,omitempty"`
 }
 
@@ -18,18 +16,15 @@ type NominaTrabajadorRequest struct {
 }
 
 type NominaTrabajadorResponse struct {
-	PK_ID_NOMINA_TRABAJADOR int64  `json:"nominaTrabajadorId" example:"1"`
 	SUELDO_BASE             int64  `json:"sueldoBase" example:"2000000"`
 	MONTO_INCIDENCIAS       int64  `json:"montoIncidencias" example:"50000"`
-	TOTAL                   int64  `json:"total" example:"2050000"`
 	DETALLES                string `json:"detalles,omitempty" example:"Pago correspondiente al mes de enero"`
+	PK_DOCUMENTO_TRABAJADOR int64  `json:"documentoTrabajador" example:"1015466494"`
 }
 
 type NominaTrabajadorDetalle struct {
-	PK_ID_NOMINA_TRABAJADOR int64  `orm:"column(pk_id_nomina_trabajador)" json:"nominaTrabajadorId"`
 	SUELDO_BASE             int64  `orm:"column(sueldo_base)" json:"sueldoBase"`
 	MONTO_INCIDENCIAS       int64  `orm:"column(monto_incidencias)" json:"montoIncidencias"`
-	TOTAL                   int64  `orm:"column(total)" json:"total"`
 	DETALLES                string `orm:"column(detalles)" json:"detalles"`
 	PK_DOCUMENTO_TRABAJADOR int64  `orm:"column(pk_documento_trabajador)" json:"documentoTrabajador"`
 	PK_ID_NOMINA            int64  `orm:"column(pk_id_nomina)" json:"nominaId"`

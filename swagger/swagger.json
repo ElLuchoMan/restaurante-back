@@ -238,15 +238,7 @@
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_NOMINA_TRABAJADOR": {
-                    "type": "integer",
-                    "format": "int64"
-                },
                 "SUELDO_BASE": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "TOTAL": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -280,19 +272,14 @@
                     "example": 50000,
                     "format": "int64"
                 },
-                "PK_ID_NOMINA_TRABAJADOR": {
-                    "type": "integer",
-                    "example": 1,
-                    "format": "int64"
-                },
                 "SUELDO_BASE": {
                     "type": "integer",
                     "example": 2000000,
                     "format": "int64"
                 },
-                "TOTAL": {
+                "PK_DOCUMENTO_TRABAJADOR": {
                     "type": "integer",
-                    "example": 2050000,
+                    "example": 1015466494,
                     "format": "int64"
                 }
             }
