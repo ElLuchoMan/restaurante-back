@@ -42,12 +42,7 @@ func TestHorarioTrabajadorPostSuccess(t *testing.T) {
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
 	}
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_documento_trabajador"}
-		vals := [][]driver.Value{{int64(1)}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	defer func() { MockExec = nil; MockQuery = nil }()
+	defer func() { MockExec = nil }()
 
 	body := `{"documentoTrabajador":1,"dia":"lunes","horaInicio":"08:00:00","horaFin":"17:00:00"}`
 	c, w := setupHTCtx(http.MethodPost, "/horario_trabajador", body)
