@@ -140,7 +140,7 @@ func (c *NominaController) Post() {
 
 	// Ejecutar funciones adicionales si se solicitan
 	if gen {
-		if _, err := o.Raw("CALL generar_nomina_automatica(?)", input.PK_ID_NOMINA).Exec(); err != nil {
+		if _, err := o.Raw("CALL generar_nomina_automatica(?, ?)", input.PK_ID_NOMINA, input.FECHA).Exec(); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -153,7 +153,7 @@ func (c *NominaController) Post() {
 	}
 
 	if ver {
-		if _, err := o.Raw("CALL verificar_nomina(?)", input.PK_ID_NOMINA).Exec(); err != nil {
+		if _, err := o.Raw("CALL verificar_nomina()").Exec(); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
