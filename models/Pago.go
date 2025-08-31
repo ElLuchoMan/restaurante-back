@@ -17,7 +17,7 @@ type Pago struct {
 	CREATED_AT        time.Time  `orm:"column(created_at);type(timestamp);auto_now_add" json:"createdAt"`
 	UPDATED_AT        time.Time  `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
 	CREATED_BY        *string    `orm:"column(created_by);type(text)" json:"createdBy,omitempty"`
-	UPDATED_BY        string     `orm:"column(updated_by)" json:"updatedBy"`
+	UPDATED_BY        *string    `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 }
 
 func (p *Pago) TableName() string {

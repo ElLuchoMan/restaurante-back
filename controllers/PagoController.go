@@ -280,13 +280,18 @@ func (c *PagoController) Post() {
 	}
 
 	// Mapear a tu entidad de BD
+	var updatedBy *string
+	if in.UpdatedBy != "" {
+		updatedBy = &in.UpdatedBy
+	}
+
 	pago := models.Pago{
 		FECHA:             fecha,
 		HORA:              in.HoraPago,
 		MONTO:             in.Monto,
 		ESTADO_PAGO:       in.EstadoPago,   // e.g. "pagado"
 		PK_ID_METODO_PAGO: in.MetodoPagoId, // FK
-		UPDATED_BY:        in.UpdatedBy,    // opcional
+		UPDATED_BY:        updatedBy,       // opcional
 		// UPDATED_AT se maneja con auto_now en el modelo
 	}
 
@@ -419,7 +424,7 @@ func (c *PagoController) Put() {
 	}
 
 	if updatedBy, ok := input["UPDATED_BY"].(string); ok {
-		pago.UPDATED_BY = updatedBy
+		pago.UPDATED_BY = &updatedBy
 	}
 
 	// Actualizar la fecha de modificación
