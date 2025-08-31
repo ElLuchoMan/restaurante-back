@@ -60,8 +60,14 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
   - `POST /nominas` accepts optional `generar_nomina_automatica` and
     `verificar_nomina` parameters (`fecha_inicio` y `fecha_fin`) to
     auto-generate payments and verify payroll records.
-  - `PUT /nominas?id=...` transitions a payroll to `pago`.
-  - `DELETE /nominas?id=...` performs a logical deletion setting the state to `no pago`.
+- `PUT /nominas?id=...` transitions a payroll to `pago`.
+- `DELETE /nominas?id=...` performs a logical deletion setting the state to `no pago`.
+
+## Database Tables
+- **nomina**: stores payroll records including amount, state, and audit timestamps.
+- **reserva**: manages restaurant reservations with date, time, party size, and status.
+- **precio_producto_hist**: tracks product price changes over time, closing previous entries when prices update.
+- **cambios_horario**: logs schedule adjustments such as opening/closing hours and whether the restaurant opens.
 
 ## Testing
 ```sh
@@ -86,14 +92,14 @@ powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
 ## How to make a PR
 1. Fork the repository and create a feature branch.
 2. Commit your changes and push the branch.
-3. Open a pull request via [PLACEHOLDER](#) in **Draft** state.
+3. Open a pull request via [GitHub](https://github.com/ElLuchoMan/restaurante-back/pulls) in **Draft** state.
 4. Address feedback, then mark the PR as **Ready for Review**.
 
 ## API Documentation
 - Open `docs/swagger.yaml` or serve the project and navigate to `/swagger/` for Swagger UI.
 
 ## Additional Documentation
-[PLACEHOLDER]
+See the [`docs/` directory](docs/) for extended documentation.
 
 ## License
 © 2025 ElLuchoMan
