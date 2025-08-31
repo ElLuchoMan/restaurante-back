@@ -24,15 +24,21 @@ func SeedTestData() {
 		log.Println("seed subcategoria:", err)
 	}
 
-	if _, err := o.Insert(&models.Producto{
-		PK_ID_PRODUCTO:     1,
-		NOMBRE:             "Producto Prueba",
-		DESCRIPCION:        "Usado en tests",
-		PRECIO:             1000,
-		ESTADO_PRODUCTO:    models.EstadoProductoDisponible,
-		CANTIDAD:           1,
-		PK_ID_SUBCATEGORIA: 1,
-	}); err != nil {
+	prod := models.Producto{PK_ID_PRODUCTO: 1}
+	if err := o.Read(&prod); err == orm.ErrNoRows {
+		prod = models.Producto{
+			PK_ID_PRODUCTO:     1,
+			NOMBRE:             "Producto Prueba",
+			DESCRIPCION:        "Usado en tests",
+			PRECIO:             1000,
+			ESTADO_PRODUCTO:    models.EstadoProductoDisponible,
+			CANTIDAD:           1,
+			PK_ID_SUBCATEGORIA: 1,
+		}
+		if _, err := o.Insert(&prod); err != nil {
+			log.Println("seed producto:", err)
+		}
+	} else if err != nil {
 		log.Println("seed producto:", err)
 	}
 

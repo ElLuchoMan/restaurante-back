@@ -16,7 +16,7 @@ func TestNominaGenerarYVerificar(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	w := sendRequest(req)
 	if w.Code != http.StatusCreated {
-		t.Skipf("nomina generation/verification failed or DB unavailable: %d %s", w.Code, w.Body.String())
+		t.Fatalf("nomina generation/verification failed or DB unavailable: %d %s", w.Code, w.Body.String())
 	}
 
 	var resp models.ApiResponse
