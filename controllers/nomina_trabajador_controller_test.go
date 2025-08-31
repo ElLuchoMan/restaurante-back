@@ -47,7 +47,7 @@ func TestNominaTrabajadorPostInvalidJSON(t *testing.T) {
 }
 
 func TestNominaTrabajadorPostMissingDocumento(t *testing.T) {
-	body := `{"PK_DOCUMENTO_TRABAJADOR":0}`
+	body := `{"documentoTrabajador":0}`
 	r := httptest.NewRequest(http.MethodPost, "/nomina_trabajador", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -62,13 +62,13 @@ func TestNominaTrabajadorPostMissingDocumento(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "PK_DOCUMENTO_TRABAJADOR") {
+	if !strings.Contains(w.Body.String(), "documentoTrabajador") {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
 
 func TestNominaTrabajadorPostDBError(t *testing.T) {
-	body := `{"PK_DOCUMENTO_TRABAJADOR":123}`
+	body := `{"documentoTrabajador":123}`
 	r := httptest.NewRequest(http.MethodPost, "/nomina_trabajador", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
