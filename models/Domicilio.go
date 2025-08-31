@@ -8,7 +8,7 @@ import (
 )
 
 type Domicilio struct {
-	PK_ID_DOMICILIO         int             `orm:"column(pk_id_domicilio);pk;auto" json:"domicilioId"`
+	PK_ID_DOMICILIO         int64           `orm:"column(pk_id_domicilio);pk;auto" json:"domicilioId"`
 	DIRECCION               string          `orm:"column(direccion);type(text)" json:"direccion"`
 	TELEFONO                string          `orm:"column(telefono);type(text)" json:"telefono"`
 	ESTADO_DOMICILIO        EstadoDomicilio `orm:"column(estado_domicilio);type(text)" json:"estado"`
