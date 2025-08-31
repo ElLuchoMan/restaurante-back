@@ -128,14 +128,6 @@ func (c *RestauranteController) Post() {
 		return
 	}
 
-	// Si se envían los días laborales como array de strings, usar SetDiasLaborales
-	if len(restaurante.DIAS_LABORALES) > 0 {
-		var dias []string
-		if err := json.Unmarshal([]byte(restaurante.DIAS_LABORALES), &dias); err == nil {
-			restaurante.SetDiasLaborales(dias)
-		}
-	}
-
 	_, err := o.Insert(&restaurante)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -202,14 +194,6 @@ func (c *RestauranteController) Put() {
 
 		// Asignar el ID original al modelo actualizado
 		updatedRestaurante.PK_ID_RESTAURANTE = id
-
-		// Si se envían los días laborales como array de strings, usar SetDiasLaborales
-		if len(updatedRestaurante.DIAS_LABORALES) > 0 {
-			var dias []string
-			if err := json.Unmarshal([]byte(updatedRestaurante.DIAS_LABORALES), &dias); err == nil {
-				updatedRestaurante.SetDiasLaborales(dias)
-			}
-		}
 
 		_, err := o.Update(&updatedRestaurante)
 		if err != nil {
