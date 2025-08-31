@@ -35,7 +35,11 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
    ```sh
    go mod download
    ```
-4. Configuration files reside in `conf/` (`app.conf`, `app.test.conf`).
+4. Run the SQL migrations to set up database functions:
+   ```sh
+   psql -d <dbname> -f database/migrations/001_set_precio_detalle_pedido.sql
+   ```
+5. Configuration files reside in `conf/` (`app.conf`, `app.test.conf`).
 
 ## Development
 - Start the development server with live reload and Swagger generation:
