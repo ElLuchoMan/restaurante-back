@@ -129,12 +129,12 @@ func TestMetodoPagoDeleteNotFound(t *testing.T) {
 // mockMetodoPagoOrmer provides an in-memory implementation of metodoPagoOrmer
 // used to test the controller without touching a real database.
 type mockMetodoPagoOrmer struct {
-        data   map[int]models.MetodoPago
-        nextID int
+        data   map[int64]models.MetodoPago
+        nextID int64
 }
 
 func newMockMetodoPagoOrmer() *mockMetodoPagoOrmer {
-        return &mockMetodoPagoOrmer{data: make(map[int]models.MetodoPago), nextID: 1}
+        return &mockMetodoPagoOrmer{data: make(map[int64]models.MetodoPago), nextID: 1}
 }
 
 func (m *mockMetodoPagoOrmer) QueryTable(_ interface{}) metodoPagoQuerySeter {
@@ -142,19 +142,19 @@ func (m *mockMetodoPagoOrmer) QueryTable(_ interface{}) metodoPagoQuerySeter {
 }
 
 func (m *mockMetodoPagoOrmer) All(res interface{}, _ ...string) (int64, error) {
-	slice, ok := res.(*[]models.MetodoPago)
-	if !ok {
-		return 0, errors.New("invalid result type")
-	}
-	for _, v := range m.data {
-		*slice = append(*slice, v)
-	}
-	return int64(len(m.data)), nil
+        slice, ok := res.(*[]models.MetodoPago)
+        if !ok {
+                return 0, errors.New("invalid result type")
+        }
+        for _, v := range m.data {
+                *slice = append(*slice, v)
+        }
+        return int64(len(m.data)), nil
 }
 
 func (m *mockMetodoPagoOrmer) Read(v interface{}, _ ...string) error {
 	mp := v.(*models.MetodoPago)
-	item, ok := m.data[mp.PK_ID_METODO_PAGO]
+        item, ok := m.data[mp.PK_ID_METODO_PAGO]
 	if !ok {
 		return orm.ErrNoRows
 	}
@@ -164,10 +164,10 @@ func (m *mockMetodoPagoOrmer) Read(v interface{}, _ ...string) error {
 
 func (m *mockMetodoPagoOrmer) Insert(v interface{}) (int64, error) {
 	mp := v.(*models.MetodoPago)
-	mp.PK_ID_METODO_PAGO = m.nextID
-	m.nextID++
-	m.data[mp.PK_ID_METODO_PAGO] = *mp
-	return 1, nil
+        mp.PK_ID_METODO_PAGO = m.nextID
+        m.nextID++
+        m.data[mp.PK_ID_METODO_PAGO] = *mp
+        return 1, nil
 }
 
 func (m *mockMetodoPagoOrmer) Update(v interface{}, _ ...string) (int64, error) {
