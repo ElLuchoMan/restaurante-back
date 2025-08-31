@@ -3,11 +3,11 @@ package models
 import "github.com/beego/beego/v2/client/orm"
 
 type ReservaContacto struct {
-	PKIDReservaContacto int64   `orm:"column(pk_id_reserva_contacto);pk;auto" json:"reservaContactoId"`
-	PKIDReserva         int64   `orm:"column(pk_id_reserva)" json:"reservaId"`
-	Nombre              string  `orm:"column(nombre);type(text)" json:"nombre"`
-	Telefono            *string `orm:"column(telefono);type(text);null" json:"telefono,omitempty"`
-	Email               *string `orm:"column(email);type(text);null" json:"email,omitempty"`
+	PKIDContacto       int64   `orm:"column(pk_id_contacto);pk;auto" json:"contactoId"`
+	NombreCompleto     string  `orm:"column(nombre_completo);type(text)" json:"nombreCompleto"`
+	Telefono           *string `orm:"column(telefono);type(text);null" json:"telefono,omitempty"`
+	DocumentoContacto  *string `orm:"column(documento_contacto);type(text);null" json:"documentoContacto,omitempty"`
+	PKDocumentoCliente *int64  `orm:"column(pk_documento_cliente);null" json:"documentoCliente,omitempty"`
 }
 
 func (r *ReservaContacto) TableName() string {

@@ -24,10 +24,10 @@ func resetReservaMocks() {
 	readReserva = func(o orm.Ormer, r *models.Reserva) error { return o.Read(r) }
 	insertReserva = func(o orm.Ormer, r *models.Reserva) (int64, error) { return o.Insert(r) }
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) { return o.Update(r, cols...) }
-	queryReservasByParam = func(o orm.Ormer, doc int64, fecha time.Time, useDoc, useFecha bool, reservas *[]models.Reserva) (int64, error) {
+	queryReservasByParam = func(o orm.Ormer, contacto int64, fecha time.Time, useContacto, useFecha bool, reservas *[]models.Reserva) (int64, error) {
 		qs := o.QueryTable(new(models.Reserva))
-		if useDoc {
-			qs = qs.Filter("documento_cliente", doc)
+		if useContacto {
+			qs = qs.Filter("pk_id_contacto", contacto)
 		}
 		if useFecha {
 			qs = qs.Filter("fecha", fecha)
@@ -93,10 +93,11 @@ func TestReservaPostInvalidJSON(t *testing.T) {
 func TestReservaPostInvalidDate(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":     "2024-13-01",
-		"horaReserva":      "12:00:00",
-		"personas":         2,
-		"documentoCliente": 123,
+		"fechaReserva":  "2024-13-01",
+		"horaReserva":   "12:00:00",
+		"personas":      2,
+		"contactoId":    123,
+		"restauranteId": 1,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -121,9 +122,10 @@ func TestReservaPostInvalidDate(t *testing.T) {
 func TestReservaPostMissingHora(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":     "2024-01-01",
-		"personas":         2,
-		"documentoCliente": 123,
+		"fechaReserva":  "2024-01-01",
+		"personas":      2,
+		"contactoId":    123,
+		"restauranteId": 1,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -184,7 +186,7 @@ func TestReservaGetByParameterInvalidFecha(t *testing.T) {
 
 func TestReservaGetByParameterDBError(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
-	r := httptest.NewRequest(http.MethodGet, "/reservas/parameter?documentoCliente=123&fecha=2024-10-10", nil)
+	r := httptest.NewRequest(http.MethodGet, "/reservas/parameter?contactoId=123&fecha=2024-10-10", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
@@ -292,9 +294,10 @@ func TestReservaGetByIdScenarios(t *testing.T) {
 func TestReservaPostMissingFecha(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"horaReserva":      "12:00:00",
-		"personas":         2,
-		"documentoCliente": 123,
+		"horaReserva":   "12:00:00",
+		"personas":      2,
+		"contactoId":    123,
+		"restauranteId": 1,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -314,10 +317,11 @@ func TestReservaPostMissingFecha(t *testing.T) {
 func TestReservaPostInvalidHora(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":     "2024-01-01",
-		"horaReserva":      "99:99:99",
-		"personas":         2,
-		"documentoCliente": 123,
+		"fechaReserva":  "2024-01-01",
+		"horaReserva":   "99:99:99",
+		"personas":      2,
+		"contactoId":    123,
+		"restauranteId": 1,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -338,9 +342,10 @@ func TestReservaPostInvalidHora(t *testing.T) {
 func TestReservaPostMissingPersonas(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":     "2024-01-01",
-		"horaReserva":      "12:00:00",
-		"documentoCliente": 123,
+		"fechaReserva":  "2024-01-01",
+		"horaReserva":   "12:00:00",
+		"contactoId":    123,
+		"restauranteId": 1,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -361,11 +366,12 @@ func TestReservaPostMissingPersonas(t *testing.T) {
 func TestReservaPostInvalidEstado(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":     "2024-01-01",
-		"horaReserva":      "12:00:00",
-		"personas":         2,
-		"documentoCliente": 123,
-		"estadoReserva":    "DESCONOCIDO",
+		"fechaReserva":  "2024-01-01",
+		"horaReserva":   "12:00:00",
+		"personas":      2,
+		"contactoId":    123,
+		"restauranteId": 1,
+		"estadoReserva": "DESCONOCIDO",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -383,13 +389,14 @@ func TestReservaPostInvalidEstado(t *testing.T) {
 	}
 }
 
-func TestReservaPostInvalidDocumento(t *testing.T) {
+func TestReservaPostInvalidContacto(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":     "2024-01-01",
-		"horaReserva":      "12:00:00",
-		"personas":         2,
-		"documentoCliente": "abc",
+		"fechaReserva":  "2024-01-01",
+		"horaReserva":   "12:00:00",
+		"personas":      2,
+		"contactoId":    "abc",
+		"restauranteId": 1,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -412,10 +419,11 @@ func TestReservaPostInsertError(t *testing.T) {
 	insertReserva = func(o orm.Ormer, r *models.Reserva) (int64, error) { return 0, errors.New("db") }
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":     "2024-01-01",
-		"horaReserva":      "12:00:00",
-		"personas":         2,
-		"documentoCliente": 123,
+		"fechaReserva":  "2024-01-01",
+		"horaReserva":   "12:00:00",
+		"personas":      2,
+		"contactoId":    123,
+		"restauranteId": 1,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -442,15 +450,16 @@ func TestReservaPostSuccess(t *testing.T) {
 	}
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":     "2024-01-01",
-		"horaReserva":      "12:00:00",
-		"personas":         2,
-		"documentoCliente": 123,
-		"estadoReserva":    models.EstadoReservaConfirmada,
-		"indicaciones":     "Ninguna",
-		"createdBy":        "admin",
-		"nombreCompleto":   "John Doe",
-		"telefono":         "123",
+		"fechaReserva":   "2024-01-01",
+		"horaReserva":    "12:00:00",
+		"personas":       2,
+		"contactoId":     123,
+		"restauranteId":  1,
+		"estadoReserva":  models.EstadoReservaConfirmada,
+		"indicaciones":   "Ninguna",
+		"createdBy":      "admin",
+		"nombreCompleto": "John Doe",
+		"telefono":       "123",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -528,7 +537,7 @@ func TestReservaPutScenarios(t *testing.T) {
 	}
 
 	// invalid fecha
-	payload := map[string]interface{}{"fechaReserva": "2024-13-01", "horaReserva": "12:00:00", "personas": 2, "documentoCliente": 123}
+	payload := map[string]interface{}{"fechaReserva": "2024-13-01", "horaReserva": "12:00:00", "personas": 2, "contactoId": 123, "restauranteId": 1}
 	body, _ := json.Marshal(payload)
 	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
 	w = httptest.NewRecorder()
@@ -557,9 +566,9 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 
-	// invalid documento
+	// invalid contacto
 	payload["horaReserva"] = "12:00:00"
-	payload["documentoCliente"] = "abc"
+	payload["contactoId"] = "abc"
 	body, _ = json.Marshal(payload)
 	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
 	w = httptest.NewRecorder()
@@ -573,7 +582,7 @@ func TestReservaPutScenarios(t *testing.T) {
 	}
 
 	// update error
-	payload["documentoCliente"] = 123
+	payload["contactoId"] = 123
 	body, _ = json.Marshal(payload)
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) { return 0, errors.New("db") }
 	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
@@ -593,15 +602,16 @@ func TestReservaPutScenarios(t *testing.T) {
 		return 1, nil
 	}
 	payload = map[string]interface{}{
-		"fechaReserva":     "2024-01-02",
-		"horaReserva":      "13:00:00",
-		"personas":         3,
-		"estadoReserva":    models.EstadoReservaConfirmada,
-		"indicaciones":     "OK",
-		"updatedBy":        "admin",
-		"nombreCompleto":   "John",
-		"telefono":         "123",
-		"documentoCliente": 123,
+		"fechaReserva":   "2024-01-02",
+		"horaReserva":    "13:00:00",
+		"personas":       3,
+		"estadoReserva":  models.EstadoReservaConfirmada,
+		"indicaciones":   "OK",
+		"updatedBy":      "admin",
+		"nombreCompleto": "John",
+		"telefono":       "123",
+		"contactoId":     123,
+		"restauranteId":  1,
 	}
 	body, _ = json.Marshal(payload)
 	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
@@ -628,20 +638,20 @@ func TestReservaPutScenarios(t *testing.T) {
 
 func TestReservaGetByParameterSuccess(t *testing.T) {
 	db := []models.Reserva{{
-		PK_ID_RESERVA:     1,
-		DOCUMENTO_CLIENTE: func() *int64 { v := int64(123); return &v }(),
-		FECHA:             time.Now(),
-		CREATED_AT:        time.Now(),
-		UPDATED_AT:        time.Now(),
-		HORA:              "2024-01-01T12:00:00Z",
+		PK_ID_RESERVA:  1,
+		PK_ID_CONTACTO: 123,
+		FECHA:          time.Now(),
+		CREATED_AT:     time.Now(),
+		UPDATED_AT:     time.Now(),
+		HORA:           "2024-01-01T12:00:00Z",
 	}}
 	ormNew = func() orm.Ormer { return nil }
-	queryReservasByParam = func(o orm.Ormer, doc int64, fecha time.Time, useDoc, useFecha bool, reservas *[]models.Reserva) (int64, error) {
+	queryReservasByParam = func(o orm.Ormer, contacto int64, fecha time.Time, useContacto, useFecha bool, reservas *[]models.Reserva) (int64, error) {
 		*reservas = append(*reservas, db...)
 		return int64(len(db)), nil
 	}
 	t.Cleanup(resetReservaMocks)
-	r := httptest.NewRequest(http.MethodGet, "/reservas/parameter?documentoCliente=123&fecha=2024-01-01", nil)
+	r := httptest.NewRequest(http.MethodGet, "/reservas/parameter?contactoId=123&fecha=2024-01-01", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
@@ -734,11 +744,12 @@ func TestReservaPutInvalidEstadoIgnored(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 
 	payload := map[string]interface{}{
-		"estadoReserva":    "invalido",
-		"fechaReserva":     "2024-01-01",
-		"horaReserva":      "12:00:00",
-		"personas":         2,
-		"documentoCliente": 123,
+		"estadoReserva": "invalido",
+		"fechaReserva":  "2024-01-01",
+		"horaReserva":   "12:00:00",
+		"personas":      2,
+		"contactoId":    123,
+		"restauranteId": 1,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))

@@ -40,10 +40,10 @@ var updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64,
 	return o.Update(r, cols...)
 }
 
-var queryReservasByParam = func(o orm.Ormer, documentoCliente int64, fecha time.Time, useDoc, useFecha bool, reservas *[]models.Reserva) (int64, error) {
+var queryReservasByParam = func(o orm.Ormer, contactoID int64, fecha time.Time, useContacto, useFecha bool, reservas *[]models.Reserva) (int64, error) {
 	qs := o.QueryTable(new(models.Reserva))
-	if useDoc {
-		qs = qs.Filter("DOCUMENTO_CLIENTE", documentoCliente)
+	if useContacto {
+		qs = qs.Filter("PK_ID_CONTACTO", contactoID)
 	}
 	if useFecha {
 		qs = qs.Filter("FECHA", fecha)
@@ -268,20 +268,24 @@ func (c *ReservaController) Post() {
 		reserva.CREATED_BY = &createdBy
 	}
 
-	if nombreCompleto, ok := input["nombreCompleto"].(string); ok {
-		reserva.NOMBRE_COMPLETO = &nombreCompleto
-	}
-	if telefono, ok := input["telefono"].(string); ok {
-		reserva.TELEFONO = &telefono
-	}
-	if documentoCliente, ok := input["documentoCliente"].(float64); ok {
-		intDocumentoCliente := int64(documentoCliente) // Convertir a int64
-		reserva.DOCUMENTO_CLIENTE = &intDocumentoCliente
+	if contactoID, ok := input["contactoId"].(float64); ok {
+		reserva.PK_ID_CONTACTO = int64(contactoID)
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo DOCUMENTO_CLIENTE debe ser un número",
+			Message: "El campo PK_ID_CONTACTO debe ser un número",
+		}
+		c.ServeJSON()
+		return
+	}
+	if restauranteID, ok := input["restauranteId"].(float64); ok {
+		reserva.PK_ID_RESTAURANTE = int64(restauranteID)
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo PK_ID_RESTAURANTE debe ser un número",
 		}
 		c.ServeJSON()
 		return
@@ -417,20 +421,24 @@ func (c *ReservaController) Put() {
 		reserva.UPDATED_BY = &updatedBy
 	}
 
-	if nombreCompleto, ok := input["nombreCompleto"].(string); ok {
-		reserva.NOMBRE_COMPLETO = &nombreCompleto
-	}
-	if telefono, ok := input["telefono"].(string); ok {
-		reserva.TELEFONO = &telefono
-	}
-	if documentoCliente, ok := input["documentoCliente"].(float64); ok {
-		intDocumentoCliente := int64(documentoCliente) // Convertir a int64
-		reserva.DOCUMENTO_CLIENTE = &intDocumentoCliente
+	if contactoID, ok := input["contactoId"].(float64); ok {
+		reserva.PK_ID_CONTACTO = int64(contactoID)
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo DOCUMENTO_CLIENTE debe ser un número",
+			Message: "El campo PK_ID_CONTACTO debe ser un número",
+		}
+		c.ServeJSON()
+		return
+	}
+	if restauranteID, ok := input["restauranteId"].(float64); ok {
+		reserva.PK_ID_RESTAURANTE = int64(restauranteID)
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo PK_ID_RESTAURANTE debe ser un número",
 		}
 		c.ServeJSON()
 		return
@@ -462,12 +470,12 @@ func (c *ReservaController) Put() {
 }
 
 // @Title GetByCliente
-// @Summary Obtener reservas por documento de cliente y/o fecha
-// @Description Devuelve las reservas asociadas a un cliente en una fecha específica, todas sus reservas si no se especifica la fecha, o todas las reservas en una fecha específica si no se especifica el cliente.
+// @Summary Obtener reservas por contacto y/o fecha
+// @Description Devuelve las reservas asociadas a un contacto en una fecha específica, todas sus reservas si no se especifica la fecha, o todas las reservas en una fecha específica si no se especifica el contacto.
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param documentoCliente query int false "Documento del Cliente (Opcional)"
+// @Param contactoId query int false "ID del Contacto (Opcional)"
 // @Param fecha query string false "Fecha de la reserva (YYYY-MM-DD) (Opcional)"
 // @Success 200 {array} models.Reserva "Lista de reservas encontradas"
 // @Failure 400 {object} models.ApiResponse "Error en los parámetros"
@@ -477,10 +485,10 @@ func (c *ReservaController) GetByParameter() {
 	o := ormNew()
 	var reservas []models.Reserva
 
-	documentoCliente, errDoc := c.GetInt64("documentoCliente")
+	contactoID, errContacto := c.GetInt64("contactoId")
 	fechaReserva := c.GetString("fecha")
 
-	useDoc := errDoc == nil && documentoCliente != 0
+	useContacto := errContacto == nil && contactoID != 0
 	var parsedDate time.Time
 	useFecha := false
 	if fechaReserva != "" {
@@ -498,7 +506,7 @@ func (c *ReservaController) GetByParameter() {
 		useFecha = true
 	}
 
-	_, err := queryReservasByParam(o, documentoCliente, parsedDate, useDoc, useFecha, &reservas)
+	_, err := queryReservasByParam(o, contactoID, parsedDate, useContacto, useFecha, &reservas)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
