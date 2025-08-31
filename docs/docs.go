@@ -4000,9 +4000,6 @@ const docTemplate = `{
         "models.Restaurante": {
             "type": "object",
             "properties": {
-                "diasLaborales": {
-                    "type": "string"
-                },
                 "horaApertura": {
                     "type": "string"
                 },

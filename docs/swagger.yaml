@@ -267,8 +267,6 @@ definitions:
     type: object
   models.Restaurante:
     properties:
-      diasLaborales:
-        type: string
       horaApertura:
         type: string
       nombreRestaurante:
