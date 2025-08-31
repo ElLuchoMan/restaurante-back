@@ -12,10 +12,6 @@ type Nomina struct {
 	FECHA         time.Time    `orm:"column(fecha);type(date)" json:"fechaNomina"`
 	MONTO         int64        `orm:"column(monto)" json:"monto"`
 	ESTADO_NOMINA EstadoNomina `orm:"column(estado_nomina)" json:"estadoNomina"`
-	CREATED_AT    time.Time    `orm:"column(created_at);type(timestamp);auto_now_add" json:"createdAt"`
-	UPDATED_AT    time.Time    `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
-	CREATED_BY    *string      `orm:"column(created_by);type(text)" json:"createdBy,omitempty"`
-	UPDATED_BY    *string      `orm:"column(updated_by);type(text)" json:"updatedBy,omitempty"`
 }
 
 func (n *Nomina) TableName() string {

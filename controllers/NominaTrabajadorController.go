@@ -145,10 +145,6 @@ func (c *NominaTrabajadorController) Post() {
 	}
 	nominaTrabajador.SUELDO_BASE = trabajador.SUELDO
 
-	// Calcular el total a pagar
-	total := trabajador.SUELDO + montoIncidencias
-	nominaTrabajador.TOTAL = &total
-
 	// Generar descripción dinámica
 	descripcion := fmt.Sprintf("Nómina del mes de %s más incidencias si aplica", obtenerMesEnEspañol(now.Month()))
 	nominaTrabajador.DETALLES = &descripcion
@@ -168,11 +164,10 @@ func (c *NominaTrabajadorController) Post() {
 
 	// Preparar la respuesta
 	response := models.NominaTrabajadorResponse{
-		PK_ID_NOMINA_TRABAJADOR: nominaTrabajador.PK_ID_NOMINA_TRABAJADOR,
 		SUELDO_BASE:             trabajador.SUELDO,
 		MONTO_INCIDENCIAS:       montoIncidencias,
-		TOTAL:                   total,
 		DETALLES:                descripcion,
+		PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR,
 	}
 
 	// Responder con éxito
@@ -333,10 +328,8 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 	var resultados []models.NominaTrabajadorDetalle
 	sql := `
        SELECT
-               nt."pk_id_nomina_trabajador",
                nt."sueldo_base",
                nt."monto_incidencias",
-               nt."total",
                nt."detalles",
                nt."pk_documento_trabajador",
                nt."pk_id_nomina",
