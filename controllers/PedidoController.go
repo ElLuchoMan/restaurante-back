@@ -37,13 +37,12 @@ func (c *PedidoController) GetAll() {
 
 	// Construcción de la consulta SQL
 	query := `
-        SELECT p.*
-        FROM pedido p
-        LEFT JOIN pedido_cliente pc ON p.pk_id_pedido = pc.pk_id_pedido
-        LEFT JOIN pago pa ON p.pk_id_pago = pa.pk_id_pago
-        LEFT JOIN metodo_pago mp ON pa.pk_id_metodo_pago = mp.pk_id_metodo_pago
-        WHERE 1 = 1
-    `
+       SELECT p.*
+       FROM pedido p
+       LEFT JOIN pago pa ON p.pk_id_pago = pa.pk_id_pago
+       LEFT JOIN metodo_pago mp ON pa.pk_id_metodo_pago = mp.pk_id_metodo_pago
+       WHERE 1 = 1
+   `
 
 	// Parámetros de filtro
 	params := []interface{}{}
@@ -77,7 +76,7 @@ func (c *PedidoController) GetAll() {
 	}
 
 	if cliente > 0 {
-		query += ` AND pc.pk_documento_cliente = ?`
+		query += ` AND p.pk_documento_cliente = ?`
 		params = append(params, cliente)
 	}
 
@@ -386,11 +385,10 @@ SELECT
     COALESCE(p.pk_id_pago, 0)                        AS pago_id,
     COALESCE(pa.pk_id_metodo_pago, 0)                AS metodo_pago_id,
     COALESCE(p.pk_id_domicilio, 0)                   AS domicilio_id,
-    COALESCE(pc.pk_documento_cliente, 0)             AS documento_cliente
+    COALESCE(p.pk_documento_cliente, 0)             AS pk_documento_cliente
 FROM pedido p
 LEFT JOIN pago pa        ON p.pk_id_pago = pa.pk_id_pago
 LEFT JOIN metodo_pago mp ON pa.pk_id_metodo_pago = mp.pk_id_metodo_pago
-LEFT JOIN pedido_cliente pc ON p.pk_id_pedido = pc.pk_id_pedido
 WHERE p.pk_id_pedido = ?;
     `
 

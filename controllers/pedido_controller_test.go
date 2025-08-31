@@ -469,7 +469,7 @@ func TestPedidoUpdateEstadoPedidoSuccess(t *testing.T) {
 
 func TestPedidoGetPedidoDetailsSuccess(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "metodo_pago", "productos", "pago_id", "metodo_pago_id", "domicilio_id", "documento_cliente"}
+		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "metodo_pago", "productos", "pago_id", "metodo_pago_id", "domicilio_id", "pk_documento_cliente"}
 		vals := [][]driver.Value{{int64(1), "2024-01-01", "12:00:00", false, "terminado", "NEQUI", "[]", int64(2), int64(3), int64(4), int64(5)}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
