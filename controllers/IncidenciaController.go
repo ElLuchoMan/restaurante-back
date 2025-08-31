@@ -172,14 +172,14 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Validar y procesar FECHA
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
+	// Validar y procesar fechaIncidencia
+	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para FECHA",
+				Message: "Formato de fecha inválido para fechaIncidencia",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
@@ -190,53 +190,53 @@ func (c *IncidenciaController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo FECHA es obligatorio",
+			Message: "El campo fechaIncidencia es obligatorio",
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Validar y procesar MONTO
-	if monto, ok := input["MONTO"].(float64); ok {
+	// Validar y procesar monto
+	if monto, ok := input["monto"].(float64); ok {
 		incidencia.MONTO = int64(monto)
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo MONTO es obligatorio y debe ser un número",
+			Message: "El campo monto es obligatorio y debe ser un número",
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Validar y procesar RESTA
-	if resta, ok := input["RESTA"].(bool); ok {
+	// Validar y procesar resta
+	if resta, ok := input["resta"].(bool); ok {
 		incidencia.RESTA = resta
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo RESTA es obligatorio",
+			Message: "El campo resta es obligatorio",
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Validar y procesar MOTIVO
-	if motivo, ok := input["MOTIVO"].(string); ok && motivo != "" {
+	// Validar y procesar motivo
+	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
 		incidencia.MOTIVO = motivo
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo MOTIVO es obligatorio",
+			Message: "El campo motivo es obligatorio",
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Procesar PK_DOCUMENTO_TRABAJADOR (opcional)
-	if documento, ok := input["PK_DOCUMENTO_TRABAJADOR"].(float64); ok {
+	// Procesar documentoTrabajador (opcional)
+	if documento, ok := input["documentoTrabajador"].(float64); ok {
 		doc := int64(documento)
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
 	}
@@ -256,12 +256,12 @@ func (c *IncidenciaController) Post() {
 
 	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
-		"PK_ID_INCIDENCIA":        incidencia.PK_ID_INCIDENCIA,
-		"FECHA":                   incidencia.FECHA.Format("2006-01-02"),
-		"MONTO":                   incidencia.MONTO,
-		"RESTA":                   incidencia.RESTA,
-		"MOTIVO":                  incidencia.MOTIVO,
-		"PK_DOCUMENTO_TRABAJADOR": incidencia.PK_DOCUMENTO_TRABAJADOR,
+		"incidenciaId":        incidencia.PK_ID_INCIDENCIA,
+		"fechaIncidencia":     incidencia.FECHA.Format("2006-01-02"),
+		"monto":               incidencia.MONTO,
+		"resta":               incidencia.RESTA,
+		"motivo":              incidencia.MOTIVO,
+		"documentoTrabajador": incidencia.PK_DOCUMENTO_TRABAJADOR,
 	}
 
 	// Responder con éxito
@@ -330,13 +330,13 @@ func (c *IncidenciaController) Put() {
 	}
 
 	// Validar y actualizar los campos
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
+	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para FECHA",
+				Message: "Formato de fecha inválido para fechaIncidencia",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
@@ -345,19 +345,19 @@ func (c *IncidenciaController) Put() {
 		incidencia.FECHA = parsedDate
 	}
 
-	if monto, ok := input["MONTO"].(float64); ok {
+	if monto, ok := input["monto"].(float64); ok {
 		incidencia.MONTO = int64(monto)
 	}
 
-	if resta, ok := input["RESTA"].(bool); ok {
+	if resta, ok := input["resta"].(bool); ok {
 		incidencia.RESTA = resta
 	}
 
-	if motivo, ok := input["MOTIVO"].(string); ok && motivo != "" {
+	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
 		incidencia.MOTIVO = motivo
 	}
 
-	if documento, ok := input["PK_DOCUMENTO_TRABAJADOR"].(float64); ok {
+	if documento, ok := input["documentoTrabajador"].(float64); ok {
 		doc := int64(documento)
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
 	}
@@ -376,12 +376,12 @@ func (c *IncidenciaController) Put() {
 
 	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
-		"PK_ID_INCIDENCIA":        incidencia.PK_ID_INCIDENCIA,
-		"FECHA":                   incidencia.FECHA.Format("2006-01-02"),
-		"MONTO":                   incidencia.MONTO,
-		"RESTA":                   incidencia.RESTA,
-		"MOTIVO":                  incidencia.MOTIVO,
-		"PK_DOCUMENTO_TRABAJADOR": incidencia.PK_DOCUMENTO_TRABAJADOR,
+		"incidenciaId":        incidencia.PK_ID_INCIDENCIA,
+		"fechaIncidencia":     incidencia.FECHA.Format("2006-01-02"),
+		"monto":               incidencia.MONTO,
+		"resta":               incidencia.RESTA,
+		"motivo":              incidencia.MOTIVO,
+		"documentoTrabajador": incidencia.PK_DOCUMENTO_TRABAJADOR,
 	}
 
 	// Responder con éxito

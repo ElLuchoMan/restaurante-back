@@ -90,7 +90,7 @@ func TestIncidenciaPostInvalidJSON(t *testing.T) {
 }
 
 func TestIncidenciaPostMissingFecha(t *testing.T) {
-	body := `{"MONTO":100,"RESTA":false,"MOTIVO":"test"}`
+	body := `{"monto":100,"resta":false,"motivo":"test"}`
 	r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -107,7 +107,7 @@ func TestIncidenciaPostMissingFecha(t *testing.T) {
 }
 
 func TestIncidenciaPostInvalidFecha(t *testing.T) {
-	body := `{"FECHA":"invalid","MONTO":100,"RESTA":false,"MOTIVO":"test"}`
+	body := `{"fechaIncidencia":"invalid","monto":100,"resta":false,"motivo":"test"}`
 	r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -124,7 +124,7 @@ func TestIncidenciaPostInvalidFecha(t *testing.T) {
 }
 
 func TestIncidenciaPostMissingMonto(t *testing.T) {
-	body := `{"FECHA":"2024-01-01","RESTA":false,"MOTIVO":"test"}`
+	body := `{"fechaIncidencia":"2024-01-01","resta":false,"motivo":"test"}`
 	r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -173,7 +173,7 @@ func TestIncidenciaPutInvalidJSON(t *testing.T) {
 }
 
 func TestIncidenciaPutInvalidFecha(t *testing.T) {
-	body := `{"FECHA":"invalid"}`
+	body := `{"fechaIncidencia":"invalid"}`
 	r := httptest.NewRequest(http.MethodPut, "/incidencias?id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
