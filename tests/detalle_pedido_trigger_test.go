@@ -52,7 +52,7 @@ func TestDetallePedidoTriggerOnInsert(t *testing.T) {
 	if err := o.Read(&det); err != nil {
 		t.Skipf("read detalle_pedido failed: %v", err)
 	}
-	if det.Precio != float64(prod.PRECIO) {
-		t.Errorf("expected precio %.2f, got %.2f", float64(prod.PRECIO), det.Precio)
+	if det.Precio != prod.PRECIO {
+		t.Errorf("expected precio %d, got %d", prod.PRECIO, det.Precio)
 	}
 }
