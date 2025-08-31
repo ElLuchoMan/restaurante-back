@@ -222,12 +222,13 @@ func TestReservaDeleteInvalidID(t *testing.T) {
 }
 
 func TestReservaGetAllSuccess(t *testing.T) {
+	hora, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
 	db := []models.Reserva{{
-		PK_ID_RESERVA: 1,
+		PK_ID_RESERVA: int64(1),
 		CREATED_AT:    time.Now(),
 		UPDATED_AT:    time.Now(),
 		FECHA:         time.Now(),
-		HORA:          "2024-01-01T12:00:00Z",
+		HORA:          hora,
 	}}
 	ormNew = func() orm.Ormer { return nil }
 	queryAllReservas = func(o orm.Ormer, reservas *[]models.Reserva) (int64, error) {
@@ -249,12 +250,13 @@ func TestReservaGetAllSuccess(t *testing.T) {
 }
 
 func TestReservaGetByIdScenarios(t *testing.T) {
-	db := map[int]models.Reserva{1: {
-		PK_ID_RESERVA: 1,
+	hora, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
+	db := map[int64]models.Reserva{1: {
+		PK_ID_RESERVA: int64(1),
 		FECHA:         time.Now(),
 		CREATED_AT:    time.Now(),
 		UPDATED_AT:    time.Now(),
-		HORA:          "2024-01-01T12:00:00Z",
+		HORA:          hora,
 	}}
 	ormNew = func() orm.Ormer { return nil }
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
@@ -488,12 +490,13 @@ func TestReservaPostSuccess(t *testing.T) {
 }
 
 func TestReservaPutScenarios(t *testing.T) {
-	db := map[int]models.Reserva{1: {
-		PK_ID_RESERVA: 1,
+	hora, _ := time.Parse("15:04:05", "12:00:00")
+	db := map[int64]models.Reserva{1: {
+		PK_ID_RESERVA: int64(1),
 		FECHA:         time.Now(),
 		CREATED_AT:    time.Now(),
 		UPDATED_AT:    time.Now(),
-		HORA:          "12:00:00",
+		HORA:          hora,
 	}}
 	ormNew = func() orm.Ormer { return nil }
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
@@ -637,13 +640,14 @@ func TestReservaPutScenarios(t *testing.T) {
 }
 
 func TestReservaGetByParameterSuccess(t *testing.T) {
+	hora, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
 	db := []models.Reserva{{
-		PK_ID_RESERVA:  1,
+		PK_ID_RESERVA:  int64(1),
 		PK_ID_CONTACTO: 123,
 		FECHA:          time.Now(),
 		CREATED_AT:     time.Now(),
 		UPDATED_AT:     time.Now(),
-		HORA:           "2024-01-01T12:00:00Z",
+		HORA:           hora,
 	}}
 	ormNew = func() orm.Ormer { return nil }
 	queryReservasByParam = func(o orm.Ormer, contacto int64, fecha time.Time, useContacto, useFecha bool, reservas *[]models.Reserva) (int64, error) {
@@ -666,7 +670,7 @@ func TestReservaGetByParameterSuccess(t *testing.T) {
 }
 
 func TestReservaDeleteScenarios(t *testing.T) {
-	db := map[int]models.Reserva{1: {PK_ID_RESERVA: 1}}
+	db := map[int64]models.Reserva{1: {PK_ID_RESERVA: int64(1)}}
 	ormNew = func() orm.Ormer { return nil }
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		res, ok := db[r.PK_ID_RESERVA]
@@ -727,10 +731,10 @@ func TestReservaDeleteScenarios(t *testing.T) {
 
 func TestReservaPutInvalidEstadoIgnored(t *testing.T) {
 	pend := models.EstadoReservaPendiente
-	db := map[int]models.Reserva{1: {PK_ID_RESERVA: 1, ESTADO_RESERVA: &pend}}
+	db := map[int64]models.Reserva{1: {PK_ID_RESERVA: int64(1), ESTADO_RESERVA: &pend}}
 	ormNew = func() orm.Ormer { return nil }
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
-		if res, ok := db[int(r.PK_ID_RESERVA)]; ok {
+		if res, ok := db[r.PK_ID_RESERVA]; ok {
 			*r = res
 			return nil
 		}
