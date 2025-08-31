@@ -186,7 +186,7 @@ func (c *ProductoController) Post() {
 	// Registrar historial de precios
 	hist := models.PrecioProductoHist{
 		PKIDProducto:  producto.PK_ID_PRODUCTO,
-		Precio:        float64(producto.PRECIO),
+		Precio:        producto.PRECIO,
 		FechaVigencia: time.Now(),
 	}
 	if _, err := o.Insert(&hist); err != nil {
@@ -311,7 +311,7 @@ func (c *ProductoController) Put() {
 		if producto.PRECIO != original.PRECIO {
 			hist := models.PrecioProductoHist{
 				PKIDProducto:  producto.PK_ID_PRODUCTO,
-				Precio:        float64(producto.PRECIO),
+				Precio:        producto.PRECIO,
 				FechaVigencia: time.Now(),
 			}
 			if _, err := o.Insert(&hist); err != nil {

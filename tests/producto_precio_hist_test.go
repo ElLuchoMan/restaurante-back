@@ -46,7 +46,7 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 	if _, err := o.QueryTable(new(models.PrecioProductoHist)).Filter("PKIDProducto", p.PK_ID_PRODUCTO).All(&hist); err != nil {
 		t.Skipf("cannot query history: %v", err)
 	}
-	if len(hist) != 1 || hist[0].Precio != float64(p.PRECIO) || hist[0].FechaVigencia.IsZero() {
+	if len(hist) != 1 || hist[0].Precio != p.PRECIO || hist[0].FechaVigencia.IsZero() {
 		t.Errorf("unexpected initial history: %+v", hist)
 	}
 
