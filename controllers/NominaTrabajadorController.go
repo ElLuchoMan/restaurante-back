@@ -115,9 +115,9 @@ func (c *NominaTrabajadorController) Post() {
 	// Consultar incidencias
 	var incidencias []models.Incidencia
 	_, err := o.QueryTable(new(models.Incidencia)).
-		Filter("PK_DOCUMENTO_TRABAJADOR", input.PK_DOCUMENTO_TRABAJADOR).
-		Filter("FECHA__gte", startDate).
-		Filter("FECHA__lte", endDate).
+		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
+		Filter("fecha__gte", startDate).
+		Filter("fecha__lte", endDate).
 		All(&incidencias)
 
 	if err != nil {
@@ -145,7 +145,7 @@ func (c *NominaTrabajadorController) Post() {
 	// Consultar el sueldo del trabajador
 	var trabajador models.Trabajador
 	err = o.QueryTable(new(models.Trabajador)).
-		Filter("PK_DOCUMENTO_TRABAJADOR", input.PK_DOCUMENTO_TRABAJADOR).
+		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
 		One(&trabajador)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -239,27 +239,27 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 	// Base de la consulta
 	var relaciones []models.NominaTrabajador
 	sql := `
-        SELECT nt.* FROM "NOMINA_TRABAJADOR" nt
-        JOIN "NOMINA" n ON nt."PK_ID_NOMINA" = n."PK_ID_NOMINA"
-        WHERE nt."PK_DOCUMENTO_TRABAJADOR" = ?
-    `
+       SELECT nt.* FROM "nomina_trabajador" nt
+       JOIN "nomina" n ON nt."pk_id_nomina" = n."pk_id_nomina"
+       WHERE nt."pk_documento_trabajador" = ?
+   `
 	params := []interface{}{documento}
 
 	// Filtrar por nómina actual
 	if actual {
-		sql += ` AND n."FECHA" = (SELECT MAX("FECHA") FROM "NOMINA")`
+		sql += ` AND n."fecha" = (SELECT MAX("fecha") FROM "nomina")`
 	}
 
 	// Filtrar por nóminas pagas o no pagas
 	if pagas {
-		sql += ` AND n."ESTADO_NOMINA" = 'pago'`
+		sql += ` AND n."estado_nomina" = 'pago'`
 	} else if noPagas {
-		sql += ` AND n."ESTADO_NOMINA" = 'no pago'`
+		sql += ` AND n."estado_nomina" = 'no pago'`
 	}
 
 	// Filtrar por mes y año
 	if mes > 0 && anio > 0 {
-		sql += ` AND EXTRACT(MONTH FROM n."FECHA") = ? AND EXTRACT(YEAR FROM n."FECHA") = ?`
+		sql += ` AND EXTRACT(MONTH FROM n."fecha") = ? AND EXTRACT(YEAR FROM n."fecha") = ?`
 		params = append(params, mes, anio)
 	}
 
@@ -346,21 +346,21 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 	// Consulta SQL
 	var resultados []models.NominaTrabajadorDetalle
 	sql := `
-	SELECT 
-		nt."PK_ID_NOMINA_TRABAJADOR", 
-		nt."SUELDO_BASE", 
-		nt."MONTO_INCIDENCIAS", 
-		nt."TOTAL", 
-		nt."DETALLES", 
-		nt."PK_DOCUMENTO_TRABAJADOR", 
-		nt."PK_ID_NOMINA", 
-		t."NOMBRE", 
-		t."APELLIDO"
-	FROM "NOMINA_TRABAJADOR" nt
-	JOIN "TRABAJADOR" t ON nt."PK_DOCUMENTO_TRABAJADOR" = t."PK_DOCUMENTO_TRABAJADOR"
-	JOIN "NOMINA" n ON nt."PK_ID_NOMINA" = n."PK_ID_NOMINA"
-	WHERE EXTRACT(MONTH FROM n."FECHA") = ? 
-	AND EXTRACT(YEAR FROM n."FECHA") = ?
+       SELECT
+               nt."pk_id_nomina_trabajador",
+               nt."sueldo_base",
+               nt."monto_incidencias",
+               nt."total",
+               nt."detalles",
+               nt."pk_documento_trabajador",
+               nt."pk_id_nomina",
+               t."nombre",
+               t."apellido"
+       FROM "nomina_trabajador" nt
+       JOIN "trabajador" t ON nt."pk_documento_trabajador" = t."pk_documento_trabajador"
+       JOIN "nomina" n ON nt."pk_id_nomina" = n."pk_id_nomina"
+       WHERE EXTRACT(MONTH FROM n."fecha") = ?
+       AND EXTRACT(YEAR FROM n."fecha") = ?
 `
 	// Ejecutar la consulta
 	num, err := o.Raw(sql, mes, anio).QueryRows(&resultados)
