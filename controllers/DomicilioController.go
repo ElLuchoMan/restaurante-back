@@ -127,7 +127,7 @@ func (c *DomicilioController) GetAll() {
 // @Router /domicilios/search [get]
 func (c *DomicilioController) GetById() {
 	o := orm.NewOrm()
-	id, err := c.GetInt("id")
+	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -410,7 +410,7 @@ func (c *DomicilioController) Put() {
 
 	// Obtener el ID del domicilio
 	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -513,7 +513,7 @@ func (c *DomicilioController) Delete() {
 	o := orm.NewOrm()
 
 	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -559,7 +559,7 @@ func (c *DomicilioController) Delete() {
 // @Security BearerAuth
 // @Router /domicilios/asignar [post]
 func (c *DomicilioController) AsignarDomiciliario() {
-	domicilioID, _ := c.GetInt("domicilio_id")
+	domicilioID, _ := c.GetInt64("domicilio_id")
 	trabajadorID, _ := c.GetInt("trabajador_id")
 
 	o := orm.NewOrm()

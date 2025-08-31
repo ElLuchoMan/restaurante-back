@@ -207,7 +207,7 @@ func (c *PedidoController) Post() {
 // @Router /pedidos/asignar-domicilio [post]
 func (c *PedidoController) AssignDomicilio() {
 	pedidoID, _ := c.GetInt("pedido_id")
-	domicilioID, _ := c.GetInt("domicilio_id")
+	domicilioID, _ := c.GetInt64("domicilio_id")
 	o := orm.NewOrm()
 
 	// Leer pedido

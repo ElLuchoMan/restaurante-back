@@ -13,7 +13,7 @@ type Pedido struct {
 	HORA                 string       `orm:"column(hora);type(time)" json:"horaPedido"`
 	DELIVERY             bool         `orm:"column(delivery);type(boolean)" json:"delivery"`
 	ESTADO_PEDIDO        EstadoPedido `orm:"column(estado_pedido)" json:"estadoPedido"`
-	PK_ID_DOMICILIO      *int         `orm:"column(pk_id_domicilio);null" json:"domicilioId,omitempty"`
+	PK_ID_DOMICILIO      *int64       `orm:"column(pk_id_domicilio);null" json:"domicilioId,omitempty"`
 	PK_ID_PAGO           *int         `orm:"column(pk_id_pago);null" json:"pagoId"`
 	PK_ID_RESTAURANTE    *int         `orm:"column(pk_id_restaurante);null" json:"restauranteId"`
 	PK_DOCUMENTO_CLIENTE int64        `orm:"column(pk_documento_cliente)" json:"documentoCliente"`
