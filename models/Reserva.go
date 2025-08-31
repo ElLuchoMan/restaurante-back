@@ -8,9 +8,9 @@ import (
 )
 
 type Reserva struct {
-	PK_ID_RESERVA     int            `orm:"column(pk_id_reserva);pk;auto" json:"reservaId"`
+	PK_ID_RESERVA     int64          `orm:"column(pk_id_reserva);pk;auto" json:"reservaId"`
 	FECHA             time.Time      `orm:"column(fecha);type(date)" json:"fechaReserva"`
-	HORA              string         `orm:"column(hora);type(time);size(8)" json:"horaReserva"`
+	HORA              time.Time      `orm:"column(hora);type(time);size(8)" json:"horaReserva"`
 	PERSONAS          int            `orm:"column(personas)" json:"personas"`
 	PK_ID_CONTACTO    int64          `orm:"column(pk_id_contacto)" json:"contactoId"`
 	PK_ID_RESTAURANTE int64          `orm:"column(pk_id_restaurante)" json:"restauranteId"`
@@ -34,9 +34,11 @@ func (t Reserva) MarshalJSON() ([]byte, error) {
 	type Alias Reserva
 	return json.Marshal(&struct {
 		FECHA string `json:"fechaReserva"`
+		HORA  string `json:"horaReserva"`
 		Alias
 	}{
 		FECHA: t.FECHA.Format("02-01-2006"),
+		HORA:  t.HORA.Format("15:04:05"),
 		Alias: (Alias)(t),
 	})
 }

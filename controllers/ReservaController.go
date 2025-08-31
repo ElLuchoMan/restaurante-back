@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"restaurante/database"
 	"restaurante/models"
-	"strconv"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -81,10 +80,7 @@ func (c *ReservaController) GetAll() {
 		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
 		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
 		reservas[i].FECHA = reservas[i].FECHA.UTC()
-
-		if len(reservas[i].HORA) >= 19 {
-			reservas[i].HORA = reservas[i].HORA[11:19]
-		}
+		reservas[i].HORA = reservas[i].HORA.UTC()
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -108,7 +104,7 @@ func (c *ReservaController) GetAll() {
 // @Router /reservas/search [get]
 func (c *ReservaController) GetById() {
 	o := ormNew()
-	id, err := c.GetInt("id")
+	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -137,9 +133,7 @@ func (c *ReservaController) GetById() {
 	reserva.FECHA = reserva.FECHA.In(database.BogotaZone)
 	reserva.CREATED_AT = reserva.CREATED_AT.In(database.BogotaZone)
 	reserva.UPDATED_AT = reserva.UPDATED_AT.In(database.BogotaZone)
-	if len(reserva.HORA) >= 19 {
-		reserva.HORA = reserva.HORA[11:19] // Formato HH:MM:SS
-	}
+	reserva.HORA = reserva.HORA.UTC()
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -205,7 +199,7 @@ func (c *ReservaController) Post() {
 
 	// Procesar HORA
 	if horaStr, ok := input["horaReserva"].(string); ok && horaStr != "" {
-		_, err := time.Parse("15:04:05", horaStr)
+		parsedHora, err := time.Parse("15:04:05", horaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -216,7 +210,7 @@ func (c *ReservaController) Post() {
 			c.ServeJSON()
 			return
 		}
-		reserva.HORA = horaStr
+		reserva.HORA = parsedHora
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -333,8 +327,7 @@ func (c *ReservaController) Put() {
 	o := ormNew()
 
 	// Obtener el ID de la reserva desde los parámetros
-	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -388,7 +381,7 @@ func (c *ReservaController) Put() {
 	}
 
 	if horaStr, ok := input["horaReserva"].(string); ok && horaStr != "" {
-		_, err := time.Parse("15:04:05", horaStr)
+		parsedHora, err := time.Parse("15:04:05", horaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -399,7 +392,7 @@ func (c *ReservaController) Put() {
 			c.ServeJSON()
 			return
 		}
-		reserva.HORA = horaStr
+		reserva.HORA = parsedHora
 	}
 
 	if personas, ok := input["personas"].(float64); ok {
@@ -523,9 +516,7 @@ func (c *ReservaController) GetByParameter() {
 		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
 		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
 		reservas[i].FECHA = reservas[i].FECHA.UTC()
-		if len(reservas[i].HORA) >= 19 {
-			reservas[i].HORA = reservas[i].HORA[11:19]
-		}
+		reservas[i].HORA = reservas[i].HORA.UTC()
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -551,8 +542,7 @@ func (c *ReservaController) Delete() {
 	o := ormNew()
 
 	// Obtener el ID de la reserva desde los parámetros
-	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
