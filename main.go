@@ -49,7 +49,7 @@ func generarNominaAutomatica() {
 			if _, err := o.Insert(&nomina); err != nil {
 				fmt.Println("Error al crear la nómina:", err)
 			} else {
-				if _, err := o.Raw("CALL generar_nomina_automatica(?)", nomina.PK_ID_NOMINA).Exec(); err != nil {
+				if _, err := o.Raw("CALL generar_nomina_automatica(?, ?)", nomina.PK_ID_NOMINA, nomina.FECHA).Exec(); err != nil {
 					fmt.Println("Error al generar la nómina automática:", err)
 				} else {
 					fmt.Println("Nómina generada automáticamente con éxito.")

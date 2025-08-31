@@ -58,8 +58,9 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
 - `POST /producto_pedido` and `PUT /producto_pedido` no longer accept `precio` in the payload; the
   database trigger assigns it automatically.
 - **Payroll (nómina)** operations:
-  - `POST /nominas` accepts optional `generar_nomina_automatica` and
-    `verificar_nomina` flags to auto-generate payments and verify payroll records.
+- `POST /nominas` accepts optional `generar_nomina_automatica` and
+  `verificar_nomina` flags to auto-generate payments (passing the payroll
+  date as `p_fecha`) and verify payroll records without requiring an ID.
 - `PUT /nominas?id=...` transitions a payroll to `pago`.
 - `DELETE /nominas?id=...` performs a logical deletion setting the state to `no pago`.
 
