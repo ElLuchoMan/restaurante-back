@@ -185,9 +185,9 @@ func (c *ProductoController) Post() {
 
 	// Registrar historial de precios
 	hist := models.PrecioProductoHist{
-		PKIDProducto: producto.PK_ID_PRODUCTO,
-		Precio:       float64(producto.PRECIO),
-		FechaInicio:  time.Now(),
+		PKIDProducto:  producto.PK_ID_PRODUCTO,
+		Precio:        float64(producto.PRECIO),
+		FechaVigencia: time.Now(),
 	}
 	if _, err := o.Insert(&hist); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -307,27 +307,12 @@ func (c *ProductoController) Put() {
 			return
 		}
 
-		// Si cambió el precio, actualizar historial
+		// Si cambió el precio, registrar nuevo historial
 		if producto.PRECIO != original.PRECIO {
-			now := time.Now()
-			if _, err := o.QueryTable(new(models.PrecioProductoHist)).
-				Filter("pk_id_producto", producto.PK_ID_PRODUCTO).
-				Filter("fecha_fin__isnull", true).
-				Update(orm.Params{"fecha_fin": now}); err != nil {
-				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-				c.Data["json"] = models.ApiResponse{
-					Code:    http.StatusInternalServerError,
-					Message: "Error al actualizar historial de precios",
-					Cause:   err.Error(),
-				}
-				c.ServeJSON()
-				return
-			}
-
 			hist := models.PrecioProductoHist{
-				PKIDProducto: producto.PK_ID_PRODUCTO,
-				Precio:       float64(producto.PRECIO),
-				FechaInicio:  now,
+				PKIDProducto:  producto.PK_ID_PRODUCTO,
+				Precio:        float64(producto.PRECIO),
+				FechaVigencia: time.Now(),
 			}
 			if _, err := o.Insert(&hist); err != nil {
 				c.Ctx.Output.SetStatus(http.StatusInternalServerError)

@@ -53,7 +53,8 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
   - `EstadoNomina`: `pago`, `no pago`.
   - Additional enums exist for domicilios, pagos, pedidos, productos y días de la semana.
 - **Price history** for products is stored in the `precio_producto_hist` table. A new entry is
-  created when a product is registered or its price changes, closing the previous record.
+  created when a product is registered or its price changes, storing the effective date of the
+  change.
 - `POST /producto_pedido` and `PUT /producto_pedido` no longer accept `precio` in the payload; the
   database trigger assigns it automatically.
 - **Payroll (nómina)** operations:
@@ -66,7 +67,7 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
 ## Database Tables
 - **nomina**: stores payroll records including amount, state, and audit timestamps.
 - **reserva**: manages restaurant reservations with date, time, party size, and status.
-- **precio_producto_hist**: tracks product price changes over time, closing previous entries when prices update.
+- **precio_producto_hist**: tracks product price changes over time with an effective date for each entry.
 - **cambios_horario**: logs schedule adjustments such as opening/closing hours and whether the restaurant opens.
 
 ## Testing
