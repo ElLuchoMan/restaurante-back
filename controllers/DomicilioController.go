@@ -24,14 +24,6 @@ func isValidEstadoDomicilio(e string) bool {
 	return false
 }
 
-func isValidEstadoPago(e string) bool {
-	switch models.EstadoPago(e) {
-	case models.EstadoPagoPagado, models.EstadoPagoPendiente, models.EstadoPagoNoPago:
-		return true
-	}
-	return false
-}
-
 // @Title GetAll
 // @Summary Obtener todos los domicilios con posibilidad de filtrar
 // @Description Devuelve todos los domicilios registrados en la base de datos, filtrando según criterios específicos.
@@ -363,18 +355,6 @@ func (c *DomicilioController) Post() {
 		}
 		domicilio.ESTADO_DOMICILIO = estado
 	}
-	if estadoPago, ok := input["estadoPago"].(string); ok {
-		if !isValidEstadoPago(estadoPago) {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El valor de 'estadoPago' no es válido",
-			}
-			c.ServeJSON()
-			return
-		}
-		domicilio.ESTADO_PAGO = estadoPago
-	}
 	if entregado, ok := input["entregado"].(bool); ok {
 		domicilio.ENTREGADO = entregado
 	}
@@ -485,18 +465,6 @@ func (c *DomicilioController) Put() {
 			return
 		}
 		domicilio.ESTADO_DOMICILIO = estado
-	}
-	if estadoPago, ok := input["estadoPago"].(string); ok {
-		if !isValidEstadoPago(estadoPago) {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El valor de 'estadoPago' no es válido",
-			}
-			c.ServeJSON()
-			return
-		}
-		domicilio.ESTADO_PAGO = estadoPago
 	}
 	if entregado, ok := input["entregado"].(bool); ok {
 		domicilio.ENTREGADO = entregado
