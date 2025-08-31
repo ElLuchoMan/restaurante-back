@@ -28,23 +28,23 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	w := sendRequest(req)
 	if w.Code != http.StatusCreated {
-		t.Skipf("product creation failed or DB unavailable: %d %s", w.Code, w.Body.String())
+		t.Fatalf("product creation failed or DB unavailable: %d %s", w.Code, w.Body.String())
 	}
 
 	o, err := getOrmer()
 	if err != nil {
-		t.Skipf("orm not available: %v", err)
+		t.Fatalf("orm not available: %v", err)
 	}
 	var p models.Producto
 	if err := o.QueryTable(new(models.Producto)).Filter("NOMBRE", name).One(&p); err != nil {
-		t.Skipf("producto not found: %v", err)
+		t.Fatalf("producto not found: %v", err)
 	}
 	defer o.QueryTable(new(models.PrecioProductoHist)).Filter("PKIDProducto", p.PK_ID_PRODUCTO).Delete()
 	defer o.Delete(&p)
 
 	var hist []models.PrecioProductoHist
 	if _, err := o.QueryTable(new(models.PrecioProductoHist)).Filter("PKIDProducto", p.PK_ID_PRODUCTO).All(&hist); err != nil {
-		t.Skipf("cannot query history: %v", err)
+		t.Fatalf("cannot query history: %v", err)
 	}
 	if len(hist) != 1 || hist[0].Precio != p.PRECIO || hist[0].FechaVigencia.IsZero() {
 		t.Errorf("unexpected initial history: %+v", hist)
@@ -60,12 +60,12 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w = sendRequest(req)
 	if w.Code != http.StatusOK {
-		t.Skipf("product update failed: %d %s", w.Code, w.Body.String())
+		t.Fatalf("product update failed: %d %s", w.Code, w.Body.String())
 	}
 
 	hist = nil
 	if _, err := o.QueryTable(new(models.PrecioProductoHist)).Filter("PKIDProducto", p.PK_ID_PRODUCTO).All(&hist); err != nil {
-		t.Skipf("cannot query history after update: %v", err)
+		t.Fatalf("cannot query history after update: %v", err)
 	}
 	if len(hist) != 2 {
 		t.Fatalf("expected 2 history records, got %d", len(hist))
