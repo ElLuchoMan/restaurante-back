@@ -20,6 +20,7 @@ definitions:
         type: string
       horaApertura:
         type: string
+        format: date-time
       horaCierre:
         type: string
     type: object
@@ -269,6 +270,7 @@ definitions:
     properties:
       horaApertura:
         type: string
+        format: date-time
       nombreRestaurante:
         type: string
       restauranteId:

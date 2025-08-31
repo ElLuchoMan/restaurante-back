@@ -4001,13 +4001,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "horaApertura": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date-time"
                 },
                 "nombreRestaurante": {
                     "type": "string"
                 },
                 "restauranteId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "format": "int64"
                 }
             }
         },
