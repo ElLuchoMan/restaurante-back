@@ -27,17 +27,17 @@ func TestDomicilioMarshalJSON(t *testing.T) {
 		t.Fatalf("json.Unmarshal returned error: %v", err)
 	}
 
-	if data["fechaDomicilio"] != "10-08-2024" {
-		t.Errorf("expected fechaDomicilio 10-08-2024, got %v", data["fechaDomicilio"])
+	if data["fechadomicilio"] != "10-08-2024" {
+		t.Errorf("expected fechadomicilio 10-08-2024, got %v", data["fechadomicilio"])
 	}
 	if data["estado"] != EstadoDomicilioEnCamino {
 		t.Errorf("expected estado %s, got %v", EstadoDomicilioEnCamino, data["estado"])
 	}
-	if data["createdAt"] != "09-08-2024 14:30:00" {
-		t.Errorf("expected createdAt 09-08-2024 14:30:00, got %v", data["createdAt"])
+	if data["createdat"] != "09-08-2024 14:30:00" {
+		t.Errorf("expected createdat 09-08-2024 14:30:00, got %v", data["createdat"])
 	}
-	if data["updatedAt"] != "11-08-2024 15:45:00" {
-		t.Errorf("expected updatedAt 11-08-2024 15:45:00, got %v", data["updatedAt"])
+	if data["updatedat"] != "11-08-2024 15:45:00" {
+		t.Errorf("expected updatedat 11-08-2024 15:45:00, got %v", data["updatedat"])
 	}
 }
 

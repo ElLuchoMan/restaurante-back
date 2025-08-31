@@ -21,11 +21,11 @@ func TestPedidoMarshalJSON(t *testing.T) {
 		t.Fatalf("json.Unmarshal returned error: %v", err)
 	}
 
-	if data["fechaPedido"] != "01-05-2024" {
-		t.Errorf("expected fechaPedido 01-05-2024, got %v", data["fechaPedido"])
+	if data["fechapedido"] != "01-05-2024" {
+		t.Errorf("expected fechapedido 01-05-2024, got %v", data["fechapedido"])
 	}
-	if data["updatedAt"] != "02-05-2024 12:00:00" {
-		t.Errorf("expected updatedAt 02-05-2024 12:00:00, got %v", data["updatedAt"])
+	if data["updatedat"] != "02-05-2024 12:00:00" {
+		t.Errorf("expected updatedat 02-05-2024 12:00:00, got %v", data["updatedat"])
 	}
 }
 
