@@ -8,10 +8,10 @@ import (
 // TestEstadoEnums verifies that the enumerated constants map to the expected string values.
 func TestEstadoEnums(t *testing.T) {
 	reservas := map[string]models.EstadoReserva{
-		"pendiente":  models.EstadoReservaPendiente,
-		"confirmada": models.EstadoReservaConfirmada,
-		"cancelada":  models.EstadoReservaCancelada,
-		"cumplida":   models.EstadoReservaCumplida,
+		"PENDIENTE":  models.EstadoReservaPendiente,
+		"CONFIRMADA": models.EstadoReservaConfirmada,
+		"CANCELADA":  models.EstadoReservaCancelada,
+		"CUMPLIDA":   models.EstadoReservaCumplida,
 	}
 	for expect, val := range reservas {
 		if string(val) != expect {
@@ -20,8 +20,8 @@ func TestEstadoEnums(t *testing.T) {
 	}
 
 	nominas := map[string]models.EstadoNomina{
-		"pago":    models.EstadoNominaPago,
-		"no pago": models.EstadoNominaNoPago,
+		"PAGO":    models.EstadoNominaPago,
+		"NO_PAGO": models.EstadoNominaNoPago,
 	}
 	for expect, val := range nominas {
 		if string(val) != expect {
@@ -30,9 +30,9 @@ func TestEstadoEnums(t *testing.T) {
 	}
 
 	domicilios := map[string]models.EstadoDomicilio{
-		"pendiente": models.EstadoDomicilioPendiente,
-		"en camino": models.EstadoDomicilioEnCamino,
-		"entregado": models.EstadoDomicilioEntregado,
+		"PENDIENTE": models.EstadoDomicilioPendiente,
+		"EN_CAMINO": models.EstadoDomicilioEnCamino,
+		"ENTREGADO": models.EstadoDomicilioEntregado,
 	}
 	for expect, val := range domicilios {
 		if string(val) != expect {
@@ -41,9 +41,9 @@ func TestEstadoEnums(t *testing.T) {
 	}
 
 	pagos := map[string]models.EstadoPago{
-		"pagado":    models.EstadoPagoPagado,
-		"pendiente": models.EstadoPagoPendiente,
-		"no pago":   models.EstadoPagoNoPago,
+		"PAGADO":    models.EstadoPagoPagado,
+		"PENDIENTE": models.EstadoPagoPendiente,
+		"NO_PAGO":   models.EstadoPagoNoPago,
 	}
 	for expect, val := range pagos {
 		if string(val) != expect {
@@ -52,8 +52,8 @@ func TestEstadoEnums(t *testing.T) {
 	}
 
 	pedidos := map[string]models.EstadoPedido{
-		"iniciado":  models.EstadoPedidoIniciado,
-		"terminado": models.EstadoPedidoTerminado,
+		"INICIADO":  models.EstadoPedidoIniciado,
+		"TERMINADO": models.EstadoPedidoTerminado,
 	}
 	for expect, val := range pedidos {
 		if string(val) != expect {
@@ -62,8 +62,8 @@ func TestEstadoEnums(t *testing.T) {
 	}
 
 	productos := map[string]models.EstadoProducto{
-		"disponible":    models.EstadoProductoDisponible,
-		"no disponible": models.EstadoProductoNoDisponible,
+		"DISPONIBLE":    models.EstadoProductoDisponible,
+		"NO_DISPONIBLE": models.EstadoProductoNoDisponible,
 	}
 	for expect, val := range productos {
 		if string(val) != expect {
@@ -72,13 +72,13 @@ func TestEstadoEnums(t *testing.T) {
 	}
 
 	dias := map[string]models.DiaSemana{
-		"lunes":     models.DiaLunes,
-		"martes":    models.DiaMartes,
-		"miercoles": models.DiaMiercoles,
-		"jueves":    models.DiaJueves,
-		"viernes":   models.DiaViernes,
-		"sabado":    models.DiaSabado,
-		"domingo":   models.DiaDomingo,
+		"LUNES":     models.DiaLunes,
+		"MARTES":    models.DiaMartes,
+		"MIERCOLES": models.DiaMiercoles,
+		"JUEVES":    models.DiaJueves,
+		"VIERNES":   models.DiaViernes,
+		"SABADO":    models.DiaSabado,
+		"DOMINGO":   models.DiaDomingo,
 	}
 	for expect, val := range dias {
 		if string(val) != expect {

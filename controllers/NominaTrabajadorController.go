@@ -233,9 +233,9 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 
 	// Filtrar por nóminas pagas o no pagas
 	if pagas {
-		sql += ` AND n."estado_nomina" = 'pago'`
+		sql += ` AND n."estado_nomina" = 'PAGO'`
 	} else if noPagas {
-		sql += ` AND n."estado_nomina" = 'no pago'`
+		sql += ` AND n."estado_nomina" = 'NO_PAGO'`
 	}
 
 	// Filtrar por mes y año

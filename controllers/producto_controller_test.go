@@ -14,16 +14,16 @@ import (
 func int64Ptr(i int64) *int64 { return &i }
 
 func TestValidateProducto(t *testing.T) {
-	valid := &models.Producto{NOMBRE: "A", PRECIO: 10, ESTADO_PRODUCTO: "disponible"}
+	valid := &models.Producto{NOMBRE: "A", PRECIO: 10, ESTADO_PRODUCTO: "DISPONIBLE"}
 	if err := validateProducto(valid); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	tests := []models.Producto{
-		{PRECIO: 10, ESTADO_PRODUCTO: "disponible"},                                      // missing name
-		{NOMBRE: "B", PRECIO: 0, ESTADO_PRODUCTO: "disponible"},                          // zero price
-		{NOMBRE: "B", PRECIO: -5, ESTADO_PRODUCTO: "disponible"},                         // negative price
-		{NOMBRE: "B", PRECIO: 10, CALORIAS: int64Ptr(-1), ESTADO_PRODUCTO: "disponible"}, // negative calories
+		{PRECIO: 10, ESTADO_PRODUCTO: "DISPONIBLE"},                                      // missing name
+		{NOMBRE: "B", PRECIO: 0, ESTADO_PRODUCTO: "DISPONIBLE"},                          // zero price
+		{NOMBRE: "B", PRECIO: -5, ESTADO_PRODUCTO: "DISPONIBLE"},                         // negative price
+		{NOMBRE: "B", PRECIO: 10, CALORIAS: int64Ptr(-1), ESTADO_PRODUCTO: "DISPONIBLE"}, // negative calories
 		{NOMBRE: "B", PRECIO: 10, ESTADO_PRODUCTO: "OTRO"},                               // invalid estado
 	}
 
@@ -89,7 +89,7 @@ func TestProductoGetByIdNotFound(t *testing.T) {
 }
 
 func TestProductoPostMissingNombre(t *testing.T) {
-	body := bytes.NewBufferString(`{"estadoProducto":"disponible","precio":10}`)
+	body := bytes.NewBufferString(`{"estadoProducto":"DISPONIBLE","precio":10}`)
 	r := httptest.NewRequest(http.MethodPost, "/productos", body)
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

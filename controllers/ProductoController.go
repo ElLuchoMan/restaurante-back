@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"restaurante/models"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -137,6 +138,8 @@ func (c *ProductoController) Post() {
 		return
 	}
 
+	producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(string(producto.ESTADO_PRODUCTO)))
+
 	if err := validateProducto(&producto); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()}
@@ -204,7 +207,7 @@ func (c *ProductoController) Put() {
 		producto.CALORIAS = input.CALORIAS
 		producto.DESCRIPCION = input.DESCRIPCION
 		producto.PRECIO = input.PRECIO
-		producto.ESTADO_PRODUCTO = input.ESTADO_PRODUCTO
+		producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(string(input.ESTADO_PRODUCTO)))
 		producto.CANTIDAD = input.CANTIDAD
 		producto.PK_ID_SUBCATEGORIA = input.PK_ID_SUBCATEGORIA
 		if len(input.IMAGEN) > 0 {
@@ -301,7 +304,7 @@ func (c *ProductoController) Delete() {
 		c.ServeJSON()
 		return
 	}
-	// Cambiar el estado del producto a "no disponible" para el borrado lógico
+	// Cambiar el estado del producto a "NO_DISPONIBLE" para el borrado lógico
 	producto.ESTADO_PRODUCTO = models.EstadoProductoNoDisponible
 	if _, err := o.Update(producto, "ESTADO_PRODUCTO"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -333,7 +336,7 @@ func validateProducto(producto *models.Producto) error {
 		return fmt.Errorf("el campo 'CALORIAS' debe ser un número positivo")
 	}
 	if producto.ESTADO_PRODUCTO != models.EstadoProductoDisponible && producto.ESTADO_PRODUCTO != models.EstadoProductoNoDisponible {
-		return fmt.Errorf("el campo 'ESTADO_PRODUCTO' debe ser 'disponible' o 'no disponible'")
+		return fmt.Errorf("el campo 'ESTADO_PRODUCTO' debe ser 'DISPONIBLE' o 'NO_DISPONIBLE'")
 	}
 	return nil
 }

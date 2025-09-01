@@ -4,63 +4,63 @@ package models
 type EstadoDomicilio = string
 
 const (
-	EstadoDomicilioPendiente EstadoDomicilio = "pendiente"
-	EstadoDomicilioEnCamino  EstadoDomicilio = "en camino"
-	EstadoDomicilioEntregado EstadoDomicilio = "entregado"
+	EstadoDomicilioPendiente EstadoDomicilio = "PENDIENTE"
+	EstadoDomicilioEnCamino  EstadoDomicilio = "EN_CAMINO"
+	EstadoDomicilioEntregado EstadoDomicilio = "ENTREGADO"
 )
 
 // EstadoNomina represents the estado_nomina_enum values.
 type EstadoNomina = string
 
 const (
-	EstadoNominaPago   EstadoNomina = "pago"
-	EstadoNominaNoPago EstadoNomina = "no pago"
+	EstadoNominaPago   EstadoNomina = "PAGO"
+	EstadoNominaNoPago EstadoNomina = "NO_PAGO"
 )
 
 // EstadoPago represents the estado_pago_enum values.
 type EstadoPago = string
 
 const (
-	EstadoPagoPagado    EstadoPago = "pagado"
-	EstadoPagoPendiente EstadoPago = "pendiente"
-	EstadoPagoNoPago    EstadoPago = "no pago"
+	EstadoPagoPagado    EstadoPago = "PAGADO"
+	EstadoPagoPendiente EstadoPago = "PENDIENTE"
+	EstadoPagoNoPago    EstadoPago = "NO_PAGO"
 )
 
 // EstadoPedido represents the estado_pedido_enum values.
 type EstadoPedido = string
 
 const (
-	EstadoPedidoIniciado  EstadoPedido = "iniciado"
-	EstadoPedidoTerminado EstadoPedido = "terminado"
+	EstadoPedidoIniciado  EstadoPedido = "INICIADO"
+	EstadoPedidoTerminado EstadoPedido = "TERMINADO"
 )
 
 // EstadoProducto represents the estado_producto_enum values.
 type EstadoProducto = string
 
 const (
-	EstadoProductoDisponible   EstadoProducto = "disponible"
-	EstadoProductoNoDisponible EstadoProducto = "no disponible"
+	EstadoProductoDisponible   EstadoProducto = "DISPONIBLE"
+	EstadoProductoNoDisponible EstadoProducto = "NO_DISPONIBLE"
 )
 
 // EstadoReserva represents the estado_reserva_enum values.
 type EstadoReserva = string
 
 const (
-	EstadoReservaPendiente  EstadoReserva = "pendiente"
-	EstadoReservaConfirmada EstadoReserva = "confirmada"
-	EstadoReservaCancelada  EstadoReserva = "cancelada"
-	EstadoReservaCumplida   EstadoReserva = "cumplida"
+	EstadoReservaPendiente  EstadoReserva = "PENDIENTE"
+	EstadoReservaConfirmada EstadoReserva = "CONFIRMADA"
+	EstadoReservaCancelada  EstadoReserva = "CANCELADA"
+	EstadoReservaCumplida   EstadoReserva = "CUMPLIDA"
 )
 
 // DiaSemana represents the dia_semana_enum values.
 type DiaSemana = string
 
 const (
-	DiaLunes     DiaSemana = "lunes"
-	DiaMartes    DiaSemana = "martes"
-	DiaMiercoles DiaSemana = "miercoles"
-	DiaJueves    DiaSemana = "jueves"
-	DiaViernes   DiaSemana = "viernes"
-	DiaSabado    DiaSemana = "sabado"
-	DiaDomingo   DiaSemana = "domingo"
+	DiaLunes     DiaSemana = "LUNES"
+	DiaMartes    DiaSemana = "MARTES"
+	DiaMiercoles DiaSemana = "MIERCOLES"
+	DiaJueves    DiaSemana = "JUEVES"
+	DiaViernes   DiaSemana = "VIERNES"
+	DiaSabado    DiaSemana = "SABADO"
+	DiaDomingo   DiaSemana = "DOMINGO"
 )

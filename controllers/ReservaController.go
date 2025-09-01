@@ -243,7 +243,7 @@ func (c *ReservaController) Post() {
 				c.Data["json"] = models.ApiResponse{
 					Code:    http.StatusBadRequest,
 					Message: "Estado de reserva inválido",
-					Cause:   "El estado debe ser uno de los siguientes: pendiente, confirmada, cancelada, cumplida",
+					Cause:   "El estado debe ser uno de los siguientes: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA",
 				}
 				c.ServeJSON()
 				return
@@ -530,7 +530,7 @@ func (c *ReservaController) GetByParameter() {
 
 // @Title Delete
 // @Summary Cancelar una reserva
-// @Description Actualiza el estado de una reserva a "cancelada".
+// @Description Actualiza el estado de una reserva a "CANCELADA".
 // @Tags reservas
 // @Accept json
 // @Produce json
@@ -566,8 +566,8 @@ func (c *ReservaController) Delete() {
 		return
 	}
 
-	// Actualizar el estado a cancelada
-	estadoCancelada := "cancelada"
+	// Actualizar el estado a CANCELADA
+	estadoCancelada := models.EstadoReservaCancelada
 	reserva.ESTADO_RESERVA = &estadoCancelada
 	reserva.UPDATED_AT = time.Now() // Actualizar la fecha de modificación
 
