@@ -255,18 +255,22 @@ func (c *PagoController) Post() {
 		return
 	}
 
-	if in.EstadoPago != "" {
-		in.EstadoPago = strings.ToUpper(in.EstadoPago)
-		if !estadosPagoPermitidos[in.EstadoPago] {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Estado de pago inválido",
-				Cause:   "El estado debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'",
-			}
-			c.ServeJSON()
-			return
+	if in.EstadoPago == "" {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo estadoPago es obligatorio"}
+		c.ServeJSON()
+		return
+	}
+	in.EstadoPago = strings.ToUpper(in.EstadoPago)
+	if !estadosPagoPermitidos[in.EstadoPago] {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Estado de pago inválido",
+			Cause:   "El estado debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'",
 		}
+		c.ServeJSON()
+		return
 	}
 
 	if in.MetodoPagoId == 0 {
