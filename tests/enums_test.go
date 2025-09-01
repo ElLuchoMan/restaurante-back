@@ -54,6 +54,7 @@ func TestEstadoEnums(t *testing.T) {
 	pedidos := map[string]models.EstadoPedido{
 		"INICIADO":  models.EstadoPedidoIniciado,
 		"TERMINADO": models.EstadoPedidoTerminado,
+		"CANCELADO": models.EstadoPedidoCancelado,
 	}
 	for expect, val := range pedidos {
 		if string(val) != expect {

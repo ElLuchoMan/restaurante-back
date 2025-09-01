@@ -9,7 +9,7 @@ import (
 
 type Nomina struct {
 	PK_ID_NOMINA  int64        `orm:"column(pk_id_nomina);pk;auto" json:"nominaId"`
-	FECHA         time.Time    `orm:"column(fecha);type(date)" json:"fechaNomina"`
+	FECHA         time.Time    `orm:"column(fecha);type(date);unique" json:"fechaNomina"`
 	MONTO         int64        `orm:"column(monto)" json:"monto"`
 	ESTADO_NOMINA EstadoNomina `orm:"column(estado_nomina)" json:"estadoNomina"`
 }
