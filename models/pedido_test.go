@@ -50,8 +50,9 @@ func TestDetallePedidoPrecioAuto(t *testing.T) {
 		return 1, nil
 	}}
 	detalle := DetallePedido{
-		DetallePedidoPK: DetallePedidoPK{PKIDPedido: 1, PKIDProducto: 1},
-		Cantidad:        1,
+		PKIDPedido:   1,
+		PKIDProducto: 1,
+		Cantidad:     1,
 	}
 	if _, err := o.Insert(&detalle); err != nil {
 		t.Fatalf("insert returned error: %v", err)

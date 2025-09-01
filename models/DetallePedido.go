@@ -2,8 +2,7 @@ package models
 
 import "github.com/beego/beego/v2/client/orm"
 
-// DetallePedidoPK encapsulates the composite primary key for DetallePedido.
-// DetallePedido represents a product within a pedido.
+// DetallePedido represents a product within un pedido.
 type DetallePedido struct {
 	PK_ID_DETALLE int64 `orm:"column(pk_id_detalle);pk;auto" json:"detalleId"`
 	PKIDPedido    int64 `orm:"column(pk_id_pedido)" json:"pedidoId"`
