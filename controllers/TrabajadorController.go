@@ -258,7 +258,16 @@ func (c *TrabajadorController) Post() {
 
 	// Procesar ROL
 	if rol, ok := input["rol"].(string); ok && rol != "" {
-		trabajador.ROL = rol
+		trabajador.ROL = models.RolTrabajador(rol)
+		if !trabajador.ROL.IsValid() {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Rol inválido",
+			}
+			c.ServeJSON()
+			return
+		}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -443,7 +452,14 @@ func (c *TrabajadorController) Put() {
 	}
 
 	if rol, ok := input["ROL"].(string); ok && rol != "" {
-		trabajador.ROL = rol
+		r := models.RolTrabajador(rol)
+		if !r.IsValid() {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Rol inválido"}
+			c.ServeJSON()
+			return
+		}
+		trabajador.ROL = r
 	}
 
 	if sueldo, ok := input["SUELDO"].(float64); ok {

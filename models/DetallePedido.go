@@ -15,6 +15,11 @@ func (d *DetallePedido) TableName() string {
 	return "detalle_pedido"
 }
 
+// TableUnique enforces UNIQUE(pk_id_pedido, pk_id_producto)
+func (d *DetallePedido) TableUnique() [][]string {
+	return [][]string{{"PKIDPedido", "PKIDProducto"}}
+}
+
 func init() {
 	orm.RegisterModel(new(DetallePedido))
 }

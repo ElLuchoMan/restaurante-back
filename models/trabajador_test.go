@@ -44,6 +44,16 @@ func TestTrabajadorTableName(t *testing.T) {
 	}
 }
 
+func TestRolTrabajadorIsValid(t *testing.T) {
+	if !RolAdministrador.IsValid() {
+		t.Fatalf("RolAdministrador should be valid")
+	}
+	invalid := RolTrabajador("Chef")
+	if invalid.IsValid() {
+		t.Fatalf("unexpected valid role for %s", invalid)
+	}
+}
+
 func TestTrabajadorMarshalJSONNil(t *testing.T) {
 	ingreso := time.Date(2023, time.February, 10, 9, 15, 30, 0, time.UTC)
 	tr := Trabajador{FECHA_INGRESO: ingreso}

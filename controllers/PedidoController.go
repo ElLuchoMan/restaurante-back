@@ -140,7 +140,8 @@ func (c *PedidoController) GetAll() {
 func (c *PedidoController) Post() {
 	// Estructura mínima para leer el JSON de entrada sin acoplarse al modelo
 	var in struct {
-		Delivery *bool `json:"delivery"`
+		Delivery      *bool  `json:"delivery"`
+		PKIDDomicilio *int64 `json:"pk_id_domicilio"`
 		// Ignoramos 'pagoId', 'estadoPedido', etc. por contrato actual
 	}
 
@@ -169,6 +170,18 @@ func (c *PedidoController) Post() {
 		pedido.DELIVERY = *in.Delivery
 	} else {
 		pedido.DELIVERY = false
+	}
+	if in.PKIDDomicilio != nil {
+		pedido.PK_ID_DOMICILIO = in.PKIDDomicilio
+	}
+	if pedido.DELIVERY && pedido.PK_ID_DOMICILIO == nil {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{
+			Code:    400,
+			Message: "El domicilio es obligatorio cuando delivery es true",
+		}
+		c.ServeJSON()
+		return
 	}
 
 	o := orm.NewOrm()

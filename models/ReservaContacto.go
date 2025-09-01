@@ -14,6 +14,14 @@ func (r *ReservaContacto) TableName() string {
 	return "reserva_contacto"
 }
 
+// Valid ensures only one of DocumentoContacto or PKDocumentoCliente is set
+func (r *ReservaContacto) Valid() bool {
+	if (r.DocumentoContacto == nil) == (r.PKDocumentoCliente == nil) {
+		return false
+	}
+	return true
+}
+
 func init() {
 	orm.RegisterModel(new(ReservaContacto))
 }
