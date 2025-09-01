@@ -71,6 +71,7 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
 - **precio_producto_hist**: tracks product price changes over time with an effective date for each entry.
 - **cambios_horario**: logs schedule adjustments such as opening/closing hours and whether the restaurant opens.
 - **domicilio**: la columna `entregado` es generada automáticamente por la base de datos y no debe incluirse en las solicitudes de creación o actualización.
+- **pedido**: la base de datos valida que `delivery` sea `false` o que `pk_id_domicilio` tenga un valor.
 
 ## Testing
 ```sh

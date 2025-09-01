@@ -17,7 +17,7 @@ type Producto struct {
 	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(text)" json:"estadoProducto"`
 	IMAGEN             []byte         `orm:"column(imagen);type(bytea);null" json:"imagen"`
 	CANTIDAD           int            `orm:"column(cantidad);type(integer)" json:"cantidad"`
-	PK_ID_SUBCATEGORIA int64          `orm:"column(pk_id_subcategoria)" json:"subcategoriaId"`
+	PK_ID_SUBCATEGORIA int64          `orm:"column(pk_id_subcategoria);rel(fk)" json:"subcategoriaId"`
 }
 
 func (p *Producto) TableName() string {

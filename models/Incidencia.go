@@ -13,7 +13,7 @@ type Incidencia struct {
 	MONTO                   int64     `orm:"column(monto)" json:"monto"`
 	RESTA                   bool      `orm:"column(resta);type(boolean)" json:"resta"`
 	MOTIVO                  string    `orm:"column(motivo);type(text)" json:"motivo"`
-	PK_DOCUMENTO_TRABAJADOR *int64    `orm:"column(pk_documento_trabajador);null" json:"documentoTrabajador,omitempty"`
+	PK_DOCUMENTO_TRABAJADOR *int64    `orm:"column(pk_documento_trabajador);rel(fk);null" json:"documentoTrabajador,omitempty"`
 }
 
 func (i *Incidencia) TableName() string {
