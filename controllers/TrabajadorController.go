@@ -106,7 +106,7 @@ func (c *TrabajadorController) GetAll() {
 		}
 		trabajadores[i].FECHA_INGRESO = trabajadores[i].FECHA_INGRESO.In(database.BogotaZone)
 		var horarios []models.HorarioTrabajador
-		if _, err := o.QueryTable("horario_trabajador").
+		if _, err := o.QueryTable(new(models.HorarioTrabajador)).
 			Filter("pk_documento_trabajador", trabajadores[i].PK_DOCUMENTO_TRABAJADOR).
 			All(&horarios); err == nil {
 			trabajadores[i].HORARIOS = horarios
@@ -173,7 +173,7 @@ func (c *TrabajadorController) GetById() {
 
 	trabajador.PASSWORD = ""
 	var horarios []models.HorarioTrabajador
-	if _, err := o.QueryTable("horario_trabajador").
+	if _, err := o.QueryTable(new(models.HorarioTrabajador)).
 		Filter("pk_documento_trabajador", trabajador.PK_DOCUMENTO_TRABAJADOR).
 		All(&horarios); err == nil {
 		trabajador.HORARIOS = horarios
