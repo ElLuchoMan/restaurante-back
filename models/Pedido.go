@@ -18,7 +18,7 @@ type Pedido struct {
 	PK_ID_RESTAURANTE    *int64       `orm:"column(pk_id_restaurante);null" json:"restauranteId"`
 	PK_DOCUMENTO_CLIENTE int64        `orm:"column(pk_documento_cliente)" json:"documentoCliente"`
 	UPDATED_AT           time.Time    `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
-	UPDATED_BY           string       `orm:"column(updated_by)" json:"updatedBy"`
+	UPDATED_BY           *string      `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 }
 
 type PedidoDetails struct {

@@ -3,11 +3,12 @@ package models
 import "github.com/beego/beego/v2/client/orm"
 
 type NominaTrabajador struct {
+	PK_ID_NOMINA_TRABAJADOR int64   `orm:"column(pk_id_nomina_trabajador);pk;auto" json:"nominaTrabajadorId"`
 	SUELDO_BASE             int64   `orm:"column(sueldo_base)" json:"sueldoBase"`
 	MONTO_INCIDENCIAS       *int64  `orm:"column(monto_incidencias);null" json:"montoIncidencias,omitempty"`
 	DETALLES                *string `orm:"column(detalles);type(text);null" json:"detalles,omitempty"`
-	PK_DOCUMENTO_TRABAJADOR int64   `orm:"column(pk_documento_trabajador);pk" json:"documentoTrabajador"`
-	PK_ID_NOMINA            *int64  `orm:"column(pk_id_nomina);null" json:"nominaId,omitempty"`
+	PK_DOCUMENTO_TRABAJADOR int64   `orm:"column(pk_documento_trabajador)" json:"documentoTrabajador"`
+	PK_ID_NOMINA            int64   `orm:"column(pk_id_nomina)" json:"nominaId"`
 }
 
 type NominaTrabajadorRequest struct {
