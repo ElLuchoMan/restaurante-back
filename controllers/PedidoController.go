@@ -142,6 +142,7 @@ func (c *PedidoController) Post() {
 	var in struct {
 		Delivery      *bool  `json:"delivery"`
 		PKIDDomicilio *int64 `json:"pk_id_domicilio"`
+		RestauranteId int64  `json:"restauranteId"`
 		// Ignoramos 'pagoId', 'estadoPedido', etc. por contrato actual
 	}
 
@@ -174,6 +175,14 @@ func (c *PedidoController) Post() {
 	if in.PKIDDomicilio != nil {
 		pedido.PK_ID_DOMICILIO = in.PKIDDomicilio
 	}
+	if in.RestauranteId == 0 {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{Code: 400, Message: "El campo restauranteId es obligatorio"}
+		c.ServeJSON()
+		return
+	}
+	pedido.PK_ID_RESTAURANTE = in.RestauranteId
+
 	if pedido.DELIVERY && pedido.PK_ID_DOMICILIO == nil {
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = models.ApiResponse{

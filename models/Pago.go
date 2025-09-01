@@ -14,7 +14,7 @@ type Pago struct {
 	MONTO             int64      `orm:"column(monto)" json:"monto"`
 	ESTADO_PAGO       EstadoPago `orm:"column(estado_pago);type(text)" json:"estadoPago"`
 	PK_ID_METODO_PAGO *int64     `orm:"column(pk_id_metodo_pago);null" json:"metodoPagoId,omitempty"`
-	UPDATED_AT        time.Time  `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
+	UPDATED_AT        time.Time  `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt"`
 	UPDATED_BY        *string    `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 }
 

@@ -16,8 +16,8 @@ type Domicilio struct {
 	ENTREGADO               bool      `orm:"column(entregado);type(boolean)" json:"entregado"`
 	FECHA                   time.Time `orm:"column(fecha);type(date)" json:"fechaDomicilio"`
 	OBSERVACIONES           *string   `orm:"column(observaciones);type(text);null" json:"observaciones,omitempty"`
-	CREATED_AT              time.Time `orm:"column(created_at);type(timestamp);auto_now_add" json:"createdAt"`
-	UPDATED_AT              time.Time `orm:"column(updated_at);type(timestamp);auto_now" json:"updatedAt"`
+	CREATED_AT              time.Time `orm:"column(created_at);type(timestamptz);auto_now_add" json:"createdAt"`
+	UPDATED_AT              time.Time `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt"`
 	CREATED_BY              *string   `orm:"column(created_by);type(text)" json:"createdBy,omitempty"`
 	UPDATED_BY              *string   `orm:"column(updated_by);type(text)" json:"updatedBy,omitempty"`
 	PK_DOCUMENTO_TRABAJADOR *int64    `orm:"column(pk_documento_trabajador);null" json:"trabajadorAsignado,omitempty"`
