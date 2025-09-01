@@ -163,12 +163,11 @@ func (c *DomicilioController) GetById() {
 
 	qCliente := `
 SELECT
-  pc.pk_documento_cliente AS documento,
-  c.nombre                AS nombre,
-  c.apellido              AS apellido
+  p.pk_documento_cliente AS documento,
+  c.nombre               AS nombre,
+  c.apellido             AS apellido
 FROM pedido p
-JOIN pedido_cliente pc ON pc.pk_id_pedido = p.pk_id_pedido
-JOIN cliente c        ON c.pk_documento_cliente = pc.pk_documento_cliente
+JOIN cliente c ON c.pk_documento_cliente = p.pk_documento_cliente
 WHERE p.pk_id_domicilio = ?
 ORDER BY p.pk_id_pedido DESC
 LIMIT 1;`

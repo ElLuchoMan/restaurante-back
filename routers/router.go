@@ -92,12 +92,6 @@ func init() {
 			beego.NSRouter("/search", &controllers.PagoController{}, "get:GetById"),
 		),
 
-		// Pedido_Clientes (protegido)
-		beego.NSNamespace("/pedido_clientes",
-			beego.NSBefore(controllers.ValidateToken),
-			beego.NSRouter("/", &controllers.PedidoClienteController{}, "get:GetAll;post:Post"),
-		),
-
 		// Nóminas (protegido)
 		beego.NSNamespace("/nominas",
 			beego.NSBefore(controllers.ValidateToken),
