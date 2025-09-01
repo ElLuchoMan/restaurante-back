@@ -133,9 +133,11 @@ func (c *ProductoPedidoController) Post() {
 	var detalles []models.DetallePedido
 	for _, d := range input.Detalles {
 		detalle := models.DetallePedido{
-			PKIDPedido:   input.PedidoId,
-			PKIDProducto: d.PKIDProducto,
-			Cantidad:     d.Cantidad,
+			DetallePedidoPK: models.DetallePedidoPK{
+				PKIDPedido:   input.PedidoId,
+				PKIDProducto: d.PKIDProducto,
+			},
+			Cantidad: d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
 			c.Data["json"] = models.ApiResponse{
@@ -250,9 +252,11 @@ func (c *ProductoPedidoController) Update() {
 	var detalles []models.DetallePedido
 	for _, d := range nuevosProductos {
 		detalle := models.DetallePedido{
-			PKIDPedido:   pedidoID,
-			PKIDProducto: d.PKIDProducto,
-			Cantidad:     d.Cantidad,
+			DetallePedidoPK: models.DetallePedidoPK{
+				PKIDPedido:   pedidoID,
+				PKIDProducto: d.PKIDProducto,
+			},
+			Cantidad: d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
 			c.Data["json"] = models.ApiResponse{
