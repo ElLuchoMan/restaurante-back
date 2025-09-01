@@ -44,7 +44,7 @@ func TestHorarioTrabajadorPostSuccess(t *testing.T) {
 	}
 	defer func() { MockExec = nil }()
 
-	body := `{"documentoTrabajador":1,"dia":"lunes","horaInicio":"08:00:00","horaFin":"17:00:00"}`
+	body := `{"documentoTrabajador":1,"dia":"LUNES","horaInicio":"08:00:00","horaFin":"17:00:00"}`
 	c, w := setupHTCtx(http.MethodPost, "/horario_trabajador", body)
 	c.Post()
 	if w.Code != http.StatusCreated {
@@ -70,7 +70,7 @@ func TestHorarioTrabajadorPutInvalidDia(t *testing.T) {
 func TestHorarioTrabajadorPutSuccess(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
-		vals := [][]driver.Value{{int64(1), "lunes", time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 17, 0, 0, 0, time.UTC)}}
+		vals := [][]driver.Value{{int64(1), "LUNES", time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 17, 0, 0, 0, time.UTC)}}
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
@@ -79,7 +79,7 @@ func TestHorarioTrabajadorPutSuccess(t *testing.T) {
 	defer func() { MockExec = nil; MockQuery = nil }()
 
 	body := `{"horaFin":"18:00:00"}`
-	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=lunes", body)
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
 	c.Put()
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)

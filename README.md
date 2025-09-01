@@ -49,10 +49,10 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
 
 ## Enumerated Types and Payroll
 - **States** are modeled with enums under `models/enums.go`:
-  - `EstadoReserva`: `pendiente`, `confirmada`, `cancelada`, `cumplida`.
-  - `EstadoNomina`: `pago`, `no pago`.
-  - `EstadoPedido`: `iniciado`, `terminado`, `cancelado`.
-  - Additional enums exist for domicilios, pagos, productos y días de la semana.
+  - `EstadoReserva`: `PENDIENTE`, `CONFIRMADA`, `CANCELADA`, `CUMPLIDA`.
+  - `EstadoNomina`: `PAGO`, `NO_PAGO`.
+  - Additional enums exist for domicilios, pagos, pedidos, productos y días de la semana.
+
 - **Price history** for products is stored in the `precio_producto_hist` table. A new entry is
   created when a product is registered or its price changes, storing the effective date of the
   change.
@@ -62,8 +62,8 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
 - `POST /nominas` accepts optional `generar_nomina_automatica` and
   `verificar_nomina` flags to auto-generate payments (passing the payroll
   date as `p_fecha`) and verify payroll records without requiring an ID.
-- `PUT /nominas?id=...` transitions a payroll to `pago`.
-- `DELETE /nominas?id=...` performs a logical deletion setting the state to `no pago`.
+- `PUT /nominas?id=...` transitions a payroll to `PAGO`.
+- `DELETE /nominas?id=...` performs a logical deletion setting the state to `NO_PAGO`.
 
 ## Database Tables
 - **nomina**: stores payroll records including amount, state, and audit timestamps.

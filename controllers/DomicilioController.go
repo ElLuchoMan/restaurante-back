@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"restaurante/models"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -17,7 +18,7 @@ type DomicilioController struct {
 }
 
 func isValidEstadoDomicilio(e string) bool {
-	switch models.EstadoDomicilio(e) {
+	switch models.EstadoDomicilio(strings.ToUpper(e)) {
 	case models.EstadoDomicilioPendiente, models.EstadoDomicilioEnCamino, models.EstadoDomicilioEntregado:
 		return true
 	}
@@ -49,7 +50,7 @@ func (c *DomicilioController) GetAll() {
 	telefono := c.GetString("telefono")
 	updatedBy := c.GetString("updated_by")
 	fecha := c.GetString("fecha")
-	estado := c.GetString("estado")
+	estado := strings.ToUpper(c.GetString("estado"))
 	trabajadorID, _ := c.GetInt("trabajador") // ID del domiciliario solicitante
 
 	// Aplicar filtros opcionales SOLO si se proporcionan
@@ -344,6 +345,7 @@ func (c *DomicilioController) Post() {
 
 	// Procesar campos opcionales
 	if estado, ok := input["estado"].(string); ok {
+		estado = strings.ToUpper(estado)
 		if !isValidEstadoDomicilio(estado) {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -455,6 +457,7 @@ func (c *DomicilioController) Put() {
 		domicilio.TELEFONO = telefono
 	}
 	if estado, ok := input["estado"].(string); ok {
+		estado = strings.ToUpper(estado)
 		if !isValidEstadoDomicilio(estado) {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{

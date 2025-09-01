@@ -6,6 +6,7 @@ import (
 	"restaurante/database"
 	"restaurante/models"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -28,9 +29,9 @@ var pagoNewOrm = func() ormer { return orm.NewOrm() }
 
 // Estados permitidos para los pagos
 var estadosPagoPermitidos = map[string]bool{
-	"pagado":    true,
-	"pendiente": true,
-	"no pago":   true,
+	"PAGADO":    true,
+	"PENDIENTE": true,
+	"NO_PAGO":   true,
 }
 
 // @Title GetAll
@@ -43,7 +44,7 @@ var estadosPagoPermitidos = map[string]bool{
 // @Param   dia      query   int      false   "Filtrar por dia (1-31)"
 // @Param   mes      query   int      false   "Filtrar por mes (1-12)"
 // @Param   anio     query   int      false   "Filtrar por año (YYYY)"
-// @Param   estado   query   string   false   "Filtrar por estado del pago (pagado, pendiente, no pago)"
+// @Param   estado   query   string   false   "Filtrar por estado del pago (PAGADO, PENDIENTE, NO_PAGO)"
 // @Param   metodo_pago     query   int      false   "Filtrar por metodo de pago"
 // @Success 200 {array} models.Pago "Lista de pagos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
@@ -77,7 +78,7 @@ func (c *PagoController) GetAll() {
 	dia, _ := c.GetInt("dia")
 	mes, _ := c.GetInt("mes")
 	anio, _ := c.GetInt("anio")
-	estado := c.GetString("estado")
+	estado := strings.ToUpper(c.GetString("estado"))
 	metodo_pago, _ := c.GetInt("metodo_pago")
 
 	// Filtrar los pagos según los parámetros proporcionados
@@ -253,12 +254,13 @@ func (c *PagoController) Post() {
 	}
 
 	if in.EstadoPago != "" {
+		in.EstadoPago = strings.ToUpper(in.EstadoPago)
 		if !estadosPagoPermitidos[in.EstadoPago] {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
 				Message: "Estado de pago inválido",
-				Cause:   "El estado debe ser 'pagado', 'pendiente' o 'no pago'",
+				Cause:   "El estado debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'",
 			}
 			c.ServeJSON()
 			return
@@ -282,7 +284,7 @@ func (c *PagoController) Post() {
 		FECHA:             fecha,
 		HORA:              hora,
 		MONTO:             in.Monto,
-		ESTADO_PAGO:       in.EstadoPago,   // e.g. "pagado"
+		ESTADO_PAGO:       in.EstadoPago,   // e.g. "PAGADO"
 		PK_ID_METODO_PAGO: in.MetodoPagoId, // FK
 		UPDATED_BY:        updatedBy,       // opcional
 		// UPDATED_AT se maneja con auto_now en el modelo
@@ -405,11 +407,12 @@ func (c *PagoController) Put() {
 	}
 
 	if estado, ok := input["ESTADO_PAGO"].(string); ok && estado != "" {
+		estado = strings.ToUpper(estado)
 		if !estadosPagoPermitidos[estado] {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
-				Message: "Estado de pago inválido. Debe ser 'pagado', 'pendiente' o 'no pago'",
+				Message: "Estado de pago inválido. Debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'",
 			}
 			c.ServeJSON()
 			return

@@ -127,7 +127,7 @@ func (c *PedidoController) GetAll() {
 
 // @Title PostPedido
 // @Summary Crear un nuevo pedido
-// @Description Crea un nuevo pedido. Fuerza FECHA/HORA (Bogotá) y ESTADO_PEDIDO=iniciado. Lee 'delivery' del JSON.
+// @Description Crea un nuevo pedido. Fuerza FECHA/HORA (Bogotá) y ESTADO_PEDIDO=INICIADO. Lee 'delivery' del JSON.
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -234,7 +234,7 @@ func (c *PedidoController) AssignDomicilio() {
 
 // @Title AssignPago
 // @Summary Asignar un pago a un pedido
-// @Description Asigna un pago existente a un pedido y actualiza su estado a "terminado" y el pago a "pagado".
+// @Description Asigna un pago existente a un pedido y actualiza su estado a "TERMINADO" y el pago a "PAGADO".
 // @Tags pedido
 // @Accept json
 // @Produce json

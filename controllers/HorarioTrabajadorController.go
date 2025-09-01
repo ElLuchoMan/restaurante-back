@@ -16,7 +16,7 @@ type HorarioTrabajadorController struct {
 }
 
 func isValidDia(dia string) bool {
-	switch models.DiaSemana(strings.ToLower(dia)) {
+	switch models.DiaSemana(strings.ToUpper(dia)) {
 	case models.DiaLunes, models.DiaMartes, models.DiaMiercoles,
 		models.DiaJueves, models.DiaViernes, models.DiaSabado, models.DiaDomingo:
 		return true
@@ -47,7 +47,7 @@ func (c *HorarioTrabajadorController) GetAll() {
 		conds = append(conds, "pk_documento_trabajador = ?")
 		args = append(args, doc)
 	}
-	if dia := c.GetString("dia"); dia != "" {
+	if dia := strings.ToUpper(c.GetString("dia")); dia != "" {
 		conds = append(conds, "dia = ?")
 		args = append(args, dia)
 	}
@@ -107,7 +107,8 @@ func (c *HorarioTrabajadorController) Post() {
 		return
 	}
 
-	if !isValidDia(input.DIA) {
+	dia := strings.ToUpper(input.DIA)
+	if !isValidDia(dia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Día inválido"}
 		c.ServeJSON()
@@ -128,7 +129,7 @@ func (c *HorarioTrabajadorController) Post() {
 
 	horario := models.HorarioTrabajador{
 		PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR,
-		DIA:                     input.DIA,
+		DIA:                     dia,
 		HORA_INICIO:             horaInicio,
 		HORA_FIN:                horaFin,
 	}
@@ -180,7 +181,7 @@ func (c *HorarioTrabajadorController) Put() {
 		c.ServeJSON()
 		return
 	}
-	dia := c.GetString("dia")
+	dia := strings.ToUpper(c.GetString("dia"))
 	if dia == "" || !isValidDia(dia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}
