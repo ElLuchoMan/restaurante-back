@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"os"
 
@@ -15,7 +14,7 @@ type Producto struct {
 	DESCRIPCION        *string        `orm:"column(descripcion);type(text);null" json:"descripcion,omitempty"`
 	PRECIO             int64          `orm:"column(precio);type(bigint)" json:"precio"`
 	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(text)" json:"estadoProducto"`
-	IMAGEN             []byte         `orm:"column(imagen);type(bytea);null" json:"imagen"`
+	IMAGEN             string         `orm:"column(imagen);type(text);null" json:"imagen"`
 	CANTIDAD           int            `orm:"column(cantidad);type(integer)" json:"cantidad"`
 	PK_ID_SUBCATEGORIA int64          `orm:"column(pk_id_subcategoria)" json:"subcategoriaId"`
 }
@@ -44,11 +43,9 @@ func (p Producto) MarshalJSON() ([]byte, error) {
 		DESCRIPCION:      p.DESCRIPCION,
 		PRECIO:           p.PRECIO,
 		ESTADO_PRODUCTO:  p.ESTADO_PRODUCTO,
+		IMAGEN:           p.IMAGEN,
 		CANTIDAD:         p.CANTIDAD,
 		PKIDSubcategoria: p.PK_ID_SUBCATEGORIA,
-	}
-	if len(p.IMAGEN) > 0 {
-		pj.IMAGEN = base64.StdEncoding.EncodeToString(p.IMAGEN)
 	}
 	return json.Marshal(pj)
 }
@@ -64,15 +61,7 @@ func (p *Producto) UnmarshalJSON(data []byte) error {
 	p.DESCRIPCION = pj.DESCRIPCION
 	p.PRECIO = pj.PRECIO
 	p.ESTADO_PRODUCTO = pj.ESTADO_PRODUCTO
-	if pj.IMAGEN != "" {
-		img, err := base64.StdEncoding.DecodeString(pj.IMAGEN)
-		if err != nil {
-			return err
-		}
-		p.IMAGEN = img
-	} else {
-		p.IMAGEN = nil
-	}
+	p.IMAGEN = pj.IMAGEN
 	p.CANTIDAD = pj.CANTIDAD
 	p.PK_ID_SUBCATEGORIA = pj.PKIDSubcategoria
 	return nil
