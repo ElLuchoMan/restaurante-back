@@ -200,14 +200,13 @@ func TestPostInvalidJSON(t *testing.T) {
 
 func TestPostMissingFields(t *testing.T) {
 	cases := []struct{ body, substr string }{
-		{`{"nombre":"a","telefono":"1"}`, "documentoTrabajador"},
-		{`{"documentoTrabajador":1,"telefono":"1"}`, "nombre"},
-		{`{"documentoTrabajador":1,"nombre":"a","telefono":"1"}`, "apellido"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","telefono":"1"}`, "rol"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","telefono":"1"}`, "fechaIngreso"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","fechaIngreso":"2023-01-01","telefono":"1"}`, "sueldo"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","fechaIngreso":"2023-01-01","sueldo":1,"telefono":"1"}`, "password"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","fechaIngreso":"2023-01-01","sueldo":1,"password":"p"}`, "telefono"},
+		{`{"nombre":"a"}`, "documentoTrabajador"},
+		{`{"documentoTrabajador":1}`, "nombre"},
+		{`{"documentoTrabajador":1,"nombre":"a"}`, "apellido"},
+		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b"}`, "rol"},
+		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c"}`, "fechaIngreso"},
+		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01"}`, "sueldo"},
+		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01","sueldo":1}`, "password"},
 	}
 	for _, tc := range cases {
 		c, w := buildContext(http.MethodPost, "/trabajadores", tc.body)
@@ -222,14 +221,14 @@ func TestPostMissingFields(t *testing.T) {
 }
 
 func TestPostInvalidDates(t *testing.T) {
-	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","fechaIngreso":"bad","sueldo":1,"password":"p","telefono":"1"}`
+	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"bad","sueldo":1,"password":"p"}`
 	c, w := buildContext(http.MethodPost, "/trabajadores", body)
 	c.Post()
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("%d", w.Code)
 	}
 
-	body2 := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","fechaIngreso":"2023-01-01","sueldo":1,"password":"p","fechaNacimiento":"bad","telefono":"1"}`
+	body2 := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01","sueldo":1,"password":"p","fechaNacimiento":"bad"}`
 	c2, w2 := buildContext(http.MethodPost, "/trabajadores", body2)
 	c2.Post()
 	if w2.Code != http.StatusBadRequest {
@@ -241,7 +240,7 @@ func TestPostHashError(t *testing.T) {
 	originalHash := hashPassword
 	hashPassword = func(string) (string, error) { return "", errors.New("hash") }
 	defer func() { hashPassword = originalHash }()
-	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","fechaIngreso":"2023-01-01","sueldo":1,"password":"p","telefono":"1"}`
+	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01","sueldo":1,"password":"p"}`
 	c, w := buildContext(http.MethodPost, "/trabajadores", body)
 	c.Post()
 	if w.Code != http.StatusInternalServerError {
@@ -253,7 +252,7 @@ func TestPostInsertError(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{insertErr: errors.New("db")} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","fechaIngreso":"2023-01-01","sueldo":1,"password":"p","telefono":"1"}`
+	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01","sueldo":1,"password":"p"}`
 	c, w := buildContext(http.MethodPost, "/trabajadores", body)
 	c.Post()
 	if w.Code != http.StatusInternalServerError {
@@ -265,7 +264,7 @@ func TestPostSuccess(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"ADMIN","fechaIngreso":"2023-01-01","sueldo":1,"password":"p","telefono":"1","restauranteId":1,"fechaNacimiento":"2023-01-02"}`
+	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01","sueldo":1,"password":"p","telefono":"1","restauranteId":1,"fechaNacimiento":"2023-01-02"}`
 	c, w := buildContext(http.MethodPost, "/trabajadores", body)
 	c.Post()
 	if w.Code != http.StatusCreated {
@@ -373,7 +372,7 @@ func TestPutSuccess(t *testing.T) {
 	original := newTrabajadorOrm
 	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
 	defer func() { newTrabajadorOrm = original }()
-	body := `{"nombre":"a","apellido":"b","rol":"ADMIN","sueldo":1,"nuevo":true,"telefono":"1","fechaIngreso":"2023-01-01","fechaRetiro":"2023-01-02","fechaNacimiento":"2023-01-03","password":"p"}`
+	body := `{"nombre":"a","apellido":"b","rol":"c","sueldo":1,"nuevo":true,"telefono":"1","fechaIngreso":"2023-01-01","fechaRetiro":"2023-01-02","fechaNacimiento":"2023-01-03","password":"p"}`
 	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
 	c.Put()
 	if w.Code != http.StatusOK {
@@ -392,7 +391,7 @@ func TestPutTelefonoUpdated(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("%d", w.Code)
 	}
-	if m.trabajador.TELEFONO != "123" {
+	if m.trabajador.TELEFONO == nil || *m.trabajador.TELEFONO != "123" {
 		t.Fatalf("telefono not updated")
 	}
 }

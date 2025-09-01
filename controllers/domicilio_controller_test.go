@@ -39,7 +39,7 @@ func TestPostInvalidEstado(t *testing.T) {
 	}
 }
 
-func TestDomicilioPostSuccess(t *testing.T) {
+func TestPostEntregadoTrue(t *testing.T) {
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
 	}
@@ -50,7 +50,7 @@ func TestDomicilioPostSuccess(t *testing.T) {
 	}
 	defer func() { MockExec = nil; MockQuery = nil }()
 
-	body := `{"direccion":"Calle 1","fechaDomicilio":"2024-01-01","telefono":"123"}`
+	body := `{"direccion":"Calle 1","fechaDomicilio":"2024-01-01","telefono":"123","entregado":true}`
 	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -73,6 +73,9 @@ func TestDomicilioPostSuccess(t *testing.T) {
 	data, ok := resp.Data.(map[string]interface{})
 	if !ok {
 		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if entregado, ok := data["entregado"].(bool); !ok || !entregado {
+		t.Fatalf("expected entregado true, got %v", data["entregado"])
 	}
 	if _, ok := data["createdAt"]; !ok {
 		t.Fatalf("expected createdAt in response")

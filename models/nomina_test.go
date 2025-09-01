@@ -20,8 +20,8 @@ func TestNominaMarshalJSON(t *testing.T) {
 		t.Fatalf("json.Unmarshal returned error: %v", err)
 	}
 
-	if data["fechaNomina"] != "05-07-2024" {
-		t.Errorf("expected fechaNomina 05-07-2024, got %v", data["fechaNomina"])
+	if data["fechanomina"] != "05-07-2024" {
+		t.Errorf("expected fechanomina 05-07-2024, got %v", data["fechanomina"])
 	}
 }
 

@@ -133,12 +133,6 @@ func (c *HorarioTrabajadorController) Post() {
 		HORA_INICIO:             horaInicio,
 		HORA_FIN:                horaFin,
 	}
-	if !horario.ValidateHoras() {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "horaFin debe ser mayor que horaInicio"}
-		c.ServeJSON()
-		return
-	}
 
 	o := orm.NewOrm()
 	if _, err := o.Raw(
@@ -239,13 +233,6 @@ func (c *HorarioTrabajadorController) Put() {
 			c.ServeJSON()
 			return
 		}
-	}
-
-	if !horario.ValidateHoras() {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "horaFin debe ser mayor que horaInicio"}
-		c.ServeJSON()
-		return
 	}
 
 	if _, err := o.Raw(

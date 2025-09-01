@@ -171,13 +171,6 @@ func (c *PedidoController) Post() {
 		pedido.DELIVERY = false
 	}
 
-	if pedido.DELIVERY && pedido.PK_ID_DOMICILIO == nil {
-		c.Ctx.Output.SetStatus(400)
-		c.Data["json"] = models.ApiResponse{Code: 400, Message: "Los pedidos con delivery requieren un domicilio"}
-		c.ServeJSON()
-		return
-	}
-
 	o := orm.NewOrm()
 	if _, err := o.Insert(&pedido); err != nil {
 		c.Ctx.Output.SetStatus(500)

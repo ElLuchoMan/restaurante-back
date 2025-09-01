@@ -7,7 +7,6 @@ import (
 	"restaurante/database"
 	"restaurante/models"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -17,13 +16,6 @@ import (
 
 // newTrabajadorOrm allows tests to replace orm.NewOrm.
 var newTrabajadorOrm = orm.NewOrm
-
-var rolesPermitidos = map[models.RolTrabajador]bool{
-	models.RolAdmin:        true,
-	models.RolMesero:       true,
-	models.RolCocinero:     true,
-	models.RolDomiciliario: true,
-}
 
 type TrabajadorController struct {
 	web.Controller
@@ -265,17 +257,7 @@ func (c *TrabajadorController) Post() {
 	}
 
 	// Procesar ROL
-	if rolStr, ok := input["rol"].(string); ok && rolStr != "" {
-		rol := models.RolTrabajador(strings.ToUpper(rolStr))
-		if !rolesPermitidos[rol] {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El rol proporcionado no es válido",
-			}
-			c.ServeJSON()
-			return
-		}
+	if rol, ok := input["rol"].(string); ok && rol != "" {
 		trabajador.ROL = rol
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -349,16 +331,8 @@ func (c *TrabajadorController) Post() {
 	}
 
 	// Procesar otros campos opcionales (ejemplo TELEFONO)
-	if telefono, ok := input["telefono"].(string); ok && telefono != "" {
-		trabajador.TELEFONO = telefono
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo TELEFONO es obligatorio",
-		}
-		c.ServeJSON()
-		return
+	if telefono, ok := input["telefono"].(string); ok {
+		trabajador.TELEFONO = &telefono
 	}
 
 	// Procesar PK_ID_RESTAURANTE
@@ -468,11 +442,8 @@ func (c *TrabajadorController) Put() {
 		trabajador.APELLIDO = apellido
 	}
 
-	if rolStr, ok := input["ROL"].(string); ok && rolStr != "" {
-		rol := models.RolTrabajador(strings.ToUpper(rolStr))
-		if rolesPermitidos[rol] {
-			trabajador.ROL = rol
-		}
+	if rol, ok := input["ROL"].(string); ok && rol != "" {
+		trabajador.ROL = rol
 	}
 
 	if sueldo, ok := input["SUELDO"].(float64); ok {
@@ -484,7 +455,7 @@ func (c *TrabajadorController) Put() {
 	}
 
 	if telefono, ok := input["TELEFONO"].(string); ok && telefono != "" {
-		trabajador.TELEFONO = telefono
+		trabajador.TELEFONO = &telefono
 	}
 
 	if fechaIngresoStr, ok := input["FECHA_INGRESO"].(string); ok && fechaIngresoStr != "" {

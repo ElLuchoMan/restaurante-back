@@ -294,7 +294,7 @@ func TestCambiosHorario_GetAll_WithHoras(t *testing.T) {
 				FECHA:                time.Date(2024, 10, 12, 0, 0, 0, 0, time.UTC),
 				ABIERTO:              true,
 				HORA_APERTURA:        &horaApertura,
-				HORA_CIERRE:          horaCierre,
+				HORA_CIERRE:          &horaCierre,
 			},
 		}
 		return 1, nil
@@ -324,7 +324,7 @@ func TestCambiosHorario_GetByCurrentDate_Success(t *testing.T) {
 			FECHA:                d,
 			ABIERTO:              true,
 			HORA_APERTURA:        &ha,
-			HORA_CIERRE:          hc,
+			HORA_CIERRE:          &hc,
 		}
 		return nil
 	}

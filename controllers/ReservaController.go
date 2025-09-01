@@ -248,11 +248,8 @@ func (c *ReservaController) Post() {
 				c.ServeJSON()
 				return
 			}
-			reserva.ESTADO_RESERVA = estado
+			reserva.ESTADO_RESERVA = &estado
 		}
-	}
-	if reserva.ESTADO_RESERVA == "" {
-		reserva.ESTADO_RESERVA = models.EstadoReservaPendiente
 	}
 
 	// Procesar INDICACIONES si existe
@@ -405,7 +402,7 @@ func (c *ReservaController) Put() {
 	if estadoStr, ok := input["estadoReserva"].(string); ok {
 		estado := models.EstadoReserva(estadoStr)
 		if estadosPermitidos[estado] {
-			reserva.ESTADO_RESERVA = estado
+			reserva.ESTADO_RESERVA = &estado
 		}
 	}
 
@@ -571,7 +568,7 @@ func (c *ReservaController) Delete() {
 
 	// Actualizar el estado a CANCELADA
 	estadoCancelada := models.EstadoReservaCancelada
-	reserva.ESTADO_RESERVA = estadoCancelada
+	reserva.ESTADO_RESERVA = &estadoCancelada
 	reserva.UPDATED_AT = time.Now() // Actualizar la fecha de modificación
 
 	// Guardar los cambios en la base de datos

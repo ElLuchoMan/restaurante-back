@@ -12,10 +12,10 @@ type Trabajador struct {
 	NOMBRE                  string              `orm:"column(nombre);type(text)" json:"nombre"`
 	APELLIDO                string              `orm:"column(apellido);type(text)" json:"apellido"`
 	SUELDO                  int64               `orm:"column(sueldo)" json:"sueldo"`
-	TELEFONO                string              `orm:"column(telefono);type(text);unique" json:"telefono"`
+	TELEFONO                *string             `orm:"column(telefono);type(text);unique;null" json:"telefono,omitempty"`
 	FECHA_NACIMIENTO        *time.Time          `orm:"column(fecha_nacimiento);type(date)" json:"fechaNacimiento,omitempty"`
 	NUEVO                   bool                `orm:"column(nuevo);type(boolean)" json:"nuevo"`
-	ROL                     RolTrabajador       `orm:"column(rol);type(text)" json:"rol"`
+	ROL                     string              `orm:"column(rol);type(text)" json:"rol"`
 	FECHA_INGRESO           time.Time           `orm:"column(fecha_ingreso);type(date)" json:"fechaIngreso"`
 	FECHA_RETIRO            *time.Time          `orm:"column(fecha_retiro);type(date);null" json:"fechaRetiro,omitempty"`
 	PASSWORD                string              `orm:"column(password)" json:"password"`

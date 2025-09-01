@@ -80,7 +80,7 @@ func (c *LoginController) Login() {
 		}
 		nombre := trabajador.NOMBRE + " " + trabajador.APELLIDO
 		// Generar JWT con el rol específico del trabajador (admin, mesero, mensajero, etc.)
-		generateJWT(c, trabajador.PK_DOCUMENTO_TRABAJADOR, string(trabajador.ROL), nombre)
+		generateJWT(c, trabajador.PK_DOCUMENTO_TRABAJADOR, trabajador.ROL, nombre)
 		return
 	}
 

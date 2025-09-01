@@ -17,25 +17,6 @@ const (
 	EstadoNominaNoPago EstadoNomina = "NO_PAGO"
 )
 
-// EstadoControlNomina represents the allowed values for control_nomina.estado.
-type EstadoControlNomina string
-
-const (
-	EstadoControlNominaNoGenerada EstadoControlNomina = "NO GENERADA"
-	EstadoControlNominaGenerada   EstadoControlNomina = "GENERADA"
-	EstadoControlNominaRegenerada EstadoControlNomina = "REGENERADA"
-)
-
-// IsValid reports whether the EstadoControlNomina has one of the permitted values.
-func (e EstadoControlNomina) IsValid() bool {
-	switch e {
-	case EstadoControlNominaNoGenerada, EstadoControlNominaGenerada, EstadoControlNominaRegenerada:
-		return true
-	default:
-		return false
-	}
-}
-
 // EstadoPago represents the estado_pago_enum values.
 type EstadoPago = string
 
@@ -54,26 +35,6 @@ const (
 	EstadoPedidoTerminado EstadoPedido = "TERMINADO"
 	EstadoPedidoCancelado EstadoPedido = "CANCELADO"
 )
-
-// RolTrabajador represents the valid roles for a Trabajador.
-type RolTrabajador string
-
-const (
-	RolAdmin        RolTrabajador = "ADMIN"
-	RolMesero       RolTrabajador = "MESERO"
-	RolCocinero     RolTrabajador = "COCINERO"
-	RolDomiciliario RolTrabajador = "DOMICILIARIO"
-)
-
-// IsValid reports whether the role is one of the permitted values.
-func (r RolTrabajador) IsValid() bool {
-	switch r {
-	case RolAdmin, RolMesero, RolCocinero, RolDomiciliario:
-		return true
-	default:
-		return false
-	}
-}
 
 // EstadoProducto represents the estado_producto_enum values.
 type EstadoProducto = string
