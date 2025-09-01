@@ -59,7 +59,7 @@ func (c *ProductoController) GetAll() {
 	// Manejar imágenes según el parámetro includeImage
 	for i := range productos {
 		if !includeImage {
-			productos[i].IMAGEN = nil
+			productos[i].IMAGEN = ""
 		}
 	}
 

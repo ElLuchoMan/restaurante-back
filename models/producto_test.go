@@ -1,8 +1,6 @@
 package models
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"reflect"
 	"strings"
@@ -11,7 +9,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// TestProductoImagenFieldType ensures IMAGEN column is declared as bytea.
+// TestProductoImagenFieldType ensures IMAGEN column is declared as text.
 func TestProductoImagenFieldType(t *testing.T) {
 	typ := reflect.TypeOf(Producto{})
 	field, ok := typ.FieldByName("IMAGEN")
@@ -19,13 +17,14 @@ func TestProductoImagenFieldType(t *testing.T) {
 		t.Fatal("IMAGEN field not found")
 	}
 	tag := field.Tag.Get("orm")
-	if !strings.Contains(tag, "type(bytea)") {
-		t.Fatalf("expected orm tag to contain type(bytea), got %q", tag)
+	if !strings.Contains(tag, "type(text)") {
+		t.Fatalf("expected orm tag to contain type(text), got %q", tag)
 	}
 }
 
 func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 	calorias := int64(100)
+	img := "hello"
 	p := Producto{
 		PK_ID_PRODUCTO:     1,
 		NOMBRE:             "Test",
@@ -33,7 +32,7 @@ func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 		DESCRIPCION:        func() *string { s := "desc"; return &s }(),
 		PRECIO:             5,
 		ESTADO_PRODUCTO:    EstadoProductoDisponible,
-		IMAGEN:             []byte("hello"),
+		IMAGEN:             img,
 		CANTIDAD:           2,
 		PK_ID_SUBCATEGORIA: 3,
 	}
@@ -41,14 +40,14 @@ func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	if !strings.Contains(string(data), base64.StdEncoding.EncodeToString([]byte("hello"))) {
-		t.Fatalf("expected base64 image in json: %s", string(data))
+	if !strings.Contains(string(data), img) {
+		t.Fatalf("expected image in json: %s", string(data))
 	}
 	var out Producto
 	if err := json.Unmarshal(data, &out); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
-	if !bytes.Equal(out.IMAGEN, p.IMAGEN) {
+	if out.IMAGEN != p.IMAGEN {
 		t.Fatalf("expected image %v, got %v", p.IMAGEN, out.IMAGEN)
 	}
 }
