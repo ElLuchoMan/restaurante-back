@@ -27,6 +27,7 @@ const (
 )
 
 // EstadoPedido represents the estado_pedido_enum values.
+// Valores válidos: "iniciado", "terminado", "cancelado".
 type EstadoPedido = string
 
 const (

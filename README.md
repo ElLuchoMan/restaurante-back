@@ -52,6 +52,7 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
   - `EstadoReserva`: `PENDIENTE`, `CONFIRMADA`, `CANCELADA`, `CUMPLIDA`.
   - `EstadoNomina`: `PAGO`, `NO_PAGO`.
   - Additional enums exist for domicilios, pagos, pedidos, productos y días de la semana.
+
 - **Price history** for products is stored in the `precio_producto_hist` table. A new entry is
   created when a product is registered or its price changes, storing the effective date of the
   change.
