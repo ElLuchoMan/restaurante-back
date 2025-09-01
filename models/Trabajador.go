@@ -20,7 +20,7 @@ type Trabajador struct {
 	FECHA_RETIRO            *time.Time          `orm:"column(fecha_retiro);type(date);null" json:"fechaRetiro,omitempty"`
 	PASSWORD                string              `orm:"column(password)" json:"password"`
 	HORARIOS                []HorarioTrabajador `orm:"-" json:"horarios,omitempty"`
-	PK_ID_RESTAURANTE       *int64              `orm:"column(pk_id_restaurante);null" json:"restauranteId,omitempty"`
+	PK_ID_RESTAURANTE       *int64              `orm:"column(pk_id_restaurante);rel(fk);null" json:"restauranteId,omitempty"`
 }
 
 func (t *Trabajador) TableName() string {

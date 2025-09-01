@@ -20,7 +20,7 @@ type Domicilio struct {
 	UPDATED_AT              time.Time `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt"`
 	CREATED_BY              *string   `orm:"column(created_by);type(text);null" json:"createdBy,omitempty"`
 	UPDATED_BY              *string   `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
-	PK_DOCUMENTO_TRABAJADOR *int64    `orm:"column(pk_documento_trabajador);null" json:"trabajadorAsignado,omitempty"`
+	PK_DOCUMENTO_TRABAJADOR *int64    `orm:"column(pk_documento_trabajador);rel(fk);null" json:"trabajadorAsignado,omitempty"`
 }
 
 func (d *Domicilio) TableName() string {

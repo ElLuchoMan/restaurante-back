@@ -7,7 +7,7 @@ type ReservaContacto struct {
 	NombreCompleto     string  `orm:"column(nombre_completo);type(text)" json:"nombreCompleto"`
 	Telefono           *string `orm:"column(telefono);type(text);null" json:"telefono,omitempty"`
 	DocumentoContacto  *int64  `orm:"column(documento_contacto);null" json:"documentoContacto,omitempty"`
-	PKDocumentoCliente *int64  `orm:"column(pk_documento_cliente);null" json:"documentoCliente,omitempty"`
+	PKDocumentoCliente *int64  `orm:"column(pk_documento_cliente);rel(fk);null" json:"documentoCliente,omitempty"`
 }
 
 func (r *ReservaContacto) TableName() string {
