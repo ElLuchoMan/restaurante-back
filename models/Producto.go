@@ -12,7 +12,7 @@ type Producto struct {
 	PK_ID_PRODUCTO     int64          `orm:"column(pk_id_producto);pk;auto" json:"productoId"`
 	NOMBRE             string         `orm:"column(nombre);type(text)" json:"nombre"`
 	CALORIAS           *int64         `orm:"column(calorias);type(bigint)" json:"calorias"`
-	DESCRIPCION        string         `orm:"column(descripcion);type(text)" json:"descripcion"`
+	DESCRIPCION        *string        `orm:"column(descripcion);type(text);null" json:"descripcion,omitempty"`
 	PRECIO             int64          `orm:"column(precio);type(bigint)" json:"precio"`
 	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(text)" json:"estadoProducto"`
 	IMAGEN             []byte         `orm:"column(imagen);type(bytea);null" json:"imagen"`
@@ -28,7 +28,7 @@ type productoJSON struct {
 	PKIDProducto     int64          `json:"productoId"`
 	NOMBRE           string         `json:"nombre"`
 	CALORIAS         *int64         `json:"calorias"`
-	DESCRIPCION      string         `json:"descripcion"`
+	DESCRIPCION      *string        `json:"descripcion,omitempty"`
 	PRECIO           int64          `json:"precio"`
 	ESTADO_PRODUCTO  EstadoProducto `json:"estadoProducto"`
 	IMAGEN           string         `json:"imagen,omitempty"`

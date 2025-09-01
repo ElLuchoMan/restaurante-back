@@ -82,7 +82,7 @@ func (c *CambiosHorarioController) GetAll() {
 		} else {
 			h["horaApertura"] = nil
 		}
-		if horario.HORA_CIERRE != nil {
+		if !horario.HORA_CIERRE.IsZero() {
 			h["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
 		} else {
 			h["horaCierre"] = nil
@@ -142,7 +142,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 	if cambioHorario.HORA_APERTURA != nil {
 		response["horaApertura"] = cambioHorario.HORA_APERTURA.Format("15:04:05")
 	}
-	if cambioHorario.HORA_CIERRE != nil {
+	if !cambioHorario.HORA_CIERRE.IsZero() {
 		response["horaCierre"] = cambioHorario.HORA_CIERRE.Format("15:04:05")
 	}
 
@@ -221,7 +221,7 @@ func (c *CambiosHorarioController) Post() {
 		horaApertura, _ := time.Parse("15:04:05", "00:00:00")
 		horaCierre, _ := time.Parse("15:04:05", "23:59:59")
 		horario.HORA_APERTURA = &horaApertura
-		horario.HORA_CIERRE = &horaCierre
+		horario.HORA_CIERRE = horaCierre
 	} else {
 		if horaAperturaStr, ok := input["horaApertura"].(string); ok && horaAperturaStr != "" {
 			parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
@@ -258,7 +258,7 @@ func (c *CambiosHorarioController) Post() {
 				c.ServeJSON()
 				return
 			}
-			horario.HORA_CIERRE = &parsedHora
+			horario.HORA_CIERRE = parsedHora
 		} else {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -289,8 +289,7 @@ func (c *CambiosHorarioController) Post() {
 	if horario.HORA_APERTURA != nil {
 		response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
 	}
-	if horario.HORA_CIERRE != nil {
-		// OJO: aquí en tu versión anterior sobrescribías horaApertura por error
+	if !horario.HORA_CIERRE.IsZero() {
 		response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
 	}
 
@@ -383,7 +382,7 @@ func (c *CambiosHorarioController) Put() {
 			horaApertura, _ := time.Parse("15:04:05", "00:00:00")
 			horaCierre, _ := time.Parse("15:04:05", "23:59:59")
 			horario.HORA_APERTURA = &horaApertura
-			horario.HORA_CIERRE = &horaCierre
+			horario.HORA_CIERRE = horaCierre
 		}
 	}
 
@@ -415,7 +414,7 @@ func (c *CambiosHorarioController) Put() {
 				c.ServeJSON()
 				return
 			}
-			horario.HORA_CIERRE = &parsedHora
+			horario.HORA_CIERRE = parsedHora
 		}
 	}
 
@@ -438,7 +437,7 @@ func (c *CambiosHorarioController) Put() {
 	if horario.HORA_APERTURA != nil {
 		response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
 	}
-	if horario.HORA_CIERRE != nil {
+	if !horario.HORA_CIERRE.IsZero() {
 		response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
 	}
 

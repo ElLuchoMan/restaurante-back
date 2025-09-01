@@ -45,8 +45,9 @@ func TestDetallePedidoTriggerOnInsert(t *testing.T) {
 		t.Fatalf("producto not found or DB unavailable: %v", err)
 	}
 	det := models.DetallePedido{
-		DetallePedidoPK: models.DetallePedidoPK{PKIDPedido: 9999, PKIDProducto: prod.PK_ID_PRODUCTO},
-		Cantidad:        1,
+		PKIDPedido:   9999,
+		PKIDProducto: prod.PK_ID_PRODUCTO,
+		Cantidad:     1,
 	}
 	if _, err := o.Insert(&det); err != nil {
 		t.Fatalf("insert detalle_pedido failed: %v", err)

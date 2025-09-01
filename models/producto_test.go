@@ -30,7 +30,7 @@ func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 		PK_ID_PRODUCTO:     1,
 		NOMBRE:             "Test",
 		CALORIAS:           &calorias,
-		DESCRIPCION:        "desc",
+		DESCRIPCION:        func() *string { s := "desc"; return &s }(),
 		PRECIO:             5,
 		ESTADO_PRODUCTO:    EstadoProductoDisponible,
 		IMAGEN:             []byte("hello"),
