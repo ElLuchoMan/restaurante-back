@@ -188,6 +188,28 @@ func TestPedidoPostParseError(t *testing.T) {
 	}
 }
 
+func TestPedidoPostDeliveryWithoutDomicilio(t *testing.T) {
+	body := `{"delivery":true}`
+	r := httptest.NewRequest(http.MethodPost, "/pedidos", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := PedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "domicilio es obligatorio") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
 func TestPedidoPostSuccess(t *testing.T) {
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil

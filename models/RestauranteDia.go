@@ -12,6 +12,11 @@ func (r *RestauranteDia) TableName() string {
 	return "restaurante_dia"
 }
 
+// TableUnique enforces UNIQUE(pk_id_restaurante, dia)
+func (r *RestauranteDia) TableUnique() [][]string {
+	return [][]string{{"PKIDRestaurante", "Dia"}}
+}
+
 func init() {
 	orm.RegisterModel(new(RestauranteDia))
 }

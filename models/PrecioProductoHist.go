@@ -19,6 +19,11 @@ func (p *PrecioProductoHist) TableName() string {
 	return "precio_producto_hist"
 }
 
+// TableUnique enforces UNIQUE(pk_id_producto, fecha_vigencia)
+func (p *PrecioProductoHist) TableUnique() [][]string {
+	return [][]string{{"PKIDProducto", "FechaVigencia"}}
+}
+
 func init() {
 	orm.RegisterModel(new(PrecioProductoHist))
 }

@@ -67,6 +67,26 @@ const (
 	DiaDomingo   DiaSemana = "DOMINGO"
 )
 
+// RolTrabajador represents valid roles for trabajador. Values are case-sensitive.
+type RolTrabajador string
+
+const (
+	RolAdministrador RolTrabajador = "Administrador"
+	RolMesero        RolTrabajador = "Mesero"
+	RolCocinero      RolTrabajador = "Cocinero"
+	RolDomiciliario  RolTrabajador = "Domiciliario"
+	RolOficiosVarios RolTrabajador = "Oficios_varios"
+)
+
+// IsValid reports whether the role is permitted for trabajador
+func (r RolTrabajador) IsValid() bool {
+	switch r {
+	case RolAdministrador, RolMesero, RolCocinero, RolDomiciliario, RolOficiosVarios:
+		return true
+	}
+	return false
+}
+
 // EstadoControlNomina represents valid values for control_nomina.estado
 type EstadoControlNomina string
 
