@@ -269,7 +269,7 @@ LIMIT 1;`
 
 // @Title Create
 // @Summary Crear un nuevo domicilio
-// @Description Crea un nuevo domicilio en la base de datos.
+// @Description Crea un nuevo domicilio en la base de datos. El campo 'entregado' es generado automáticamente y no debe enviarse en la solicitud.
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -356,9 +356,6 @@ func (c *DomicilioController) Post() {
 		}
 		domicilio.ESTADO_DOMICILIO = estado
 	}
-	if entregado, ok := input["entregado"].(bool); ok {
-		domicilio.ENTREGADO = entregado
-	}
 	if observaciones, ok := input["observaciones"].(string); ok {
 		domicilio.OBSERVACIONES = &observaciones
 	}
@@ -384,6 +381,14 @@ func (c *DomicilioController) Post() {
 		return
 	}
 
+	var ent bool
+	var created, updated time.Time
+	if err := o.Raw("SELECT entregado, created_at, updated_at FROM domicilio WHERE pk_id_domicilio = ?", domicilio.PK_ID_DOMICILIO).QueryRow(&ent, &created, &updated); err == nil {
+		domicilio.ENTREGADO = ent
+		domicilio.CREATED_AT = created
+		domicilio.UPDATED_AT = updated
+	}
+
 	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
@@ -396,7 +401,7 @@ func (c *DomicilioController) Post() {
 
 // @Title Update
 // @Summary Actualizar un domicilio
-// @Description Actualiza los datos de un domicilio existente.
+// @Description Actualiza los datos de un domicilio existente. El campo 'entregado' es calculado automáticamente.
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -468,9 +473,6 @@ func (c *DomicilioController) Put() {
 		}
 		domicilio.ESTADO_DOMICILIO = estado
 	}
-	if entregado, ok := input["entregado"].(bool); ok {
-		domicilio.ENTREGADO = entregado
-	}
 	if updatedBy, ok := input["updatedBy"].(string); ok {
 		domicilio.UPDATED_BY = &updatedBy
 	}
@@ -488,6 +490,14 @@ func (c *DomicilioController) Put() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	var ent bool
+	var created, updated time.Time
+	if err := o.Raw("SELECT entregado, created_at, updated_at FROM domicilio WHERE pk_id_domicilio = ?", domicilio.PK_ID_DOMICILIO).QueryRow(&ent, &created, &updated); err == nil {
+		domicilio.ENTREGADO = ent
+		domicilio.CREATED_AT = created
+		domicilio.UPDATED_AT = updated
 	}
 
 	// Responder con éxito

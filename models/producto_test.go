@@ -24,7 +24,7 @@ func TestProductoImagenFieldType(t *testing.T) {
 
 func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 	calorias := int64(100)
-	img := "hello"
+	img := []byte("hello")
 	p := Producto{
 		PK_ID_PRODUCTO:     1,
 		NOMBRE:             "Test",
@@ -40,14 +40,14 @@ func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	if !strings.Contains(string(data), img) {
-		t.Fatalf("expected image in json: %s", string(data))
+	if !strings.Contains(string(data), "aGVsbG8=") {
+		t.Fatalf("expected base64 image in json: %s", string(data))
 	}
 	var out Producto
 	if err := json.Unmarshal(data, &out); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
-	if out.IMAGEN != p.IMAGEN {
+	if !reflect.DeepEqual(out.IMAGEN, p.IMAGEN) {
 		t.Fatalf("expected image %v, got %v", p.IMAGEN, out.IMAGEN)
 	}
 }

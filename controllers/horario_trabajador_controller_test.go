@@ -38,6 +38,18 @@ func TestHorarioTrabajadorPostInvalidDia(t *testing.T) {
 	}
 }
 
+func TestHorarioTrabajadorPostInvalidHours(t *testing.T) {
+	body := `{"documentoTrabajador":1,"dia":"LUNES","horaInicio":"17:00:00","horaFin":"08:00:00"}`
+	c, w := setupHTCtx(http.MethodPost, "/horario_trabajador", body)
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "horaFin debe ser mayor que horaInicio") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
 func TestHorarioTrabajadorPostSuccess(t *testing.T) {
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
