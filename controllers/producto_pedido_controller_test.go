@@ -253,9 +253,10 @@ func TestProductoPedidoGetAllSuccess(t *testing.T) {
 					*detalles = append(
 						*detalles,
 						models.DetallePedido{
-							DetallePedidoPK: models.DetallePedidoPK{PKIDPedido: 1, PKIDProducto: 1},
-							Cantidad:        1,
-							Precio:          1000,
+							PKIDPedido:   1,
+							PKIDProducto: 1,
+							Cantidad:     1,
+							Precio:       1000,
 						},
 					)
 					return 1, nil
@@ -298,9 +299,10 @@ func TestProductoPedidoPostSuccess(t *testing.T) {
 				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
 					if d, ok := res.(*models.DetallePedido); ok {
 						*d = models.DetallePedido{
-							DetallePedidoPK: models.DetallePedidoPK{PKIDPedido: 1, PKIDProducto: 1},
-							Cantidad:        1,
-							Precio:          1000,
+							PKIDPedido:   1,
+							PKIDProducto: 1,
+							Cantidad:     1,
+							Precio:       1000,
 						}
 					}
 					return nil
@@ -347,9 +349,10 @@ func TestProductoPedidoUpdateSuccess(t *testing.T) {
 				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
 					if d, ok := res.(*models.DetallePedido); ok {
 						*d = models.DetallePedido{
-							DetallePedidoPK: models.DetallePedidoPK{PKIDPedido: 1, PKIDProducto: 1},
-							Cantidad:        1,
-							Precio:          1000,
+							PKIDPedido:   1,
+							PKIDProducto: 1,
+							Cantidad:     1,
+							Precio:       1000,
 						}
 					}
 					return nil

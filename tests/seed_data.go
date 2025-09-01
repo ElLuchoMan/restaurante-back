@@ -26,10 +26,11 @@ func SeedTestData() {
 
 	prod := models.Producto{PK_ID_PRODUCTO: 1}
 	if err := o.Read(&prod); err == orm.ErrNoRows {
+		desc := "Usado en tests"
 		prod = models.Producto{
 			PK_ID_PRODUCTO:     1,
 			NOMBRE:             "Producto Prueba",
-			DESCRIPCION:        "Usado en tests",
+			DESCRIPCION:        &desc,
 			PRECIO:             1000,
 			ESTADO_PRODUCTO:    models.EstadoProductoDisponible,
 			CANTIDAD:           1,
@@ -43,8 +44,9 @@ func SeedTestData() {
 	}
 
 	if _, err := o.Insert(&models.DetallePedido{
-		DetallePedidoPK: models.DetallePedidoPK{PKIDPedido: 1, PKIDProducto: 1},
-		Cantidad:        1,
+		PKIDPedido:   1,
+		PKIDProducto: 1,
+		Cantidad:     1,
 	}); err != nil {
 		log.Println("seed detalle_pedido:", err)
 	}

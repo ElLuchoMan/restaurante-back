@@ -6,10 +6,11 @@ import (
 )
 
 type HorarioTrabajador struct {
-	PK_DOCUMENTO_TRABAJADOR int64     `orm:"column(pk_documento_trabajador);pk" json:"documentoTrabajador"`
-	DIA                     DiaSemana `orm:"column(dia);type(text);pk" json:"dia"`
-	HORA_INICIO             time.Time `orm:"column(hora_inicio);type(time)" json:"horaInicio"`
-	HORA_FIN                time.Time `orm:"column(hora_fin);type(time)" json:"horaFin"`
+	PK_ID_HORARIO_TRABAJADOR int64     `orm:"column(pk_id_horario_trabajador);pk;auto" json:"horarioTrabajadorId"`
+	PK_DOCUMENTO_TRABAJADOR  int64     `orm:"column(pk_documento_trabajador)" json:"documentoTrabajador"`
+	DIA                      DiaSemana `orm:"column(dia);type(text)" json:"dia"`
+	HORA_INICIO              time.Time `orm:"column(hora_inicio);type(time)" json:"horaInicio"`
+	HORA_FIN                 time.Time `orm:"column(hora_fin);type(time)" json:"horaFin"`
 }
 
 func (h *HorarioTrabajador) TableName() string {
