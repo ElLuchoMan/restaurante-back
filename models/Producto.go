@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"os"
 
@@ -14,7 +15,7 @@ type Producto struct {
 	DESCRIPCION        *string        `orm:"column(descripcion);type(text);null" json:"descripcion,omitempty"`
 	PRECIO             int64          `orm:"column(precio);type(bigint)" json:"precio"`
 	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(text)" json:"estadoProducto"`
-	IMAGEN             string         `orm:"column(imagen);type(bytea);null" json:"imagen"`
+	IMAGEN             []uint8        `orm:"column(imagen);null" json:"imagen"`
 	CANTIDAD           int            `orm:"column(cantidad);type(integer)" json:"cantidad"`
 	PK_ID_SUBCATEGORIA int64          `orm:"column(pk_id_subcategoria)" json:"subcategoriaId"`
 }
@@ -43,7 +44,7 @@ func (p Producto) MarshalJSON() ([]byte, error) {
 		DESCRIPCION:      p.DESCRIPCION,
 		PRECIO:           p.PRECIO,
 		ESTADO_PRODUCTO:  p.ESTADO_PRODUCTO,
-		IMAGEN:           p.IMAGEN,
+		IMAGEN:           base64.StdEncoding.EncodeToString(p.IMAGEN),
 		CANTIDAD:         p.CANTIDAD,
 		PKIDSubcategoria: p.PK_ID_SUBCATEGORIA,
 	}
@@ -61,7 +62,15 @@ func (p *Producto) UnmarshalJSON(data []byte) error {
 	p.DESCRIPCION = pj.DESCRIPCION
 	p.PRECIO = pj.PRECIO
 	p.ESTADO_PRODUCTO = pj.ESTADO_PRODUCTO
-	p.IMAGEN = pj.IMAGEN
+	if pj.IMAGEN != "" {
+		if img, err := base64.StdEncoding.DecodeString(pj.IMAGEN); err == nil {
+			p.IMAGEN = img
+		} else {
+			return err
+		}
+	} else {
+		p.IMAGEN = nil
+	}
 	p.CANTIDAD = pj.CANTIDAD
 	p.PK_ID_SUBCATEGORIA = pj.PKIDSubcategoria
 	return nil

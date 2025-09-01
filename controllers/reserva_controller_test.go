@@ -416,6 +416,33 @@ func TestReservaPostInvalidContacto(t *testing.T) {
 	}
 }
 
+func TestReservaPostInvalidReservaContacto(t *testing.T) {
+	t.Cleanup(resetReservaMocks)
+	payload := map[string]interface{}{
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 1,
+		"documentoCliente":  2,
+	}
+	body, _ := json.Marshal(payload)
+	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = body
+	c := ReservaController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
 func TestReservaPostInsertError(t *testing.T) {
 	ormNew = func() orm.Ormer { return nil }
 	insertReserva = func(o orm.Ormer, r *models.Reserva) (int64, error) { return 0, errors.New("db") }

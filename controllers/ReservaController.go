@@ -170,6 +170,25 @@ func (c *ReservaController) Post() {
 		return
 	}
 
+	// Validar campos de contacto exclusivos si se proporcionan
+	var contacto models.ReservaContacto
+	if v, ok := input["documentoContacto"].(float64); ok {
+		val := int64(v)
+		contacto.DocumentoContacto = &val
+	}
+	if v, ok := input["documentoCliente"].(float64); ok {
+		val := int64(v)
+		contacto.PKDocumentoCliente = &val
+	}
+	if contacto.DocumentoContacto != nil || contacto.PKDocumentoCliente != nil {
+		if !contacto.Valid() {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}
+			c.ServeJSON()
+			return
+		}
+	}
+
 	// Validar y procesar los campos requeridos
 	var reserva models.Reserva
 
@@ -362,6 +381,25 @@ func (c *ReservaController) Put() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	// Validar campos de contacto exclusivos si se proporcionan
+	var contacto models.ReservaContacto
+	if v, ok := input["documentoContacto"].(float64); ok {
+		val := int64(v)
+		contacto.DocumentoContacto = &val
+	}
+	if v, ok := input["documentoCliente"].(float64); ok {
+		val := int64(v)
+		contacto.PKDocumentoCliente = &val
+	}
+	if contacto.DocumentoContacto != nil || contacto.PKDocumentoCliente != nil {
+		if !contacto.Valid() {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}
+			c.ServeJSON()
+			return
+		}
 	}
 
 	// Validar y actualizar los campos que pueden cambiar

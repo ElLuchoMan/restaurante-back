@@ -134,6 +134,13 @@ func (c *HorarioTrabajadorController) Post() {
 		HORA_FIN:                horaFin,
 	}
 
+	if !horario.ValidHours() {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "horaFin debe ser mayor que horaInicio"}
+		c.ServeJSON()
+		return
+	}
+
 	o := orm.NewOrm()
 	if _, err := o.Raw(
 		"INSERT INTO horario_trabajador (pk_documento_trabajador, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)",
@@ -233,6 +240,15 @@ func (c *HorarioTrabajadorController) Put() {
 			c.ServeJSON()
 			return
 		}
+	}
+
+	horario.HORA_INICIO = time.Date(0, 1, 1, horario.HORA_INICIO.Hour(), horario.HORA_INICIO.Minute(), horario.HORA_INICIO.Second(), 0, time.UTC)
+	horario.HORA_FIN = time.Date(0, 1, 1, horario.HORA_FIN.Hour(), horario.HORA_FIN.Minute(), horario.HORA_FIN.Second(), 0, time.UTC)
+	if !horario.ValidHours() {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "horaFin debe ser mayor que horaInicio"}
+		c.ServeJSON()
+		return
 	}
 
 	if _, err := o.Raw(
