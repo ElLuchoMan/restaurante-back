@@ -2,73 +2,14 @@ package controllers
 
 import (
 	"bytes"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/context"
 	"restaurante/models"
 )
-
-func setupProductoController(t *testing.T, data []byte) *web.Controller {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	if data != nil {
-		part, err := writer.CreateFormFile("IMAGEN", "test.png")
-		if err != nil {
-			t.Fatalf("CreateFormFile: %v", err)
-		}
-		if _, err := part.Write(data); err != nil {
-			t.Fatalf("write data: %v", err)
-		}
-	}
-	writer.Close()
-	req := httptest.NewRequest(http.MethodPost, "/", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, req)
-	c := &web.Controller{}
-	c.Ctx = ctx
-	return c
-}
-
-func TestProductoHandleImageUploadMissingFile(t *testing.T) {
-	c := setupProductoController(t, nil)
-	img, err := handleImageUpload(c)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if img != nil {
-		t.Errorf("expected nil, got %v", img)
-	}
-}
-
-func TestProductoHandleImageUploadTooLarge(t *testing.T) {
-	data := bytes.Repeat([]byte("a"), 1024*1024+1)
-	c := setupProductoController(t, data)
-	img, err := handleImageUpload(c)
-	if err == nil || !strings.Contains(err.Error(), "1MB") {
-		t.Fatalf("expected size error, got %v", err)
-	}
-	if img != nil {
-		t.Errorf("expected nil on error")
-	}
-}
-
-func TestProductoHandleImageUploadSuccess(t *testing.T) {
-	c := setupProductoController(t, []byte("hello"))
-	img, err := handleImageUpload(c)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !bytes.Equal(img, []byte("hello")) {
-		t.Errorf("unexpected image data: %v", img)
-	}
-}
 
 func int64Ptr(i int64) *int64 { return &i }
 
@@ -148,15 +89,9 @@ func TestProductoGetByIdNotFound(t *testing.T) {
 }
 
 func TestProductoPostMissingNombre(t *testing.T) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	writer.WriteField("nombre", "")
-	writer.WriteField("estadoProducto", "disponible")
-	writer.WriteField("precio", "10")
-	writer.Close()
-
+	body := bytes.NewBufferString(`{"estadoProducto":"disponible","precio":10}`)
 	r := httptest.NewRequest(http.MethodPost, "/productos", body)
-	r.Header.Set("Content-Type", writer.FormDataContentType())
+	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
