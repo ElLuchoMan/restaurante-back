@@ -11,7 +11,7 @@ import (
 type Producto struct {
 	PK_ID_PRODUCTO     int64          `orm:"column(pk_id_producto);pk;auto" json:"productoId"`
 	NOMBRE             string         `orm:"column(nombre);type(text)" json:"nombre"`
-	CALORIAS           *int64         `orm:"column(calorias);type(bigint)" json:"calorias"`
+	CALORIAS           *int64         `orm:"column(calorias);type(bigint);null" json:"calorias"`
 	DESCRIPCION        *string        `orm:"column(descripcion);type(text);null" json:"descripcion,omitempty"`
 	PRECIO             int64          `orm:"column(precio);type(bigint)" json:"precio"`
 	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(text)" json:"estadoProducto"`

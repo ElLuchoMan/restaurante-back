@@ -13,7 +13,7 @@ type Trabajador struct {
 	APELLIDO                string              `orm:"column(apellido);type(text)" json:"apellido"`
 	SUELDO                  int64               `orm:"column(sueldo)" json:"sueldo"`
 	TELEFONO                *string             `orm:"column(telefono);type(text);unique;null" json:"telefono,omitempty"`
-	FECHA_NACIMIENTO        *time.Time          `orm:"column(fecha_nacimiento);type(date)" json:"fechaNacimiento,omitempty"`
+	FECHA_NACIMIENTO        *time.Time          `orm:"column(fecha_nacimiento);type(date);null" json:"fechaNacimiento,omitempty"`
 	NUEVO                   bool                `orm:"column(nuevo);type(boolean)" json:"nuevo"`
 	ROL                     RolTrabajador       `orm:"column(rol);type(text)" json:"rol"`
 	FECHA_INGRESO           time.Time           `orm:"column(fecha_ingreso);type(date)" json:"fechaIngreso"`

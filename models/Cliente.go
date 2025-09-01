@@ -11,7 +11,7 @@ type Cliente struct {
 	CORREO               *string `orm:"column(correo);type(text);unique;null"        json:"correo" valid:"email"`
 	DIRECCION            string  `orm:"column(direccion);type(text)"     json:"direccion"`
 	TELEFONO             string  `orm:"column(telefono);type(text);unique"      json:"telefono"`
-	OBSERVACIONES        *string `orm:"column(observaciones);type(text)" json:"observaciones"`
+	OBSERVACIONES        *string `orm:"column(observaciones);type(text);null" json:"observaciones"`
 	PASSWORD             string  `orm:"column(password);type(text)"      json:"password"`
 }
 
