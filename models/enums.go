@@ -66,3 +66,21 @@ const (
 	DiaSabado    DiaSemana = "SABADO"
 	DiaDomingo   DiaSemana = "DOMINGO"
 )
+
+// EstadoControlNomina represents valid values for control_nomina.estado
+type EstadoControlNomina string
+
+const (
+	EstadoControlNominaNoGenerada EstadoControlNomina = "NO GENERADA"
+	EstadoControlNominaGenerada   EstadoControlNomina = "GENERADA"
+	EstadoControlNominaReGenerada EstadoControlNomina = "REGENERADA"
+)
+
+// IsValid reports whether the estado is permitted for control_nomina
+func (e EstadoControlNomina) IsValid() bool {
+	switch e {
+	case EstadoControlNominaNoGenerada, EstadoControlNominaGenerada, EstadoControlNominaReGenerada:
+		return true
+	}
+	return false
+}

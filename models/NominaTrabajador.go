@@ -40,3 +40,9 @@ func (n *NominaTrabajador) TableName() string {
 func init() {
 	orm.RegisterModel(new(NominaTrabajador))
 }
+
+func (n *NominaTrabajador) TableUnique() [][]string {
+	return [][]string{
+		{"PK_DOCUMENTO_TRABAJADOR", "PK_ID_NOMINA"},
+	}
+}

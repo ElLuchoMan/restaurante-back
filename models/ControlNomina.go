@@ -7,9 +7,9 @@ import (
 )
 
 type ControlNomina struct {
-	PK_ID_CONTROL_NOMINA int64     `orm:"column(pk_id_control_nomina);pk;auto" json:"controlNominaId"`
-	Fecha                time.Time `orm:"column(fecha);type(date);unique" json:"fecha"`
-	Estado               string    `orm:"column(estado);type(text);default(NO GENERADA)" json:"estado"`
+	PK_ID_CONTROL_NOMINA int64               `orm:"column(pk_id_control_nomina);pk;auto" json:"controlNominaId"`
+	Fecha                time.Time           `orm:"column(fecha);type(date);unique" json:"fecha"`
+	Estado               EstadoControlNomina `orm:"column(estado);type(text);default(NO GENERADA)" json:"estado"`
 }
 
 func (c *ControlNomina) TableName() string {
@@ -18,4 +18,9 @@ func (c *ControlNomina) TableName() string {
 
 func init() {
 	orm.RegisterModel(new(ControlNomina))
+}
+
+// ValidEstado indica si el estado actual está permitido
+func (c *ControlNomina) ValidEstado() bool {
+	return c.Estado.IsValid()
 }
