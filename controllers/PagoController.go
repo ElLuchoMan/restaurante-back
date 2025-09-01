@@ -99,10 +99,8 @@ func (c *PagoController) GetAll() {
 		if estado != "" && pago.ESTADO_PAGO != estado {
 			continue
 		}
-		if metodo_pago > 0 {
-			if pago.PK_ID_METODO_PAGO == nil || *pago.PK_ID_METODO_PAGO != int64(metodo_pago) {
-				continue
-			}
+		if metodo_pago > 0 && pago.PK_ID_METODO_PAGO != int64(metodo_pago) {
+			continue
 		}
 
 		filteredPagos = append(filteredPagos, pago)
@@ -282,17 +280,13 @@ func (c *PagoController) Post() {
 		updatedBy = &in.UpdatedBy
 	}
 
-	var metodoPagoId *int64
-	if in.MetodoPagoId != 0 {
-		metodoPagoId = &in.MetodoPagoId
-	}
 	pago := models.Pago{
 		FECHA:             fecha,
 		HORA:              hora,
 		MONTO:             in.Monto,
 		ESTADO_PAGO:       in.EstadoPago, // e.g. "PAGADO"
-		PK_ID_METODO_PAGO: metodoPagoId,  // FK opcional
-		UPDATED_BY:        updatedBy,     // opcional
+		PK_ID_METODO_PAGO: in.MetodoPagoId,
+		UPDATED_BY:        updatedBy, // opcional
 		// UPDATED_AT se maneja con auto_now en el modelo
 	}
 
@@ -434,10 +428,8 @@ func (c *PagoController) Put() {
 	pago.UPDATED_AT = time.Now().UTC()
 
 	if pkMetodoPago, ok := input["PK_ID_METODO_PAGO"].(float64); ok {
-		valorMetodoPago := int64(pkMetodoPago)
-		pago.PK_ID_METODO_PAGO = &valorMetodoPago
+		pago.PK_ID_METODO_PAGO = int64(pkMetodoPago)
 	} else {
-		// Opcional: Manejo de errores o acciones si el campo es obligatorio
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,

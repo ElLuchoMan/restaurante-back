@@ -14,7 +14,7 @@ type Producto struct {
 	DESCRIPCION        *string        `orm:"column(descripcion);type(text);null" json:"descripcion,omitempty"`
 	PRECIO             int64          `orm:"column(precio);type(bigint)" json:"precio"`
 	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(text)" json:"estadoProducto"`
-	IMAGEN             string         `orm:"column(imagen);type(text);null" json:"imagen"`
+	IMAGEN             []byte         `orm:"column(imagen);type(bytea);null" json:"imagen,omitempty"`
 	CANTIDAD           int            `orm:"column(cantidad);type(integer)" json:"cantidad"`
 	PK_ID_SUBCATEGORIA int64          `orm:"column(pk_id_subcategoria)" json:"subcategoriaId"`
 }
@@ -30,7 +30,7 @@ type productoJSON struct {
 	DESCRIPCION      *string        `json:"descripcion,omitempty"`
 	PRECIO           int64          `json:"precio"`
 	ESTADO_PRODUCTO  EstadoProducto `json:"estadoProducto"`
-	IMAGEN           string         `json:"imagen,omitempty"`
+	IMAGEN           []byte         `json:"imagen,omitempty"`
 	CANTIDAD         int            `json:"cantidad"`
 	PKIDSubcategoria int64          `json:"subcategoriaId"`
 }
@@ -68,7 +68,7 @@ func (p *Producto) UnmarshalJSON(data []byte) error {
 }
 
 func init() {
-	if os.Getenv("SKIP_ORM_REGISTRATION") != "1" {
+	if os.Getenv("ENABLE_PRODUCTO_MODEL") == "1" {
 		orm.RegisterModel(new(Producto))
 	}
 }
