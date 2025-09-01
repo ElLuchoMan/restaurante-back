@@ -3,6 +3,8 @@ package models
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/beego/beego/v2/client/orm"
 )
 
 type HorarioTrabajador struct {
@@ -15,6 +17,10 @@ type HorarioTrabajador struct {
 
 func (h *HorarioTrabajador) TableName() string {
 	return "horario_trabajador"
+}
+
+func init() {
+	orm.RegisterModel(new(HorarioTrabajador))
 }
 
 func (h HorarioTrabajador) MarshalJSON() ([]byte, error) {
