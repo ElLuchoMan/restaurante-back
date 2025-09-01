@@ -1,6 +1,8 @@
 package models
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"os"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -20,6 +22,60 @@ type Producto struct {
 
 func (p *Producto) TableName() string {
 	return "producto"
+}
+
+type productoJSON struct {
+	PKIDProducto     int64          `json:"productoId"`
+	NOMBRE           string         `json:"nombre"`
+	CALORIAS         *int64         `json:"calorias"`
+	DESCRIPCION      string         `json:"descripcion"`
+	PRECIO           int64          `json:"precio"`
+	ESTADO_PRODUCTO  EstadoProducto `json:"estadoProducto"`
+	IMAGEN           string         `json:"imagen,omitempty"`
+	CANTIDAD         int            `json:"cantidad"`
+	PKIDSubcategoria int64          `json:"subcategoriaId"`
+}
+
+func (p Producto) MarshalJSON() ([]byte, error) {
+	pj := productoJSON{
+		PKIDProducto:     p.PK_ID_PRODUCTO,
+		NOMBRE:           p.NOMBRE,
+		CALORIAS:         p.CALORIAS,
+		DESCRIPCION:      p.DESCRIPCION,
+		PRECIO:           p.PRECIO,
+		ESTADO_PRODUCTO:  p.ESTADO_PRODUCTO,
+		CANTIDAD:         p.CANTIDAD,
+		PKIDSubcategoria: p.PK_ID_SUBCATEGORIA,
+	}
+	if len(p.IMAGEN) > 0 {
+		pj.IMAGEN = base64.StdEncoding.EncodeToString(p.IMAGEN)
+	}
+	return json.Marshal(pj)
+}
+
+func (p *Producto) UnmarshalJSON(data []byte) error {
+	var pj productoJSON
+	if err := json.Unmarshal(data, &pj); err != nil {
+		return err
+	}
+	p.PK_ID_PRODUCTO = pj.PKIDProducto
+	p.NOMBRE = pj.NOMBRE
+	p.CALORIAS = pj.CALORIAS
+	p.DESCRIPCION = pj.DESCRIPCION
+	p.PRECIO = pj.PRECIO
+	p.ESTADO_PRODUCTO = pj.ESTADO_PRODUCTO
+	if pj.IMAGEN != "" {
+		img, err := base64.StdEncoding.DecodeString(pj.IMAGEN)
+		if err != nil {
+			return err
+		}
+		p.IMAGEN = img
+	} else {
+		p.IMAGEN = nil
+	}
+	p.CANTIDAD = pj.CANTIDAD
+	p.PK_ID_SUBCATEGORIA = pj.PKIDSubcategoria
+	return nil
 }
 
 func init() {

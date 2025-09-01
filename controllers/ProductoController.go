@@ -1,8 +1,8 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"reflect"
 	"restaurante/models"
@@ -120,16 +120,9 @@ func (c *ProductoController) GetById() {
 // @Summary Crear un nuevo producto
 // @Description Crea un nuevo producto en la base de datos.
 // @Tags productos
-// @Accept multipart/form-data
+// @Accept json
 // @Produce json
-// @Param   NOMBRE        formData  string  true   "Nombre del producto"
-// @Param   CALORIAS      formData  int     false  "Calorías del producto"
-// @Param   DESCRIPCION   formData  string  false  "Descripción del producto"
-// @Param   ESTADO_PRODUCTO formData  string true   "Estado del producto"
-// @Param   PRECIO        formData  int     true   "Precio del producto"
-// @Param   IMAGEN        formData  file    false  "Imagen del producto (opcional)"
-// @Param   CANTIDAD      formData  int     false  "Cantidad del producto"
-// @Param   PK_ID_SUBCATEGORIA formData int true   "ID de la subcategoría del producto"
+// @Param   producto  body     models.Producto true "Producto con imagen Base64"
 // @Success 201 {object} models.Producto "Producto creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /productos [post]
@@ -137,75 +130,37 @@ func (c *ProductoController) Post() {
 	o := orm.NewOrm()
 	var producto models.Producto
 
-	// Validar campos obligatorios
-	producto.NOMBRE = c.GetString("NOMBRE")
-	producto.PK_ID_SUBCATEGORIA, _ = c.GetInt64("PK_ID_SUBCATEGORIA")
-	producto.ESTADO_PRODUCTO = c.GetString("ESTADO_PRODUCTO")
-	calorias, _ := c.GetInt64("CALORIAS")
-	producto.CALORIAS = &calorias
-	producto.DESCRIPCION = c.GetString("DESCRIPCION")
-	producto.PRECIO, _ = c.GetInt64("PRECIO")
-	producto.CANTIDAD, _ = c.GetInt("CANTIDAD")
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &producto); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
+		c.ServeJSON()
+		return
+	}
 
 	if err := validateProducto(&producto); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
-	// Manejar la imagen opcional
-	imagen, err := handleImageUpload(&c.Controller)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: err.Error(),
-		}
-		c.ServeJSON()
-		return
-	}
-	producto.IMAGEN = imagen
-
-	// Insertar en la base de datos
-	_, err = o.Insert(&producto)
-	if err != nil {
+	if _, err := o.Insert(&producto); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el producto",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear el producto", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
-	// Registrar historial de precios
-	hist := models.PrecioProductoHist{
-		PKIDProducto:  producto.PK_ID_PRODUCTO,
-		Precio:        producto.PRECIO,
-		FechaVigencia: time.Now(),
-	}
+	hist := models.PrecioProductoHist{PKIDProducto: producto.PK_ID_PRODUCTO, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 	if _, err := o.Insert(&hist); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al registrar historial de precios",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Producto creado correctamente",
-		Data:    producto,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Producto creado correctamente", Data: producto}
 	c.ServeJSON()
 }
 
@@ -213,32 +168,21 @@ func (c *ProductoController) Post() {
 // @Summary Actualizar un producto
 // @Description Actualiza los datos de un producto existente, incluyendo una imagen en formato Base64.
 // @Tags productos
-// @Accept multipart/form-data
+// @Accept json
 // @Produce json
-// @Param   id            query    int     true   "ID del Producto"
-// @Param   NOMBRE        formData  string  true   "Nombre del producto"
-// @Param   CALORIAS      formData  int     false   "Calorías del producto"
-// @Param   DESCRIPCION   formData  string  false  "Descripción del producto"
-// @Param   ESTADO_PRODUCTO formData  string    true   "Estado del producto"
-// @Param   PRECIO        formData  int     true   "Precio del producto"
-// @Param   IMAGEN        formData  file    false  "Imagen del producto (opcional)"
-// @Param   CANTIDAD        formData  int     false   "Cantidad del producto"
+// @Param   id        query   int              true  "ID del Producto"
+// @Param   producto  body    models.Producto true  "Datos del producto"
 // @Success 200 {object} models.Producto "Producto actualizado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos [put]
 func (c *ProductoController) Put() {
 	o := orm.NewOrm()
 
-	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente.",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente.", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
@@ -246,99 +190,64 @@ func (c *ProductoController) Put() {
 	producto := models.Producto{PK_ID_PRODUCTO: int64(id)}
 
 	if o.Read(&producto) == nil {
-		// Copiar los valores actuales para comparación
 		original := producto
 
-		// Actualizar los campos
-		producto.NOMBRE = c.GetString("NOMBRE")
-		calorias, _ := c.GetInt64("CALORIAS")
-		producto.CALORIAS = &calorias
-		producto.DESCRIPCION = c.GetString("DESCRIPCION")
-		producto.PRECIO, _ = c.GetInt64("PRECIO")
-		producto.ESTADO_PRODUCTO = c.GetString("ESTADO_PRODUCTO")
-		producto.CANTIDAD, _ = c.GetInt("CANTIDAD")
+		var input models.Producto
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
+			c.ServeJSON()
+			return
+		}
 
-		// Validar datos
+		producto.NOMBRE = input.NOMBRE
+		producto.CALORIAS = input.CALORIAS
+		producto.DESCRIPCION = input.DESCRIPCION
+		producto.PRECIO = input.PRECIO
+		producto.ESTADO_PRODUCTO = input.ESTADO_PRODUCTO
+		producto.CANTIDAD = input.CANTIDAD
+		producto.PK_ID_SUBCATEGORIA = input.PK_ID_SUBCATEGORIA
+		if len(input.IMAGEN) > 0 {
+			producto.IMAGEN = input.IMAGEN
+		}
+
 		if err := validateProducto(&producto); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()}
 			c.ServeJSON()
 			return
 		}
 
-		// Manejar imagen opcional
-		imagen, err := handleImageUpload(&c.Controller)
-		if err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-		if imagen != nil {
-			producto.IMAGEN = imagen
-		}
-
-		// Verificar si hubo cambios
 		if reflect.DeepEqual(producto, original) {
 			c.Ctx.Output.SetStatus(http.StatusNotModified)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotModified,
-				Message: "No se realizaron cambios en el producto",
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusNotModified, Message: "No se realizaron cambios en el producto"}
 			c.ServeJSON()
 			return
 		}
 
-		// Actualizar en base de datos
 		if _, err = o.Update(&producto); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al actualizar el producto.",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el producto.", Cause: err.Error()}
 			c.ServeJSON()
 			return
 		}
 
-		// Si cambió el precio, registrar nuevo historial
 		if producto.PRECIO != original.PRECIO {
-			hist := models.PrecioProductoHist{
-				PKIDProducto:  producto.PK_ID_PRODUCTO,
-				Precio:        producto.PRECIO,
-				FechaVigencia: time.Now(),
-			}
+			hist := models.PrecioProductoHist{PKIDProducto: producto.PK_ID_PRODUCTO, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 			if _, err := o.Insert(&hist); err != nil {
 				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-				c.Data["json"] = models.ApiResponse{
-					Code:    http.StatusInternalServerError,
-					Message: "Error al registrar historial de precios",
-					Cause:   err.Error(),
-				}
+				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
 				c.ServeJSON()
 				return
 			}
 		}
 
 		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Producto actualizado",
-			Data:    producto,
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Producto actualizado", Data: producto}
 		c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Producto no encontrado.",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Producto no encontrado."}
 		c.ServeJSON()
 	}
 
@@ -411,28 +320,6 @@ func (c *ProductoController) Delete() {
 		Message: "Producto desactivado correctamente.",
 	}
 	c.ServeJSON()
-}
-
-// Funciones auxiliares
-func handleImageUpload(c *web.Controller) ([]byte, error) {
-	file, fileHeader, err := c.GetFile("IMAGEN")
-	if err != nil {
-		if err == http.ErrMissingFile {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error al obtener la imagen: %v", err)
-	}
-	defer file.Close()
-
-	if fileHeader.Size > 1024*1024 {
-		return nil, fmt.Errorf("la imagen no debe superar los 1MB")
-	}
-
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("error al leer la imagen: %v", err)
-	}
-	return fileBytes, nil
 }
 
 func validateProducto(producto *models.Producto) error {
