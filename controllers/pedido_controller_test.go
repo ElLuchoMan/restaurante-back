@@ -111,6 +111,25 @@ func TestPedidoUpdateEstadoPedidoNotFound(t *testing.T) {
 	}
 }
 
+func TestPedidoUpdateEstadoPedidoInvalidEstado(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=foo", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := PedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.UpdateEstadoPedido()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Estado inválido") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
 func TestPedidoGetPedidoDetailsMissingID(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/pedidos/detalles", nil)
 	w := httptest.NewRecorder()
@@ -449,7 +468,7 @@ func TestPedidoUpdateEstadoPedidoSuccess(t *testing.T) {
 	}
 	defer func() { MockQuery = nil; MockExec = nil }()
 
-	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=terminado", nil)
+	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=cancelado", nil)
 	w := httptest.NewRecorder()
 	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)

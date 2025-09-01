@@ -297,6 +297,16 @@ func (c *PedidoController) UpdateEstadoPedido() {
 	pedidoID, _ := c.GetInt64("pedido_id")
 	estado := c.GetString("estado")
 
+	if estado != models.EstadoPedidoIniciado && estado != models.EstadoPedidoTerminado && estado != models.EstadoPedidoCancelado {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{
+			Code:    400,
+			Message: "Estado inválido",
+		}
+		c.ServeJSON()
+		return
+	}
+
 	o := orm.NewOrm()
 
 	// Buscar el pedido
