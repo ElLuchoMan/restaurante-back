@@ -38,6 +38,15 @@ func TestHorarioTrabajadorPostInvalidDia(t *testing.T) {
 	}
 }
 
+func TestHorarioTrabajadorPostInvalidHoras(t *testing.T) {
+	body := `{"documentoTrabajador":1,"dia":"LUNES","horaInicio":"10:00:00","horaFin":"09:00:00"}`
+	c, w := setupHTCtx(http.MethodPost, "/horario_trabajador", body)
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
 func TestHorarioTrabajadorPostSuccess(t *testing.T) {
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
@@ -67,6 +76,21 @@ func TestHorarioTrabajadorPutInvalidDia(t *testing.T) {
 	}
 }
 
+func TestHorarioTrabajadorPutInvalidHoras(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
+		vals := [][]driver.Value{{int64(1), "LUNES", time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 9, 0, 0, 0, time.UTC)}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	defer func() { MockQuery = nil }()
+	body := `{"horaFin":"07:00:00"}`
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
 func TestHorarioTrabajadorPutSuccess(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
@@ -78,7 +102,7 @@ func TestHorarioTrabajadorPutSuccess(t *testing.T) {
 	}
 	defer func() { MockExec = nil; MockQuery = nil }()
 
-	body := `{"horaFin":"18:00:00"}`
+	body := `{"horaInicio":"08:00:00","horaFin":"18:00:00"}`
 	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
 	c.Put()
 	if w.Code != http.StatusOK {

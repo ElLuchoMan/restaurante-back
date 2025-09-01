@@ -26,14 +26,14 @@ func TestTrabajadorMarshalJSON(t *testing.T) {
 		t.Fatalf("json.Unmarshal returned error: %v", err)
 	}
 
-	if data["fechanacimiento"] != "01-03-1990" {
-		t.Errorf("expected fechanacimiento 01-03-1990, got %v", data["fechanacimiento"])
+	if data["fechaNacimiento"] != "01-03-1990" {
+		t.Errorf("expected fechaNacimiento 01-03-1990, got %v", data["fechaNacimiento"])
 	}
-	if data["fechaingreso"] != "10-02-2023 09:15:30" {
-		t.Errorf("expected fechaingreso 10-02-2023 09:15:30, got %v", data["fechaingreso"])
+	if data["fechaIngreso"] != "10-02-2023 09:15:30" {
+		t.Errorf("expected fechaIngreso 10-02-2023 09:15:30, got %v", data["fechaIngreso"])
 	}
-	if data["fecharetiro"] != "05-04-2024 18:00:00" {
-		t.Errorf("expected fecharetiro 05-04-2024 18:00:00, got %v", data["fecharetiro"])
+	if data["fechaRetiro"] != "05-04-2024 18:00:00" {
+		t.Errorf("expected fechaRetiro 05-04-2024 18:00:00, got %v", data["fechaRetiro"])
 	}
 }
 
@@ -58,13 +58,13 @@ func TestTrabajadorMarshalJSONNil(t *testing.T) {
 		t.Fatalf("json.Unmarshal returned error: %v", err)
 	}
 
-	if _, ok := data["fechanacimiento"]; ok {
-		t.Errorf("expected fechanacimiento to be omitted")
+	if _, ok := data["fechaNacimiento"]; ok {
+		t.Errorf("expected fechaNacimiento to be omitted")
 	}
-	if data["fechaingreso"] != "10-02-2023 09:15:30" {
-		t.Errorf("expected fechaingreso 10-02-2023 09:15:30, got %v", data["fechaingreso"])
+	if data["fechaIngreso"] != "10-02-2023 09:15:30" {
+		t.Errorf("expected fechaIngreso 10-02-2023 09:15:30, got %v", data["fechaIngreso"])
 	}
-	if _, ok := data["fecharetiro"]; ok {
-		t.Errorf("expected fecharetiro to be omitted")
+	if _, ok := data["fechaRetiro"]; ok {
+		t.Errorf("expected fechaRetiro to be omitted")
 	}
 }

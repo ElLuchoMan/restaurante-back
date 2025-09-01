@@ -20,8 +20,8 @@ func TestCambiosHorarioMarshalJSON(t *testing.T) {
 		t.Fatalf("json.Unmarshal returned error: %v", err)
 	}
 
-	if data["fechacambiohorario"] != "02-01-2024" {
-		t.Errorf("expected fechacambiohorario 02-01-2024, got %v", data["fechacambiohorario"])
+	if data["fechaCambioHorario"] != "02-01-2024" {
+		t.Errorf("expected fechaCambioHorario 02-01-2024, got %v", data["fechaCambioHorario"])
 	}
 }
 

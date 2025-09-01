@@ -356,11 +356,8 @@ func (c *DomicilioController) Post() {
 		}
 		domicilio.ESTADO_DOMICILIO = estado
 	}
-	if entregado, ok := input["entregado"].(bool); ok {
-		domicilio.ENTREGADO = entregado
-	}
 	if observaciones, ok := input["observaciones"].(string); ok {
-		domicilio.OBSERVACIONES = observaciones
+		domicilio.OBSERVACIONES = &observaciones
 	}
 	if createdBy, ok := input["createdBy"].(string); ok {
 		domicilio.CREATED_BY = &createdBy
@@ -467,9 +464,6 @@ func (c *DomicilioController) Put() {
 			return
 		}
 		domicilio.ESTADO_DOMICILIO = estado
-	}
-	if entregado, ok := input["entregado"].(bool); ok {
-		domicilio.ENTREGADO = entregado
 	}
 	if updatedBy, ok := input["updatedBy"].(string); ok {
 		domicilio.UPDATED_BY = &updatedBy

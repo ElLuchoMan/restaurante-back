@@ -7,8 +7,8 @@ type NominaTrabajador struct {
 	SUELDO_BASE             int64   `orm:"column(sueldo_base)" json:"sueldoBase"`
 	MONTO_INCIDENCIAS       *int64  `orm:"column(monto_incidencias);null" json:"montoIncidencias,omitempty"`
 	DETALLES                *string `orm:"column(detalles);type(text);null" json:"detalles,omitempty"`
-	PK_DOCUMENTO_TRABAJADOR int64   `orm:"column(pk_documento_trabajador)" json:"documentoTrabajador"`
-	PK_ID_NOMINA            int64   `orm:"column(pk_id_nomina)" json:"nominaId"`
+	PK_DOCUMENTO_TRABAJADOR int64   `orm:"column(pk_documento_trabajador);unique(trabajador_nomina)" json:"documentoTrabajador"`
+	PK_ID_NOMINA            int64   `orm:"column(pk_id_nomina);unique(trabajador_nomina)" json:"nominaId"`
 }
 
 type NominaTrabajadorRequest struct {

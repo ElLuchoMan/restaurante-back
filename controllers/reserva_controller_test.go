@@ -731,7 +731,7 @@ func TestReservaDeleteScenarios(t *testing.T) {
 
 func TestReservaPutInvalidEstadoIgnored(t *testing.T) {
 	pend := models.EstadoReservaPendiente
-	db := map[int64]models.Reserva{1: {PK_ID_RESERVA: int64(1), ESTADO_RESERVA: &pend}}
+	db := map[int64]models.Reserva{1: {PK_ID_RESERVA: int64(1), ESTADO_RESERVA: pend}}
 	ormNew = func() orm.Ormer { return nil }
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		if res, ok := db[r.PK_ID_RESERVA]; ok {
@@ -770,7 +770,7 @@ func TestReservaPutInvalidEstadoIgnored(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
-	if updated.ESTADO_RESERVA == nil || *updated.ESTADO_RESERVA != pend {
+	if updated.ESTADO_RESERVA != pend {
 		t.Fatalf("estado should remain %s, got %v", pend, updated.ESTADO_RESERVA)
 	}
 }
