@@ -360,7 +360,7 @@ func (c *DomicilioController) Post() {
 		domicilio.ENTREGADO = entregado
 	}
 	if observaciones, ok := input["observaciones"].(string); ok {
-		domicilio.OBSERVACIONES = observaciones
+		domicilio.OBSERVACIONES = &observaciones
 	}
 	if createdBy, ok := input["createdBy"].(string); ok {
 		domicilio.CREATED_BY = &createdBy
@@ -562,7 +562,7 @@ func (c *DomicilioController) Delete() {
 // @Router /domicilios/asignar [post]
 func (c *DomicilioController) AsignarDomiciliario() {
 	domicilioID, _ := c.GetInt64("domicilio_id")
-	trabajadorID, _ := c.GetInt("trabajador_id")
+	trabajadorID, _ := c.GetInt64("trabajador_id")
 
 	o := orm.NewOrm()
 
