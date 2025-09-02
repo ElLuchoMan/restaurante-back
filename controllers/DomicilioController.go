@@ -190,8 +190,8 @@ SELECT
   pa.pk_id_pago  AS pago_id,
   pa.monto::numeric AS pago_monto,
   (
-    SELECT COALESCE(SUM(d.subtotal), 0)
-    FROM producto_pedido_detalle d
+    SELECT COALESCE(SUM(d.cantidad * d.precio), 0)
+    FROM detalle_pedido d
     WHERE d.pk_id_pedido = p.pk_id_pedido
   ) AS subtotal_productos,
   (
@@ -199,10 +199,10 @@ SELECT
       'pk_id_producto', d.pk_id_producto,
       'nombre', pr.nombre,
       'cantidad', d.cantidad,
-      'precio_unitario', d.precio_unitario,
-      'subtotal', d.subtotal
+      'precio', d.precio,
+      'subtotal', d.cantidad * d.precio
     )), '[]'::jsonb)::text
-    FROM producto_pedido_detalle d
+    FROM detalle_pedido d
     JOIN producto pr ON pr.pk_id_producto = d.pk_id_producto
     WHERE d.pk_id_pedido = p.pk_id_pedido
   ) AS productos
