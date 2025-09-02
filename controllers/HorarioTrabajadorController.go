@@ -128,7 +128,7 @@ func (c *HorarioTrabajadorController) Post() {
 	}
 
 	horario := models.HorarioTrabajador{
-		PK_DOCUMENTO_TRABAJADOR: &input.PK_DOCUMENTO_TRABAJADOR,
+		PK_DOCUMENTO_TRABAJADOR: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR},
 		DIA:                     dia,
 		HORA_INICIO:             horaInicio,
 		HORA_FIN:                horaFin,
@@ -144,7 +144,7 @@ func (c *HorarioTrabajadorController) Post() {
 	o := orm.NewOrm()
 	if _, err := o.Raw(
 		"INSERT INTO horario_trabajador (pk_documento_trabajador, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)",
-		horario.PK_DOCUMENTO_TRABAJADOR, horario.DIA, horario.HORA_INICIO, horario.HORA_FIN,
+		horario.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR, horario.DIA, horario.HORA_INICIO, horario.HORA_FIN,
 	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{

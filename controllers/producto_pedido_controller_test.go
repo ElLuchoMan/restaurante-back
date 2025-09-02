@@ -255,8 +255,8 @@ func TestProductoPedidoGetAllSuccess(t *testing.T) {
 					*detalles = append(
 						*detalles,
 						models.DetallePedido{
-							PKIDPedido:   &pedidoID,
-							PKIDProducto: &productoID,
+							PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pedidoID},
+							PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID},
 							Cantidad:     1,
 							Precio:       1000,
 						},
@@ -303,8 +303,8 @@ func TestProductoPedidoPostSuccess(t *testing.T) {
 						pedidoID := int64(1)
 						productoID := int64(1)
 						*d = models.DetallePedido{
-							PKIDPedido:   &pedidoID,
-							PKIDProducto: &productoID,
+							PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pedidoID},
+							PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID},
 							Cantidad:     1,
 							Precio:       1000,
 						}
@@ -355,8 +355,8 @@ func TestProductoPedidoUpdateSuccess(t *testing.T) {
 						pedidoID := int64(1)
 						productoID := int64(1)
 						*d = models.DetallePedido{
-							PKIDPedido:   &pedidoID,
-							PKIDProducto: &productoID,
+							PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pedidoID},
+							PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID},
 							Cantidad:     1,
 							Precio:       1000,
 						}

@@ -52,8 +52,8 @@ func TestDetallePedidoPrecioAuto(t *testing.T) {
 	pedidoID := int64(1)
 	productoID := int64(1)
 	detalle := DetallePedido{
-		PKIDPedido:   &pedidoID,
-		PKIDProducto: &productoID,
+		PKIDPedido:   &Pedido{PK_ID_PEDIDO: pedidoID},
+		PKIDProducto: &Producto{PK_ID_PRODUCTO: productoID},
 		Cantidad:     1,
 	}
 	if _, err := o.Insert(&detalle); err != nil {

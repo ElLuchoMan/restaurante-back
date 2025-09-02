@@ -47,8 +47,8 @@ func TestDetallePedidoTriggerOnInsert(t *testing.T) {
 	pid := int64(9999)
 	prodID := prod.PK_ID_PRODUCTO
 	det := models.DetallePedido{
-		PKIDPedido:   &pid,
-		PKIDProducto: &prodID,
+		PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pid},
+		PKIDProducto: &models.Producto{PK_ID_PRODUCTO: prodID},
 		Cantidad:     1,
 	}
 	if _, err := o.Insert(&det); err != nil {

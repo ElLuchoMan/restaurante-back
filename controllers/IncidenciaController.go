@@ -238,7 +238,7 @@ func (c *IncidenciaController) Post() {
 	// Procesar documentoTrabajador (obligatorio)
 	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
 		doc := int64(documento)
-		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
+		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -264,12 +264,17 @@ func (c *IncidenciaController) Post() {
 
 	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
-		"incidenciaId":        incidencia.PK_ID_INCIDENCIA,
-		"fechaIncidencia":     incidencia.FECHA.Format("2006-01-02"),
-		"monto":               incidencia.MONTO,
-		"resta":               incidencia.RESTA,
-		"motivo":              incidencia.MOTIVO,
-		"documentoTrabajador": incidencia.PK_DOCUMENTO_TRABAJADOR,
+		"incidenciaId":    incidencia.PK_ID_INCIDENCIA,
+		"fechaIncidencia": incidencia.FECHA.Format("2006-01-02"),
+		"monto":           incidencia.MONTO,
+		"resta":           incidencia.RESTA,
+		"motivo":          incidencia.MOTIVO,
+		"documentoTrabajador": func() int64 {
+			if incidencia.PK_DOCUMENTO_TRABAJADOR != nil {
+				return incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
+			}
+			return 0
+		}(),
 	}
 
 	// Responder con éxito
@@ -367,7 +372,7 @@ func (c *IncidenciaController) Put() {
 
 	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
 		doc := int64(documento)
-		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
+		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
 	}
 
 	// Guardar los cambios en la base de datos
@@ -384,12 +389,17 @@ func (c *IncidenciaController) Put() {
 
 	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
-		"incidenciaId":        incidencia.PK_ID_INCIDENCIA,
-		"fechaIncidencia":     incidencia.FECHA.Format("2006-01-02"),
-		"monto":               incidencia.MONTO,
-		"resta":               incidencia.RESTA,
-		"motivo":              incidencia.MOTIVO,
-		"documentoTrabajador": incidencia.PK_DOCUMENTO_TRABAJADOR,
+		"incidenciaId":    incidencia.PK_ID_INCIDENCIA,
+		"fechaIncidencia": incidencia.FECHA.Format("2006-01-02"),
+		"monto":           incidencia.MONTO,
+		"resta":           incidencia.RESTA,
+		"motivo":          incidencia.MOTIVO,
+		"documentoTrabajador": func() int64 {
+			if incidencia.PK_DOCUMENTO_TRABAJADOR != nil {
+				return incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
+			}
+			return 0
+		}(),
 	}
 
 	// Responder con éxito

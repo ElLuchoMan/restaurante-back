@@ -600,7 +600,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 	}
 
 	// Asignar el domiciliario
-	domicilio.PK_DOCUMENTO_TRABAJADOR = &trabajadorID
+	domicilio.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: trabajadorID}
 
 	if _, err := o.Update(&domicilio, "PK_DOCUMENTO_TRABAJADOR"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)

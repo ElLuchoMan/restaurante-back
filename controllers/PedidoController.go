@@ -173,7 +173,7 @@ func (c *PedidoController) Post() {
 		pedido.DELIVERY = false
 	}
 	if in.PKIDDomicilio != nil {
-		pedido.PK_ID_DOMICILIO = in.PKIDDomicilio
+		pedido.PK_ID_DOMICILIO = &models.Domicilio{PK_ID_DOMICILIO: *in.PKIDDomicilio}
 	}
 	if in.RestauranteId == 0 {
 		c.Ctx.Output.SetStatus(400)
@@ -181,7 +181,7 @@ func (c *PedidoController) Post() {
 		c.ServeJSON()
 		return
 	}
-	pedido.PK_ID_RESTAURANTE = &in.RestauranteId
+	pedido.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: in.RestauranteId}
 
 	if pedido.DELIVERY && pedido.PK_ID_DOMICILIO == nil {
 		c.Ctx.Output.SetStatus(400)
@@ -242,7 +242,7 @@ func (c *PedidoController) AssignDomicilio() {
 	}
 
 	// Sólo actualizamos la FK al domicilio (por contrato actual)
-	pedido.PK_ID_DOMICILIO = &domicilioID
+	pedido.PK_ID_DOMICILIO = &models.Domicilio{PK_ID_DOMICILIO: domicilioID}
 	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar domicilio", Cause: err.Error()}
@@ -282,7 +282,7 @@ func (c *PedidoController) AssignPago() {
 	}
 
 	// Actualizamos la FK al pago y marcamos la orden como terminada
-	pedido.PK_ID_PAGO = &pagoID
+	pedido.PK_ID_PAGO = &models.Pago{PK_ID_PAGO: pagoID}
 	pedido.ESTADO_PEDIDO = models.EstadoPedidoTerminado
 	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
 		c.Ctx.Output.SetStatus(500)

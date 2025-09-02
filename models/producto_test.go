@@ -24,7 +24,7 @@ func TestProductoImagenFieldType(t *testing.T) {
 
 func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 	calorias := int64(100)
-	img := []byte("hello")
+	img := "hello"
 	p := Producto{
 		PK_ID_PRODUCTO:     1,
 		NOMBRE:             "Test",
@@ -34,7 +34,7 @@ func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 		ESTADO_PRODUCTO:    EstadoProductoDisponible,
 		IMAGEN:             img,
 		CANTIDAD:           2,
-		PK_ID_SUBCATEGORIA: 3,
+		PK_ID_SUBCATEGORIA: &Subcategoria{PK_ID_SUBCATEGORIA: 3},
 	}
 	data, err := json.Marshal(p)
 	if err != nil {
