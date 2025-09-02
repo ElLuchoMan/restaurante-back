@@ -59,7 +59,7 @@ func (c *ProductoController) GetAll() {
 	// Manejar imágenes según el parámetro includeImage
 	for i := range productos {
 		if !includeImage {
-			productos[i].IMAGEN = nil
+			productos[i].IMAGEN = ""
 		}
 	}
 
@@ -154,7 +154,7 @@ func (c *ProductoController) Post() {
 		return
 	}
 
-	hist := models.PrecioProductoHist{PKIDProducto: producto.PK_ID_PRODUCTO, Precio: producto.PRECIO, FechaVigencia: time.Now()}
+	hist := models.PrecioProductoHist{PKIDProducto: &producto.PK_ID_PRODUCTO, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 	if _, err := o.Insert(&hist); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
@@ -236,7 +236,7 @@ func (c *ProductoController) Put() {
 		}
 
 		if producto.PRECIO != original.PRECIO {
-			hist := models.PrecioProductoHist{PKIDProducto: producto.PK_ID_PRODUCTO, Precio: producto.PRECIO, FechaVigencia: time.Now()}
+			hist := models.PrecioProductoHist{PKIDProducto: &producto.PK_ID_PRODUCTO, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 			if _, err := o.Insert(&hist); err != nil {
 				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}

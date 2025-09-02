@@ -128,7 +128,7 @@ func (c *HorarioTrabajadorController) Post() {
 	}
 
 	horario := models.HorarioTrabajador{
-		PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR,
+		PK_DOCUMENTO_TRABAJADOR: &input.PK_DOCUMENTO_TRABAJADOR,
 		DIA:                     dia,
 		HORA_INICIO:             horaInicio,
 		HORA_FIN:                horaFin,

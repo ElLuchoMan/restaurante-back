@@ -14,6 +14,10 @@
             "title": "map[string]interface{}",
             "type": "object"
         },
+        "map[string]string": {
+            "title": "map[string]string",
+            "type": "object"
+        },
         "models.ApiResponse": {
             "title": "ApiResponse",
             "type": "object",
@@ -97,6 +101,20 @@
                 }
             }
         },
+        "models.DiaSemana": {
+            "title": "DiaSemana",
+            "type": "string",
+            "enum": [
+                "DiaLunes = \"LUNES\"",
+                "DiaMartes = \"MARTES\"",
+                "DiaMiercoles = \"MIERCOLES\"",
+                "DiaJueves = \"JUEVES\"",
+                "DiaViernes = \"VIERNES\"",
+                "DiaSabado = \"SABADO\"",
+                "DiaDomingo = \"DOMINGO\""
+            ],
+            "example": "LUNES"
+        },
         "models.Domicilio": {
             "title": "Domicilio",
             "type": "object",
@@ -118,6 +136,9 @@
                 "entregado": {
                     "type": "boolean"
                 },
+                "estado": {
+                    "$ref": "#/definitions/models.EstadoDomicilio"
+                },
                 "fechaDomicilio": {
                     "type": "string",
                     "format": "datetime"
@@ -138,6 +159,90 @@
                 },
                 "updatedBy": {
                     "type": "string"
+                }
+            }
+        },
+        "models.EstadoDomicilio": {
+            "title": "EstadoDomicilio",
+            "type": "string",
+            "enum": [
+                "EstadoDomicilioPendiente = \"PENDIENTE\"",
+                "EstadoDomicilioEnCamino = \"EN_CAMINO\"",
+                "EstadoDomicilioEntregado = \"ENTREGADO\""
+            ],
+            "example": "PENDIENTE"
+        },
+        "models.EstadoNomina": {
+            "title": "EstadoNomina",
+            "type": "string",
+            "enum": [
+                "EstadoNominaPago = \"PAGO\"",
+                "EstadoNominaNoPago = \"NO_PAGO\""
+            ],
+            "example": "PAGO"
+        },
+        "models.EstadoPago": {
+            "title": "EstadoPago",
+            "type": "string",
+            "enum": [
+                "EstadoPagoPagado = \"PAGADO\"",
+                "EstadoPagoPendiente = \"PENDIENTE\"",
+                "EstadoPagoNoPago = \"NO_PAGO\""
+            ],
+            "example": "PAGADO"
+        },
+        "models.EstadoPedido": {
+            "title": "EstadoPedido",
+            "type": "string",
+            "enum": [
+                "EstadoPedidoIniciado = \"INICIADO\"",
+                "EstadoPedidoTerminado = \"TERMINADO\"",
+                "EstadoPedidoCancelado = \"CANCELADO\""
+            ],
+            "example": "INICIADO"
+        },
+        "models.EstadoProducto": {
+            "title": "EstadoProducto",
+            "type": "string",
+            "enum": [
+                "EstadoProductoDisponible = \"DISPONIBLE\"",
+                "EstadoProductoNoDisponible = \"NO_DISPONIBLE\""
+            ],
+            "example": "DISPONIBLE"
+        },
+        "models.EstadoReserva": {
+            "title": "EstadoReserva",
+            "type": "string",
+            "enum": [
+                "EstadoReservaPendiente = \"PENDIENTE\"",
+                "EstadoReservaConfirmada = \"CONFIRMADA\"",
+                "EstadoReservaCancelada = \"CANCELADA\"",
+                "EstadoReservaCumplida = \"CUMPLIDA\""
+            ],
+            "example": "PENDIENTE"
+        },
+        "models.HorarioTrabajador": {
+            "title": "HorarioTrabajador",
+            "type": "object",
+            "properties": {
+                "dia": {
+                    "$ref": "#/definitions/models.DiaSemana"
+                },
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "horaFin": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "horaInicio": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "horarioTrabajadorId": {
+                    "type": "integer",
+                    "format": "int64"
                 }
             }
         },
@@ -203,7 +308,7 @@
             "type": "object",
             "properties": {
                 "estadoNomina": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoNomina"
                 },
                 "fechaNomina": {
                     "type": "string",
@@ -223,22 +328,26 @@
             "title": "NominaTrabajador",
             "type": "object",
             "properties": {
-                "DETALLES": {
+                "detalles": {
                     "type": "string"
                 },
-                "MONTO_INCIDENCIAS": {
+                "documentoTrabajador": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
+                "montoIncidencias": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "PK_ID_NOMINA": {
+                "nominaId": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "SUELDO_BASE": {
+                "nominaTrabajadorId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "sueldoBase": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -248,11 +357,11 @@
             "title": "NominaTrabajadorRequest",
             "type": "object",
             "properties": {
-                "DETALLES": {
+                "detalles": {
                     "type": "string",
                     "example": "Pago correspondiente al mes de enero"
                 },
-                "PK_DOCUMENTO_TRABAJADOR": {
+                "documentoTrabajador": {
                     "type": "integer",
                     "example": 1015466494,
                     "format": "int64"
@@ -263,23 +372,23 @@
             "title": "NominaTrabajadorResponse",
             "type": "object",
             "properties": {
-                "DETALLES": {
+                "detalles": {
                     "type": "string",
                     "example": "Pago correspondiente al mes de enero"
                 },
-                "MONTO_INCIDENCIAS": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 1015466494,
+                    "format": "int64"
+                },
+                "montoIncidencias": {
                     "type": "integer",
                     "example": 50000,
                     "format": "int64"
                 },
-                "SUELDO_BASE": {
+                "sueldoBase": {
                     "type": "integer",
                     "example": 2000000,
-                    "format": "int64"
-                },
-                "PK_DOCUMENTO_TRABAJADOR": {
-                    "type": "integer",
-                    "example": 1015466494,
                     "format": "int64"
                 }
             }
@@ -289,14 +398,15 @@
             "type": "object",
             "properties": {
                 "estadoPago": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoPago"
                 },
                 "fechaPago": {
                     "type": "string",
                     "format": "datetime"
                 },
                 "horaPago": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "datetime"
                 },
                 "metodoPagoId": {
                     "type": "integer",
@@ -326,19 +436,24 @@
                 "delivery": {
                     "type": "boolean"
                 },
+                "documentoCliente": {
+                    "type": "integer",
+                    "format": "int64"
+                },
                 "domicilioId": {
                     "type": "integer",
                     "format": "int64"
                 },
                 "estadoPedido": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoPedido"
                 },
                 "fechaPedido": {
                     "type": "string",
                     "format": "datetime"
                 },
                 "horaPedido": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "datetime"
                 },
                 "pagoId": {
                     "type": "integer",
@@ -361,24 +476,6 @@
                 }
             }
         },
-        "models.PedidoCliente": {
-            "title": "PedidoCliente",
-            "type": "object",
-            "properties": {
-                "documentoCliente": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "pedidoClienteId": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "pedidoId": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
         "models.Producto": {
             "title": "Producto",
             "type": "object",
@@ -391,14 +488,11 @@
                     "type": "integer",
                     "format": "int64"
                 },
-                "categoria": {
-                    "type": "string"
-                },
                 "descripcion": {
                     "type": "string"
                 },
                 "estadoProducto": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoProducto"
                 },
                 "imagen": {
                     "type": "string"
@@ -414,25 +508,8 @@
                     "type": "integer",
                     "format": "int64"
                 },
-                "subcategoria": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ProductoPedido": {
-            "title": "ProductoPedido",
-            "type": "object",
-            "properties": {
-                "detallesProductos": {
-                    "type": "string"
-                },
-                "pedidoId": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "productoPedidoId": {
-                    "type": "integer",
-                    "format": "int64"
+                "subcategoriaId": {
+                    "$ref": "#/definitions/models.Subcategoria"
                 }
             }
         },
@@ -440,6 +517,10 @@
             "title": "Reserva",
             "type": "object",
             "properties": {
+                "contactoId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
                 "createdAt": {
                     "type": "string",
                     "format": "datetime"
@@ -447,24 +528,18 @@
                 "createdBy": {
                     "type": "string"
                 },
-                "documentoCliente": {
-                    "type": "integer",
-                    "format": "int64"
-                },
                 "estadoReserva": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoReserva"
                 },
                 "fechaReserva": {
                     "type": "string",
                     "format": "datetime"
                 },
                 "horaReserva": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "datetime"
                 },
                 "indicaciones": {
-                    "type": "string"
-                },
-                "nombreCompleto": {
                     "type": "string"
                 },
                 "personas": {
@@ -475,8 +550,9 @@
                     "type": "integer",
                     "format": "int64"
                 },
-                "telefono": {
-                    "type": "string"
+                "restauranteId": {
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "updatedAt": {
                     "type": "string",
@@ -491,14 +567,47 @@
             "title": "Restaurante",
             "type": "object",
             "properties": {
+                "cambioHorarioId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
                 "horaApertura": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "datetime"
                 },
                 "nombreRestaurante": {
                     "type": "string"
                 },
                 "restauranteId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "models.RolTrabajador": {
+            "title": "RolTrabajador",
+            "type": "string",
+            "enum": [
+                "RolAdministrador = \"Administrador\"",
+                "RolMesero = \"Mesero\"",
+                "RolCocinero = \"Cocinero\"",
+                "RolDomiciliario = \"Domiciliario\"",
+                "RolOficiosVarios = \"Oficios_varios\""
+            ],
+            "example": "Administrador"
+        },
+        "models.Subcategoria": {
+            "title": "Subcategoria",
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "subcategoriaId": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -527,8 +636,11 @@
                     "type": "string",
                     "format": "datetime"
                 },
-                "horario": {
-                    "type": "string"
+                "horarios": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.HorarioTrabajador"
+                    }
                 },
                 "nombre": {
                     "type": "string"
@@ -544,7 +656,7 @@
                     "format": "int64"
                 },
                 "rol": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.RolTrabajador"
                 },
                 "sueldo": {
                     "type": "integer",

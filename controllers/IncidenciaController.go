@@ -237,7 +237,8 @@ func (c *IncidenciaController) Post() {
 
 	// Procesar documentoTrabajador (obligatorio)
 	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
-		incidencia.PK_DOCUMENTO_TRABAJADOR = int64(documento)
+		doc := int64(documento)
+		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -365,7 +366,8 @@ func (c *IncidenciaController) Put() {
 	}
 
 	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
-		incidencia.PK_DOCUMENTO_TRABAJADOR = int64(documento)
+		doc := int64(documento)
+		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
 	}
 
 	// Guardar los cambios en la base de datos

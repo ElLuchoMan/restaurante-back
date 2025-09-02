@@ -181,7 +181,7 @@ func (c *PedidoController) Post() {
 		c.ServeJSON()
 		return
 	}
-	pedido.PK_ID_RESTAURANTE = in.RestauranteId
+	pedido.PK_ID_RESTAURANTE = &in.RestauranteId
 
 	if pedido.DELIVERY && pedido.PK_ID_DOMICILIO == nil {
 		c.Ctx.Output.SetStatus(400)

@@ -15,9 +15,9 @@ type Producto struct {
 	DESCRIPCION        *string        `orm:"column(descripcion);type(text);null" json:"descripcion,omitempty"`
 	PRECIO             int64          `orm:"column(precio);type(bigint)" json:"precio"`
 	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(estado_producto)" json:"estadoProducto"`
-	IMAGEN             []byte         `orm:"column(imagen);null" json:"imagen"`
+	IMAGEN             string         `orm:"column(imagen);null" json:"imagen"`
 	CANTIDAD           int            `orm:"column(cantidad);type(integer)" json:"cantidad"`
-	PK_ID_SUBCATEGORIA int64          `orm:"column(pk_id_subcategoria);rel(fk)" json:"subcategoriaId"`
+	PK_ID_SUBCATEGORIA *Subcategoria  `orm:"column(pk_id_subcategoria);rel(fk)" json:"subcategoriaId"`
 }
 
 func (p *Producto) TableName() string {
@@ -38,15 +38,20 @@ type productoJSON struct {
 
 func (p Producto) MarshalJSON() ([]byte, error) {
 	pj := productoJSON{
-		PKIDProducto:     p.PK_ID_PRODUCTO,
-		NOMBRE:           p.NOMBRE,
-		CALORIAS:         p.CALORIAS,
-		DESCRIPCION:      p.DESCRIPCION,
-		PRECIO:           p.PRECIO,
-		ESTADO_PRODUCTO:  p.ESTADO_PRODUCTO,
-		IMAGEN:           base64.StdEncoding.EncodeToString(p.IMAGEN),
-		CANTIDAD:         p.CANTIDAD,
-		PKIDSubcategoria: p.PK_ID_SUBCATEGORIA,
+		PKIDProducto:    p.PK_ID_PRODUCTO,
+		NOMBRE:          p.NOMBRE,
+		CALORIAS:        p.CALORIAS,
+		DESCRIPCION:     p.DESCRIPCION,
+		PRECIO:          p.PRECIO,
+		ESTADO_PRODUCTO: p.ESTADO_PRODUCTO,
+		IMAGEN:          base64.StdEncoding.EncodeToString([]byte(p.IMAGEN)),
+		CANTIDAD:        p.CANTIDAD,
+		PKIDSubcategoria: func() int64 {
+			if p.PK_ID_SUBCATEGORIA != nil {
+				return p.PK_ID_SUBCATEGORIA.PK_ID_SUBCATEGORIA
+			}
+			return 0
+		}(),
 	}
 	return json.Marshal(pj)
 }
@@ -64,15 +69,19 @@ func (p *Producto) UnmarshalJSON(data []byte) error {
 	p.ESTADO_PRODUCTO = pj.ESTADO_PRODUCTO
 	if pj.IMAGEN != "" {
 		if img, err := base64.StdEncoding.DecodeString(pj.IMAGEN); err == nil {
-			p.IMAGEN = img
+			p.IMAGEN = string(img)
 		} else {
 			return err
 		}
 	} else {
-		p.IMAGEN = nil
+		p.IMAGEN = ""
 	}
 	p.CANTIDAD = pj.CANTIDAD
-	p.PK_ID_SUBCATEGORIA = pj.PKIDSubcategoria
+	if pj.PKIDSubcategoria != 0 {
+		p.PK_ID_SUBCATEGORIA = &Subcategoria{PK_ID_SUBCATEGORIA: pj.PKIDSubcategoria}
+	} else {
+		p.PK_ID_SUBCATEGORIA = nil
+	}
 	return nil
 }
 

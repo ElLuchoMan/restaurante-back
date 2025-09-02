@@ -210,13 +210,6 @@ const docTemplate = `{
                 "summary": "Consultar cambios de horario para la fecha actual",
                 "responses": {
                     "200": {
-                        "description": "Cambio de horario para la fecha actual",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
                         "description": "No hay cambios de horario para la fecha actual",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
@@ -509,6 +502,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Filtrar por estado del domicilio",
+                        "name": "estado",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Filtrar por usuario que realizó la última actualización",
                         "name": "updated_by",
                         "in": "query"
@@ -544,7 +543,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de un domicilio existente.",
+                "description": "Actualiza los datos de un domicilio existente. El campo 'entregado' es calculado automáticamente.",
                 "consumes": [
                     "application/json"
                 ],
@@ -594,7 +593,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo domicilio en la base de datos.",
+                "description": "Crea un nuevo domicilio en la base de datos. El campo 'entregado' es generado automáticamente y no debe enviarse en la solicitud.",
                 "consumes": [
                     "application/json"
                 ],
@@ -768,6 +767,238 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/horario_trabajador": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista los horarios, opcionalmente filtrados por documento del trabajador.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "horarios_trabajador"
+                ],
+                "summary": "Obtener horarios de trabajadores",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del trabajador",
+                        "name": "documento",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Día a filtrar",
+                        "name": "dia",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de horarios",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.HorarioTrabajador"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualiza las horas de inicio o fin para un trabajador y día específico.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "horarios_trabajador"
+                ],
+                "summary": "Actualizar horario de trabajador",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del trabajador",
+                        "name": "documento",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Día del horario",
+                        "name": "dia",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Horas a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Horario actualizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Horario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea un registro de horario para un trabajador.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "horarios_trabajador"
+                ],
+                "summary": "Crear horario para trabajador",
+                "parameters": [
+                    {
+                        "description": "Datos del horario",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.HorarioTrabajador"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Horario creado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina un horario de un trabajador y día específico.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "horarios_trabajador"
+                ],
+                "summary": "Eliminar horario de trabajador",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del trabajador",
+                        "name": "documento",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Día del horario",
+                        "name": "dia",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Horario eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetros inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Horario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1688,7 +1919,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Marca una nómina como \"NO PAGO\" en lugar de eliminarla físicamente.",
+                "description": "Marca una nómina como \"NO_PAGO\" en lugar de eliminarla físicamente.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1769,7 +2000,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filtrar por estado del pago (PAGADO, PENDIENTE, NO PAGO)",
+                        "description": "Filtrar por estado del pago (PAGADO, PENDIENTE, NO_PAGO)",
                         "name": "estado",
                         "in": "query"
                     },
@@ -1976,98 +2207,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/pedido_clientes": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve todas las relaciones entre pedidos y clientes.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "pedido_clientes"
-                ],
-                "summary": "Obtener todas las relaciones pedido-cliente",
-                "responses": {
-                    "200": {
-                        "description": "Lista de relaciones",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.PedidoCliente"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Error interno del servidor",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Crea una nueva relación entre un pedido y un cliente después de validar su existencia y evitar duplicados.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "pedido_clientes"
-                ],
-                "summary": "Crear una nueva relación pedido-cliente",
-                "parameters": [
-                    {
-                        "description": "Datos de la relación a crear",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.PedidoCliente"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Relación creada",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Datos inválidos o relación ya existente",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Cliente o pedido no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Error interno del servidor",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/pedidos": {
             "get": {
                 "security": [
@@ -2119,7 +2258,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "ID del cliente (documento_cliente)",
+                        "description": "ID del cliente (PK_DOCUMENTO_CLIENTE)",
                         "name": "cliente",
                         "in": "query"
                     },
@@ -2297,7 +2436,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un domicilio existente a un pedido (sólo setea id_domicilio).",
+                "description": "Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2510,7 +2649,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Permite agregar o modificar productos en un pedido consolidado. Los precios se establecen automáticamente en la base de datos, por lo que los detalles no deben enviar el campo 'precio'.",
+                "description": "Permite agregar o modificar productos en un pedido consolidado",
                 "consumes": [
                     "application/json"
                 ],
@@ -2576,7 +2715,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un registro de productos consolidados en un pedido. Los precios de cada producto se calculan mediante un trigger en la base de datos; no incluir el campo 'precio' en los detalles.",
+                "description": "Crea un registro de productos consolidados en un pedido",
                 "consumes": [
                     "application/json"
                 ],
@@ -2594,7 +2733,8 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ProductoPedido"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 ],
@@ -2622,7 +2762,7 @@ const docTemplate = `{
         },
         "/productos": {
             "get": {
-                "description": "Devuelve productos registrados con filtros opcionales para categoría, subcategoría, imágenes y disponibilidad.",
+                "description": "Devuelve productos registrados con filtros opcionales para imágenes y disponibilidad.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2644,18 +2784,6 @@ const docTemplate = `{
                         "type": "boolean",
                         "description": "Filtrar solo productos disponibles (true o false, por defecto es false)",
                         "name": "onlyActive",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filtrar productos por categoría",
-                        "name": "categoria",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filtrar productos por subcategoría",
-                        "name": "subcategoria",
                         "in": "query"
                     }
                 ],
@@ -2680,7 +2808,7 @@ const docTemplate = `{
             "put": {
                 "description": "Actualiza los datos de un producto existente, incluyendo una imagen en formato Base64.",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -2698,49 +2826,13 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Nombre del producto",
-                        "name": "NOMBRE",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Calorías del producto",
-                        "name": "CALORIAS",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Descripción del producto",
-                        "name": "DESCRIPCION",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Estado del producto",
-                        "name": "estadoProducto",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Precio del producto",
-                        "name": "PRECIO",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "Imagen del producto (opcional)",
-                        "name": "IMAGEN",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Cantidad del producto",
-                        "name": "CANTIDAD",
-                        "in": "formData"
+                        "description": "Datos del producto",
+                        "name": "producto",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Producto"
+                        }
                     }
                 ],
                 "responses": {
@@ -2761,7 +2853,7 @@ const docTemplate = `{
             "post": {
                 "description": "Crea un nuevo producto en la base de datos.",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -2772,62 +2864,13 @@ const docTemplate = `{
                 "summary": "Crear un nuevo producto",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Nombre del producto",
-                        "name": "NOMBRE",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Calorías del producto",
-                        "name": "CALORIAS",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Descripción del producto",
-                        "name": "DESCRIPCION",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Estado del producto",
-                        "name": "estadoProducto",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Precio del producto",
-                        "name": "PRECIO",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "Imagen del producto (opcional)",
-                        "name": "IMAGEN",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Cantidad del producto",
-                        "name": "CANTIDAD",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Categoría del producto",
-                        "name": "CATEGORIA",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Subcategoría del producto",
-                        "name": "SUBCATEGORIA",
-                        "in": "formData"
+                        "description": "Producto con imagen Base64",
+                        "name": "producto",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Producto"
+                        }
                     }
                 ],
                 "responses": {
@@ -3079,7 +3122,7 @@ const docTemplate = `{
         },
         "/reservas/parameter": {
             "get": {
-                "description": "Devuelve las reservas asociadas a un cliente en una fecha específica, todas sus reservas si no se especifica la fecha, o todas las reservas en una fecha específica si no se especifica el cliente.",
+                "description": "Devuelve las reservas asociadas a un contacto en una fecha específica, todas sus reservas si no se especifica la fecha, o todas las reservas en una fecha específica si no se especifica el contacto.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3089,12 +3132,12 @@ const docTemplate = `{
                 "tags": [
                     "reservas"
                 ],
-                "summary": "Obtener reservas por documento de cliente y/o fecha",
+                "summary": "Obtener reservas por contacto y/o fecha",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del Cliente (Opcional)",
-                        "name": "documentoCliente",
+                        "description": "ID del Contacto (Opcional)",
+                        "name": "contactoId",
                         "in": "query"
                     },
                     {
@@ -3659,6 +3702,27 @@ const docTemplate = `{
                 }
             }
         },
+        "models.DiaSemana": {
+            "type": "string",
+            "enum": [
+                "LUNES",
+                "MARTES",
+                "MIERCOLES",
+                "JUEVES",
+                "VIERNES",
+                "SABADO",
+                "DOMINGO"
+            ],
+            "x-enum-varnames": [
+                "DiaLunes",
+                "DiaMartes",
+                "DiaMiercoles",
+                "DiaJueves",
+                "DiaViernes",
+                "DiaSabado",
+                "DiaDomingo"
+            ]
+        },
         "models.Domicilio": {
             "type": "object",
             "properties": {
@@ -3675,7 +3739,11 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "entregado": {
+                    "description": "ENTREGADO es una columna generada por la base de datos",
                     "type": "boolean"
+                },
+                "estado": {
+                    "$ref": "#/definitions/models.EstadoDomicilio"
                 },
                 "fechaDomicilio": {
                     "type": "string"
@@ -3694,6 +3762,102 @@ const docTemplate = `{
                 },
                 "updatedBy": {
                     "type": "string"
+                }
+            }
+        },
+        "models.EstadoDomicilio": {
+            "type": "string",
+            "enum": [
+                "PENDIENTE",
+                "EN_CAMINO",
+                "ENTREGADO"
+            ],
+            "x-enum-varnames": [
+                "EstadoDomicilioPendiente",
+                "EstadoDomicilioEnCamino",
+                "EstadoDomicilioEntregado"
+            ]
+        },
+        "models.EstadoNomina": {
+            "type": "string",
+            "enum": [
+                "PAGO",
+                "NO_PAGO"
+            ],
+            "x-enum-varnames": [
+                "EstadoNominaPago",
+                "EstadoNominaNoPago"
+            ]
+        },
+        "models.EstadoPago": {
+            "type": "string",
+            "enum": [
+                "PAGADO",
+                "PENDIENTE",
+                "NO_PAGO"
+            ],
+            "x-enum-varnames": [
+                "EstadoPagoPagado",
+                "EstadoPagoPendiente",
+                "EstadoPagoNoPago"
+            ]
+        },
+        "models.EstadoPedido": {
+            "type": "string",
+            "enum": [
+                "INICIADO",
+                "TERMINADO",
+                "CANCELADO"
+            ],
+            "x-enum-varnames": [
+                "EstadoPedidoIniciado",
+                "EstadoPedidoTerminado",
+                "EstadoPedidoCancelado"
+            ]
+        },
+        "models.EstadoProducto": {
+            "type": "string",
+            "enum": [
+                "DISPONIBLE",
+                "NO_DISPONIBLE"
+            ],
+            "x-enum-varnames": [
+                "EstadoProductoDisponible",
+                "EstadoProductoNoDisponible"
+            ]
+        },
+        "models.EstadoReserva": {
+            "type": "string",
+            "enum": [
+                "PENDIENTE",
+                "CONFIRMADA",
+                "CANCELADA",
+                "CUMPLIDA"
+            ],
+            "x-enum-varnames": [
+                "EstadoReservaPendiente",
+                "EstadoReservaConfirmada",
+                "EstadoReservaCancelada",
+                "EstadoReservaCumplida"
+            ]
+        },
+        "models.HorarioTrabajador": {
+            "type": "object",
+            "properties": {
+                "dia": {
+                    "$ref": "#/definitions/models.DiaSemana"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "horaFin": {
+                    "type": "string"
+                },
+                "horaInicio": {
+                    "type": "string"
+                },
+                "horarioTrabajadorId": {
+                    "type": "integer"
                 }
             }
         },
@@ -3749,7 +3913,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "estadoNomina": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoNomina"
                 },
                 "fechaNomina": {
                     "type": "string"
@@ -3765,25 +3929,22 @@ const docTemplate = `{
         "models.NominaTrabajador": {
             "type": "object",
             "properties": {
-                "DETALLES": {
+                "detalles": {
                     "type": "string"
                 },
-                "MONTO_INCIDENCIAS": {
+                "documentoTrabajador": {
                     "type": "integer"
                 },
-                "documento_trabajador": {
+                "montoIncidencias": {
                     "type": "integer"
                 },
-                "id_nomina": {
+                "nominaId": {
                     "type": "integer"
                 },
-                "id_nomina_trabajador": {
+                "nominaTrabajadorId": {
                     "type": "integer"
                 },
-                "SUELDO_BASE": {
-                    "type": "integer"
-                },
-                "TOTAL": {
+                "sueldoBase": {
                     "type": "integer"
                 }
             }
@@ -3791,11 +3952,11 @@ const docTemplate = `{
         "models.NominaTrabajadorRequest": {
             "type": "object",
             "properties": {
-                "DETALLES": {
+                "detalles": {
                     "type": "string",
                     "example": "Pago correspondiente al mes de enero"
                 },
-                "documento_trabajador": {
+                "documentoTrabajador": {
                     "type": "integer",
                     "example": 1015466494
                 }
@@ -3804,25 +3965,21 @@ const docTemplate = `{
         "models.NominaTrabajadorResponse": {
             "type": "object",
             "properties": {
-                "DETALLES": {
+                "detalles": {
                     "type": "string",
                     "example": "Pago correspondiente al mes de enero"
                 },
-                "MONTO_INCIDENCIAS": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 1015466494
+                },
+                "montoIncidencias": {
                     "type": "integer",
                     "example": 50000
                 },
-                "id_nomina_trabajador": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "SUELDO_BASE": {
+                "sueldoBase": {
                     "type": "integer",
                     "example": 2000000
-                },
-                "TOTAL": {
-                    "type": "integer",
-                    "example": 2050000
                 }
             }
         },
@@ -3830,7 +3987,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "estadoPago": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoPago"
                 },
                 "fechaPago": {
                     "type": "string"
@@ -3861,11 +4018,14 @@ const docTemplate = `{
                 "delivery": {
                     "type": "boolean"
                 },
+                "documentoCliente": {
+                    "type": "integer"
+                },
                 "domicilioId": {
                     "type": "integer"
                 },
                 "estadoPedido": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoPedido"
                 },
                 "fechaPedido": {
                     "type": "string"
@@ -3890,20 +4050,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.PedidoCliente": {
-            "type": "object",
-            "properties": {
-                "documentoCliente": {
-                    "type": "integer"
-                },
-                "pedidoClienteId": {
-                    "type": "integer"
-                },
-                "pedidoId": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.Producto": {
             "type": "object",
             "properties": {
@@ -3913,14 +4059,11 @@ const docTemplate = `{
                 "cantidad": {
                     "type": "integer"
                 },
-                "categoria": {
-                    "type": "string"
-                },
                 "descripcion": {
                     "type": "string"
                 },
                 "estadoProducto": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoProducto"
                 },
                 "imagen": {
                     "type": "string"
@@ -3934,21 +4077,7 @@ const docTemplate = `{
                 "productoId": {
                     "type": "integer"
                 },
-                "subcategoria": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ProductoPedido": {
-            "type": "object",
-            "properties": {
-                "detallesProductos": {
-                    "type": "string"
-                },
-                "pedidoId": {
-                    "type": "integer"
-                },
-                "productoPedidoId": {
+                "subcategoriaId": {
                     "type": "integer"
                 }
             }
@@ -3956,17 +4085,17 @@ const docTemplate = `{
         "models.Reserva": {
             "type": "object",
             "properties": {
+                "contactoId": {
+                    "type": "integer"
+                },
                 "createdAt": {
                     "type": "string"
                 },
                 "createdBy": {
                     "type": "string"
                 },
-                "documentoCliente": {
-                    "type": "integer"
-                },
                 "estadoReserva": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoReserva"
                 },
                 "fechaReserva": {
                     "type": "string"
@@ -3977,17 +4106,14 @@ const docTemplate = `{
                 "indicaciones": {
                     "type": "string"
                 },
-                "nombreCompleto": {
-                    "type": "string"
-                },
                 "personas": {
                     "type": "integer"
                 },
                 "reservaId": {
                     "type": "integer"
                 },
-                "telefono": {
-                    "type": "string"
+                "restauranteId": {
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4000,18 +4126,36 @@ const docTemplate = `{
         "models.Restaurante": {
             "type": "object",
             "properties": {
+                "cambioHorarioId": {
+                    "type": "integer"
+                },
                 "horaApertura": {
-                    "type": "string",
-                    "format": "date-time"
+                    "type": "string"
                 },
                 "nombreRestaurante": {
                     "type": "string"
                 },
                 "restauranteId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "type": "integer"
                 }
             }
+        },
+        "models.RolTrabajador": {
+            "type": "string",
+            "enum": [
+                "Administrador",
+                "Mesero",
+                "Cocinero",
+                "Domiciliario",
+                "Oficios_varios"
+            ],
+            "x-enum-varnames": [
+                "RolAdministrador",
+                "RolMesero",
+                "RolCocinero",
+                "RolDomiciliario",
+                "RolOficiosVarios"
+            ]
         },
         "models.Trabajador": {
             "type": "object",
@@ -4031,8 +4175,11 @@ const docTemplate = `{
                 "fechaRetiro": {
                     "type": "string"
                 },
-                "horario": {
-                    "type": "string"
+                "horarios": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.HorarioTrabajador"
+                    }
                 },
                 "nombre": {
                     "type": "string"
@@ -4047,7 +4194,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "rol": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.RolTrabajador"
                 },
                 "sueldo": {
                     "type": "integer"
