@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"restaurante/models"
 	"strconv"
@@ -140,8 +141,7 @@ func (c *DomicilioController) GetById() {
 		return
 	}
 
-	// 1) Leer el domicilio
-	domicilio := models.Domicilio{PK_ID_DOMICILIO: id}
+	domicilio := models.Domicilio{ID: id}
 	if err := o.Read(&domicilio); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -153,72 +153,55 @@ func (c *DomicilioController) GetById() {
 		return
 	}
 
-	// 2) Cliente asociado (vía pedido) — usar UN struct para QueryRow
+	// ---- Datos relacionados: cliente y pedido ----
 	type clienteRow struct {
 		Documento int64  `orm:"column(documento)"`
 		Nombre    string `orm:"column(nombre)"`
 		Apellido  string `orm:"column(apellido)"`
 	}
 	var cli clienteRow
-
 	qCliente := `
-SELECT
-  p.pk_documento_cliente AS documento,
-  c.nombre               AS nombre,
-  c.apellido             AS apellido
+SELECT p.pk_documento_cliente AS documento,
+       c.nombre               AS nombre,
+       c.apellido             AS apellido
 FROM pedido p
 JOIN cliente c ON c.pk_documento_cliente = p.pk_documento_cliente
 WHERE p.pk_id_domicilio = ?
-ORDER BY p.pk_id_pedido DESC
-LIMIT 1;`
-
+ORDER BY p.pk_id_pedido DESC LIMIT 1;`
 	cliErr := o.Raw(qCliente, id).QueryRow(&cli)
 
-	// 3) Pedido asociado — también UN struct
 	type pedidoRow struct {
 		PedidoID          int64           `orm:"column(pedido_id)"`
 		PagoID            sql.NullInt64   `orm:"column(pago_id)"`
 		PagoMonto         sql.NullFloat64 `orm:"column(pago_monto)"`
 		SubtotalProductos sql.NullFloat64 `orm:"column(subtotal_productos)"`
-		Productos         string          `orm:"column(productos)"` // json string
+		Productos         string          `orm:"column(productos)"` // JSON
 	}
 	var ped pedidoRow
-
 	qPedido := `
-SELECT
-  p.pk_id_pedido AS pedido_id,
-  pa.pk_id_pago  AS pago_id,
-  pa.monto::numeric AS pago_monto,
-  (
-    SELECT COALESCE(SUM(d.cantidad * d.precio), 0)
-    FROM detalle_pedido d
-    WHERE d.pk_id_pedido = p.pk_id_pedido
-  ) AS subtotal_productos,
-  (
-    SELECT COALESCE(jsonb_agg(json_build_object(
-      'pk_id_producto', d.pk_id_producto,
-      'nombre', pr.nombre,
-      'cantidad', d.cantidad,
-      'precio', d.precio,
-      'subtotal', d.cantidad * d.precio
-    )), '[]'::jsonb)::text
-    FROM detalle_pedido d
-    JOIN producto pr ON pr.pk_id_producto = d.pk_id_producto
-    WHERE d.pk_id_pedido = p.pk_id_pedido
-  ) AS productos
+SELECT p.pk_id_pedido AS pedido_id,
+       pa.pk_id_pago  AS pago_id,
+       pa.monto::numeric AS pago_monto,
+       (SELECT COALESCE(SUM(d.cantidad * d.precio),0)
+          FROM detalle_pedido d
+         WHERE d.pk_id_pedido = p.pk_id_pedido) AS subtotal_productos,
+       (SELECT COALESCE(jsonb_agg(json_build_object(
+           'pk_id_producto', d.pk_id_producto,
+           'nombre',        pr.nombre,
+           'cantidad',      d.cantidad,
+           'precio',        d.precio,
+           'subtotal',      d.cantidad * d.precio
+       )),'[]'::jsonb)::text
+          FROM detalle_pedido d
+          JOIN producto pr ON pr.pk_id_producto = d.pk_id_producto
+         WHERE d.pk_id_pedido = p.pk_id_pedido) AS productos
 FROM pedido p
 LEFT JOIN pago pa ON pa.pk_id_pago = p.pk_id_pago
 WHERE p.pk_id_domicilio = ?
-ORDER BY p.pk_id_pedido DESC
-LIMIT 1;`
-
+ORDER BY p.pk_id_pedido DESC LIMIT 1;`
 	pedErr := o.Raw(qPedido, id).QueryRow(&ped)
 
-	// 4) Construir respuesta
-	resp := map[string]interface{}{
-		"domicilio": domicilio,
-	}
-
+	resp := map[string]interface{}{"domicilio": domicilio}
 	if cliErr == nil {
 		resp["cliente"] = map[string]interface{}{
 			"documento": cli.Documento,
@@ -226,33 +209,27 @@ LIMIT 1;`
 			"apellido":  cli.Apellido,
 		}
 	}
-
 	if pedErr == nil {
-		// Parsear productos
 		var productos []map[string]interface{}
 		if ped.Productos != "" {
 			_ = json.Unmarshal([]byte(ped.Productos), &productos)
 		}
-
-		// Total: prioriza pago; si no hay, usa subtotal de productos
 		total := 0.0
 		if ped.PagoMonto.Valid {
 			total = ped.PagoMonto.Float64
 		} else if ped.SubtotalProductos.Valid {
 			total = ped.SubtotalProductos.Float64
 		}
-
-		var pagoIdPtr *int64
+		var pagoIDPtr *int64
 		if ped.PagoID.Valid {
 			v := ped.PagoID.Int64
-			pagoIdPtr = &v
+			pagoIDPtr = &v
 		}
-
 		resp["pedido"] = map[string]interface{}{
 			"pedidoId":          ped.PedidoID,
-			"pagoId":            pagoIdPtr,                     // puede ser null
-			"montoPago":         ped.PagoMonto.Float64,         // 0 si null
-			"subtotalProductos": ped.SubtotalProductos.Float64, // 0 si null
+			"pagoId":            pagoIDPtr,
+			"montoPago":         ped.PagoMonto.Float64,
+			"subtotalProductos": ped.SubtotalProductos.Float64,
 			"total":             total,
 			"productos":         productos,
 		}
@@ -273,16 +250,13 @@ LIMIT 1;`
 // @Tags domicilios
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Domicilio true  "Datos del domicilio a crear"
+// @Param   body  body   models.DomicilioCreate true  "Datos del domicilio a crear (sólo campos permitidos)"
 // @Success 201 {object} models.Domicilio "Domicilio creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /domicilios [post]
 func (c *DomicilioController) Post() {
-	var input map[string]interface{}
-	var domicilio models.Domicilio
-
-	// Decodificar la solicitud
+	var input models.DomicilioCreate
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -294,83 +268,80 @@ func (c *DomicilioController) Post() {
 		return
 	}
 
-	// Validar y establecer los campos obligatorios
-	if direccion, ok := input["direccion"].(string); ok && direccion != "" {
-		domicilio.DIRECCION = direccion
-	} else {
+	if input.Direccion == "" || input.Telefono == "" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo 'DIRECCION' es obligatorio",
+			Message: "Los campos 'direccion' y 'telefono' son obligatorios",
 		}
 		c.ServeJSON()
 		return
 	}
-	// Validar fecha:
-	if fechaStr, ok := input["fechaDomicilio"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
-		if err != nil {
+
+	parsedDate, err := time.Parse("2006-01-02", input.FechaDomicilio)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Formato de fecha inválido",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	domicilio := models.Domicilio{
+		Direccion: input.Direccion,
+		Telefono:  input.Telefono,
+		Fecha:     parsedDate,
+	}
+	if input.Observaciones != nil {
+		domicilio.Observ = input.Observaciones
+	}
+	if input.CreatedBy != nil {
+		domicilio.CreatedBy = input.CreatedBy
+	}
+	if input.Estado != "" {
+		if !isValidEstadoDomicilio(string(input.Estado)) {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Campo 'estadoDomicilio' inválido"}
 			c.ServeJSON()
 			return
 		}
-		domicilio.FECHA = parsedDate
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo FECHA no puede estar vacío",
-		}
-		c.ServeJSON()
-		return
+		domicilio.Estado = models.EstadoDomicilio(strings.ToUpper(string(input.Estado)))
 	}
-
-	if telefono, ok := input["telefono"].(string); ok && telefono != "" {
-		domicilio.TELEFONO = telefono
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo 'TELEFONO' es obligatorio",
-		}
-		c.ServeJSON()
-		return
+	if input.TrabajadorID != nil {
+		domicilio.Trabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: *input.TrabajadorID}
 	}
-
-	// Procesar campos opcionales
-	if estado, ok := input["estado"].(string); ok {
-		estado = strings.ToUpper(estado)
-		if !isValidEstadoDomicilio(estado) {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El valor de 'estado' no es válido",
-			}
-			c.ServeJSON()
-			return
-		}
-		domicilio.ESTADO_DOMICILIO = estado
-	}
-	if observaciones, ok := input["observaciones"].(string); ok {
-		domicilio.OBSERVACIONES = &observaciones
-	}
-	if createdBy, ok := input["createdBy"].(string); ok {
-		domicilio.CREATED_BY = &createdBy
-	}
-
-	// Establecer valores automáticos
-	domicilio.CREATED_AT = time.Now().UTC()
-	domicilio.UPDATED_AT = time.Time{} // Inicializa vacío
 
 	o := orm.NewOrm()
-	// Insertar en la base de datos
-	_, err := o.Insert(&domicilio)
-	if err != nil {
+	cols := []string{"direccion", "fecha", "telefono"}
+	vals := []interface{}{domicilio.Direccion, domicilio.Fecha, domicilio.Telefono}
+	if domicilio.Observ != nil {
+		cols = append(cols, "observaciones")
+		vals = append(vals, *domicilio.Observ)
+	}
+	if domicilio.CreatedBy != nil {
+		cols = append(cols, "created_by")
+		vals = append(vals, *domicilio.CreatedBy)
+	}
+	if domicilio.Trabajador != nil {
+		cols = append(cols, "pk_documento_trabajador")
+		vals = append(vals, domicilio.Trabajador.PK_DOCUMENTO_TRABAJADOR)
+	}
+	if domicilio.Estado != "" {
+		cols = append(cols, "estado_domicilio")
+		vals = append(vals, domicilio.Estado)
+	}
+
+	ph := make([]string, len(vals))
+	for i := range ph {
+		ph[i] = "?"
+	}
+	query := fmt.Sprintf("INSERT INTO domicilio (%s) VALUES (%s) RETURNING pk_id_domicilio",
+		strings.Join(cols, ","), strings.Join(ph, ","))
+
+	if err := o.Raw(query, vals...).QueryRow(&domicilio.ID); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -383,13 +354,13 @@ func (c *DomicilioController) Post() {
 
 	var ent bool
 	var created, updated time.Time
-	if err := o.Raw("SELECT entregado, created_at, updated_at FROM domicilio WHERE pk_id_domicilio = ?", domicilio.PK_ID_DOMICILIO).QueryRow(&ent, &created, &updated); err == nil {
-		domicilio.ENTREGADO = ent
-		domicilio.CREATED_AT = created
-		domicilio.UPDATED_AT = updated
+	if err := o.Raw("SELECT entregado, created_at, updated_at FROM domicilio WHERE pk_id_domicilio = ?",
+		domicilio.ID).QueryRow(&ent, &created, &updated); err == nil {
+		domicilio.Entregado = ent
+		domicilio.CreatedAt = created
+		domicilio.UpdatedAt = updated
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
@@ -413,10 +384,7 @@ func (c *DomicilioController) Post() {
 // @Router /domicilios [put]
 func (c *DomicilioController) Put() {
 	o := orm.NewOrm()
-
-	// Obtener el ID del domicilio
-	idStr := c.GetString("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := strconv.ParseInt(c.GetString("id"), 10, 64)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -428,8 +396,7 @@ func (c *DomicilioController) Put() {
 		return
 	}
 
-	// Buscar el domicilio por ID
-	domicilio := models.Domicilio{PK_ID_DOMICILIO: id}
+	domicilio := models.Domicilio{ID: id}
 	if err := o.Read(&domicilio); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -440,7 +407,6 @@ func (c *DomicilioController) Put() {
 		return
 	}
 
-	// Deserializar datos actualizados
 	var input map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -453,34 +419,17 @@ func (c *DomicilioController) Put() {
 		return
 	}
 
-	// Actualizar campos
 	if direccion, ok := input["direccion"].(string); ok {
-		domicilio.DIRECCION = direccion
+		domicilio.Direccion = direccion
 	}
 	if telefono, ok := input["telefono"].(string); ok {
-		domicilio.TELEFONO = telefono
-	}
-	if estado, ok := input["estado"].(string); ok {
-		estado = strings.ToUpper(estado)
-		if !isValidEstadoDomicilio(estado) {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El valor de 'estado' no es válido",
-			}
-			c.ServeJSON()
-			return
-		}
-		domicilio.ESTADO_DOMICILIO = estado
+		domicilio.Telefono = telefono
 	}
 	if updatedBy, ok := input["updatedBy"].(string); ok {
-		domicilio.UPDATED_BY = &updatedBy
+		domicilio.UpdatedBy = &updatedBy
 	}
+	domicilio.UpdatedAt = time.Now().UTC()
 
-	// Actualizar la fecha de modificación
-	domicilio.UPDATED_AT = time.Now().UTC()
-
-	// Guardar cambios
 	if _, err := o.Update(&domicilio); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -494,13 +443,13 @@ func (c *DomicilioController) Put() {
 
 	var ent bool
 	var created, updated time.Time
-	if err := o.Raw("SELECT entregado, created_at, updated_at FROM domicilio WHERE pk_id_domicilio = ?", domicilio.PK_ID_DOMICILIO).QueryRow(&ent, &created, &updated); err == nil {
-		domicilio.ENTREGADO = ent
-		domicilio.CREATED_AT = created
-		domicilio.UPDATED_AT = updated
+	if err := o.Raw("SELECT entregado, created_at, updated_at FROM domicilio WHERE pk_id_domicilio = ?",
+		domicilio.ID).QueryRow(&ent, &created, &updated); err == nil {
+		domicilio.Entregado = ent
+		domicilio.CreatedAt = created
+		domicilio.UpdatedAt = updated
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -523,9 +472,7 @@ func (c *DomicilioController) Put() {
 // @Router /domicilios [delete]
 func (c *DomicilioController) Delete() {
 	o := orm.NewOrm()
-
-	idStr := c.GetString("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := strconv.ParseInt(c.GetString("id"), 10, 64)
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -537,15 +484,13 @@ func (c *DomicilioController) Delete() {
 		return
 	}
 
-	domicilio := models.Domicilio{PK_ID_DOMICILIO: id}
-
+	domicilio := models.Domicilio{ID: id}
 	if _, err := o.Delete(&domicilio); err == nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
 			Message: "Domicilio eliminado",
 		}
-		c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -553,8 +498,8 @@ func (c *DomicilioController) Delete() {
 			Message: "Domicilio no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
 	}
+	c.ServeJSON()
 }
 
 // @Title AsignarDomiciliario
@@ -575,9 +520,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 	trabajadorID, _ := c.GetInt64("trabajador_id")
 
 	o := orm.NewOrm()
-
-	// Buscar el domicilio
-	domicilio := models.Domicilio{PK_ID_DOMICILIO: domicilioID}
+	domicilio := models.Domicilio{ID: domicilioID}
 	if err := o.Read(&domicilio); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
@@ -588,8 +531,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 		return
 	}
 
-	// Verificar si ya está asignado
-	if domicilio.PK_DOCUMENTO_TRABAJADOR != nil {
+	if domicilio.Trabajador != nil {
 		c.Ctx.Output.SetStatus(http.StatusConflict)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusConflict,
@@ -599,10 +541,8 @@ func (c *DomicilioController) AsignarDomiciliario() {
 		return
 	}
 
-	// Asignar el domiciliario
-	domicilio.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: trabajadorID}
-
-	if _, err := o.Update(&domicilio, "PK_DOCUMENTO_TRABAJADOR"); err != nil {
+	domicilio.Trabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: trabajadorID}
+	if _, err := o.Update(&domicilio, "Trabajador"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

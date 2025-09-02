@@ -15,8 +15,8 @@ type Pedido struct {
 	ESTADO_PEDIDO        EstadoPedido `orm:"column(estado_pedido);type(estado_pedido)" json:"estadoPedido"`
 	PK_ID_DOMICILIO      *Domicilio   `orm:"column(pk_id_domicilio);rel(fk);null" json:"domicilioId,omitempty"`
 	PK_ID_PAGO           *Pago        `orm:"column(pk_id_pago);rel(fk);null" json:"pagoId"`
-	PK_ID_RESTAURANTE    *Restaurante `orm:"column(pk_id_restaurante);rel(fk)" json:"restauranteId"`
-	PK_DOCUMENTO_CLIENTE *Cliente     `orm:"column(pk_documento_cliente);rel(fk)" json:"documentoCliente"`
+	PK_ID_RESTAURANTE    *Restaurante `orm:"column(pk_id_restaurante);rel(fk);null" json:"restauranteId"`
+	PK_DOCUMENTO_CLIENTE *Cliente     `orm:"column(pk_documento_cliente);rel(fk);null" json:"documentoCliente"`
 	UPDATED_AT           time.Time    `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt"`
 	UPDATED_BY           *string      `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 }

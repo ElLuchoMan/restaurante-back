@@ -149,7 +149,7 @@
                 "entregado": {
                     "type": "boolean"
                 },
-                "estado": {
+                "estadoDomicilio": {
                     "$ref": "#/definitions/models.EstadoDomicilio"
                 },
                 "fechaDomicilio": {
@@ -171,6 +171,34 @@
                 },
                 "updatedBy": {
                     "type": "string"
+                }
+            }
+        },
+        "models.DomicilioCreate": {
+            "title": "DomicilioCreate",
+            "type": "object",
+            "properties": {
+                "createdBy": {
+                    "type": "string"
+                },
+                "direccion": {
+                    "type": "string"
+                },
+                "estadoDomicilio": {
+                    "$ref": "#/definitions/models.EstadoDomicilio"
+                },
+                "fechaDomicilio": {
+                    "type": "string"
+                },
+                "observaciones": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                },
+                "trabajadorAsignado": {
+                    "type": "integer",
+                    "format": "int64"
                 }
             }
         },

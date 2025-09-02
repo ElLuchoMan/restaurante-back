@@ -606,12 +606,12 @@ const docTemplate = `{
                 "summary": "Crear un nuevo domicilio",
                 "parameters": [
                     {
-                        "description": "Datos del domicilio a crear",
+                        "description": "Datos del domicilio a crear (sólo campos permitidos)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Domicilio"
+                            "$ref": "#/definitions/models.DomicilioCreate"
                         }
                     }
                 ],
@@ -3750,10 +3750,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "entregado": {
-                    "description": "ENTREGADO es una columna generada por la base de datos",
                     "type": "boolean"
                 },
-                "estado": {
+                "estadoDomicilio": {
                     "$ref": "#/definitions/models.EstadoDomicilio"
                 },
                 "fechaDomicilio": {
@@ -3773,6 +3772,33 @@ const docTemplate = `{
                 },
                 "updatedBy": {
                     "type": "string"
+                }
+            }
+        },
+        "models.DomicilioCreate": {
+            "type": "object",
+            "properties": {
+                "createdBy": {
+                    "type": "string"
+                },
+                "direccion": {
+                    "type": "string"
+                },
+                "estadoDomicilio": {
+                    "type": "string"
+                },
+                "fechaDomicilio": {
+                    "type": "string",
+                    "example": "2006-01-02"
+                },
+                "observaciones": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                },
+                "trabajadorAsignado": {
+                    "type": "integer"
                 }
             }
         },
