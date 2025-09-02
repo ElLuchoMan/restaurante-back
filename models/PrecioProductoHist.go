@@ -10,7 +10,7 @@ import (
 // It no longer maintains its own primary key or audit timestamps.
 type PrecioProductoHist struct {
 	PK_ID_PRECIO_HIST int64     `orm:"column(pk_id_precio_hist);pk;auto" json:"precioHistId"`
-	PKIDProducto      int64     `orm:"column(pk_id_producto);rel(fk)" json:"productoId"`
+	PKIDProducto      int64     `orm:"column(pk_id_producto)" json:"productoId"`
 	Precio            int64     `orm:"column(precio);type(bigint)" json:"precio"`
 	FechaVigencia     time.Time `orm:"column(fecha_vigencia);type(date)" json:"fechaVigencia"`
 }

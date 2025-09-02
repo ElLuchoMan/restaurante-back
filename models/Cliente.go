@@ -8,7 +8,7 @@ type Cliente struct {
 	PK_DOCUMENTO_CLIENTE int64   `orm:"column(pk_documento_cliente);pk" json:"documentoCliente"`
 	NOMBRE               string  `orm:"column(nombre);type(text)"        json:"nombre"`
 	APELLIDO             string  `orm:"column(apellido);type(text)"      json:"apellido"`
-	CORREO               *string `orm:"column(correo);type(text);unique;null"        json:"correo" valid:"email"`
+	CORREO               string  `orm:"column(correo);type(text);unique"        json:"correo" valid:"email"`
 	DIRECCION            string  `orm:"column(direccion);type(text)"     json:"direccion"`
 	TELEFONO             string  `orm:"column(telefono);type(text);unique"      json:"telefono"`
 	OBSERVACIONES        *string `orm:"column(observaciones);type(text);null" json:"observaciones"`

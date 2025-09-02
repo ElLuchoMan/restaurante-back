@@ -205,11 +205,18 @@ func (c *ClienteController) Post() {
 		return
 	}
 
-	// Normalizar correo si viene
-	if cliente.CORREO != nil && strings.TrimSpace(*cliente.CORREO) != "" {
-		normalized := normalizeEmail(*cliente.CORREO)
-		cliente.CORREO = &normalized
+	// Validar y normalizar correo
+	correoTrim := strings.TrimSpace(cliente.CORREO)
+	if correoTrim == "" {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo correo es obligatorio",
+		}
+		c.ServeJSON()
+		return
 	}
+	cliente.CORREO = normalizeEmail(correoTrim)
 
 	// Hash de la contraseña antes de insertar
 	hashedPassword, err := bcryptGenerate([]byte(cliente.PASSWORD), bcrypt.DefaultCost)
@@ -327,15 +334,11 @@ func (c *ClienteController) Put() {
 	updatedCliente.PK_DOCUMENTO_CLIENTE = cliente.PK_DOCUMENTO_CLIENTE
 
 	// Normalizar/Conservar correo
-	var correoTrim string
-	if updatedCliente.CORREO != nil {
-		correoTrim = strings.TrimSpace(*updatedCliente.CORREO)
-	}
+	correoTrim := strings.TrimSpace(updatedCliente.CORREO)
 	if correoTrim == "" {
 		updatedCliente.CORREO = cliente.CORREO // no sobreescribir con vacío
 	} else {
-		normalized := normalizeEmail(*updatedCliente.CORREO)
-		updatedCliente.CORREO = &normalized
+		updatedCliente.CORREO = normalizeEmail(correoTrim)
 	}
 
 	// Si se proporciona una nueva contraseña, hashéala; de lo contrario conserva la actual

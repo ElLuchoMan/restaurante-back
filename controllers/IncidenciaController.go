@@ -235,10 +235,17 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Procesar documentoTrabajador (opcional)
-	if documento, ok := input["documentoTrabajador"].(float64); ok {
-		doc := int64(documento)
-		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
+	// Procesar documentoTrabajador (obligatorio)
+	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
+		incidencia.PK_DOCUMENTO_TRABAJADOR = int64(documento)
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo documentoTrabajador es obligatorio",
+		}
+		c.ServeJSON()
+		return
 	}
 
 	// Insertar en la base de datos
@@ -357,9 +364,8 @@ func (c *IncidenciaController) Put() {
 		incidencia.MOTIVO = motivo
 	}
 
-	if documento, ok := input["documentoTrabajador"].(float64); ok {
-		doc := int64(documento)
-		incidencia.PK_DOCUMENTO_TRABAJADOR = &doc
+	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
+		incidencia.PK_DOCUMENTO_TRABAJADOR = int64(documento)
 	}
 
 	// Guardar los cambios en la base de datos

@@ -140,6 +140,23 @@ func TestIncidenciaPostMissingMonto(t *testing.T) {
 	}
 }
 
+func TestIncidenciaPostMissingDocumentoTrabajador(t *testing.T) {
+	body := `{"fechaIncidencia":"2024-01-01","monto":100,"resta":false,"motivo":"test"}`
+	r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
 func TestIncidenciaPutInvalidID(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPut, "/incidencias?id=abc", strings.NewReader("{}"))
 	w := httptest.NewRecorder()

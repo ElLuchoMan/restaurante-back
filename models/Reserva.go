@@ -14,7 +14,7 @@ type Reserva struct {
 	PERSONAS          int            `orm:"column(personas)" json:"personas"`
 	PK_ID_CONTACTO    int64          `orm:"column(pk_id_contacto);rel(fk)" json:"contactoId"`
 	PK_ID_RESTAURANTE int64          `orm:"column(pk_id_restaurante);rel(fk)" json:"restauranteId"`
-	ESTADO_RESERVA    *EstadoReserva `orm:"column(estado_reserva);null" json:"estadoReserva,omitempty"`
+	ESTADO_RESERVA    *EstadoReserva `orm:"column(estado_reserva);type(estado_reserva);null" json:"estadoReserva,omitempty"`
 	INDICACIONES      *string        `orm:"column(indicaciones);null" json:"indicaciones,omitempty"`
 	CREATED_AT        time.Time      `orm:"column(created_at);type(timestamptz);auto_now_add" json:"createdAt"`
 	UPDATED_AT        time.Time      `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt"`
