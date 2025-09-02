@@ -44,9 +44,11 @@ func TestDetallePedidoTriggerOnInsert(t *testing.T) {
 	if err := o.QueryTable(new(models.Producto)).Filter("PK_ID_PRODUCTO", 1).One(&prod); err != nil {
 		t.Fatalf("producto not found or DB unavailable: %v", err)
 	}
+	pid := int64(9999)
+	prodID := prod.PK_ID_PRODUCTO
 	det := models.DetallePedido{
-		PKIDPedido:   9999,
-		PKIDProducto: prod.PK_ID_PRODUCTO,
+		PKIDPedido:   &pid,
+		PKIDProducto: &prodID,
 		Cantidad:     1,
 	}
 	if _, err := o.Insert(&det); err != nil {

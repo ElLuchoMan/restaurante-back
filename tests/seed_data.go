@@ -43,9 +43,11 @@ func SeedTestData() {
 		log.Println("seed producto:", err)
 	}
 
+	pedidoID := int64(1)
+	productoID := int64(1)
 	if _, err := o.Insert(&models.DetallePedido{
-		PKIDPedido:   1,
-		PKIDProducto: 1,
+		PKIDPedido:   &pedidoID,
+		PKIDProducto: &productoID,
 		Cantidad:     1,
 	}); err != nil {
 		log.Println("seed detalle_pedido:", err)
