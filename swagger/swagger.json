@@ -70,6 +70,19 @@
                 }
             }
         },
+        "models.Categoria": {
+            "title": "Categoria",
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Cliente": {
             "title": "Cliente",
             "type": "object",
@@ -150,8 +163,7 @@
                     "type": "string"
                 },
                 "trabajadorAsignado": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "updatedAt": {
                     "type": "string",
@@ -229,8 +241,7 @@
                     "$ref": "#/definitions/models.DiaSemana"
                 },
                 "documentoTrabajador": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "horaFin": {
                     "type": "string",
@@ -251,8 +262,7 @@
             "type": "object",
             "properties": {
                 "documentoTrabajador": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "fechaIncidencia": {
                     "type": "string",
@@ -332,16 +342,14 @@
                     "type": "string"
                 },
                 "documentoTrabajador": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "montoIncidencias": {
                     "type": "integer",
                     "format": "int64"
                 },
                 "nominaId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Nomina"
                 },
                 "nominaTrabajadorId": {
                     "type": "integer",
@@ -409,8 +417,7 @@
                     "format": "datetime"
                 },
                 "metodoPagoId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.MetodoPago"
                 },
                 "monto": {
                     "type": "integer",
@@ -437,12 +444,10 @@
                     "type": "boolean"
                 },
                 "documentoCliente": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Cliente"
                 },
                 "domicilioId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Domicilio"
                 },
                 "estadoPedido": {
                     "$ref": "#/definitions/models.EstadoPedido"
@@ -456,16 +461,14 @@
                     "format": "datetime"
                 },
                 "pagoId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Pago"
                 },
                 "pedidoId": {
                     "type": "integer",
                     "format": "int64"
                 },
                 "restauranteId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "updatedAt": {
                     "type": "string",
@@ -518,8 +521,7 @@
             "type": "object",
             "properties": {
                 "contactoId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.ReservaContacto"
                 },
                 "createdAt": {
                     "type": "string",
@@ -551,8 +553,7 @@
                     "format": "int64"
                 },
                 "restauranteId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "updatedAt": {
                     "type": "string",
@@ -563,13 +564,35 @@
                 }
             }
         },
+        "models.ReservaContacto": {
+            "title": "ReservaContacto",
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "documentoCliente": {
+                    "$ref": "#/definitions/models.Cliente"
+                },
+                "documentoContacto": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Restaurante": {
             "title": "Restaurante",
             "type": "object",
             "properties": {
                 "cambioHorarioId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.CambiosHorario"
                 },
                 "horaApertura": {
                     "type": "string",
@@ -601,8 +624,7 @@
             "type": "object",
             "properties": {
                 "categoriaId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Categoria"
                 },
                 "nombre": {
                     "type": "string"
@@ -652,8 +674,7 @@
                     "type": "string"
                 },
                 "restauranteId": {
-                    "type": "integer",
-                    "format": "int64"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "rol": {
                     "$ref": "#/definitions/models.RolTrabajador"

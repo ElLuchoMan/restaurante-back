@@ -3666,6 +3666,17 @@
                 }
             }
         },
+        "models.Categoria": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Cliente": {
             "type": "object",
             "properties": {
@@ -3748,7 +3759,7 @@
                     "type": "string"
                 },
                 "trabajadorAsignado": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -3841,7 +3852,7 @@
                     "$ref": "#/definitions/models.DiaSemana"
                 },
                 "documentoTrabajador": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "horaFin": {
                     "type": "string"
@@ -3858,7 +3869,7 @@
             "type": "object",
             "properties": {
                 "documentoTrabajador": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "fechaIncidencia": {
                     "type": "string"
@@ -3926,13 +3937,13 @@
                     "type": "string"
                 },
                 "documentoTrabajador": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "montoIncidencias": {
                     "type": "integer"
                 },
                 "nominaId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Nomina"
                 },
                 "nominaTrabajadorId": {
                     "type": "integer"
@@ -3989,7 +4000,7 @@
                     "type": "string"
                 },
                 "metodoPagoId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.MetodoPago"
                 },
                 "monto": {
                     "type": "integer"
@@ -4012,10 +4023,10 @@
                     "type": "boolean"
                 },
                 "documentoCliente": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Cliente"
                 },
                 "domicilioId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Domicilio"
                 },
                 "estadoPedido": {
                     "$ref": "#/definitions/models.EstadoPedido"
@@ -4027,13 +4038,13 @@
                     "type": "string"
                 },
                 "pagoId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Pago"
                 },
                 "pedidoId": {
                     "type": "integer"
                 },
                 "restauranteId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4071,7 +4082,7 @@
                     "type": "integer"
                 },
                 "subcategoriaId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Subcategoria"
                 }
             }
         },
@@ -4079,7 +4090,7 @@
             "type": "object",
             "properties": {
                 "contactoId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.ReservaContacto"
                 },
                 "createdAt": {
                     "type": "string"
@@ -4106,7 +4117,7 @@
                     "type": "integer"
                 },
                 "restauranteId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4116,11 +4127,31 @@
                 }
             }
         },
+        "models.ReservaContacto": {
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "$ref": "#/definitions/models.Cliente"
+                },
+                "documentoContacto": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Restaurante": {
             "type": "object",
             "properties": {
                 "cambioHorarioId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.CambiosHorario"
                 },
                 "horaApertura": {
                     "type": "string"
@@ -4149,6 +4180,20 @@
                 "RolDomiciliario",
                 "RolOficiosVarios"
             ]
+        },
+        "models.Subcategoria": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "$ref": "#/definitions/models.Categoria"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "subcategoriaId": {
+                    "type": "integer"
+                }
+            }
         },
         "models.Trabajador": {
             "type": "object",
@@ -4184,7 +4229,7 @@
                     "type": "string"
                 },
                 "restauranteId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "rol": {
                     "$ref": "#/definitions/models.RolTrabajador"

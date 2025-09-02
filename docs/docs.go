@@ -3673,6 +3673,17 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Categoria": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Cliente": {
             "type": "object",
             "properties": {
@@ -3755,7 +3766,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "trabajadorAsignado": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -3848,7 +3859,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.DiaSemana"
                 },
                 "documentoTrabajador": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "horaFin": {
                     "type": "string"
@@ -3865,7 +3876,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "documentoTrabajador": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "fechaIncidencia": {
                     "type": "string"
@@ -3933,13 +3944,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "documentoTrabajador": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Trabajador"
                 },
                 "montoIncidencias": {
                     "type": "integer"
                 },
                 "nominaId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Nomina"
                 },
                 "nominaTrabajadorId": {
                     "type": "integer"
@@ -3996,7 +4007,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "metodoPagoId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.MetodoPago"
                 },
                 "monto": {
                     "type": "integer"
@@ -4019,10 +4030,10 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "documentoCliente": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Cliente"
                 },
                 "domicilioId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Domicilio"
                 },
                 "estadoPedido": {
                     "$ref": "#/definitions/models.EstadoPedido"
@@ -4034,13 +4045,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "pagoId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Pago"
                 },
                 "pedidoId": {
                     "type": "integer"
                 },
                 "restauranteId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4078,7 +4089,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "subcategoriaId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Subcategoria"
                 }
             }
         },
@@ -4086,7 +4097,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "contactoId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.ReservaContacto"
                 },
                 "createdAt": {
                     "type": "string"
@@ -4113,7 +4124,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "restauranteId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4123,11 +4134,31 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ReservaContacto": {
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "$ref": "#/definitions/models.Cliente"
+                },
+                "documentoContacto": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Restaurante": {
             "type": "object",
             "properties": {
                 "cambioHorarioId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.CambiosHorario"
                 },
                 "horaApertura": {
                     "type": "string"
@@ -4156,6 +4187,20 @@ const docTemplate = `{
                 "RolDomiciliario",
                 "RolOficiosVarios"
             ]
+        },
+        "models.Subcategoria": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "$ref": "#/definitions/models.Categoria"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "subcategoriaId": {
+                    "type": "integer"
+                }
+            }
         },
         "models.Trabajador": {
             "type": "object",
@@ -4191,7 +4236,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "restauranteId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Restaurante"
                 },
                 "rol": {
                     "$ref": "#/definitions/models.RolTrabajador"

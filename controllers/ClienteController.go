@@ -73,16 +73,45 @@ func (c *ClienteController) GetAll() {
 	// Obtener el valor del parámetro fields
 	fields := c.GetString("fields")
 
-	_, err := queryAllClientes(o, &clientes)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener clientes de la base de datos",
-			Cause:   err.Error(),
+	// Si se especificó `limit` o `offset` en la query, aplícalos.
+	// Si no se especifican, usamos el helper `queryAllClientes` para mantener
+	// la capacidad de mock en tests.
+	limitStr := c.GetString("limit")
+	offsetStr := c.GetString("offset")
+
+	if limitStr != "" || offsetStr != "" {
+		// Parsear valores; GetInt devuelve 0 en error, tomamos 10 como default solo
+		// cuando el parámetro `limit` fue provisto pero igual a 0.
+		limit, _ := c.GetInt("limit")
+		offset, _ := c.GetInt("offset")
+		if limit == 0 {
+			limit = 10
 		}
-		c.ServeJSON()
-		return
+
+		qs := o.QueryTable(new(models.Cliente))
+		if _, err := qs.Limit(limit, offset).All(&clientes); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al obtener clientes de la base de datos",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
+	} else {
+		// Modo por defecto (sin paginado): delegar al helper (útil para tests)
+		_, err := queryAllClientes(o, &clientes)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al obtener clientes de la base de datos",
+				Cause:   err.Error(),
+			}
+			c.ServeJSON()
+			return
+		}
 	}
 
 	// Manejar la respuesta basada en el parámetro fields

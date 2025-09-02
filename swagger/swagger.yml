@@ -49,6 +49,15 @@ definitions:
       horaCierre:
         type: string
         format: datetime
+  models.Categoria:
+    title: Categoria
+    type: object
+    properties:
+      categoriaId:
+        type: integer
+        format: int64
+      nombre:
+        type: string
   models.Cliente:
     title: Cliente
     type: object
@@ -108,8 +117,7 @@ definitions:
       telefono:
         type: string
       trabajadorAsignado:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Trabajador'
       updatedAt:
         type: string
         format: datetime
@@ -169,8 +177,7 @@ definitions:
       dia:
         $ref: '#/definitions/models.DiaSemana'
       documentoTrabajador:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Trabajador'
       horaFin:
         type: string
         format: datetime
@@ -185,8 +192,7 @@ definitions:
     type: object
     properties:
       documentoTrabajador:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Trabajador'
       fechaIncidencia:
         type: string
         format: datetime
@@ -242,14 +248,12 @@ definitions:
       detalles:
         type: string
       documentoTrabajador:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Trabajador'
       montoIncidencias:
         type: integer
         format: int64
       nominaId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Nomina'
       nominaTrabajadorId:
         type: integer
         format: int64
@@ -299,8 +303,7 @@ definitions:
         type: string
         format: datetime
       metodoPagoId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.MetodoPago'
       monto:
         type: integer
         format: int64
@@ -319,11 +322,9 @@ definitions:
       delivery:
         type: boolean
       documentoCliente:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Cliente'
       domicilioId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Domicilio'
       estadoPedido:
         $ref: '#/definitions/models.EstadoPedido'
       fechaPedido:
@@ -333,14 +334,12 @@ definitions:
         type: string
         format: datetime
       pagoId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Pago'
       pedidoId:
         type: integer
         format: int64
       restauranteId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Restaurante'
       updatedAt:
         type: string
         format: datetime
@@ -377,8 +376,7 @@ definitions:
     type: object
     properties:
       contactoId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.ReservaContacto'
       createdAt:
         type: string
         format: datetime
@@ -401,20 +399,34 @@ definitions:
         type: integer
         format: int64
       restauranteId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Restaurante'
       updatedAt:
         type: string
         format: datetime
       updatedBy:
+        type: string
+  models.ReservaContacto:
+    title: ReservaContacto
+    type: object
+    properties:
+      contactoId:
+        type: integer
+        format: int64
+      documentoCliente:
+        $ref: '#/definitions/models.Cliente'
+      documentoContacto:
+        type: integer
+        format: int64
+      nombreCompleto:
+        type: string
+      telefono:
         type: string
   models.Restaurante:
     title: Restaurante
     type: object
     properties:
       cambioHorarioId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.CambiosHorario'
       horaApertura:
         type: string
         format: datetime
@@ -438,8 +450,7 @@ definitions:
     type: object
     properties:
       categoriaId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Categoria'
       nombre:
         type: string
       subcategoriaId:
@@ -474,8 +485,7 @@ definitions:
       password:
         type: string
       restauranteId:
-        type: integer
-        format: int64
+        $ref: '#/definitions/models.Restaurante'
       rol:
         $ref: '#/definitions/models.RolTrabajador'
       sueldo:

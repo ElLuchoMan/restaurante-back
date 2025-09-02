@@ -23,6 +23,13 @@ definitions:
       horaCierre:
         type: string
     type: object
+  models.Categoria:
+    properties:
+      categoriaId:
+        type: integer
+      nombre:
+        type: string
+    type: object
   models.Cliente:
     properties:
       apellido:
@@ -82,7 +89,7 @@ definitions:
       telefono:
         type: string
       trabajadorAsignado:
-        type: integer
+        $ref: '#/definitions/models.Trabajador'
       updatedAt:
         type: string
       updatedBy:
@@ -151,7 +158,7 @@ definitions:
       dia:
         $ref: '#/definitions/models.DiaSemana'
       documentoTrabajador:
-        type: integer
+        $ref: '#/definitions/models.Trabajador'
       horaFin:
         type: string
       horaInicio:
@@ -162,7 +169,7 @@ definitions:
   models.Incidencia:
     properties:
       documentoTrabajador:
-        type: integer
+        $ref: '#/definitions/models.Trabajador'
       fechaIncidencia:
         type: string
       incidenciaId:
@@ -206,11 +213,11 @@ definitions:
       detalles:
         type: string
       documentoTrabajador:
-        type: integer
+        $ref: '#/definitions/models.Trabajador'
       montoIncidencias:
         type: integer
       nominaId:
-        type: integer
+        $ref: '#/definitions/models.Nomina'
       nominaTrabajadorId:
         type: integer
       sueldoBase:
@@ -249,7 +256,7 @@ definitions:
       horaPago:
         type: string
       metodoPagoId:
-        type: integer
+        $ref: '#/definitions/models.MetodoPago'
       monto:
         type: integer
       pagoId:
@@ -264,9 +271,9 @@ definitions:
       delivery:
         type: boolean
       documentoCliente:
-        type: integer
+        $ref: '#/definitions/models.Cliente'
       domicilioId:
-        type: integer
+        $ref: '#/definitions/models.Domicilio'
       estadoPedido:
         $ref: '#/definitions/models.EstadoPedido'
       fechaPedido:
@@ -274,11 +281,11 @@ definitions:
       horaPedido:
         type: string
       pagoId:
-        type: integer
+        $ref: '#/definitions/models.Pago'
       pedidoId:
         type: integer
       restauranteId:
-        type: integer
+        $ref: '#/definitions/models.Restaurante'
       updatedAt:
         type: string
       updatedBy:
@@ -303,12 +310,12 @@ definitions:
       productoId:
         type: integer
       subcategoriaId:
-        type: integer
+        $ref: '#/definitions/models.Subcategoria'
     type: object
   models.Reserva:
     properties:
       contactoId:
-        type: integer
+        $ref: '#/definitions/models.ReservaContacto'
       createdAt:
         type: string
       createdBy:
@@ -326,16 +333,29 @@ definitions:
       reservaId:
         type: integer
       restauranteId:
-        type: integer
+        $ref: '#/definitions/models.Restaurante'
       updatedAt:
         type: string
       updatedBy:
         type: string
     type: object
+  models.ReservaContacto:
+    properties:
+      contactoId:
+        type: integer
+      documentoCliente:
+        $ref: '#/definitions/models.Cliente'
+      documentoContacto:
+        type: integer
+      nombreCompleto:
+        type: string
+      telefono:
+        type: string
+    type: object
   models.Restaurante:
     properties:
       cambioHorarioId:
-        type: integer
+        $ref: '#/definitions/models.CambiosHorario'
       horaApertura:
         type: string
       nombreRestaurante:
@@ -357,6 +377,15 @@ definitions:
     - RolCocinero
     - RolDomiciliario
     - RolOficiosVarios
+  models.Subcategoria:
+    properties:
+      categoriaId:
+        $ref: '#/definitions/models.Categoria'
+      nombre:
+        type: string
+      subcategoriaId:
+        type: integer
+    type: object
   models.Trabajador:
     properties:
       apellido:
@@ -380,7 +409,7 @@ definitions:
       password:
         type: string
       restauranteId:
-        type: integer
+        $ref: '#/definitions/models.Restaurante'
       rol:
         $ref: '#/definitions/models.RolTrabajador'
       sueldo:
