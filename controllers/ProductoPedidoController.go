@@ -132,9 +132,11 @@ func (c *ProductoPedidoController) Post() {
 	o := productoPedidoNewOrm()
 	var detalles []models.DetallePedido
 	for _, d := range input.Detalles {
+		pedidoID := input.PedidoId
+		productoID := d.PKIDProducto
 		detalle := models.DetallePedido{
-			PKIDPedido:   input.PedidoId,
-			PKIDProducto: d.PKIDProducto,
+			PKIDPedido:   &pedidoID,
+			PKIDProducto: &productoID,
 			Cantidad:     d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
@@ -150,8 +152,8 @@ func (c *ProductoPedidoController) Post() {
 		// Reconsultar para obtener el precio definitivo
 		var actualizado models.DetallePedido
 		if err := o.QueryTable(new(models.DetallePedido)).
-			Filter("PKIDPedido", detalle.PKIDPedido).
-			Filter("PKIDProducto", detalle.PKIDProducto).
+			Filter("PKIDPedido", *detalle.PKIDPedido).
+			Filter("PKIDProducto", *detalle.PKIDProducto).
 			One(&actualizado); err != nil {
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -249,9 +251,11 @@ func (c *ProductoPedidoController) Update() {
 
 	var detalles []models.DetallePedido
 	for _, d := range nuevosProductos {
+		pid := pedidoID
+		prodID := d.PKIDProducto
 		detalle := models.DetallePedido{
-			PKIDPedido:   pedidoID,
-			PKIDProducto: d.PKIDProducto,
+			PKIDPedido:   &pid,
+			PKIDProducto: &prodID,
 			Cantidad:     d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
@@ -267,8 +271,8 @@ func (c *ProductoPedidoController) Update() {
 		// Reconsultar para obtener el precio definitivo
 		var actualizado models.DetallePedido
 		if err := o.QueryTable(new(models.DetallePedido)).
-			Filter("PKIDPedido", detalle.PKIDPedido).
-			Filter("PKIDProducto", detalle.PKIDProducto).
+			Filter("PKIDPedido", *detalle.PKIDPedido).
+			Filter("PKIDProducto", *detalle.PKIDProducto).
 			One(&actualizado); err != nil {
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,

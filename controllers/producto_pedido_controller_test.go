@@ -250,11 +250,13 @@ func TestProductoPedidoGetAllSuccess(t *testing.T) {
 			case *models.DetallePedido:
 				return fakeQueryPP{all: func(res interface{}, cols ...string) (int64, error) {
 					detalles := res.(*[]models.DetallePedido)
+					pedidoID := int64(1)
+					productoID := int64(1)
 					*detalles = append(
 						*detalles,
 						models.DetallePedido{
-							PKIDPedido:   1,
-							PKIDProducto: 1,
+							PKIDPedido:   &pedidoID,
+							PKIDProducto: &productoID,
 							Cantidad:     1,
 							Precio:       1000,
 						},
@@ -298,9 +300,11 @@ func TestProductoPedidoPostSuccess(t *testing.T) {
 			query: func(i interface{}) orm.QuerySeter {
 				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
 					if d, ok := res.(*models.DetallePedido); ok {
+						pedidoID := int64(1)
+						productoID := int64(1)
 						*d = models.DetallePedido{
-							PKIDPedido:   1,
-							PKIDProducto: 1,
+							PKIDPedido:   &pedidoID,
+							PKIDProducto: &productoID,
 							Cantidad:     1,
 							Precio:       1000,
 						}
@@ -348,9 +352,11 @@ func TestProductoPedidoUpdateSuccess(t *testing.T) {
 				}
 				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
 					if d, ok := res.(*models.DetallePedido); ok {
+						pedidoID := int64(1)
+						productoID := int64(1)
 						*d = models.DetallePedido{
-							PKIDPedido:   1,
-							PKIDProducto: 1,
+							PKIDPedido:   &pedidoID,
+							PKIDProducto: &productoID,
 							Cantidad:     1,
 							Precio:       1000,
 						}
