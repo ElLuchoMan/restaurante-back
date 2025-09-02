@@ -20,7 +20,7 @@ func SeedTestData() {
 		log.Println("seed categoria:", err)
 	}
 
-	if _, err := o.Insert(&models.Subcategoria{PK_ID_SUBCATEGORIA: 1, PK_ID_CATEGORIA: 1, NOMBRE: "Subgeneral"}); err != nil {
+	if _, err := o.Insert(&models.Subcategoria{PK_ID_SUBCATEGORIA: 1, PK_ID_CATEGORIA: &models.Categoria{PK_ID_CATEGORIA: 1}, NOMBRE: "Subgeneral"}); err != nil {
 		log.Println("seed subcategoria:", err)
 	}
 
@@ -34,7 +34,7 @@ func SeedTestData() {
 			PRECIO:             1000,
 			ESTADO_PRODUCTO:    models.EstadoProductoDisponible,
 			CANTIDAD:           1,
-			PK_ID_SUBCATEGORIA: 1,
+			PK_ID_SUBCATEGORIA: &models.Subcategoria{PK_ID_SUBCATEGORIA: 1},
 		}
 		if _, err := o.Insert(&prod); err != nil {
 			log.Println("seed producto:", err)
@@ -46,8 +46,8 @@ func SeedTestData() {
 	pedidoID := int64(1)
 	productoID := int64(1)
 	if _, err := o.Insert(&models.DetallePedido{
-		PKIDPedido:   &pedidoID,
-		PKIDProducto: &productoID,
+		PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pedidoID},
+		PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID},
 		Cantidad:     1,
 	}); err != nil {
 		log.Println("seed detalle_pedido:", err)

@@ -91,7 +91,7 @@ func (c *NominaTrabajadorController) Post() {
 		c.ServeJSON()
 		return
 	}
-	nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = &input.PK_DOCUMENTO_TRABAJADOR
+	nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR}
 
 	// Calcular el rango de fechas
 	now := time.Now()

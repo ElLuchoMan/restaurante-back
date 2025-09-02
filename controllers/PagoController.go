@@ -99,7 +99,7 @@ func (c *PagoController) GetAll() {
 		if estado != "" && pago.ESTADO_PAGO != estado {
 			continue
 		}
-		if metodo_pago > 0 && (pago.PK_ID_METODO_PAGO == nil || *pago.PK_ID_METODO_PAGO != int64(metodo_pago)) {
+		if metodo_pago > 0 && (pago.PK_ID_METODO_PAGO == nil || pago.PK_ID_METODO_PAGO.PK_ID_METODO_PAGO != int64(metodo_pago)) {
 			continue
 		}
 
@@ -288,9 +288,9 @@ func (c *PagoController) Post() {
 		FECHA:             fecha,
 		HORA:              hora,
 		MONTO:             in.Monto,
-		ESTADO_PAGO:       in.EstadoPago,    // e.g. "PAGADO"
-		PK_ID_METODO_PAGO: &in.MetodoPagoId, // FK obligatorio
-		UPDATED_BY:        updatedBy,        // opcional
+		ESTADO_PAGO:       in.EstadoPago,                                          // e.g. "PAGADO"
+		PK_ID_METODO_PAGO: &models.MetodoPago{PK_ID_METODO_PAGO: in.MetodoPagoId}, // FK obligatorio
+		UPDATED_BY:        updatedBy,                                              // opcional
 		// UPDATED_AT se maneja con auto_now en el modelo
 	}
 
@@ -433,7 +433,7 @@ func (c *PagoController) Put() {
 
 	if pkMetodoPago, ok := input["PK_ID_METODO_PAGO"].(float64); ok && pkMetodoPago != 0 {
 		val := int64(pkMetodoPago)
-		pago.PK_ID_METODO_PAGO = &val
+		pago.PK_ID_METODO_PAGO = &models.MetodoPago{PK_ID_METODO_PAGO: val}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{

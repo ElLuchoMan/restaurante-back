@@ -178,7 +178,7 @@ func (c *ReservaController) Post() {
 	}
 	if v, ok := input["documentoCliente"].(float64); ok {
 		val := int64(v)
-		contacto.PKDocumentoCliente = &val
+		contacto.PKDocumentoCliente = &models.Cliente{PK_DOCUMENTO_CLIENTE: val}
 	}
 	if contacto.DocumentoContacto != nil || contacto.PKDocumentoCliente != nil {
 		if !contacto.Valid() {
@@ -283,19 +283,19 @@ func (c *ReservaController) Post() {
 
 	if contactoID, ok := input["contactoId"].(float64); ok {
 		val := int64(contactoID)
-		reserva.PK_ID_CONTACTO = &val
+		reserva.PK_ID_CONTACTO = &models.ReservaContacto{PKIDContacto: val}
 	} else {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El campo PK_ID_CONTACTO debe ser un número",
-			}
-			c.ServeJSON()
-			return
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "El campo PK_ID_CONTACTO debe ser un número",
+		}
+		c.ServeJSON()
+		return
 	}
 	if restauranteID, ok := input["restauranteId"].(float64); ok {
 		val := int64(restauranteID)
-		reserva.PK_ID_RESTAURANTE = &val
+		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -393,7 +393,7 @@ func (c *ReservaController) Put() {
 	}
 	if v, ok := input["documentoCliente"].(float64); ok {
 		val := int64(v)
-		contacto.PKDocumentoCliente = &val
+		contacto.PKDocumentoCliente = &models.Cliente{PK_DOCUMENTO_CLIENTE: val}
 	}
 	if contacto.DocumentoContacto != nil || contacto.PKDocumentoCliente != nil {
 		if !contacto.Valid() {
@@ -456,7 +456,7 @@ func (c *ReservaController) Put() {
 
 	if contactoID, ok := input["contactoId"].(float64); ok {
 		val := int64(contactoID)
-		reserva.PK_ID_CONTACTO = &val
+		reserva.PK_ID_CONTACTO = &models.ReservaContacto{PKIDContacto: val}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -468,7 +468,7 @@ func (c *ReservaController) Put() {
 	}
 	if restauranteID, ok := input["restauranteId"].(float64); ok {
 		val := int64(restauranteID)
-		reserva.PK_ID_RESTAURANTE = &val
+		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{

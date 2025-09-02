@@ -347,7 +347,7 @@ func (c *TrabajadorController) Post() {
 	// Procesar PK_ID_RESTAURANTE
 	if pkRestaurante, ok := input["restauranteId"].(float64); ok {
 		valor := int64(pkRestaurante)
-		trabajador.PK_ID_RESTAURANTE = &valor
+		trabajador.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: valor}
 	}
 
 	// Procesar FECHA_NACIMIENTO

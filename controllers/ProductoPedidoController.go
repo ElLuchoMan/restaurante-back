@@ -135,8 +135,8 @@ func (c *ProductoPedidoController) Post() {
 		pedidoID := input.PedidoId
 		productoID := d.PKIDProducto
 		detalle := models.DetallePedido{
-			PKIDPedido:   &pedidoID,
-			PKIDProducto: &productoID,
+			PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pedidoID},
+			PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID},
 			Cantidad:     d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {
@@ -254,8 +254,8 @@ func (c *ProductoPedidoController) Update() {
 		pid := pedidoID
 		prodID := d.PKIDProducto
 		detalle := models.DetallePedido{
-			PKIDPedido:   &pid,
-			PKIDProducto: &prodID,
+			PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pid},
+			PKIDProducto: &models.Producto{PK_ID_PRODUCTO: prodID},
 			Cantidad:     d.Cantidad,
 		}
 		if _, err := o.Insert(&detalle); err != nil {

@@ -670,7 +670,7 @@ func TestReservaGetByParameterSuccess(t *testing.T) {
 	hora, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
 	db := []models.Reserva{{
 		PK_ID_RESERVA:  int64(1),
-		PK_ID_CONTACTO: 123,
+		PK_ID_CONTACTO: &models.ReservaContacto{PKIDContacto: 123},
 		FECHA:          time.Now(),
 		CREATED_AT:     time.Now(),
 		UPDATED_AT:     time.Now(),

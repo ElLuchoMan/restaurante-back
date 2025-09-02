@@ -5,9 +5,9 @@ import (
 )
 
 type Subcategoria struct {
-	PK_ID_SUBCATEGORIA int64  `orm:"column(pk_id_subcategoria);pk;auto" json:"subcategoriaId"`
-	PK_ID_CATEGORIA    *int64 `orm:"column(pk_id_categoria);rel(fk)" json:"categoriaId"`
-	NOMBRE             string `orm:"column(nombre);type(text)" json:"nombre"`
+	PK_ID_SUBCATEGORIA int64      `orm:"column(pk_id_subcategoria);pk;auto" json:"subcategoriaId"`
+	PK_ID_CATEGORIA    *Categoria `orm:"column(pk_id_categoria);rel(fk)" json:"categoriaId"`
+	NOMBRE             string     `orm:"column(nombre);type(text)" json:"nombre"`
 }
 
 func (s *Subcategoria) TableName() string {
