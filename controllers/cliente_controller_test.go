@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	stdctx "context"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -37,6 +39,10 @@ func TestIsUniqueEmailErr(t *testing.T) {
 	uniqueErr := errors.New("uq_cliente_correo")
 	if !isUniqueEmailErr(uniqueErr) {
 		t.Errorf("expected true for unique email error")
+	}
+	uniqueMsgErr := errors.New("unique constraint on correo")
+	if !isUniqueEmailErr(uniqueMsgErr) {
+		t.Errorf("expected true for unique correo message")
 	}
 	otherErr := errors.New("other")
 	if isUniqueEmailErr(otherErr) {
@@ -106,6 +112,55 @@ func TestClienteGetAllDBError(t *testing.T) {
 	}
 	t.Cleanup(resetMocks)
 	r := httptest.NewRequest(http.MethodGet, "/clientes", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ClienteController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+	c.GetAll()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+}
+
+func TestClienteGetAllLimitOffsetSuccess(t *testing.T) {
+	ormNew = orm.NewOrm
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_cliente", "nombre", "apellido", "correo", "direccion", "telefono", "observaciones", "password"}
+		vals := [][]driver.Value{{int64(1), "Foo", "Bar", "foo@bar.com", "Dir", "123", nil, "pwd"}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	t.Cleanup(func() {
+		MockQuery = nil
+		resetMocks()
+	})
+	r := httptest.NewRequest(http.MethodGet, "/clientes?limit=0&offset=0", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ClienteController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if strings.Contains(w.Body.String(), "pwd") {
+		t.Fatalf("password should be removed")
+	}
+}
+
+func TestClienteGetAllLimitOffsetError(t *testing.T) {
+	ormNew = orm.NewOrm
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		return nil, errors.New("db error")
+	}
+	t.Cleanup(func() {
+		MockQuery = nil
+		resetMocks()
+	})
+	r := httptest.NewRequest(http.MethodGet, "/clientes?limit=5&offset=1", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
