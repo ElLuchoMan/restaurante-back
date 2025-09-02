@@ -65,6 +65,7 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
 - `DELETE /nominas?id=...` performs a logical deletion setting the state to `NO_PAGO`.
 
 ## Database Tables
+The schema is prebuilt and maintained outside this repository; no migration files are tracked here.
 - **nomina**: stores payroll records including amount, state, and audit timestamps.
 - **reserva**: manages restaurant reservations with date, time, party size, and status.
 - **precio_producto_hist**: tracks product price changes over time with an effective date for each entry.
