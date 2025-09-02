@@ -11,7 +11,7 @@ type Domicilio struct {
 	PK_ID_DOMICILIO  int64           `orm:"column(pk_id_domicilio);pk;auto" json:"domicilioId"`
 	DIRECCION        string          `orm:"column(direccion);type(text)" json:"direccion"`
 	TELEFONO         string          `orm:"column(telefono);type(text)" json:"telefono"`
-	ESTADO_DOMICILIO EstadoDomicilio `orm:"column(estado_domicilio);type(text)" json:"estado"`
+	ESTADO_DOMICILIO EstadoDomicilio `orm:"column(estado_domicilio);type(estado_domicilio)" json:"estado"`
 	// ENTREGADO es una columna generada por la base de datos
 	ENTREGADO               bool      `orm:"column(entregado);type(boolean)" json:"entregado"`
 	FECHA                   time.Time `orm:"column(fecha);type(date)" json:"fechaDomicilio"`

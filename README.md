@@ -56,8 +56,7 @@ Go-based REST API for managing restaurant operations such as customers, orders, 
 - **Price history** for products is stored in the `precio_producto_hist` table. A new entry is
   created when a product is registered or its price changes, storing the effective date of the
   change.
-- `POST /producto_pedido` and `PUT /producto_pedido` no longer accept `precio` in the payload; the
-  database trigger assigns it automatically.
+- `POST /producto_pedido` and `PUT /producto_pedido` no longer accept `precio` in the payload; the database trigger assigns it automatically.
 - **Payroll (nómina)** operations:
 - `POST /nominas` accepts optional `generar_nomina_automatica` and
   `verificar_nomina` flags to auto-generate payments (passing the payroll

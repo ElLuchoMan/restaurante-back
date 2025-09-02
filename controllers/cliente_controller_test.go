@@ -210,6 +210,19 @@ func TestClientePostScenarios(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
+	// missing correo
+	bodyNoCorreo := `{"documentoCliente":1,"nombre":"Foo","apellido":"B","direccion":"C","telefono":"1","password":"pass"}`
+	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(bodyNoCorreo))
+	w = httptest.NewRecorder()
+	ctx = context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.CopyBody(1 << 20)
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
 	// db error
 	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return 0, errors.New("db error") }
 	body := `{"documentoCliente":1,"nombre":"Foo","apellido":"B","direccion":"C","telefono":"1","password":"pass","correo":" TeSt@Email.com "}`
@@ -279,7 +292,7 @@ func TestClientePostScenarios(t *testing.T) {
 }
 
 func TestClientePutScenarios(t *testing.T) {
-	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", PASSWORD: "old"}, 2: {PK_DOCUMENTO_CLIENTE: 2, NOMBRE: "Bar", CORREO: ptr("a@a.com"), PASSWORD: "x"}}
+	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", PASSWORD: "old"}, 2: {PK_DOCUMENTO_CLIENTE: 2, NOMBRE: "Bar", CORREO: "a@a.com", PASSWORD: "x"}}
 	ormNew = func() orm.Ormer { return nil }
 	readCliente = func(o orm.Ormer, c *models.Cliente) error {
 		cli, ok := db[c.PK_DOCUMENTO_CLIENTE]
@@ -294,7 +307,7 @@ func TestClientePutScenarios(t *testing.T) {
 			return 0, errors.New("db error")
 		}
 		for id, cli := range db {
-			if id != c.PK_DOCUMENTO_CLIENTE && cli.CORREO != nil && c.CORREO != nil && *cli.CORREO == *c.CORREO {
+			if id != c.PK_DOCUMENTO_CLIENTE && cli.CORREO != "" && c.CORREO != "" && cli.CORREO == c.CORREO {
 				return 0, errors.New("unique correo")
 			}
 		}
@@ -431,8 +444,6 @@ func TestClientePutScenarios(t *testing.T) {
 		t.Fatalf("password should remain")
 	}
 }
-
-func ptr(s string) *string { return &s }
 
 func TestClienteDeleteScenarios(t *testing.T) {
 	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1}}

@@ -14,8 +14,8 @@ type Producto struct {
 	CALORIAS           *int64         `orm:"column(calorias);type(bigint);null" json:"calorias"`
 	DESCRIPCION        *string        `orm:"column(descripcion);type(text);null" json:"descripcion,omitempty"`
 	PRECIO             int64          `orm:"column(precio);type(bigint)" json:"precio"`
-	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(text)" json:"estadoProducto"`
-	IMAGEN             []byte         `orm:"column(imagen);type(bytea);null" json:"imagen"`
+	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(estado_producto)" json:"estadoProducto"`
+	IMAGEN             []byte         `orm:"column(imagen);null" json:"imagen"`
 	CANTIDAD           int            `orm:"column(cantidad);type(integer)" json:"cantidad"`
 	PK_ID_SUBCATEGORIA int64          `orm:"column(pk_id_subcategoria);rel(fk)" json:"subcategoriaId"`
 }

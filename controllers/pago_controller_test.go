@@ -384,8 +384,7 @@ func TestPagoDeleteNotFound(t *testing.T) {
 func TestPagoGetAllSuccess(t *testing.T) {
 	orig := pagoNewOrm
 	pagoNewOrm = func() ormer {
-		metodo := int64(1)
-		pagos := []models.Pago{{PK_ID_PAGO: int64(1), FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: &metodo}}
+		pagos := []models.Pago{{PK_ID_PAGO: int64(1), FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1}}
 		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
 			ptr := res.(*[]models.Pago)
 			*ptr = pagos
@@ -436,15 +435,13 @@ func TestPagoGetAllFilterFecha(t *testing.T) {
 func TestPagoGetAllFilterOthers(t *testing.T) {
 	orig := pagoNewOrm
 	pagoNewOrm = func() ormer {
-		metodo1 := int64(1)
-		metodo2 := int64(2)
 		pagos := []models.Pago{
-			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: &metodo1},
-			{FECHA: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 2, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: &metodo1},
-			{FECHA: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 2, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: &metodo1},
-			{FECHA: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: &metodo1},
-			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "NO_PAGO", PK_ID_METODO_PAGO: &metodo1},
-			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: &metodo2},
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 2, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 2, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "NO_PAGO", PK_ID_METODO_PAGO: 1},
+			{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 2},
 		}
 		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
 			ptr := res.(*[]models.Pago)
@@ -469,8 +466,7 @@ func TestPagoGetAllFilterOthers(t *testing.T) {
 func TestPagoGetAllNoResults(t *testing.T) {
 	orig := pagoNewOrm
 	pagoNewOrm = func() ormer {
-		metodo := int64(1)
-		pagos := []models.Pago{{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: &metodo}}
+		pagos := []models.Pago{{FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), HORA: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), ESTADO_PAGO: "PAGADO", PK_ID_METODO_PAGO: 1}}
 		return fakeOrmer{queryAll: func(res interface{}, cols ...string) (int64, error) {
 			ptr := res.(*[]models.Pago)
 			*ptr = pagos
