@@ -20,6 +20,11 @@ type zeroResult struct{}
 func (zeroResult) LastInsertId() (int64, error) { return 0, nil }
 func (zeroResult) RowsAffected() (int64, error) { return 0, nil }
 
+type errorResult struct{}
+
+func (errorResult) LastInsertId() (int64, error) { return 0, nil }
+func (errorResult) RowsAffected() (int64, error) { return 0, errors.New("rows affected error") }
+
 func TestPostInvalidEstado(t *testing.T) {
 	body := `{"direccion":"Calle 1","fechaDomicilio":"2024-01-01","telefono":"123","estado":"otro"}`
 	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
@@ -97,6 +102,90 @@ func TestPostReturnsGeneratedEntregado(t *testing.T) {
 	}
 }
 
+func TestDomicilioPostInvalidJSON(t *testing.T) {
+	body := "{invalid"
+	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestDomicilioPostMissingFields(t *testing.T) {
+	body := `{"fechaDomicilio":"2024-01-01"}`
+	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "obligatorios") {
+		t.Fatalf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestDomicilioPostInvalidDate(t *testing.T) {
+	body := `{"direccion":"Calle","telefono":"123","fechaDomicilio":"bad"}`
+	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestDomicilioPostDBError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		return nil, errors.New("db")
+	}
+	defer func() { MockQuery = nil }()
+
+	body := `{"direccion":"Calle","fechaDomicilio":"2024-01-01","telefono":"123"}`
+	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
 func TestAsignarDomiciliarioSuccess(t *testing.T) {
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 		if !strings.Contains(strings.ToUpper(query), "ESTADO_DOMICILIO='EN_CAMINO'") {
@@ -129,6 +218,48 @@ func TestAsignarDomiciliarioSuccess(t *testing.T) {
 	}
 	if estado, ok := data["estadoDomicilio"].(string); !ok || estado != string(models.EstadoDomicilioEnCamino) {
 		t.Fatalf("expected estadoDomicilio %s, got %v", models.EstadoDomicilioEnCamino, data["estadoDomicilio"])
+	}
+}
+
+func TestAsignarDomiciliarioDBError(t *testing.T) {
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("db")
+	}
+	defer func() { MockExec = nil }()
+
+	r := httptest.NewRequest(http.MethodPost, "/domicilios/asignar?domicilio_id=1&trabajador_id=2", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.AsignarDomiciliario()
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
+func TestAsignarDomiciliarioRowsAffectedError(t *testing.T) {
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return errorResult{}, nil
+	}
+	defer func() { MockExec = nil }()
+
+	r := httptest.NewRequest(http.MethodPost, "/domicilios/asignar?domicilio_id=1&trabajador_id=2", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.AsignarDomiciliario()
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
 	}
 }
 
@@ -384,6 +515,34 @@ func TestDomicilioPutInvalidJSON(t *testing.T) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestDomicilioPutDBError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_id_domicilio", "direccion", "telefono", "estado_domicilio", "entregado", "fecha", "observaciones", "created_at", "updated_at", "created_by", "updated_by", "pk_documento_trabajador"}
+		vals := [][]driver.Value{{int64(1), "Calle", "123", "PENDIENTE", false, time.Now(), nil, time.Now(), time.Now(), nil, nil, nil}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("db")
+	}
+	defer func() { MockQuery = nil; MockExec = nil }()
+
+	body := `{"direccion":"Nueva"}`
+	r := httptest.NewRequest(http.MethodPut, "/domicilios?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Put()
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
 	}
 }
 
