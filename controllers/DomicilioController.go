@@ -504,7 +504,7 @@ func (c *DomicilioController) Delete() {
 
 // @Title AsignarDomiciliario
 // @Summary Asignar un domiciliario a un pedido de domicilio
-// @Description Un domiciliario puede tomar un pedido si no ha sido asignado previamente
+// @Description Un domiciliario puede tomar un pedido si no ha sido asignado previamente; al asignarlo el estado pasa a EN_CAMINO
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -542,7 +542,8 @@ func (c *DomicilioController) AsignarDomiciliario() {
 	}
 
 	domicilio.Trabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: trabajadorID}
-	if _, err := o.Update(&domicilio, "Trabajador"); err != nil {
+	domicilio.Estado = models.EstadoDomicilioEnCamino
+	if _, err := o.Update(&domicilio, "Trabajador", "Estado"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

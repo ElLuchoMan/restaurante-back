@@ -4,6 +4,7 @@ import (
 	stdctx "context"
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -88,5 +89,126 @@ func TestPostReturnsGeneratedEntregado(t *testing.T) {
 	}
 	if _, ok := data["updatedAt"]; !ok {
 		t.Fatalf("expected updatedAt in response")
+	}
+}
+
+func TestAsignarDomiciliarioNotFound(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPost, "/domicilios/asignar?domicilio_id=1&trabajador_id=2", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.AsignarDomiciliario()
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Domicilio no encontrado") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestAsignarDomiciliarioConflict(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{
+			"pk_id_domicilio", "direccion", "telefono", "estado_domicilio", "entregado", "fecha",
+			"observaciones", "created_at", "updated_at", "created_by", "updated_by", "pk_documento_trabajador",
+		}
+		vals := [][]driver.Value{{
+			int64(1), "Dir", "Tel", "PENDIENTE", false, time.Now(),
+			nil, time.Now(), time.Now(), nil, nil, int64(99),
+		}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	defer func() { MockQuery = nil }()
+
+	r := httptest.NewRequest(http.MethodPost, "/domicilios/asignar?domicilio_id=1&trabajador_id=2", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.AsignarDomiciliario()
+
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "ya ha sido asignado") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestAsignarDomiciliarioUpdateError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{
+			"pk_id_domicilio", "direccion", "telefono", "estado_domicilio", "entregado", "fecha",
+			"observaciones", "created_at", "updated_at", "created_by", "updated_by", "pk_documento_trabajador",
+		}
+		vals := [][]driver.Value{{
+			int64(1), "Dir", "Tel", "PENDIENTE", false, time.Now(),
+			nil, time.Now(), time.Now(), nil, nil, nil,
+		}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("update error")
+	}
+	defer func() { MockQuery = nil; MockExec = nil }()
+
+	r := httptest.NewRequest(http.MethodPost, "/domicilios/asignar?domicilio_id=1&trabajador_id=2", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.AsignarDomiciliario()
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al asignar domicilio") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestAsignarDomiciliarioSuccess(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{
+			"pk_id_domicilio", "direccion", "telefono", "estado_domicilio", "entregado", "fecha",
+			"observaciones", "created_at", "updated_at", "created_by", "updated_by", "pk_documento_trabajador",
+		}
+		vals := [][]driver.Value{{
+			int64(1), "Dir", "Tel", "PENDIENTE", false, time.Now(),
+			nil, time.Now(), time.Now(), nil, nil, nil,
+		}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return mockResult{}, nil
+	}
+	defer func() { MockQuery = nil; MockExec = nil }()
+
+	r := httptest.NewRequest(http.MethodPost, "/domicilios/asignar?domicilio_id=1&trabajador_id=2", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.AsignarDomiciliario()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "EN_CAMINO") {
+		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
