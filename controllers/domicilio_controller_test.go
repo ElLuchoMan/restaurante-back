@@ -90,3 +90,38 @@ func TestPostReturnsGeneratedEntregado(t *testing.T) {
 		t.Fatalf("expected updatedAt in response")
 	}
 }
+
+func TestAsignarDomiciliarioSuccess(t *testing.T) {
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		if !strings.Contains(strings.ToUpper(query), "ESTADO_DOMICILIO='EN_CAMINO'") {
+			t.Errorf("unexpected query: %s", query)
+		}
+		return mockResult{}, nil
+	}
+	defer func() { MockExec = nil }()
+
+	r := httptest.NewRequest(http.MethodPost, "/domicilios/asignar?domicilio_id=1&trabajador_id=2", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.AsignarDomiciliario()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	var resp models.ApiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected map data, got %T", resp.Data)
+	}
+	if estado, ok := data["estadoDomicilio"].(string); !ok || estado != string(models.EstadoDomicilioEnCamino) {
+		t.Fatalf("expected estadoDomicilio %s, got %v", models.EstadoDomicilioEnCamino, data["estadoDomicilio"])
+	}
+}
