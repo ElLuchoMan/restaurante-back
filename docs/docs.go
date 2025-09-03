@@ -3716,13 +3716,13 @@ const docTemplate = `{
         "models.DiaSemana": {
             "type": "string",
             "enum": [
-                "LUNES",
-                "MARTES",
-                "MIERCOLES",
-                "JUEVES",
-                "VIERNES",
-                "SABADO",
-                "DOMINGO"
+                "Lunes",
+                "Martes",
+                "Miercoles",
+                "Jueves",
+                "Viernes",
+                "Sabado",
+                "Domingo"
             ],
             "x-enum-varnames": [
                 "DiaLunes",
@@ -3785,11 +3785,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "estadoDomicilio": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.EstadoDomicilio"
                 },
                 "fechaDomicilio": {
-                    "type": "string",
-                    "example": "2006-01-02"
+                    "type": "string"
                 },
                 "observaciones": {
                     "type": "string"

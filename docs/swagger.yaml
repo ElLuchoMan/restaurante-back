@@ -51,13 +51,13 @@ definitions:
     type: object
   models.DiaSemana:
     enum:
-    - LUNES
-    - MARTES
-    - MIERCOLES
-    - JUEVES
-    - VIERNES
-    - SABADO
-    - DOMINGO
+    - Lunes
+    - Martes
+    - Miercoles
+    - Jueves
+    - Viernes
+    - Sabado
+    - Domingo
     type: string
     x-enum-varnames:
     - DiaLunes
@@ -101,9 +101,8 @@ definitions:
       direccion:
         type: string
       estadoDomicilio:
-        type: string
+        $ref: '#/definitions/models.EstadoDomicilio'
       fechaDomicilio:
-        example: "2006-01-02"
         type: string
       observaciones:
         type: string

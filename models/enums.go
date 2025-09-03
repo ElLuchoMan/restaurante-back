@@ -58,13 +58,13 @@ const (
 type DiaSemana = string
 
 const (
-	DiaLunes     DiaSemana = "LUNES"
-	DiaMartes    DiaSemana = "MARTES"
-	DiaMiercoles DiaSemana = "MIERCOLES"
-	DiaJueves    DiaSemana = "JUEVES"
-	DiaViernes   DiaSemana = "VIERNES"
-	DiaSabado    DiaSemana = "SABADO"
-	DiaDomingo   DiaSemana = "DOMINGO"
+	DiaLunes     DiaSemana = "Lunes"
+	DiaMartes    DiaSemana = "Martes"
+	DiaMiercoles DiaSemana = "Miercoles"
+	DiaJueves    DiaSemana = "Jueves"
+	DiaViernes   DiaSemana = "Viernes"
+	DiaSabado    DiaSemana = "Sabado"
+	DiaDomingo   DiaSemana = "Domingo"
 )
 
 // RolTrabajador represents valid roles for trabajador. Values are case-sensitive.

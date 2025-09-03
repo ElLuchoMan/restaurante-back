@@ -16,13 +16,29 @@ type HorarioTrabajadorController struct {
 }
 
 func isValidDia(dia string) bool {
-	switch models.DiaSemana(strings.ToUpper(dia)) {
+	// Normalizar a la forma que usan las constantes en models (Title case)
+	nd := diaToDB(dia)
+	switch models.DiaSemana(nd) {
 	case models.DiaLunes, models.DiaMartes, models.DiaMiercoles,
 		models.DiaJueves, models.DiaViernes, models.DiaSabado, models.DiaDomingo:
 		return true
 	default:
 		return false
 	}
+}
+
+// diaToDB convierte una representación de día (cualquier casing) al formato
+// que espera la base de datos, p. ej. "LUNES" -> "Lunes", "lunes" -> "Lunes".
+func diaToDB(d string) string {
+	if d == "" {
+		return ""
+	}
+	d = strings.ToLower(d)
+	// Asegurar al menos 1 caracter
+	if len(d) == 1 {
+		return strings.ToUpper(d)
+	}
+	return strings.ToUpper(d[:1]) + d[1:]
 }
 
 // @Title GetAll
@@ -48,8 +64,11 @@ func (c *HorarioTrabajadorController) GetAll() {
 		args = append(args, doc)
 	}
 	if dia := strings.ToUpper(c.GetString("dia")); dia != "" {
-		conds = append(conds, "dia = ?")
-		args = append(args, dia)
+		// validar entrada (isValidDia trabaja con mayúsculas)
+		if isValidDia(dia) {
+			conds = append(conds, "dia = ?")
+			args = append(args, diaToDB(dia))
+		}
 	}
 	if len(conds) > 0 {
 		query += " WHERE " + strings.Join(conds, " AND ")
@@ -127,9 +146,14 @@ func (c *HorarioTrabajadorController) Post() {
 		return
 	}
 
+	// Normalizar fecha a un año válido (1) para evitar error en PostgreSQL al insertar
+	horaInicio = time.Date(1, 1, 1, horaInicio.Hour(), horaInicio.Minute(), horaInicio.Second(), 0, time.UTC)
+	horaFin = time.Date(1, 1, 1, horaFin.Hour(), horaFin.Minute(), horaFin.Second(), 0, time.UTC)
+
 	horario := models.HorarioTrabajador{
 		PK_DOCUMENTO_TRABAJADOR: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR},
-		DIA:                     dia,
+		// Guardar en el formato que requiere la DB (ej. "Lunes")
+		DIA:                     diaToDB(dia),
 		HORA_INICIO:             horaInicio,
 		HORA_FIN:                horaFin,
 	}
@@ -195,12 +219,13 @@ func (c *HorarioTrabajadorController) Put() {
 		c.ServeJSON()
 		return
 	}
+	dbDia := diaToDB(dia)
 
 	var horario models.HorarioTrabajador
 	o := orm.NewOrm()
 	if err := o.Raw(
 		"SELECT pk_documento_trabajador, dia, hora_inicio, hora_fin FROM horario_trabajador WHERE pk_documento_trabajador = ? AND dia = ?",
-		doc, dia,
+		doc, dbDia,
 	).QueryRow(&horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
@@ -242,8 +267,8 @@ func (c *HorarioTrabajadorController) Put() {
 		}
 	}
 
-	horario.HORA_INICIO = time.Date(0, 1, 1, horario.HORA_INICIO.Hour(), horario.HORA_INICIO.Minute(), horario.HORA_INICIO.Second(), 0, time.UTC)
-	horario.HORA_FIN = time.Date(0, 1, 1, horario.HORA_FIN.Hour(), horario.HORA_FIN.Minute(), horario.HORA_FIN.Second(), 0, time.UTC)
+	horario.HORA_INICIO = time.Date(1, 1, 1, horario.HORA_INICIO.Hour(), horario.HORA_INICIO.Minute(), horario.HORA_INICIO.Second(), 0, time.UTC)
+	horario.HORA_FIN = time.Date(1, 1, 1, horario.HORA_FIN.Hour(), horario.HORA_FIN.Minute(), horario.HORA_FIN.Second(), 0, time.UTC)
 	if !horario.ValidHours() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "horaFin debe ser mayor que horaInicio"}
@@ -253,7 +278,7 @@ func (c *HorarioTrabajadorController) Put() {
 
 	if _, err := o.Raw(
 		"UPDATE horario_trabajador SET hora_inicio = ?, hora_fin = ? WHERE pk_documento_trabajador = ? AND dia = ?",
-		horario.HORA_INICIO, horario.HORA_FIN, doc, dia,
+		horario.HORA_INICIO, horario.HORA_FIN, doc, dbDia,
 	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar horario", Cause: err.Error()}
@@ -288,19 +313,20 @@ func (c *HorarioTrabajadorController) Delete() {
 		c.ServeJSON()
 		return
 	}
-	dia := c.GetString("dia")
-	if dia == "" {
+	dia := strings.ToUpper(c.GetString("dia"))
+	if dia == "" || !isValidDia(dia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}
 		c.ServeJSON()
 		return
 	}
+	dbDia := diaToDB(dia)
 
 	o := orm.NewOrm()
 	var horario models.HorarioTrabajador
 	if err := o.Raw(
 		"SELECT pk_documento_trabajador, dia FROM horario_trabajador WHERE pk_documento_trabajador = ? AND dia = ?",
-		doc, dia,
+		doc, dbDia,
 	).QueryRow(&horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
@@ -315,7 +341,7 @@ func (c *HorarioTrabajadorController) Delete() {
 
 	if _, err := o.Raw(
 		"DELETE FROM horario_trabajador WHERE pk_documento_trabajador = ? AND dia = ?",
-		doc, dia,
+		doc, dbDia,
 	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar horario", Cause: err.Error()}

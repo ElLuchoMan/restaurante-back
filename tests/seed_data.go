@@ -4,8 +4,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/beego/beego/v2/client/orm"
 	"restaurante/models"
+
+	"github.com/beego/beego/v2/client/orm"
 )
 
 // SeedTestData inserta registros básicos para las pruebas.
@@ -53,8 +54,9 @@ func SeedTestData() {
 		log.Println("seed detalle_pedido:", err)
 	}
 
-	inicio, _ := time.Parse("15:04:05", "08:00:00")
-	fin, _ := time.Parse("15:04:05", "16:00:00")
+	// Crear tiempos con año válido (1) para evitar error de rango en PostgreSQL
+	inicio := time.Date(1, 1, 1, 8, 0, 0, 0, time.UTC)
+	fin := time.Date(1, 1, 1, 16, 0, 0, 0, time.UTC)
 	if _, err := o.Raw(
 		"INSERT INTO horario_trabajador (pk_documento_trabajador, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)",
 		1, models.DiaLunes, inicio, fin,

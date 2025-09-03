@@ -83,14 +83,14 @@ definitions:
     title: DiaSemana
     type: string
     enum:
-    - DiaLunes = "LUNES"
-    - DiaMartes = "MARTES"
-    - DiaMiercoles = "MIERCOLES"
-    - DiaJueves = "JUEVES"
-    - DiaViernes = "VIERNES"
-    - DiaSabado = "SABADO"
-    - DiaDomingo = "DOMINGO"
-    example: LUNES
+    - DiaLunes = "Lunes"
+    - DiaMartes = "Martes"
+    - DiaMiercoles = "Miercoles"
+    - DiaJueves = "Jueves"
+    - DiaViernes = "Viernes"
+    - DiaSabado = "Sabado"
+    - DiaDomingo = "Domingo"
+    example: Lunes
   models.Domicilio:
     title: Domicilio
     type: object

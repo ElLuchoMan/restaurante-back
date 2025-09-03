@@ -15,13 +15,13 @@ func TestHorarioTrabajadorTableUnique(t *testing.T) {
 
 func TestHorarioTrabajadorValidHours(t *testing.T) {
 	h := HorarioTrabajador{
-		HORA_INICIO: time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC),
-		HORA_FIN:    time.Date(0, 1, 1, 10, 0, 0, 0, time.UTC),
+	HORA_INICIO: time.Date(1, 1, 1, 9, 0, 0, 0, time.UTC),
+	HORA_FIN:    time.Date(1, 1, 1, 10, 0, 0, 0, time.UTC),
 	}
 	if !h.ValidHours() {
 		t.Fatalf("expected valid hours")
 	}
-	h.HORA_FIN = time.Date(0, 1, 1, 8, 0, 0, 0, time.UTC)
+	h.HORA_FIN = time.Date(1, 1, 1, 8, 0, 0, 0, time.UTC)
 	if h.ValidHours() {
 		t.Fatalf("expected invalid hours")
 	}

@@ -118,15 +118,15 @@
             "title": "DiaSemana",
             "type": "string",
             "enum": [
-                "DiaLunes = \"LUNES\"",
-                "DiaMartes = \"MARTES\"",
-                "DiaMiercoles = \"MIERCOLES\"",
-                "DiaJueves = \"JUEVES\"",
-                "DiaViernes = \"VIERNES\"",
-                "DiaSabado = \"SABADO\"",
-                "DiaDomingo = \"DOMINGO\""
+                "DiaLunes = \"Lunes\"",
+                "DiaMartes = \"Martes\"",
+                "DiaMiercoles = \"Miercoles\"",
+                "DiaJueves = \"Jueves\"",
+                "DiaViernes = \"Viernes\"",
+                "DiaSabado = \"Sabado\"",
+                "DiaDomingo = \"Domingo\""
             ],
-            "example": "LUNES"
+            "example": "Lunes"
         },
         "models.Domicilio": {
             "title": "Domicilio",
