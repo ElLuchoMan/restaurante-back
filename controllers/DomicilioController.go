@@ -520,29 +520,11 @@ func (c *DomicilioController) AsignarDomiciliario() {
 	trabajadorID, _ := c.GetInt64("trabajador_id")
 
 	o := orm.NewOrm()
-	domicilio := models.Domicilio{ID: domicilioID}
-	if err := o.Read(&domicilio); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusNotFound)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Domicilio no encontrado",
-		}
-		c.ServeJSON()
-		return
-	}
-
-	if domicilio.Trabajador != nil {
-		c.Ctx.Output.SetStatus(http.StatusConflict)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusConflict,
-			Message: "Este domicilio ya ha sido asignado",
-		}
-		c.ServeJSON()
-		return
-	}
-
-	domicilio.Trabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: trabajadorID}
-	if _, err := o.Update(&domicilio, "Trabajador"); err != nil {
+	res, err := o.Raw(
+		"UPDATE domicilio SET estado_domicilio='EN_CAMINO', pk_documento_trabajador=? WHERE pk_id_domicilio=? AND pk_documento_trabajador IS NULL",
+		trabajadorID, domicilioID,
+	).Exec()
+	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -551,6 +533,45 @@ func (c *DomicilioController) AsignarDomiciliario() {
 		}
 		c.ServeJSON()
 		return
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al asignar domicilio",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+
+	if affected != 1 {
+		var exists int
+		if err := o.Raw("SELECT COUNT(1) FROM domicilio WHERE pk_id_domicilio = ?", domicilioID).QueryRow(&exists); err != nil || exists == 0 {
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusNotFound,
+				Message: "Domicilio no encontrado",
+			}
+		} else {
+			c.Ctx.Output.SetStatus(http.StatusConflict)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusConflict,
+				Message: "Este domicilio ya ha sido asignado",
+			}
+		}
+		c.ServeJSON()
+		return
+	}
+
+	domicilio := models.Domicilio{
+		ID:     domicilioID,
+		Estado: models.EstadoDomicilioEnCamino,
+		Trabajador: &models.Trabajador{
+			PK_DOCUMENTO_TRABAJADOR: trabajadorID,
+		},
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
