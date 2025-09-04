@@ -61,7 +61,7 @@
 				
 				<option value="file2">restaurante/controllers/DomicilioController.go (87.2%)</option>
 				
-				<option value="file3">restaurante/controllers/HorarioTrabajadorController.go (36.0%)</option>
+				<option value="file3">restaurante/controllers/HorarioTrabajadorController.go (64.0%)</option>
 				
 				<option value="file4">restaurante/controllers/IncidenciaController.go (33.1%)</option>
 				
@@ -1696,30 +1696,30 @@ type HorarioTrabajadorController struct {
         web.Controller
 }
 
-func isValidDia(dia string) bool <span class="cov7" title="5">{
+func isValidDia(dia string) bool <span class="cov8" title="19">{
         // Normalizar a la forma que usan las constantes en models (Title case)
         nd := diaToDB(dia)
         switch models.DiaSemana(nd) </span>{
         case models.DiaLunes, models.DiaMartes, models.DiaMiercoles,
-                models.DiaJueves, models.DiaViernes, models.DiaSabado, models.DiaDomingo:<span class="cov5" title="3">
+                models.DiaJueves, models.DiaViernes, models.DiaSabado, models.DiaDomingo:<span class="cov7" title="13">
                 return true</span>
-        default:<span class="cov4" title="2">
+        default:<span class="cov5" title="6">
                 return false</span>
         }
 }
 
 // diaToDB convierte una representación de día (cualquier casing) al formato
 // que espera la base de datos, p. ej. "LUNES" -&gt; "Lunes", "lunes" -&gt; "Lunes".
-func diaToDB(d string) string <span class="cov10" title="8">{
-        if d == "" </span><span class="cov0" title="0">{
+func diaToDB(d string) string <span class="cov10" title="29">{
+        if d == "" </span><span class="cov2" title="2">{
                 return ""
         }</span>
-        <span class="cov10" title="8">d = strings.ToLower(d)
+        <span class="cov9" title="27">d = strings.ToLower(d)
         // Asegurar al menos 1 caracter
-        if len(d) == 1 </span><span class="cov0" title="0">{
+        if len(d) == 1 </span><span class="cov1" title="1">{
                 return strings.ToUpper(d)
         }</span>
-        <span class="cov10" title="8">return strings.ToUpper(d[:1]) + d[1:]</span>
+        <span class="cov9" title="26">return strings.ToUpper(d[:1]) + d[1:]</span>
 }
 
 // @Title GetAll
@@ -1734,29 +1734,29 @@ func diaToDB(d string) string <span class="cov10" title="8">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /horario_trabajador [get]
-func (c *HorarioTrabajadorController) GetAll() <span class="cov0" title="0">{
+func (c *HorarioTrabajadorController) GetAll() <span class="cov2" title="2">{
         o := orm.NewOrm()
         query := "SELECT pk_documento_trabajador, dia, hora_inicio, hora_fin FROM horario_trabajador"
         var args []interface{}
         var conds []string
 
-        if doc, err := c.GetInt64("documento"); err == nil &amp;&amp; doc != 0 </span><span class="cov0" title="0">{
+        if doc, err := c.GetInt64("documento"); err == nil &amp;&amp; doc != 0 </span><span class="cov1" title="1">{
                 conds = append(conds, "pk_documento_trabajador = ?")
                 args = append(args, doc)
         }</span>
-        <span class="cov0" title="0">if dia := strings.ToUpper(c.GetString("dia")); dia != "" </span><span class="cov0" title="0">{
+        <span class="cov2" title="2">if dia := strings.ToUpper(c.GetString("dia")); dia != "" </span><span class="cov1" title="1">{
                 // validar entrada (isValidDia trabaja con mayúsculas)
-                if isValidDia(dia) </span><span class="cov0" title="0">{
+                if isValidDia(dia) </span><span class="cov1" title="1">{
                         conds = append(conds, "dia = ?")
                         args = append(args, diaToDB(dia))
                 }</span>
         }
-        <span class="cov0" title="0">if len(conds) &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov2" title="2">if len(conds) &gt; 0 </span><span class="cov1" title="1">{
                 query += " WHERE " + strings.Join(conds, " AND ")
         }</span>
 
-        <span class="cov0" title="0">var horarios []models.HorarioTrabajador
-        if _, err := o.Raw(query, args...).QueryRows(&amp;horarios); err != nil </span><span class="cov0" title="0">{
+        <span class="cov2" title="2">var horarios []models.HorarioTrabajador
+        if _, err := o.Raw(query, args...).QueryRows(&amp;horarios); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -1767,7 +1767,7 @@ func (c *HorarioTrabajadorController) GetAll() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Horarios obtenidos correctamente",
@@ -1788,7 +1788,7 @@ func (c *HorarioTrabajadorController) GetAll() <span class="cov0" title="0">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /horario_trabajador [post]
-func (c *HorarioTrabajadorController) Post() <span class="cov5" title="3">{
+func (c *HorarioTrabajadorController) Post() <span class="cov3" title="3">{
         var input struct {
                 PK_DOCUMENTO_TRABAJADOR int64  `json:"documentoTrabajador"`
                 DIA                     string `json:"dia"`
@@ -1807,7 +1807,7 @@ func (c *HorarioTrabajadorController) Post() <span class="cov5" title="3">{
                 return
         }</span>
 
-        <span class="cov5" title="3">dia := strings.ToUpper(input.DIA)
+        <span class="cov3" title="3">dia := strings.ToUpper(input.DIA)
         if !isValidDia(dia) </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Día inválido"}
@@ -1815,7 +1815,7 @@ func (c *HorarioTrabajadorController) Post() <span class="cov5" title="3">{
                 return
         }</span>
 
-        <span class="cov4" title="2">horaInicio, err1 := time.Parse("15:04:05", input.HORA_INICIO)
+        <span class="cov2" title="2">horaInicio, err1 := time.Parse("15:04:05", input.HORA_INICIO)
         horaFin, err2 := time.Parse("15:04:05", input.HORA_FIN)
         if err1 != nil || err2 != nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -1828,7 +1828,7 @@ func (c *HorarioTrabajadorController) Post() <span class="cov5" title="3">{
         }</span>
 
         // Normalizar fecha a un año válido (1) para evitar error en PostgreSQL al insertar
-        <span class="cov4" title="2">horaInicio = time.Date(1, 1, 1, horaInicio.Hour(), horaInicio.Minute(), horaInicio.Second(), 0, time.UTC)
+        <span class="cov2" title="2">horaInicio = time.Date(1, 1, 1, horaInicio.Hour(), horaInicio.Minute(), horaInicio.Second(), 0, time.UTC)
         horaFin = time.Date(1, 1, 1, horaFin.Hour(), horaFin.Minute(), horaFin.Second(), 0, time.UTC)
 
         horario := models.HorarioTrabajador{
@@ -1885,7 +1885,7 @@ func (c *HorarioTrabajadorController) Post() <span class="cov5" title="3">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /horario_trabajador [put]
-func (c *HorarioTrabajadorController) Put() <span class="cov4" title="2">{
+func (c *HorarioTrabajadorController) Put() <span class="cov2" title="2">{
         doc, err := c.GetInt64("documento")
         if err != nil || doc == 0 </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -1893,7 +1893,7 @@ func (c *HorarioTrabajadorController) Put() <span class="cov4" title="2">{
                 c.ServeJSON()
                 return
         }</span>
-        <span class="cov4" title="2">dia := strings.ToUpper(c.GetString("dia"))
+        <span class="cov2" title="2">dia := strings.ToUpper(c.GetString("dia"))
         if dia == "" || !isValidDia(dia) </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}
@@ -1986,7 +1986,7 @@ func (c *HorarioTrabajadorController) Put() <span class="cov4" title="2">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /horario_trabajador [delete]
-func (c *HorarioTrabajadorController) Delete() <span class="cov0" title="0">{
+func (c *HorarioTrabajadorController) Delete() <span class="cov3" title="3">{
         doc, err := c.GetInt64("documento")
         if err != nil || doc == 0 </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -1994,33 +1994,33 @@ func (c *HorarioTrabajadorController) Delete() <span class="cov0" title="0">{
                 c.ServeJSON()
                 return
         }</span>
-        <span class="cov0" title="0">dia := strings.ToUpper(c.GetString("dia"))
-        if dia == "" || !isValidDia(dia) </span><span class="cov0" title="0">{
+        <span class="cov3" title="3">dia := strings.ToUpper(c.GetString("dia"))
+        if dia == "" || !isValidDia(dia) </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}
                 c.ServeJSON()
                 return
         }</span>
-        <span class="cov0" title="0">dbDia := diaToDB(dia)
+        <span class="cov2" title="2">dbDia := diaToDB(dia)
 
         o := orm.NewOrm()
         var horario models.HorarioTrabajador
         if err := o.Raw(
                 "SELECT pk_documento_trabajador, dia FROM horario_trabajador WHERE pk_documento_trabajador = ? AND dia = ?",
                 doc, dbDia,
-        ).QueryRow(&amp;horario); err == orm.ErrNoRows </span><span class="cov0" title="0">{
+        ).QueryRow(&amp;horario); err == orm.ErrNoRows </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov0" title="0"> if err != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov1" title="1"> if err != nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar horario", Cause: err.Error()}
                 c.ServeJSON()
                 return
         }</span>
 
-        <span class="cov0" title="0">if _, err := o.Raw(
+        <span class="cov1" title="1">if _, err := o.Raw(
                 "DELETE FROM horario_trabajador WHERE pk_documento_trabajador = ? AND dia = ?",
                 doc, dbDia,
         ).Exec(); err != nil </span><span class="cov0" title="0">{
@@ -2030,7 +2030,7 @@ func (c *HorarioTrabajadorController) Delete() <span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Horario eliminado correctamente"}
         c.ServeJSON()</span>
 }

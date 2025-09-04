@@ -117,7 +117,8 @@ func (c *NominaController) Post() {
 		return
 	}
 	if input.FECHA.IsZero() {
-		input.FECHA = time.Now()
+		now := time.Now()
+		input.FECHA = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	}
 
 	if !estadosNominaPermitidos[input.ESTADO_NOMINA] {
@@ -126,8 +127,7 @@ func (c *NominaController) Post() {
 
 	input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
 
-	_, err := o.Insert(&input)
-	if err != nil {
+	if _, err := o.Insert(&input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -138,7 +138,6 @@ func (c *NominaController) Post() {
 		return
 	}
 
-	// Ejecutar funciones adicionales si se solicitan
 	if gen {
 		if _, err := o.Raw("CALL generar_nomina_automatica(?, ?)", input.PK_ID_NOMINA, input.FECHA).Exec(); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -166,10 +165,9 @@ func (c *NominaController) Post() {
 	}
 
 	var updatedNomina models.Nomina
-	err = o.QueryTable(new(models.Nomina)).
+	if err := o.QueryTable(new(models.Nomina)).
 		Filter("PK_ID_NOMINA", input.PK_ID_NOMINA).
-		One(&updatedNomina)
-	if err != nil {
+		One(&updatedNomina); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

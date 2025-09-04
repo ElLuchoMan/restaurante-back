@@ -1,6 +1,10 @@
 package models
 
-import "github.com/beego/beego/v2/client/orm"
+import (
+	"encoding/json"
+
+	"github.com/beego/beego/v2/client/orm"
+)
 
 type NominaTrabajador struct {
 	PK_ID_NOMINA_TRABAJADOR int64       `orm:"column(pk_id_nomina_trabajador);pk;auto" json:"nominaTrabajadorId"`
@@ -45,4 +49,89 @@ func (n *NominaTrabajador) TableUnique() [][]string {
 	return [][]string{
 		{"PK_DOCUMENTO_TRABAJADOR", "PK_ID_NOMINA"},
 	}
+}
+
+// UnmarshalJSON permite aceptar tanto claves explícitas como alternativas y
+// números para referencias de FK. Soporta JSON con:
+// - "nominaId" o "pk_id_nomina" (número o objeto Nomina)
+// - "documentoTrabajador" o "pk_documento_trabajador" (número o objeto Trabajador)
+func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
+	type alias struct {
+		SUELDO_BASE             *int64          `json:"sueldoBase,omitempty"`
+		MONTO_INCIDENCIAS       *int64          `json:"montoIncidencias,omitempty"`
+		DETALLES                *string         `json:"detalles,omitempty"`
+		// posibles nombres entrantes
+		DocumentoTrabajador     json.RawMessage `json:"documentoTrabajador,omitempty"`
+		DocumentoTrabajadorAlt  json.RawMessage `json:"pk_documento_trabajador,omitempty"`
+		NominaID                json.RawMessage `json:"nominaId,omitempty"`
+		NominaIDAlt             json.RawMessage `json:"pk_id_nomina,omitempty"`
+	}
+
+	var a alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+
+	if a.SUELDO_BASE != nil {
+		n.SUELDO_BASE = *a.SUELDO_BASE
+	}
+	n.MONTO_INCIDENCIAS = a.MONTO_INCIDENCIAS
+	n.DETALLES = a.DETALLES
+
+	// helper para procesar un RawMessage que puede ser número o objeto
+	parseIDToTrabajador := func(raw json.RawMessage) (*Trabajador, error) {
+		if len(raw) == 0 {
+			return nil, nil
+		}
+		// intentar número
+		var idNum int64
+		if err := json.Unmarshal(raw, &idNum); err == nil {
+			return &Trabajador{PK_DOCUMENTO_TRABAJADOR: idNum}, nil
+		}
+		// intentar objeto
+		var t Trabajador
+		if err := json.Unmarshal(raw, &t); err == nil {
+			return &t, nil
+		}
+		return nil, nil
+	}
+
+	// Parse documento trabajador (prefiere el campo principal)
+	if len(a.DocumentoTrabajador) != 0 {
+		if tr, err := parseIDToTrabajador(a.DocumentoTrabajador); err == nil {
+			n.PK_DOCUMENTO_TRABAJADOR = tr
+		}
+	} else if len(a.DocumentoTrabajadorAlt) != 0 {
+		if tr, err := parseIDToTrabajador(a.DocumentoTrabajadorAlt); err == nil {
+			n.PK_DOCUMENTO_TRABAJADOR = tr
+		}
+	}
+
+	// Parse nomina id -> Nomina pointer
+	parseIDToNomina := func(raw json.RawMessage) (*Nomina, error) {
+		if len(raw) == 0 {
+			return nil, nil
+		}
+		var idNum int64
+		if err := json.Unmarshal(raw, &idNum); err == nil {
+			return &Nomina{PK_ID_NOMINA: idNum}, nil
+		}
+		var m Nomina
+		if err := json.Unmarshal(raw, &m); err == nil {
+			return &m, nil
+		}
+		return nil, nil
+	}
+
+	if len(a.NominaID) != 0 {
+		if nm, err := parseIDToNomina(a.NominaID); err == nil {
+			n.PK_ID_NOMINA = nm
+		}
+	} else if len(a.NominaIDAlt) != 0 {
+		if nm, err := parseIDToNomina(a.NominaIDAlt); err == nil {
+			n.PK_ID_NOMINA = nm
+		}
+	}
+
+	return nil
 }

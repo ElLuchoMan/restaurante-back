@@ -150,6 +150,36 @@ func (c *NominaTrabajadorController) Post() {
 	nominaTrabajador.DETALLES = &descripcion
 
 	// Registrar en la base de datos
+	// Asignar la nómina correspondiente (usar la nómina más reciente si no se especifica)
+	var ultimaNomina models.Nomina
+	err = o.QueryTable(new(models.Nomina)).OrderBy("-fecha").One(&ultimaNomina)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al obtener la nómina activa",
+			Cause:   err.Error(),
+		}
+		c.ServeJSON()
+		return
+	}
+	nominaTrabajador.PK_ID_NOMINA = &ultimaNomina
+
+	// Verificar si ya existe la relación (mismo trabajador y misma nómina)
+	exists := o.QueryTable(new(models.NominaTrabajador)).
+		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
+		Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
+		Exist()
+	if exists {
+		c.Ctx.Output.SetStatus(http.StatusConflict)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusConflict,
+			Message: "La relación nómina-trabajador ya existe para esta nómina y trabajador",
+		}
+		c.ServeJSON()
+		return
+	}
+
 	_, err = o.Insert(&nominaTrabajador)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)

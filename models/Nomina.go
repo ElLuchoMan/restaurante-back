@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -31,4 +32,24 @@ func (t Nomina) MarshalJSON() ([]byte, error) {
 		FECHA: t.FECHA.Format("02-01-2006"),
 		Alias: (Alias)(t),
 	})
+}
+func (n *Nomina) UnmarshalJSON(data []byte) error {
+	type Alias Nomina
+	aux := &struct {
+		FECHA string `json:"fechaNomina"`
+		*Alias
+	}{
+		Alias: (*Alias)(n),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.FECHA != "" {
+		t, err := time.Parse("2006-01-02", aux.FECHA)
+		if err != nil {
+			return fmt.Errorf("fechaNomina debe tener formato YYYY-MM-DD: %w", err)
+		}
+		n.FECHA = t
+	}
+	return nil
 }
