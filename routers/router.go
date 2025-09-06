@@ -85,6 +85,34 @@ func init() {
 			beego.NSRouter("/search", &controllers.SubcategoriaController{}, "get:GetById"),
 		),
 
+		// Precio producto hist (protegido)
+		beego.NSNamespace("/precio_producto_hist",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.PrecioProductoHistController{}, "get:GetAll"),
+			beego.NSRouter("/search", &controllers.PrecioProductoHistController{}, "get:GetById"),
+		),
+
+		// Control nómina (protegido)
+		beego.NSNamespace("/control_nomina",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.ControlNominaController{}, "get:GetAll"),
+			beego.NSRouter("/search", &controllers.ControlNominaController{}, "get:GetById"),
+		),
+
+		// Restaurante día (protegido)
+		beego.NSNamespace("/restaurante_dia",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.RestauranteDiaController{}, "get:GetAll"),
+			beego.NSRouter("/search", &controllers.RestauranteDiaController{}, "get:GetById"),
+		),
+
+		// Reserva contacto (protegido)
+		beego.NSNamespace("/reserva_contacto",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.ReservaContactoController{}, "get:GetAll"),
+			beego.NSRouter("/search", &controllers.ReservaContactoController{}, "get:GetById"),
+		),
+
 		// Reservas (público según tu definición actual)
 		beego.NSNamespace("/reservas",
 			beego.NSRouter("/", &controllers.ReservaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),

@@ -45,6 +45,25 @@ definitions:
         example: "17:00:00"
         type: string
     type: object
+  models.Categoria:
+    properties:
+      categoriaId:
+        type: integer
+      nombre:
+        type: string
+    type: object
+  models.CategoriaCreateRequest:
+    properties:
+      nombre:
+        example: Bebidas
+        type: string
+    type: object
+  models.CategoriaUpdateRequest:
+    properties:
+      nombre:
+        example: Bebidas frías
+        type: string
+    type: object
   models.Cliente:
     properties:
       apellido:
@@ -113,6 +132,15 @@ definitions:
         type: string
       telefono:
         example: "3009876543"
+        type: string
+    type: object
+  models.ControlNomina:
+    properties:
+      controlNominaId:
+        type: integer
+      estado:
+        $ref: '#/definitions/models.EstadoControlNomina'
+      fecha:
         type: string
     type: object
   models.DiaSemana:
@@ -197,6 +225,16 @@ definitions:
         example: operador@example.com
         type: string
     type: object
+  models.EstadoControlNomina:
+    enum:
+    - NO GENERADA
+    - GENERADA
+    - REGENERADA
+    type: string
+    x-enum-varnames:
+    - EstadoControlNominaNoGenerada
+    - EstadoControlNominaGenerada
+    - EstadoControlNominaReGenerada
   models.EstadoDomicilio:
     enum:
     - PENDIENTE
@@ -559,6 +597,17 @@ definitions:
       productos:
         type: string
     type: object
+  models.PrecioProductoHist:
+    properties:
+      fechaVigencia:
+        type: string
+      precio:
+        type: integer
+      precioHistId:
+        type: integer
+      productoId:
+        type: integer
+    type: object
   models.Producto:
     properties:
       calorias:
@@ -624,6 +673,19 @@ definitions:
       updatedAt:
         type: string
       updatedBy:
+        type: string
+    type: object
+  models.ReservaContacto:
+    properties:
+      contactoId:
+        type: integer
+      documentoCliente:
+        type: integer
+      documentoContacto:
+        type: integer
+      nombreCompleto:
+        type: string
+      telefono:
         type: string
     type: object
   models.ReservaCreateRequest:
@@ -703,6 +765,15 @@ definitions:
         example: El Fogón de María
         type: string
     type: object
+  models.RestauranteDia:
+    properties:
+      dia:
+        $ref: '#/definitions/models.DiaSemana'
+      restauranteDiaId:
+        type: integer
+      restauranteId:
+        type: integer
+    type: object
   models.RestauranteUpdateRequest:
     properties:
       cambioHorarioId:
@@ -729,6 +800,33 @@ definitions:
     - RolCocinero
     - RolDomiciliario
     - RolOficiosVarios
+  models.Subcategoria:
+    properties:
+      categoriaId:
+        type: integer
+      nombre:
+        type: string
+      subcategoriaId:
+        type: integer
+    type: object
+  models.SubcategoriaCreateRequest:
+    properties:
+      categoriaId:
+        example: 1
+        type: integer
+      nombre:
+        example: Gaseosas
+        type: string
+    type: object
+  models.SubcategoriaUpdateRequest:
+    properties:
+      categoriaId:
+        example: 1
+        type: integer
+      nombre:
+        example: Gaseosas zero
+        type: string
+    type: object
   models.Trabajador:
     properties:
       apellido:
@@ -988,6 +1086,150 @@ paths:
       summary: Consultar cambios de horario para la fecha actual
       tags:
       - cambios_horario
+  /categorias:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la categoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar categoría
+      tags:
+      - categorias
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Categoria'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las categorías
+      tags:
+      - categorias
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos de categoría
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CategoriaCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Categoria'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear categoría
+      tags:
+      - categorias
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la categoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CategoriaUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Categoria'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar categoría
+      tags:
+      - categorias
+  /categorias/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la categoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Categoria'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener categoría por ID
+      tags:
+      - categorias
   /clientes:
     delete:
       consumes:
@@ -1184,6 +1426,66 @@ paths:
       summary: Obtener cliente por ID
       tags:
       - clientes
+  /control_nomina:
+    get:
+      consumes:
+      - application/json
+      description: 'Opcional: filtrar por fecha (YYYY-MM-DD)'
+      parameters:
+      - description: Fecha (YYYY-MM-DD)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.ControlNomina'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar control de nómina
+      tags:
+      - control_nomina
+  /control_nomina/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del control
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ControlNomina'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener control de nómina por ID
+      tags:
+      - control_nomina
   /domicilios:
     delete:
       consumes:
@@ -2679,6 +2981,70 @@ paths:
       summary: Obtener detalles completos de un pedido
       tags:
       - pedido
+  /precio_producto_hist:
+    get:
+      consumes:
+      - application/json
+      description: 'Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD)'
+      parameters:
+      - description: ID del producto
+        in: query
+        name: producto_id
+        type: integer
+      - description: Fecha de vigencia (YYYY-MM-DD)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.PrecioProductoHist'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar historial de precios
+      tags:
+      - precio_producto_hist
+  /precio_producto_hist/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del historial
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PrecioProductoHist'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener historial por ID
+      tags:
+      - precio_producto_hist
   /producto_pedido:
     get:
       consumes:
@@ -3016,6 +3382,69 @@ paths:
       summary: Obtener producto por ID
       tags:
       - productos
+  /reserva_contacto:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Documento del contacto
+        in: query
+        name: documento_contacto
+        type: integer
+      - description: Documento del cliente
+        in: query
+        name: documento_cliente
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.ReservaContacto'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar contactos de reserva
+      tags:
+      - reserva_contacto
+  /reserva_contacto/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del contacto
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ReservaContacto'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener contacto por ID
+      tags:
+      - reserva_contacto
   /reservas:
     delete:
       consumes:
@@ -3177,6 +3606,69 @@ paths:
       summary: Obtener reserva por ID
       tags:
       - reservas
+  /restaurante_dia:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del restaurante
+        in: query
+        name: restaurante_id
+        type: integer
+      - description: Día del enum (Lunes..Domingo)
+        in: query
+        name: dia
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.RestauranteDia'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar días de servicio del restaurante
+      tags:
+      - restaurante_dia
+  /restaurante_dia/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del registro
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.RestauranteDia'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener registro por ID
+      tags:
+      - restaurante_dia
   /restaurantes:
     delete:
       consumes:
@@ -3320,6 +3812,155 @@ paths:
       summary: Obtener restaurante por ID
       tags:
       - restaurantes
+  /subcategorias:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la subcategoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar subcategoría
+      tags:
+      - subcategorias
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Filtrar por categoría
+        in: query
+        name: categoria_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Subcategoria'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las subcategorías
+      tags:
+      - subcategorias
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos de subcategoría
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.SubcategoriaCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Subcategoria'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear subcategoría
+      tags:
+      - subcategorias
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la subcategoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.SubcategoriaUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Subcategoria'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar subcategoría
+      tags:
+      - subcategorias
+  /subcategorias/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la subcategoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Subcategoria'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener subcategoría por ID
+      tags:
+      - subcategorias
   /trabajadores:
     delete:
       consumes:

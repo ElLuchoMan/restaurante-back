@@ -28,6 +28,9 @@ definitions:
   models.ApiResponse{data=[]models.Cliente}:
     title: Cliente}
     type: object
+  models.ApiResponse{data=[]models.ControlNomina}:
+    title: ControlNomina}
+    type: object
   models.ApiResponse{data=[]models.Domicilio}:
     title: Domicilio}
     type: object
@@ -52,11 +55,20 @@ definitions:
   models.ApiResponse{data=[]models.Pedido}:
     title: Pedido}
     type: object
+  models.ApiResponse{data=[]models.PrecioProductoHist}:
+    title: PrecioProductoHist}
+    type: object
   models.ApiResponse{data=[]models.Producto}:
     title: Producto}
     type: object
+  models.ApiResponse{data=[]models.ReservaContacto}:
+    title: ReservaContacto}
+    type: object
   models.ApiResponse{data=[]models.Restaurante}:
     title: Restaurante}
+    type: object
+  models.ApiResponse{data=[]models.RestauranteDia}:
+    title: RestauranteDia}
     type: object
   models.ApiResponse{data=[]models.Subcategoria}:
     title: Subcategoria}
@@ -75,6 +87,9 @@ definitions:
     type: object
   models.ApiResponse{data=models.Cliente}:
     title: Cliente}
+    type: object
+  models.ApiResponse{data=models.ControlNomina}:
+    title: ControlNomina}
     type: object
   models.ApiResponse{data=models.Domicilio}:
     title: Domicilio}
@@ -100,11 +115,20 @@ definitions:
   models.ApiResponse{data=models.PedidoDetails}:
     title: PedidoDetails}
     type: object
+  models.ApiResponse{data=models.PrecioProductoHist}:
+    title: PrecioProductoHist}
+    type: object
   models.ApiResponse{data=models.Producto}:
     title: Producto}
     type: object
+  models.ApiResponse{data=models.ReservaContacto}:
+    title: ReservaContacto}
+    type: object
   models.ApiResponse{data=models.Restaurante}:
     title: Restaurante}
+    type: object
+  models.ApiResponse{data=models.RestauranteDia}:
+    title: RestauranteDia}
     type: object
   models.ApiResponse{data=models.Subcategoria}:
     title: Subcategoria}

@@ -260,6 +260,244 @@ const docTemplate = `{
                 }
             }
         },
+        "/categorias": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categorias"
+                ],
+                "summary": "Obtener todas las categorías",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Categoria"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categorias"
+                ],
+                "summary": "Actualizar categoría",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la categoría",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CategoriaUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Categoria"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categorias"
+                ],
+                "summary": "Crear categoría",
+                "parameters": [
+                    {
+                        "description": "Datos de categoría",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CategoriaCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Categoria"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categorias"
+                ],
+                "summary": "Eliminar categoría",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la categoría",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/categorias/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categorias"
+                ],
+                "summary": "Obtener categoría por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la categoría",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Categoria"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/clientes": {
             "get": {
                 "security": [
@@ -571,6 +809,107 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Cliente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/control_nomina": {
+            "get": {
+                "description": "Opcional: filtrar por fecha (YYYY-MM-DD)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "control_nomina"
+                ],
+                "summary": "Listar control de nómina",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Fecha (YYYY-MM-DD)",
+                        "name": "fecha",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.ControlNomina"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/control_nomina/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "control_nomina"
+                ],
+                "summary": "Obtener control de nómina por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del control",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ControlNomina"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2995,6 +3334,113 @@ const docTemplate = `{
                 }
             }
         },
+        "/precio_producto_hist": {
+            "get": {
+                "description": "Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "precio_producto_hist"
+                ],
+                "summary": "Listar historial de precios",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del producto",
+                        "name": "producto_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha de vigencia (YYYY-MM-DD)",
+                        "name": "fecha",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.PrecioProductoHist"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/precio_producto_hist/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "precio_producto_hist"
+                ],
+                "summary": "Obtener historial por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del historial",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PrecioProductoHist"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/producto_pedido": {
             "get": {
                 "security": [
@@ -3531,6 +3977,112 @@ const docTemplate = `{
                 }
             }
         },
+        "/reserva_contacto": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reserva_contacto"
+                ],
+                "summary": "Listar contactos de reserva",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del contacto",
+                        "name": "documento_contacto",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Documento del cliente",
+                        "name": "documento_cliente",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.ReservaContacto"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reserva_contacto/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reserva_contacto"
+                ],
+                "summary": "Obtener contacto por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del contacto",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ReservaContacto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/reservas": {
             "get": {
                 "description": "Devuelve todas las reservas registradas en la base de datos.",
@@ -3772,6 +4324,112 @@ const docTemplate = `{
                 }
             }
         },
+        "/restaurante_dia": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "restaurante_dia"
+                ],
+                "summary": "Listar días de servicio del restaurante",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del restaurante",
+                        "name": "restaurante_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Día del enum (Lunes..Domingo)",
+                        "name": "dia",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.RestauranteDia"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/restaurante_dia/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "restaurante_dia"
+                ],
+                "summary": "Obtener registro por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del registro",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.RestauranteDia"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/restaurantes": {
             "get": {
                 "description": "Devuelve todos los restaurantes registrados en la base de datos.",
@@ -3999,6 +4657,252 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Restaurante no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/subcategorias": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subcategorias"
+                ],
+                "summary": "Obtener todas las subcategorías",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Filtrar por categoría",
+                        "name": "categoria_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Subcategoria"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subcategorias"
+                ],
+                "summary": "Actualizar subcategoría",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la subcategoría",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos a actualizar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SubcategoriaUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Subcategoria"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subcategorias"
+                ],
+                "summary": "Crear subcategoría",
+                "parameters": [
+                    {
+                        "description": "Datos de subcategoría",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SubcategoriaCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Subcategoria"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subcategorias"
+                ],
+                "summary": "Eliminar subcategoría",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la subcategoría",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/subcategorias/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subcategorias"
+                ],
+                "summary": "Obtener subcategoría por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la subcategoría",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Subcategoria"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4349,6 +5253,35 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Categoria": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CategoriaCreateRequest": {
+            "type": "object",
+            "properties": {
+                "nombre": {
+                    "type": "string",
+                    "example": "Bebidas"
+                }
+            }
+        },
+        "models.CategoriaUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "nombre": {
+                    "type": "string",
+                    "example": "Bebidas frías"
+                }
+            }
+        },
         "models.Cliente": {
             "type": "object",
             "properties": {
@@ -4445,6 +5378,20 @@ const docTemplate = `{
                 "telefono": {
                     "type": "string",
                     "example": "3009876543"
+                }
+            }
+        },
+        "models.ControlNomina": {
+            "type": "object",
+            "properties": {
+                "controlNominaId": {
+                    "type": "integer"
+                },
+                "estado": {
+                    "$ref": "#/definitions/models.EstadoControlNomina"
+                },
+                "fecha": {
+                    "type": "string"
                 }
             }
         },
@@ -4563,6 +5510,19 @@ const docTemplate = `{
                     "example": "operador@example.com"
                 }
             }
+        },
+        "models.EstadoControlNomina": {
+            "type": "string",
+            "enum": [
+                "NO GENERADA",
+                "GENERADA",
+                "REGENERADA"
+            ],
+            "x-enum-varnames": [
+                "EstadoControlNominaNoGenerada",
+                "EstadoControlNominaGenerada",
+                "EstadoControlNominaReGenerada"
+            ]
         },
         "models.EstadoDomicilio": {
             "type": "string",
@@ -5085,6 +6045,23 @@ const docTemplate = `{
                 }
             }
         },
+        "models.PrecioProductoHist": {
+            "type": "object",
+            "properties": {
+                "fechaVigencia": {
+                    "type": "string"
+                },
+                "precio": {
+                    "type": "integer"
+                },
+                "precioHistId": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Producto": {
             "type": "object",
             "properties": {
@@ -5182,6 +6159,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedBy": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ReservaContacto": {
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoContacto": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "telefono": {
                     "type": "string"
                 }
             }
@@ -5294,6 +6291,20 @@ const docTemplate = `{
                 }
             }
         },
+        "models.RestauranteDia": {
+            "type": "object",
+            "properties": {
+                "dia": {
+                    "$ref": "#/definitions/models.DiaSemana"
+                },
+                "restauranteDiaId": {
+                    "type": "integer"
+                },
+                "restauranteId": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.RestauranteUpdateRequest": {
             "type": "object",
             "properties": {
@@ -5327,6 +6338,46 @@ const docTemplate = `{
                 "RolDomiciliario",
                 "RolOficiosVarios"
             ]
+        },
+        "models.Subcategoria": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "subcategoriaId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.SubcategoriaCreateRequest": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Gaseosas"
+                }
+            }
+        },
+        "models.SubcategoriaUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Gaseosas zero"
+                }
+            }
         },
         "models.Trabajador": {
             "type": "object",
