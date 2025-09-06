@@ -8,13 +8,13 @@ import (
 
 // Estructura usada para las peticiones de creación
 type DomicilioCreate struct {
-    Direccion      string          `json:"direccion"`
-    Telefono       string          `json:"telefono"`
-    FechaDomicilio string          `json:"fechaDomicilio"`
-    Observaciones  *string         `json:"observaciones,omitempty"`
-    CreatedBy      *string         `json:"createdBy,omitempty"`
-    TrabajadorID   *int64          `json:"trabajadorAsignado,omitempty"`
-    Estado         EstadoDomicilio `json:"estadoDomicilio,omitempty"`
+    Direccion      string          `json:"direccion" example:"Calle 123 #45-67"`
+    Telefono       string          `json:"telefono" example:"3001234567"`
+    FechaDomicilio string          `json:"fechaDomicilio" example:"2025-01-31"`
+    Observaciones  *string         `json:"observaciones,omitempty" example:"Dejar en portería"`
+    CreatedBy      *string         `json:"createdBy,omitempty" example:"admin@example.com"`
+    TrabajadorID   *int64          `json:"trabajadorAsignado,omitempty" example:"0"`
+    Estado         EstadoDomicilio `json:"estadoDomicilio,omitempty" example:"PENDIENTE"`
 }
 
 // Modelo principal mapeado a la tabla domicilio

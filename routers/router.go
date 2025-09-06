@@ -122,7 +122,7 @@ func init() {
 		// Producto_pedido (protegido)
 		beego.NSNamespace("/producto_pedido",
 			beego.NSBefore(controllers.ValidateToken),
-			beego.NSRouter("/", &controllers.ProductoPedidoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/", &controllers.ProductoPedidoController{}, "get:GetAll;post:Post;put:Update;delete:Delete"),
 		),
 	)
 

@@ -98,7 +98,7 @@ func (c *ProductoPedidoController) GetAll() {
 // @Tags producto_pedido
 // @Accept json
 // @Produce json
-// @Param body body map[string]interface{} true "Datos del pedido con productos"
+// @Param body body models.ProductoPedidoCreateRequest true "Datos del pedido con productos"
 // @Success 201 {object} models.ApiResponse{data=controllers.ProductoPedidoResponse} "Pedido con productos agregado exitosamente"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -187,7 +187,7 @@ func (c *ProductoPedidoController) Post() {
 // @Accept json
 // @Produce json
 // @Param pedido_id query int true "ID del pedido a actualizar"
-// @Param body body []map[string]interface{} true "Lista actualizada de productos"
+// @Param body body models.ProductoPedidoUpdateRequest true "Lista actualizada de productos"
 // @Success 200 {object} models.ApiResponse{data=controllers.ProductoPedidoResponse} "Productos actualizados exitosamente"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 404 {object} models.ApiResponse "Pedido no encontrado"

@@ -145,10 +145,6 @@ func (c *NominaTrabajadorController) Post() {
 	}
 	nominaTrabajador.SUELDO_BASE = trabajador.SUELDO
 
-	// Generar descripción dinámica
-	descripcion := fmt.Sprintf("Nómina del mes de %s más incidencias si aplica", obtenerMesEnEspañol(now.Month()))
-	nominaTrabajador.DETALLES = &descripcion
-
 	// Registrar en la base de datos
 	// Asignar la nómina correspondiente (usar la nómina más reciente si no se especifica)
 	var ultimaNomina models.Nomina
@@ -165,17 +161,29 @@ func (c *NominaTrabajadorController) Post() {
 	}
 	nominaTrabajador.PK_ID_NOMINA = &ultimaNomina
 
+	// Generar descripción dinámica con mes y año reales de la nómina
+	descripcion := fmt.Sprintf("Nómina del mes de %s de %d más incidencias si aplica", obtenerMesEnEspañol(ultimaNomina.FECHA.Month()), ultimaNomina.FECHA.Year())
+	nominaTrabajador.DETALLES = &descripcion
+
 	// Verificar si ya existe la relación (mismo trabajador y misma nómina)
 	exists := o.QueryTable(new(models.NominaTrabajador)).
 		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
 		Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
 		Exist()
 	if exists {
-		c.Ctx.Output.SetStatus(http.StatusConflict)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusConflict,
-			Message: "La relación nómina-trabajador ya existe para esta nómina y trabajador",
+		// Idempotente: devolver 200 con la relación existente
+		var existente models.NominaTrabajador
+		if err := o.QueryTable(new(models.NominaTrabajador)).
+			Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
+			Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
+			One(&existente); err == nil {
+			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía", Data: existente}
+			c.ServeJSON()
+			return
 		}
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía"}
 		c.ServeJSON()
 		return
 	}

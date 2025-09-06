@@ -99,19 +99,14 @@ func (c *HorarioTrabajadorController) GetAll() {
 // @Tags horarios_trabajador
 // @Accept json
 // @Produce json
-// @Param   body  body   models.HorarioTrabajador true  "Datos del horario"
+// @Param   body  body   models.HorarioTrabajadorCreateRequest true  "Datos del horario (formato hora HH:MM:SS)"
 // @Success 201 {object} models.ApiResponse{data=models.HorarioTrabajador} "Horario creado"
 // @Failure 400 {object} models.ApiResponse "Solicitud inválida"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /horario_trabajador [post]
 func (c *HorarioTrabajadorController) Post() {
-	var input struct {
-		PK_DOCUMENTO_TRABAJADOR int64  `json:"documentoTrabajador"`
-		DIA                     string `json:"dia"`
-		HORA_INICIO             string `json:"horaInicio"`
-		HORA_FIN                string `json:"horaFin"`
-	}
+	var input models.HorarioTrabajadorCreateRequest
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -124,7 +119,7 @@ func (c *HorarioTrabajadorController) Post() {
 		return
 	}
 
-	dbDia := diaToDB(input.DIA)
+	dbDia := diaToDB(input.Dia)
 	if !isValidDia(dbDia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Día inválido"}
@@ -132,8 +127,8 @@ func (c *HorarioTrabajadorController) Post() {
 		return
 	}
 
-	horaInicio, err1 := time.Parse("15:04:05", input.HORA_INICIO)
-	horaFin, err2 := time.Parse("15:04:05", input.HORA_FIN)
+	horaInicio, err1 := time.Parse("15:04:05", input.HoraInicio)
+	horaFin, err2 := time.Parse("15:04:05", input.HoraFin)
 	if err1 != nil || err2 != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido"}
@@ -146,7 +141,7 @@ func (c *HorarioTrabajadorController) Post() {
 	horaFin = time.Date(1, 1, 1, horaFin.Hour(), horaFin.Minute(), horaFin.Second(), 0, time.UTC)
 
 	horario := models.HorarioTrabajador{
-		PK_DOCUMENTO_TRABAJADOR: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR},
+		PK_DOCUMENTO_TRABAJADOR: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.DocumentoTrabajador},
 		DIA:                     dbDia,
 		HORA_INICIO:             horaInicio,
 		HORA_FIN:                horaFin,
@@ -183,7 +178,7 @@ func (c *HorarioTrabajadorController) Post() {
 // @Produce json
 // @Param   documento query int true "Documento del trabajador"
 // @Param   dia       query string true "Día del horario"
-// @Param   body body map[string]string true "Horas a actualizar"
+// @Param   body body models.HorarioTrabajadorUpdateRequest true "Horas a actualizar (formato HH:MM:SS)"
 // @Success 200 {object} models.ApiResponse "Horario actualizado"
 // @Failure 400 {object} models.ApiResponse "Solicitud inválida"
 // @Failure 404 {object} models.ApiResponse "Horario no encontrado"
@@ -224,7 +219,7 @@ func (c *HorarioTrabajadorController) Put() {
 		return
 	}
 
-	var input map[string]string
+	var input models.HorarioTrabajadorUpdateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
@@ -232,8 +227,8 @@ func (c *HorarioTrabajadorController) Put() {
 		return
 	}
 
-	if v, ok := input["horaInicio"]; ok && v != "" {
-		if t, err := time.Parse("15:04:05", v); err == nil {
+	if input.HoraInicio != nil && *input.HoraInicio != "" {
+		if t, err := time.Parse("15:04:05", *input.HoraInicio); err == nil {
 			horario.HORA_INICIO = t
 		} else {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -242,8 +237,8 @@ func (c *HorarioTrabajadorController) Put() {
 			return
 		}
 	}
-	if v, ok := input["horaFin"]; ok && v != "" {
-		if t, err := time.Parse("15:04:05", v); err == nil {
+	if input.HoraFin != nil && *input.HoraFin != "" {
+		if t, err := time.Parse("15:04:05", *input.HoraFin); err == nil {
 			horario.HORA_FIN = t
 		} else {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)

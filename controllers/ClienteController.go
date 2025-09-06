@@ -216,7 +216,7 @@ func (c *ClienteController) GetById() {
 // @Tags clientes
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Cliente true  "Datos del cliente a crear"
+// @Param   body  body   models.ClienteCreateRequest true  "Datos del cliente a crear"
 // @Success 201 {object} models.ApiResponse{data=models.Cliente} "Cliente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 409 {object} models.ApiResponse "Correo ya registrado"
@@ -304,7 +304,7 @@ func (c *ClienteController) Post() {
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID del Cliente"
-// @Param   body  body   models.Cliente true  "Datos del cliente a actualizar"
+// @Param   body  body   models.ClienteUpdateRequest true  "Datos del cliente a actualizar (sólo campos a modificar)"
 // @Success 200 {object} models.ApiResponse{data=models.Cliente} "Cliente actualizado"
 // @Failure 401 {object} models.ApiResponse "No autorizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"

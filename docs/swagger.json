@@ -75,12 +75,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos del cambio de horario a actualizar",
+                        "description": "Datos del cambio de horario a actualizar (sólo campos a modificar)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CambiosHorario"
+                            "$ref": "#/definitions/models.CambiosHorarioUpdateRequest"
                         }
                     }
                 ],
@@ -138,12 +138,12 @@
                 "summary": "Crear un nuevo cambio de horario",
                 "parameters": [
                     {
-                        "description": "Datos del cambio de horario",
+                        "description": "Datos del cambio de horario (fecha YYYY-MM-DD, horas HH:MM:SS)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CambiosHorario"
+                            "$ref": "#/definitions/models.CambiosHorarioCreateRequest"
                         }
                     }
                 ],
@@ -358,12 +358,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos del cliente a actualizar",
+                        "description": "Datos del cliente a actualizar (sólo campos a modificar)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Cliente"
+                            "$ref": "#/definitions/models.ClienteUpdateRequest"
                         }
                     }
                 ],
@@ -425,7 +425,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Cliente"
+                            "$ref": "#/definitions/models.ClienteCreateRequest"
                         }
                     }
                 ],
@@ -683,12 +683,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos del domicilio a actualizar",
+                        "description": "Datos del domicilio a actualizar (sólo campos a modificar)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Domicilio"
+                            "$ref": "#/definitions/models.DomicilioUpdateRequest"
                         }
                     }
                 ],
@@ -1025,15 +1025,12 @@
                         "required": true
                     },
                     {
-                        "description": "Horas a actualizar",
+                        "description": "Horas a actualizar (formato HH:MM:SS)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/models.HorarioTrabajadorUpdateRequest"
                         }
                     }
                 ],
@@ -1083,12 +1080,12 @@
                 "summary": "Crear horario para trabajador",
                 "parameters": [
                     {
-                        "description": "Datos del horario",
+                        "description": "Datos del horario (formato hora HH:MM:SS)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.HorarioTrabajador"
+                            "$ref": "#/definitions/models.HorarioTrabajadorCreateRequest"
                         }
                     }
                 ],
@@ -1260,12 +1257,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos de la incidencia a actualizar",
+                        "description": "Datos de la incidencia a actualizar (sólo campos a modificar)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Incidencia"
+                            "$ref": "#/definitions/models.IncidenciaUpdateRequest"
                         }
                     }
                 ],
@@ -1316,12 +1313,12 @@
                 "summary": "Crear una nueva incidencia",
                 "parameters": [
                     {
-                        "description": "Datos de la incidencia",
+                        "description": "Datos de la incidencia (fecha YYYY-MM-DD)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Incidencia"
+                            "$ref": "#/definitions/models.IncidenciaCreateRequest"
                         }
                     }
                 ],
@@ -1593,12 +1590,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos del método de pago a actualizar",
+                        "description": "Datos del método de pago a actualizar (sólo campos a modificar)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.MetodoPago"
+                            "$ref": "#/definitions/models.MetodoPagoUpdateRequest"
                         }
                     }
                 ],
@@ -1653,7 +1650,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.MetodoPago"
+                            "$ref": "#/definitions/models.MetodoPagoCreateRequest"
                         }
                     }
                 ],
@@ -2207,12 +2204,12 @@
                 "summary": "Crear una nueva nómina",
                 "parameters": [
                     {
-                        "description": "Datos de la nómina a crear (sin 'MONTO')",
+                        "description": "Datos de la nómina a crear (sin 'MONTO'; fecha YYYY-MM-DD)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Nomina"
+                            "$ref": "#/definitions/models.NominaCreateRequest"
                         }
                     }
                 ],
@@ -2403,12 +2400,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos del pago a actualizar",
+                        "description": "Datos del pago a actualizar (sólo campos a modificar, formatos: fecha YYYY-MM-DD, hora HH:MM:SS)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Pago"
+                            "$ref": "#/definitions/models.PagoUpdateRequest"
                         }
                     }
                 ],
@@ -2458,12 +2455,12 @@
                 "summary": "Crear un nuevo pago",
                 "parameters": [
                     {
-                        "description": "Datos del pago a crear",
+                        "description": "Datos del pago a crear (fecha YYYY-MM-DD, hora HH:MM:SS)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Pago"
+                            "$ref": "#/definitions/models.PagoCreateRequest"
                         }
                     }
                 ],
@@ -2719,7 +2716,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Pedido"
+                            "$ref": "#/definitions/models.PedidoCreateRequest"
                         }
                     }
                 ],
@@ -3084,8 +3081,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object",
-                                "additionalProperties": true
+                                "$ref": "#/definitions/models.ProductoPedidoItemInput"
                             }
                         }
                     }
@@ -3153,8 +3149,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/models.ProductoPedidoCreateRequest"
                         }
                     }
                 ],
@@ -3250,9 +3245,10 @@
                 }
             },
             "put": {
-                "description": "Actualiza los datos de un producto existente, incluyendo una imagen en formato Base64.",
+                "description": "Actualiza un producto. Puedes enviar JSON (imagen en Base64) o multipart/form-data con archivo.",
                 "consumes": [
-                    "application/json"
+                    "application/json",
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -3270,13 +3266,52 @@
                         "required": true
                     },
                     {
-                        "description": "Datos del producto",
-                        "name": "producto",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Producto"
-                        }
+                        "type": "string",
+                        "description": "Nombre del producto",
+                        "name": "nombre",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Calorías",
+                        "name": "calorias",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Descripción",
+                        "name": "descripcion",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Precio",
+                        "name": "precio",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "DISPONIBLE | NO_DISPONIBLE",
+                        "name": "estadoProducto",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Cantidad",
+                        "name": "cantidad",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID de subcategoría",
+                        "name": "subcategoriaId",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Archivo de imagen",
+                        "name": "imagen",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -3307,9 +3342,10 @@
                 }
             },
             "post": {
-                "description": "Crea un nuevo producto en la base de datos.",
+                "description": "Crea un nuevo producto. Puedes enviar JSON (imagen en Base64) o multipart/form-data con archivo.",
                 "consumes": [
-                    "application/json"
+                    "application/json",
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -3320,13 +3356,52 @@
                 "summary": "Crear un nuevo producto",
                 "parameters": [
                     {
-                        "description": "Producto con imagen Base64",
-                        "name": "producto",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Producto"
-                        }
+                        "type": "string",
+                        "description": "Nombre del producto",
+                        "name": "nombre",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Calorías",
+                        "name": "calorias",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Descripción",
+                        "name": "descripcion",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Precio",
+                        "name": "precio",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "DISPONIBLE | NO_DISPONIBLE",
+                        "name": "estadoProducto",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Cantidad",
+                        "name": "cantidad",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID de subcategoría",
+                        "name": "subcategoriaId",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Archivo de imagen",
+                        "name": "imagen",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -3501,12 +3576,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos de la reserva a actualizar",
+                        "description": "Datos de la reserva a actualizar (sólo campos a modificar)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Reserva"
+                            "$ref": "#/definitions/models.ReservaUpdateRequest"
                         }
                     }
                 ],
@@ -3539,12 +3614,12 @@
                 "summary": "Crear una nueva reserva",
                 "parameters": [
                     {
-                        "description": "Datos de la reserva a crear",
+                        "description": "Datos de la reserva a crear (fecha YYYY-MM-DD, hora HH:MM:SS)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Reserva"
+                            "$ref": "#/definitions/models.ReservaCreateRequest"
                         }
                     }
                 ],
@@ -3754,12 +3829,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos del restaurante a actualizar",
+                        "description": "Datos del restaurante a actualizar (sólo campos a modificar)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Restaurante"
+                            "$ref": "#/definitions/models.RestauranteUpdateRequest"
                         }
                     }
                 ],
@@ -3809,7 +3884,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Restaurante"
+                            "$ref": "#/definitions/models.RestauranteCreateRequest"
                         }
                     }
                 ],
@@ -4024,12 +4099,12 @@
                         "required": true
                     },
                     {
-                        "description": "Datos del trabajador a actualizar",
+                        "description": "Datos del trabajador a actualizar (sólo campos a modificar)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Trabajador"
+                            "$ref": "#/definitions/models.TrabajadorUpdateRequest"
                         }
                     }
                 ],
@@ -4067,12 +4142,12 @@
                 "summary": "Crear un nuevo trabajador",
                 "parameters": [
                     {
-                        "description": "Datos del trabajador a crear",
+                        "description": "Datos del trabajador a crear (fecha YYYY-MM-DD)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Trabajador"
+                            "$ref": "#/definitions/models.TrabajadorCreateRequest"
                         }
                     }
                 ],
@@ -4226,23 +4301,44 @@
                 }
             }
         },
-        "models.CambiosHorario": {
+        "models.CambiosHorarioCreateRequest": {
+            "type": "object",
+            "properties": {
+                "abierto": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "fechaCambioHorario": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "example": "08:00:00"
+                },
+                "horaCierre": {
+                    "type": "string",
+                    "example": "18:00:00"
+                }
+            }
+        },
+        "models.CambiosHorarioUpdateRequest": {
             "type": "object",
             "properties": {
                 "abierto": {
                     "type": "boolean"
                 },
-                "cambioHorarioId": {
-                    "type": "integer"
-                },
                 "fechaCambioHorario": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-02-01"
                 },
                 "horaApertura": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "09:00:00"
                 },
                 "horaCierre": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "17:00:00"
                 }
             }
         },
@@ -4272,6 +4368,76 @@
                 },
                 "telefono": {
                     "type": "string"
+                }
+            }
+        },
+        "models.ClienteCreateRequest": {
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Pérez"
+                },
+                "correo": {
+                    "type": "string",
+                    "example": "juan.perez@example.com"
+                },
+                "direccion": {
+                    "type": "string",
+                    "example": "Calle 123 #45-67"
+                },
+                "documentoCliente": {
+                    "type": "integer",
+                    "example": 1234567890
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Juan"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "example": "Cliente frecuente"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "MiPassSegura!"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001234567"
+                }
+            }
+        },
+        "models.ClienteUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Pérez"
+                },
+                "correo": {
+                    "type": "string",
+                    "example": "juan.perez@example.com"
+                },
+                "direccion": {
+                    "type": "string",
+                    "example": "Carrera 10 #20-30"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Juan"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "example": "Prefiere contacto por WhatsApp"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "NuevaPass!"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3009876543"
                 }
             }
         },
@@ -4341,25 +4507,53 @@
             "type": "object",
             "properties": {
                 "createdBy": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "admin@example.com"
                 },
                 "direccion": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Calle 123 #45-67"
                 },
                 "estadoDomicilio": {
-                    "$ref": "#/definitions/models.EstadoDomicilio"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.EstadoDomicilio"
+                        }
+                    ],
+                    "example": "PENDIENTE"
                 },
                 "fechaDomicilio": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-01-31"
                 },
                 "observaciones": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Dejar en portería"
                 },
                 "telefono": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "3001234567"
                 },
                 "trabajadorAsignado": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        },
+        "models.DomicilioUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "direccion": {
+                    "type": "string",
+                    "example": "Calle 45 #12-34"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001112233"
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
                 }
             }
         },
@@ -4459,6 +4653,40 @@
                 }
             }
         },
+        "models.HorarioTrabajadorCreateRequest": {
+            "type": "object",
+            "properties": {
+                "dia": {
+                    "type": "string",
+                    "example": "Lunes"
+                },
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000
+                },
+                "horaFin": {
+                    "type": "string",
+                    "example": "12:00:00"
+                },
+                "horaInicio": {
+                    "type": "string",
+                    "example": "08:00:00"
+                }
+            }
+        },
+        "models.HorarioTrabajadorUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "horaFin": {
+                    "type": "string",
+                    "example": "12:00:00"
+                },
+                "horaInicio": {
+                    "type": "string",
+                    "example": "08:00:00"
+                }
+            }
+        },
         "models.Incidencia": {
             "type": "object",
             "properties": {
@@ -4479,6 +4707,56 @@
                 },
                 "resta": {
                     "type": "boolean"
+                }
+            }
+        },
+        "models.IncidenciaCreateRequest": {
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000
+                },
+                "fechaIncidencia": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 50000
+                },
+                "motivo": {
+                    "type": "string",
+                    "example": "Descuento por retraso"
+                },
+                "resta": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "models.IncidenciaUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000
+                },
+                "fechaIncidencia": {
+                    "type": "string",
+                    "example": "2025-02-01"
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 60000
+                },
+                "motivo": {
+                    "type": "string",
+                    "example": "Bonificación"
+                },
+                "resta": {
+                    "type": "boolean",
+                    "example": false
                 }
             }
         },
@@ -4507,6 +4785,32 @@
                 }
             }
         },
+        "models.MetodoPagoCreateRequest": {
+            "type": "object",
+            "properties": {
+                "detalle": {
+                    "type": "string",
+                    "example": "Cuenta 3001234567"
+                },
+                "tipo": {
+                    "type": "string",
+                    "example": "NEQUI"
+                }
+            }
+        },
+        "models.MetodoPagoUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "detalle": {
+                    "type": "string",
+                    "example": "Cuenta 3007654321"
+                },
+                "tipo": {
+                    "type": "string",
+                    "example": "DAVIPLATA"
+                }
+            }
+        },
         "models.Nomina": {
             "type": "object",
             "properties": {
@@ -4521,6 +4825,19 @@
                 },
                 "nominaId": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.NominaCreateRequest": {
+            "type": "object",
+            "properties": {
+                "estadoNomina": {
+                    "type": "string",
+                    "example": "NO_PAGO"
+                },
+                "fecha": {
+                    "type": "string",
+                    "example": "2025-01-31"
                 }
             }
         },
@@ -4610,6 +4927,64 @@
                 }
             }
         },
+        "models.PagoCreateRequest": {
+            "type": "object",
+            "properties": {
+                "estadoPago": {
+                    "type": "string",
+                    "example": "PAGADO"
+                },
+                "fechaPago": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaPago": {
+                    "type": "string",
+                    "example": "14:30:00"
+                },
+                "metodoPagoId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 50000
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
+        "models.PagoUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "estadoPago": {
+                    "type": "string",
+                    "example": "PENDIENTE"
+                },
+                "fecha": {
+                    "type": "string",
+                    "example": "2025-02-01"
+                },
+                "hora": {
+                    "type": "string",
+                    "example": "15:00:00"
+                },
+                "metodoPagoId": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 60000
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
         "models.Pedido": {
             "type": "object",
             "properties": {
@@ -4645,6 +5020,23 @@
                 },
                 "updatedBy": {
                     "type": "string"
+                }
+            }
+        },
+        "models.PedidoCreateRequest": {
+            "type": "object",
+            "properties": {
+                "delivery": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "pk_id_domicilio": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -4718,6 +5110,34 @@
                 }
             }
         },
+        "models.ProductoPedidoCreateRequest": {
+            "type": "object",
+            "properties": {
+                "detalles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoPedidoItemInput"
+                    }
+                },
+                "pedidoId": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "models.ProductoPedidoItemInput": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "productoId": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
         "models.Reserva": {
             "type": "object",
             "properties": {
@@ -4759,6 +5179,80 @@
                 }
             }
         },
+        "models.ReservaCreateRequest": {
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "createdBy": {
+                    "type": "string",
+                    "example": "admin@example.com"
+                },
+                "estadoReserva": {
+                    "type": "string",
+                    "example": "PENDIENTE"
+                },
+                "fechaReserva": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaReserva": {
+                    "type": "string",
+                    "example": "18:30:00"
+                },
+                "indicaciones": {
+                    "type": "string",
+                    "example": "Mesa cerca a la ventana"
+                },
+                "personas": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "models.ReservaUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "estadoReserva": {
+                    "type": "string",
+                    "example": "CONFIRMADA"
+                },
+                "fechaReserva": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaReserva": {
+                    "type": "string",
+                    "example": "19:00:00"
+                },
+                "indicaciones": {
+                    "type": "string",
+                    "example": "Mesa al fondo"
+                },
+                "personas": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
         "models.Restaurante": {
             "type": "object",
             "properties": {
@@ -4773,6 +5267,40 @@
                 },
                 "restauranteId": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.RestauranteCreateRequest": {
+            "type": "object",
+            "properties": {
+                "cambioHorarioId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "example": "08:00:00"
+                },
+                "nombreRestaurante": {
+                    "type": "string",
+                    "example": "El Fogón de María"
+                }
+            }
+        },
+        "models.RestauranteUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "cambioHorarioId": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "example": "09:00:00"
+                },
+                "nombreRestaurante": {
+                    "type": "string",
+                    "example": "El Fogón Centro"
                 }
             }
         },
@@ -4837,6 +5365,96 @@
                 },
                 "telefono": {
                     "type": "string"
+                }
+            }
+        },
+        "models.TrabajadorCreateRequest": {
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Gómez"
+                },
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000
+                },
+                "fechaIngreso": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "fechaNacimiento": {
+                    "type": "string",
+                    "example": "1990-05-20"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "María"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "Secreta123"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "rol": {
+                    "type": "string",
+                    "example": "Mesero"
+                },
+                "sueldo": {
+                    "type": "integer",
+                    "example": 2000000
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3012223344"
+                }
+            }
+        },
+        "models.TrabajadorUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Gómez"
+                },
+                "fechaIngreso": {
+                    "type": "string",
+                    "example": "2025-02-01"
+                },
+                "fechaNacimiento": {
+                    "type": "string",
+                    "example": "1990-05-20"
+                },
+                "fechaRetiro": {
+                    "type": "string",
+                    "example": "2025-12-31"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "María"
+                },
+                "nuevo": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "password": {
+                    "type": "string",
+                    "example": "NuevaSecreta!"
+                },
+                "rol": {
+                    "type": "string",
+                    "example": "Cocinero"
+                },
+                "sueldo": {
+                    "type": "integer",
+                    "example": 2200000
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3012223344"
                 }
             }
         }

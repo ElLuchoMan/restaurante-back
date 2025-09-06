@@ -16,17 +16,33 @@ definitions:
       message:
         type: string
     type: object
-  models.CambiosHorario:
+  models.CambiosHorarioCreateRequest:
+    properties:
+      abierto:
+        example: true
+        type: boolean
+      fechaCambioHorario:
+        example: "2025-01-31"
+        type: string
+      horaApertura:
+        example: "08:00:00"
+        type: string
+      horaCierre:
+        example: "18:00:00"
+        type: string
+    type: object
+  models.CambiosHorarioUpdateRequest:
     properties:
       abierto:
         type: boolean
-      cambioHorarioId:
-        type: integer
       fechaCambioHorario:
+        example: "2025-02-01"
         type: string
       horaApertura:
+        example: "09:00:00"
         type: string
       horaCierre:
+        example: "17:00:00"
         type: string
     type: object
   models.Cliente:
@@ -46,6 +62,57 @@ definitions:
       password:
         type: string
       telefono:
+        type: string
+    type: object
+  models.ClienteCreateRequest:
+    properties:
+      apellido:
+        example: Pérez
+        type: string
+      correo:
+        example: juan.perez@example.com
+        type: string
+      direccion:
+        example: 'Calle 123 #45-67'
+        type: string
+      documentoCliente:
+        example: 1234567890
+        type: integer
+      nombre:
+        example: Juan
+        type: string
+      observaciones:
+        example: Cliente frecuente
+        type: string
+      password:
+        example: MiPassSegura!
+        type: string
+      telefono:
+        example: "3001234567"
+        type: string
+    type: object
+  models.ClienteUpdateRequest:
+    properties:
+      apellido:
+        example: Pérez
+        type: string
+      correo:
+        example: juan.perez@example.com
+        type: string
+      direccion:
+        example: 'Carrera 10 #20-30'
+        type: string
+      nombre:
+        example: Juan
+        type: string
+      observaciones:
+        example: Prefiere contacto por WhatsApp
+        type: string
+      password:
+        example: NuevaPass!
+        type: string
+      telefono:
+        example: "3009876543"
         type: string
     type: object
   models.DiaSemana:
@@ -96,19 +163,39 @@ definitions:
   models.DomicilioCreate:
     properties:
       createdBy:
+        example: admin@example.com
         type: string
       direccion:
+        example: 'Calle 123 #45-67'
         type: string
       estadoDomicilio:
-        $ref: '#/definitions/models.EstadoDomicilio'
+        allOf:
+        - $ref: '#/definitions/models.EstadoDomicilio'
+        example: PENDIENTE
       fechaDomicilio:
+        example: "2025-01-31"
         type: string
       observaciones:
+        example: Dejar en portería
         type: string
       telefono:
+        example: "3001234567"
         type: string
       trabajadorAsignado:
+        example: 0
         type: integer
+    type: object
+  models.DomicilioUpdateRequest:
+    properties:
+      direccion:
+        example: 'Calle 45 #12-34'
+        type: string
+      telefono:
+        example: "3001112233"
+        type: string
+      updatedBy:
+        example: operador@example.com
+        type: string
     type: object
   models.EstadoDomicilio:
     enum:
@@ -181,6 +268,30 @@ definitions:
       horarioTrabajadorId:
         type: integer
     type: object
+  models.HorarioTrabajadorCreateRequest:
+    properties:
+      dia:
+        example: Lunes
+        type: string
+      documentoTrabajador:
+        example: 10000000
+        type: integer
+      horaFin:
+        example: "12:00:00"
+        type: string
+      horaInicio:
+        example: "08:00:00"
+        type: string
+    type: object
+  models.HorarioTrabajadorUpdateRequest:
+    properties:
+      horaFin:
+        example: "12:00:00"
+        type: string
+      horaInicio:
+        example: "08:00:00"
+        type: string
+    type: object
   models.Incidencia:
     properties:
       documentoTrabajador:
@@ -194,6 +305,42 @@ definitions:
       motivo:
         type: string
       resta:
+        type: boolean
+    type: object
+  models.IncidenciaCreateRequest:
+    properties:
+      documentoTrabajador:
+        example: 10000000
+        type: integer
+      fechaIncidencia:
+        example: "2025-01-31"
+        type: string
+      monto:
+        example: 50000
+        type: integer
+      motivo:
+        example: Descuento por retraso
+        type: string
+      resta:
+        example: true
+        type: boolean
+    type: object
+  models.IncidenciaUpdateRequest:
+    properties:
+      documentoTrabajador:
+        example: 10000000
+        type: integer
+      fechaIncidencia:
+        example: "2025-02-01"
+        type: string
+      monto:
+        example: 60000
+        type: integer
+      motivo:
+        example: Bonificación
+        type: string
+      resta:
+        example: false
         type: boolean
     type: object
   models.LoginRequest:
@@ -212,6 +359,24 @@ definitions:
       tipo:
         type: string
     type: object
+  models.MetodoPagoCreateRequest:
+    properties:
+      detalle:
+        example: Cuenta 3001234567
+        type: string
+      tipo:
+        example: NEQUI
+        type: string
+    type: object
+  models.MetodoPagoUpdateRequest:
+    properties:
+      detalle:
+        example: Cuenta 3007654321
+        type: string
+      tipo:
+        example: DAVIPLATA
+        type: string
+    type: object
   models.Nomina:
     properties:
       estadoNomina:
@@ -222,6 +387,15 @@ definitions:
         type: integer
       nominaId:
         type: integer
+    type: object
+  models.NominaCreateRequest:
+    properties:
+      estadoNomina:
+        example: NO_PAGO
+        type: string
+      fecha:
+        example: "2025-01-31"
+        type: string
     type: object
   models.NominaTrabajador:
     properties:
@@ -281,6 +455,48 @@ definitions:
       updatedBy:
         type: string
     type: object
+  models.PagoCreateRequest:
+    properties:
+      estadoPago:
+        example: PAGADO
+        type: string
+      fechaPago:
+        example: "2025-01-31"
+        type: string
+      horaPago:
+        example: "14:30:00"
+        type: string
+      metodoPagoId:
+        example: 1
+        type: integer
+      monto:
+        example: 50000
+        type: integer
+      updatedBy:
+        example: operador@example.com
+        type: string
+    type: object
+  models.PagoUpdateRequest:
+    properties:
+      estadoPago:
+        example: PENDIENTE
+        type: string
+      fecha:
+        example: "2025-02-01"
+        type: string
+      hora:
+        example: "15:00:00"
+        type: string
+      metodoPagoId:
+        example: 2
+        type: integer
+      monto:
+        example: 60000
+        type: integer
+      updatedBy:
+        example: operador@example.com
+        type: string
+    type: object
   models.Pedido:
     properties:
       delivery:
@@ -305,6 +521,18 @@ definitions:
         type: string
       updatedBy:
         type: string
+    type: object
+  models.PedidoCreateRequest:
+    properties:
+      delivery:
+        example: false
+        type: boolean
+      pk_id_domicilio:
+        example: 0
+        type: integer
+      restauranteId:
+        example: 1
+        type: integer
     type: object
   models.PedidoDetails:
     properties:
@@ -352,6 +580,25 @@ definitions:
       subcategoriaId:
         type: integer
     type: object
+  models.ProductoPedidoCreateRequest:
+    properties:
+      detalles:
+        items:
+          $ref: '#/definitions/models.ProductoPedidoItemInput'
+        type: array
+      pedidoId:
+        example: 1
+        type: integer
+    type: object
+  models.ProductoPedidoItemInput:
+    properties:
+      cantidad:
+        example: 2
+        type: integer
+      productoId:
+        example: 1
+        type: integer
+    type: object
   models.Reserva:
     properties:
       contactoId:
@@ -379,6 +626,60 @@ definitions:
       updatedBy:
         type: string
     type: object
+  models.ReservaCreateRequest:
+    properties:
+      contactoId:
+        example: 1
+        type: integer
+      createdBy:
+        example: admin@example.com
+        type: string
+      estadoReserva:
+        example: PENDIENTE
+        type: string
+      fechaReserva:
+        example: "2025-01-31"
+        type: string
+      horaReserva:
+        example: "18:30:00"
+        type: string
+      indicaciones:
+        example: Mesa cerca a la ventana
+        type: string
+      personas:
+        example: 4
+        type: integer
+      restauranteId:
+        example: 1
+        type: integer
+    type: object
+  models.ReservaUpdateRequest:
+    properties:
+      contactoId:
+        example: 1
+        type: integer
+      estadoReserva:
+        example: CONFIRMADA
+        type: string
+      fechaReserva:
+        example: "2025-01-31"
+        type: string
+      horaReserva:
+        example: "19:00:00"
+        type: string
+      indicaciones:
+        example: Mesa al fondo
+        type: string
+      personas:
+        example: 5
+        type: integer
+      restauranteId:
+        example: 1
+        type: integer
+      updatedBy:
+        example: operador@example.com
+        type: string
+    type: object
   models.Restaurante:
     properties:
       cambioHorarioId:
@@ -389,6 +690,30 @@ definitions:
         type: string
       restauranteId:
         type: integer
+    type: object
+  models.RestauranteCreateRequest:
+    properties:
+      cambioHorarioId:
+        example: 1
+        type: integer
+      horaApertura:
+        example: "08:00:00"
+        type: string
+      nombreRestaurante:
+        example: El Fogón de María
+        type: string
+    type: object
+  models.RestauranteUpdateRequest:
+    properties:
+      cambioHorarioId:
+        example: 2
+        type: integer
+      horaApertura:
+        example: "09:00:00"
+        type: string
+      nombreRestaurante:
+        example: El Fogón Centro
+        type: string
     type: object
   models.RolTrabajador:
     enum:
@@ -433,6 +758,72 @@ definitions:
       sueldo:
         type: integer
       telefono:
+        type: string
+    type: object
+  models.TrabajadorCreateRequest:
+    properties:
+      apellido:
+        example: Gómez
+        type: string
+      documentoTrabajador:
+        example: 10000000
+        type: integer
+      fechaIngreso:
+        example: "2025-01-31"
+        type: string
+      fechaNacimiento:
+        example: "1990-05-20"
+        type: string
+      nombre:
+        example: María
+        type: string
+      password:
+        example: Secreta123
+        type: string
+      restauranteId:
+        example: 1
+        type: integer
+      rol:
+        example: Mesero
+        type: string
+      sueldo:
+        example: 2000000
+        type: integer
+      telefono:
+        example: "3012223344"
+        type: string
+    type: object
+  models.TrabajadorUpdateRequest:
+    properties:
+      apellido:
+        example: Gómez
+        type: string
+      fechaIngreso:
+        example: "2025-02-01"
+        type: string
+      fechaNacimiento:
+        example: "1990-05-20"
+        type: string
+      fechaRetiro:
+        example: "2025-12-31"
+        type: string
+      nombre:
+        example: María
+        type: string
+      nuevo:
+        example: false
+        type: boolean
+      password:
+        example: NuevaSecreta!
+        type: string
+      rol:
+        example: Cocinero
+        type: string
+      sueldo:
+        example: 2200000
+        type: integer
+      telefono:
+        example: "3012223344"
         type: string
     type: object
 info:
@@ -503,12 +894,12 @@ paths:
       - application/json
       description: Crea un nuevo cambio de horario en la base de datos.
       parameters:
-      - description: Datos del cambio de horario
+      - description: Datos del cambio de horario (fecha YYYY-MM-DD, horas HH:MM:SS)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.CambiosHorario'
+          $ref: '#/definitions/models.CambiosHorarioCreateRequest'
       produces:
       - application/json
       responses:
@@ -543,12 +934,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos del cambio de horario a actualizar
+      - description: Datos del cambio de horario a actualizar (sólo campos a modificar)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.CambiosHorario'
+          $ref: '#/definitions/models.CambiosHorarioUpdateRequest'
       produces:
       - application/json
       responses:
@@ -688,7 +1079,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Cliente'
+          $ref: '#/definitions/models.ClienteCreateRequest'
       produces:
       - application/json
       responses:
@@ -722,12 +1113,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos del cliente a actualizar
+      - description: Datos del cliente a actualizar (sólo campos a modificar)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Cliente'
+          $ref: '#/definitions/models.ClienteUpdateRequest'
       produces:
       - application/json
       responses:
@@ -915,12 +1306,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos del domicilio a actualizar
+      - description: Datos del domicilio a actualizar (sólo campos a modificar)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Domicilio'
+          $ref: '#/definitions/models.DomicilioUpdateRequest'
       produces:
       - application/json
       responses:
@@ -1096,12 +1487,12 @@ paths:
       - application/json
       description: Crea un registro de horario para un trabajador.
       parameters:
-      - description: Datos del horario
+      - description: Datos del horario (formato hora HH:MM:SS)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.HorarioTrabajador'
+          $ref: '#/definitions/models.HorarioTrabajadorCreateRequest'
       produces:
       - application/json
       responses:
@@ -1142,14 +1533,12 @@ paths:
         name: dia
         required: true
         type: string
-      - description: Horas a actualizar
+      - description: Horas a actualizar (formato HH:MM:SS)
         in: body
         name: body
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/models.HorarioTrabajadorUpdateRequest'
       produces:
       - application/json
       responses:
@@ -1234,12 +1623,12 @@ paths:
       - application/json
       description: Crea una nueva incidencia en la base de datos.
       parameters:
-      - description: Datos de la incidencia
+      - description: Datos de la incidencia (fecha YYYY-MM-DD)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Incidencia'
+          $ref: '#/definitions/models.IncidenciaCreateRequest'
       produces:
       - application/json
       responses:
@@ -1271,12 +1660,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos de la incidencia a actualizar
+      - description: Datos de la incidencia a actualizar (sólo campos a modificar)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Incidencia'
+          $ref: '#/definitions/models.IncidenciaUpdateRequest'
       produces:
       - application/json
       responses:
@@ -1449,7 +1838,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.MetodoPago'
+          $ref: '#/definitions/models.MetodoPagoCreateRequest'
       produces:
       - application/json
       responses:
@@ -1481,12 +1870,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos del método de pago a actualizar
+      - description: Datos del método de pago a actualizar (sólo campos a modificar)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.MetodoPago'
+          $ref: '#/definitions/models.MetodoPagoUpdateRequest'
       produces:
       - application/json
       responses:
@@ -1783,12 +2172,12 @@ paths:
       description: Inserta un registro en la tabla "NOMINA"; el trigger genera automáticamente
         los cálculos.
       parameters:
-      - description: Datos de la nómina a crear (sin 'MONTO')
+      - description: Datos de la nómina a crear (sin 'MONTO'; fecha YYYY-MM-DD)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Nomina'
+          $ref: '#/definitions/models.NominaCreateRequest'
       produces:
       - application/json
       responses:
@@ -1938,12 +2327,12 @@ paths:
       - application/json
       description: Crea un nuevo pago en la base de datos.
       parameters:
-      - description: Datos del pago a crear
+      - description: Datos del pago a crear (fecha YYYY-MM-DD, hora HH:MM:SS)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Pago'
+          $ref: '#/definitions/models.PagoCreateRequest'
       produces:
       - application/json
       responses:
@@ -1975,12 +2364,13 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos del pago a actualizar
+      - description: 'Datos del pago a actualizar (sólo campos a modificar, formatos:
+          fecha YYYY-MM-DD, hora HH:MM:SS)'
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Pago'
+          $ref: '#/definitions/models.PagoUpdateRequest'
       produces:
       - application/json
       responses:
@@ -2113,7 +2503,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Pedido'
+          $ref: '#/definitions/models.PedidoCreateRequest'
       produces:
       - application/json
       responses:
@@ -2335,8 +2725,7 @@ paths:
         name: body
         required: true
         schema:
-          additionalProperties: true
-          type: object
+          $ref: '#/definitions/models.ProductoPedidoCreateRequest'
       produces:
       - application/json
       responses:
@@ -2378,8 +2767,7 @@ paths:
         required: true
         schema:
           items:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.ProductoPedidoItemInput'
           type: array
       produces:
       - application/json
@@ -2479,14 +2867,42 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea un nuevo producto en la base de datos.
+      - multipart/form-data
+      description: Crea un nuevo producto. Puedes enviar JSON (imagen en Base64) o
+        multipart/form-data con archivo.
       parameters:
-      - description: Producto con imagen Base64
-        in: body
-        name: producto
-        required: true
-        schema:
-          $ref: '#/definitions/models.Producto'
+      - description: Nombre del producto
+        in: formData
+        name: nombre
+        type: string
+      - description: Calorías
+        in: formData
+        name: calorias
+        type: integer
+      - description: Descripción
+        in: formData
+        name: descripcion
+        type: string
+      - description: Precio
+        in: formData
+        name: precio
+        type: integer
+      - description: DISPONIBLE | NO_DISPONIBLE
+        in: formData
+        name: estadoProducto
+        type: string
+      - description: Cantidad
+        in: formData
+        name: cantidad
+        type: integer
+      - description: ID de subcategoría
+        in: formData
+        name: subcategoriaId
+        type: integer
+      - description: Archivo de imagen
+        in: formData
+        name: imagen
+        type: file
       produces:
       - application/json
       responses:
@@ -2509,20 +2925,47 @@ paths:
     put:
       consumes:
       - application/json
-      description: Actualiza los datos de un producto existente, incluyendo una imagen
-        en formato Base64.
+      - multipart/form-data
+      description: Actualiza un producto. Puedes enviar JSON (imagen en Base64) o
+        multipart/form-data con archivo.
       parameters:
       - description: ID del Producto
         in: query
         name: id
         required: true
         type: integer
-      - description: Datos del producto
-        in: body
-        name: producto
-        required: true
-        schema:
-          $ref: '#/definitions/models.Producto'
+      - description: Nombre del producto
+        in: formData
+        name: nombre
+        type: string
+      - description: Calorías
+        in: formData
+        name: calorias
+        type: integer
+      - description: Descripción
+        in: formData
+        name: descripcion
+        type: string
+      - description: Precio
+        in: formData
+        name: precio
+        type: integer
+      - description: DISPONIBLE | NO_DISPONIBLE
+        in: formData
+        name: estadoProducto
+        type: string
+      - description: Cantidad
+        in: formData
+        name: cantidad
+        type: integer
+      - description: ID de subcategoría
+        in: formData
+        name: subcategoriaId
+        type: integer
+      - description: Archivo de imagen
+        in: formData
+        name: imagen
+        type: file
       produces:
       - application/json
       responses:
@@ -2623,12 +3066,12 @@ paths:
       - application/json
       description: Crea una nueva reserva en la base de datos.
       parameters:
-      - description: Datos de la reserva a crear
+      - description: Datos de la reserva a crear (fecha YYYY-MM-DD, hora HH:MM:SS)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Reserva'
+          $ref: '#/definitions/models.ReservaCreateRequest'
       produces:
       - application/json
       responses:
@@ -2653,12 +3096,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos de la reserva a actualizar
+      - description: Datos de la reserva a actualizar (sólo campos a modificar)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Reserva'
+          $ref: '#/definitions/models.ReservaUpdateRequest'
       produces:
       - application/json
       responses:
@@ -2792,7 +3235,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Restaurante'
+          $ref: '#/definitions/models.RestauranteCreateRequest'
       produces:
       - application/json
       responses:
@@ -2822,12 +3265,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos del restaurante a actualizar
+      - description: Datos del restaurante a actualizar (sólo campos a modificar)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Restaurante'
+          $ref: '#/definitions/models.RestauranteUpdateRequest'
       produces:
       - application/json
       responses:
@@ -2955,12 +3398,12 @@ paths:
       - application/json
       description: Crea un nuevo trabajador en la base de datos.
       parameters:
-      - description: Datos del trabajador a crear
+      - description: Datos del trabajador a crear (fecha YYYY-MM-DD)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Trabajador'
+          $ref: '#/definitions/models.TrabajadorCreateRequest'
       produces:
       - application/json
       responses:
@@ -2992,12 +3435,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Datos del trabajador a actualizar
+      - description: Datos del trabajador a actualizar (sólo campos a modificar)
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Trabajador'
+          $ref: '#/definitions/models.TrabajadorUpdateRequest'
       produces:
       - application/json
       responses:

@@ -134,7 +134,7 @@ func (c *MetodoPagoController) GetById() {
 // @Tags metodos_pago
 // @Accept json
 // @Produce json
-// @Param   body  body   models.MetodoPago true  "Datos del método de pago a crear"
+// @Param   body  body   models.MetodoPagoCreateRequest true  "Datos del método de pago a crear"
 // @Success 201 {object} models.ApiResponse{data=models.MetodoPago} "Método de pago creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
@@ -182,7 +182,7 @@ func (c *MetodoPagoController) Post() {
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID del Método de Pago"
-// @Param   body  body   models.MetodoPago true  "Datos del método de pago a actualizar"
+// @Param   body  body   models.MetodoPagoUpdateRequest true  "Datos del método de pago a actualizar (sólo campos a modificar)"
 // @Success 200 {object} models.ApiResponse{data=models.MetodoPago} "Método de pago actualizado"
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
 // @Security BearerAuth

@@ -54,30 +54,32 @@ func (c *DomicilioController) GetAll() {
 	estado := strings.ToUpper(c.GetString("estado"))
 	trabajadorID, _ := c.GetInt("trabajador") // ID del domiciliario solicitante
 
-	// Aplicar filtros opcionales SOLO si se proporcionan
+	// Aplicar filtros opcionales SOLO si se proporcionan (usar nombres de campos del struct)
 	if direccion != "" {
-		qs = qs.Filter("DIRECCION__icontains", direccion)
+		qs = qs.Filter("Direccion__icontains", direccion)
 	}
 	if telefono != "" {
-		qs = qs.Filter("TELEFONO", telefono)
+		qs = qs.Filter("Telefono", telefono)
 	}
 	if updatedBy != "" {
-		qs = qs.Filter("UPDATED_BY__icontains", updatedBy)
+		qs = qs.Filter("UpdatedBy__icontains", updatedBy)
 	}
 	if fecha != "" {
-		qs = qs.Filter("FECHA", fecha)
+		if parsed, err := time.Parse("2006-01-02", fecha); err == nil {
+			qs = qs.Filter("Fecha", parsed)
+		}
 	}
 	if estado != "" {
-		qs = qs.Filter("ESTADO_DOMICILIO", estado)
+		qs = qs.Filter("Estado", models.EstadoDomicilio(estado))
 	}
 
 	// Aplicar condición para que los domiciliarios solo vean pedidos que pueden tomar
 	if trabajadorID != 0 {
 		cond := orm.NewCondition().
-			Or("PK_DOCUMENTO_TRABAJADOR__isnull", true).
-			Or("PK_DOCUMENTO_TRABAJADOR", trabajadorID)
+			Or("Trabajador__isnull", true).
+			Or("Trabajador__PK_DOCUMENTO_TRABAJADOR", trabajadorID)
 
-		qs = qs.Filter("ENTREGADO", false).SetCond(cond)
+		qs = qs.Filter("Entregado", false).SetCond(cond)
 	}
 
 	// Ejecutar consulta
@@ -257,23 +259,46 @@ ORDER BY p.pk_id_pedido DESC LIMIT 1;`
 // @Router /domicilios [post]
 func (c *DomicilioController) Post() {
 	var input models.DomicilioCreate
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &raw); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al procesar la solicitud",
-			Cause:   err.Error(),
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
+		c.ServeJSON()
+		return
+	}
+	// Normalizar trabajadorAsignado: 0, "", null => no asignado
+	if v, ok := raw["trabajadorAsignado"]; ok {
+		switch vv := v.(type) {
+		case nil:
+			delete(raw, "trabajadorAsignado")
+		case string:
+			if strings.TrimSpace(vv) == "" {
+				delete(raw, "trabajadorAsignado")
+			}
+		case float64:
+			if int64(vv) == 0 {
+				delete(raw, "trabajadorAsignado")
+			}
 		}
+	}
+	// Decodificar al DTO ya sanitizado
+	if bodySan, err := json.Marshal(raw); err == nil {
+		if err := json.Unmarshal(bodySan, &input); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
+			c.ServeJSON()
+			return
+		}
+	} else {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Solicitud inválida", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
 	if input.Direccion == "" || input.Telefono == "" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Los campos 'direccion' y 'telefono' son obligatorios",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Los campos 'direccion' y 'telefono' son obligatorios"}
 		c.ServeJSON()
 		return
 	}
@@ -281,20 +306,12 @@ func (c *DomicilioController) Post() {
 	parsedDate, err := time.Parse("2006-01-02", input.FechaDomicilio)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Formato de fecha inválido",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
-	domicilio := models.Domicilio{
-		Direccion: input.Direccion,
-		Telefono:  input.Telefono,
-		Fecha:     parsedDate,
-	}
+	domicilio := models.Domicilio{Direccion: input.Direccion, Telefono: input.Telefono, Fecha: parsedDate}
 	if input.Observaciones != nil {
 		domicilio.Observ = input.Observaciones
 	}
@@ -304,12 +321,7 @@ func (c *DomicilioController) Post() {
 	// compat: aceptar "estado" o "estadoDomicilio"
 	est := string(input.Estado)
 	if est == "" {
-		// intentar leer desde payload crudo si vino como 'estado'
-		var raw map[string]interface{}
-		_ = json.Unmarshal(c.Ctx.Input.RequestBody, &raw)
-		if v, ok := raw["estado"].(string); ok {
-			est = v
-		}
+		if v, ok := raw["estado"].(string); ok { est = v }
 	}
 	if est != "" {
 		if !isValidEstadoDomicilio(est) {
@@ -320,7 +332,7 @@ func (c *DomicilioController) Post() {
 		}
 		domicilio.Estado = models.EstadoDomicilio(strings.ToUpper(est))
 	}
-	if input.TrabajadorID != nil {
+	if input.TrabajadorID != nil && *input.TrabajadorID != 0 {
 		domicilio.Trabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: *input.TrabajadorID}
 	}
 
@@ -387,7 +399,7 @@ func (c *DomicilioController) Post() {
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID del Domicilio"
-// @Param   body  body   models.Domicilio true  "Datos del domicilio a actualizar"
+// @Param   body  body   models.DomicilioUpdateRequest true  "Datos del domicilio a actualizar (sólo campos a modificar)"
 // @Success 200 {object} models.ApiResponse{data=models.Domicilio} "Domicilio actualizado"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
@@ -429,18 +441,25 @@ func (c *DomicilioController) Put() {
 		return
 	}
 
+	// Construir lista de columnas a actualizar para evitar tocar columnas protegidas (p. ej., "Entregado")
+	var colsToUpdate []string
 	if direccion, ok := input["direccion"].(string); ok {
 		domicilio.Direccion = direccion
+		colsToUpdate = append(colsToUpdate, "Direccion")
 	}
 	if telefono, ok := input["telefono"].(string); ok {
 		domicilio.Telefono = telefono
+		colsToUpdate = append(colsToUpdate, "Telefono")
 	}
 	if updatedBy, ok := input["updatedBy"].(string); ok {
 		domicilio.UpdatedBy = &updatedBy
+		colsToUpdate = append(colsToUpdate, "UpdatedBy")
 	}
+	// Siempre actualizamos la marca de tiempo de modificación
 	domicilio.UpdatedAt = time.Now().UTC()
+	colsToUpdate = append(colsToUpdate, "UpdatedAt")
 
-	if _, err := o.Update(&domicilio); err != nil {
+	if _, err := o.Update(&domicilio, colsToUpdate...); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

@@ -101,7 +101,7 @@ func (c *RestauranteController) GetById() {
 // @Tags restaurantes
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Restaurante true  "Datos del restaurante a crear"
+// @Param   body  body   models.RestauranteCreateRequest true  "Datos del restaurante a crear"
 // @Success 201 {object} models.ApiResponse{data=models.Restaurante} "Restaurante creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /restaurantes [post]
@@ -149,7 +149,7 @@ func (c *RestauranteController) Post() {
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID del Restaurante"
-// @Param   body  body   models.Restaurante true  "Datos del restaurante a actualizar"
+// @Param   body  body   models.RestauranteUpdateRequest true  "Datos del restaurante a actualizar (sólo campos a modificar)"
 // @Success 200 {object} models.ApiResponse{data=models.Restaurante} "Restaurante actualizado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes [put]

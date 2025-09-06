@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"restaurante/models"
@@ -129,11 +130,19 @@ func (c *ProductoController) GetById() {
 
 // @Title Post
 // @Summary Crear un nuevo producto
-// @Description Crea un nuevo producto en la base de datos.
+// @Description Crea un nuevo producto. Puedes enviar JSON (imagen en Base64) o multipart/form-data con archivo.
 // @Tags productos
 // @Accept json
+// @Accept mpfd
 // @Produce json
-// @Param   producto  body     models.Producto true "Producto con imagen Base64"
+// @Param   nombre         formData string  false "Nombre del producto"
+// @Param   calorias       formData integer false "Calorías"
+// @Param   descripcion    formData string  false "Descripción"
+// @Param   precio         formData integer false "Precio"
+// @Param   estadoProducto formData string  false "DISPONIBLE | NO_DISPONIBLE"
+// @Param   cantidad       formData integer false "Cantidad"
+// @Param   subcategoriaId formData integer false "ID de subcategoría"
+// @Param   imagen         formData file    false "Archivo de imagen"
 // @Success 201 {object} models.ApiResponse{data=models.Producto} "Producto creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /productos [post]
@@ -141,11 +150,40 @@ func (c *ProductoController) Post() {
 	o := ormNewProducto()
 	var producto models.Producto
 
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &producto); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-		c.ServeJSON()
-		return
+	contentType := c.Ctx.Input.Header("Content-Type")
+	if strings.HasPrefix(strings.ToLower(contentType), "multipart/form-data") {
+		// Leer campos desde form-data
+		nombre := c.GetString("nombre")
+		descripcion := c.GetString("descripcion")
+		precioStr := c.GetString("precio")
+		estado := strings.ToUpper(c.GetString("estadoProducto"))
+		cantidadStr := c.GetString("cantidad")
+		caloriasStr := c.GetString("calorias")
+		subcatStr := c.GetString("subcategoriaId")
+
+		producto.NOMBRE = nombre
+		if descripcion != "" { producto.DESCRIPCION = &descripcion }
+		if v, err := strconv.ParseInt(precioStr, 10, 64); err == nil { producto.PRECIO = v }
+		producto.ESTADO_PRODUCTO = models.EstadoProducto(estado)
+		if v, err := strconv.Atoi(cantidadStr); err == nil { producto.CANTIDAD = v }
+		if v, err := strconv.ParseInt(caloriasStr, 10, 64); err == nil { producto.CALORIAS = &v }
+		if v, err := strconv.ParseInt(subcatStr, 10, 64); err == nil { producto.PK_ID_SUBCATEGORIA = &models.Subcategoria{PK_ID_SUBCATEGORIA: v} }
+
+		// Archivo de imagen (opcional)
+		file, _, err := c.GetFile("imagen")
+		if err == nil && file != nil {
+			defer file.Close()
+			if data, rerr := io.ReadAll(file); rerr == nil {
+				producto.IMAGEN = string(data)
+			}
+		}
+	} else {
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &producto); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
+			c.ServeJSON()
+			return
+		}
 	}
 
 	producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(string(producto.ESTADO_PRODUCTO)))
@@ -164,6 +202,9 @@ func (c *ProductoController) Post() {
 		return
 	}
 
+	// Alinear la secuencia del historial de precios con el máximo actual (previene duplicados de PK por desalineación de secuencia)
+	_, _ = o.Raw("SELECT setval(pg_get_serial_sequence('precio_producto_hist','pk_id_precio_hist'), COALESCE((SELECT MAX(pk_id_precio_hist) FROM precio_producto_hist),0))").Exec()
+
 	hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 	if _, err := insertPrecioHistFn(o, &hist); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -179,12 +220,20 @@ func (c *ProductoController) Post() {
 
 // @Title Update
 // @Summary Actualizar un producto
-// @Description Actualiza los datos de un producto existente, incluyendo una imagen en formato Base64.
+// @Description Actualiza un producto. Puedes enviar JSON (imagen en Base64) o multipart/form-data con archivo.
 // @Tags productos
 // @Accept json
+// @Accept mpfd
 // @Produce json
-// @Param   id        query   int              true  "ID del Producto"
-// @Param   producto  body    models.Producto true  "Datos del producto"
+// @Param   id             query   int     true  "ID del Producto"
+// @Param   nombre         formData string  false "Nombre del producto"
+// @Param   calorias       formData integer false "Calorías"
+// @Param   descripcion    formData string  false "Descripción"
+// @Param   precio         formData integer false "Precio"
+// @Param   estadoProducto formData string  false "DISPONIBLE | NO_DISPONIBLE"
+// @Param   cantidad       formData integer false "Cantidad"
+// @Param   subcategoriaId formData integer false "ID de subcategoría"
+// @Param   imagen         formData file    false "Archivo de imagen"
 // @Success 200 {object} models.ApiResponse{data=models.Producto} "Producto actualizado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos [put]
@@ -205,23 +254,41 @@ func (c *ProductoController) Put() {
 	if readProductoFn(o, &producto) == nil {
 		original := producto
 
-		var input models.Producto
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-			c.ServeJSON()
-			return
-		}
+		contentType := c.Ctx.Input.Header("Content-Type")
+		if strings.HasPrefix(strings.ToLower(contentType), "multipart/form-data") {
+			// Sólo actualizar campos presentes
+			if v := c.GetString("nombre"); v != "" { producto.NOMBRE = v }
+			if v := c.GetString("descripcion"); v != "" { producto.DESCRIPCION = &v }
+			if v := c.GetString("precio"); v != "" { if n, e := strconv.ParseInt(v, 10, 64); e == nil { producto.PRECIO = n } }
+			if v := c.GetString("estadoProducto"); v != "" { producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(v)) }
+			if v := c.GetString("cantidad"); v != "" { if n, e := strconv.Atoi(v); e == nil { producto.CANTIDAD = n } }
+			if v := c.GetString("calorias"); v != "" { if n, e := strconv.ParseInt(v, 10, 64); e == nil { producto.CALORIAS = &n } }
+			if v := c.GetString("subcategoriaId"); v != "" { if n, e := strconv.ParseInt(v, 10, 64); e == nil { producto.PK_ID_SUBCATEGORIA = &models.Subcategoria{PK_ID_SUBCATEGORIA: n} } }
 
-		producto.NOMBRE = input.NOMBRE
-		producto.CALORIAS = input.CALORIAS
-		producto.DESCRIPCION = input.DESCRIPCION
-		producto.PRECIO = input.PRECIO
-		producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(string(input.ESTADO_PRODUCTO)))
-		producto.CANTIDAD = input.CANTIDAD
-		producto.PK_ID_SUBCATEGORIA = input.PK_ID_SUBCATEGORIA
-		if len(input.IMAGEN) > 0 {
-			producto.IMAGEN = input.IMAGEN
+			// Imagen por archivo
+			if file, _, ferr := c.GetFile("imagen"); ferr == nil && file != nil {
+				defer file.Close()
+				if data, rerr := io.ReadAll(file); rerr == nil {
+					producto.IMAGEN = string(data)
+				}
+			}
+		} else {
+			var input models.Producto
+			if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+				c.Ctx.Output.SetStatus(http.StatusBadRequest)
+				c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
+				c.ServeJSON()
+				return
+			}
+
+			producto.NOMBRE = input.NOMBRE
+			producto.CALORIAS = input.CALORIAS
+			producto.DESCRIPCION = input.DESCRIPCION
+			producto.PRECIO = input.PRECIO
+			producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(string(input.ESTADO_PRODUCTO)))
+			producto.CANTIDAD = input.CANTIDAD
+			producto.PK_ID_SUBCATEGORIA = input.PK_ID_SUBCATEGORIA
+			if len(input.IMAGEN) > 0 { producto.IMAGEN = input.IMAGEN }
 		}
 
 		if err := validateProducto(&producto); err != nil {
@@ -246,6 +313,9 @@ func (c *ProductoController) Put() {
 		}
 
 		if producto.PRECIO != original.PRECIO {
+			// Alinear la secuencia antes de insertar un nuevo historial
+			_, _ = o.Raw("SELECT setval(pg_get_serial_sequence('precio_producto_hist','pk_id_precio_hist'), COALESCE((SELECT MAX(pk_id_precio_hist) FROM precio_producto_hist),0))").Exec()
+
 			hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 			if _, err := insertPrecioHistFn(o, &hist); err != nil {
 				c.Ctx.Output.SetStatus(http.StatusInternalServerError)

@@ -73,6 +73,10 @@ func (c *PedidoController) GetAll() {
 			query += ` AND EXTRACT(YEAR FROM p.fecha) = ?`
 			params = append(params, anio)
 		}
+	} else if anio > 0 {
+		// Permitir filtrar por año sin exigir mes
+		query += ` AND EXTRACT(YEAR FROM p.fecha) = ?`
+		params = append(params, anio)
 	}
 
 	if cliente > 0 {
@@ -131,7 +135,7 @@ func (c *PedidoController) GetAll() {
 // @Tags pedido
 // @Accept json
 // @Produce json
-// @Param body body models.Pedido true "Datos del pedido (sólo se respeta 'delivery')"
+// @Param body body models.PedidoCreateRequest true "Datos del pedido (sólo se respeta 'delivery')"
 // @Success 200 {object} models.ApiResponse{data=models.Pedido} "Pedido creado con identificadores pagoId, metodoPagoId, domicilioId y documentoCliente cuando existan"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
@@ -172,7 +176,8 @@ func (c *PedidoController) Post() {
 	} else {
 		pedido.DELIVERY = false
 	}
-	if in.PKIDDomicilio != nil {
+	// Sólo asignar domicilio si es un ID válido (> 0)
+	if in.PKIDDomicilio != nil && *in.PKIDDomicilio > 0 {
 		pedido.PK_ID_DOMICILIO = &models.Domicilio{ID: *in.PKIDDomicilio}
 	}
 	// RestauranteId es opcional en el contrato actual; si viene, lo asignamos, si no,
@@ -231,6 +236,14 @@ func (c *PedidoController) AssignDomicilio() {
 	domicilioID, _ := c.GetInt64("domicilio_id")
 	o := orm.NewOrm()
 
+	// Validación básica del domicilio_id
+	if domicilioID <= 0 {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{Code: 400, Message: "El parámetro 'domicilio_id' debe ser un entero positivo"}
+		c.ServeJSON()
+		return
+	}
+
 	// Verificar existencia del pedido usando consulta raw compatible con los mocks (QueryRows)
 	var pedidosExist []models.Pedido
 	if _, err := o.Raw("SELECT pk_id_pedido, fecha, hora, delivery, estado_pedido, pk_id_domicilio, pk_id_pago, pk_id_restaurante, updated_at, updated_by FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
@@ -240,9 +253,9 @@ func (c *PedidoController) AssignDomicilio() {
 		return
 	}
 
-	// Sólo actualizamos la FK al domicilio (por contrato actual)
-	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, PK_ID_DOMICILIO: &models.Domicilio{ID: domicilioID}}
-	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO"); err != nil {
+	// Actualizamos la FK al domicilio y marcamos delivery=true para cumplir el check de la DB
+	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, PK_ID_DOMICILIO: &models.Domicilio{ID: domicilioID}, DELIVERY: true}
+	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO", "DELIVERY"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar domicilio", Cause: err.Error()}
 		c.ServeJSON()
@@ -396,7 +409,7 @@ SELECT
     COALESCE(TO_CHAR(p.fecha, 'YYYY-MM-DD'), '')     AS fecha,
     COALESCE(TO_CHAR(p.hora,  'HH24:MI:SS'), '')     AS hora,
     COALESCE(p.delivery, false)                      AS delivery,
-    COALESCE(p.estado_pedido, '')                    AS estado_pedido,
+    COALESCE(p.estado_pedido::text, '')              AS estado_pedido,
     COALESCE(mp.tipo, '')                            AS metodo_pago,
     COALESCE((
         SELECT jsonb_agg(json_build_object(

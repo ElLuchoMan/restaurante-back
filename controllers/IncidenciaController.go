@@ -149,7 +149,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 // @Tags incidencias
 // @Accept json
 // @Produce json
-// @Param body body models.Incidencia true "Datos de la incidencia"
+// @Param body body models.IncidenciaCreateRequest true "Datos de la incidencia (fecha YYYY-MM-DD)"
 // @Success 201 {object} map[string]interface{} "Incidencia creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
@@ -294,7 +294,7 @@ func (c *IncidenciaController) Post() {
 // @Accept json
 // @Produce json
 // @Param id query int true "ID de la Incidencia"
-// @Param body body models.Incidencia true "Datos de la incidencia a actualizar"
+// @Param body body models.IncidenciaUpdateRequest true "Datos de la incidencia a actualizar (sólo campos a modificar)"
 // @Success 200 {object} map[string]interface{} "Incidencia actualizada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 404 {object} models.ApiResponse "Incidencia no encontrada"

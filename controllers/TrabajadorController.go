@@ -60,6 +60,9 @@ func (c *TrabajadorController) GetAll() {
 
 	// Leer parámetros de la URL
 	fechaIngreso := c.GetString("fecha_ingreso")
+	if fechaIngreso == "" {
+		fechaIngreso = c.GetString("fechaIngreso")
+	}
 	rol := c.GetString("rol")
 	incluirRetirados, _ := c.GetBool("incluir_retirados", false) // Por defecto, no incluir retirados
 	soloRetirados, _ := c.GetBool("solo_retirados", false)       // Por defecto, no mostrar solo retirados
@@ -74,7 +77,14 @@ func (c *TrabajadorController) GetAll() {
 
 	// Aplicar filtros adicionales
 	if fechaIngreso != "" {
-		query = query.Filter("FECHA_INGRESO__exact", fechaIngreso)
+		parsed, err := time.Parse("2006-01-02", fechaIngreso)
+		if err != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para 'fecha_ingreso', use YYYY-MM-DD", Cause: err.Error()}
+			c.ServeJSON()
+			return
+		}
+		query = query.Filter("FECHA_INGRESO", parsed)
 	}
 	if rol != "" {
 		query = query.Filter("ROL__exact", rol)
@@ -117,8 +127,9 @@ func (c *TrabajadorController) GetAll() {
 	if len(trabajadores) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
+			Code:    http.StatusOK,
 			Message: "No se encontraron trabajadores que coincidan con los filtros proporcionados",
+			Data:    trabajadores,
 		}
 		c.ServeJSON()
 		return
@@ -193,7 +204,7 @@ func (c *TrabajadorController) GetById() {
 // @Tags trabajadores
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Trabajador true  "Datos del trabajador a crear"
+// @Param   body  body   models.TrabajadorCreateRequest true  "Datos del trabajador a crear (fecha YYYY-MM-DD)"
 // @Success 201 {object} models.ApiResponse{data=models.Trabajador} "Trabajador creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
@@ -389,7 +400,7 @@ func (c *TrabajadorController) Post() {
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID del Trabajador"
-// @Param   body  body   models.Trabajador true  "Datos del trabajador a actualizar"
+// @Param   body  body   models.TrabajadorUpdateRequest true  "Datos del trabajador a actualizar (sólo campos a modificar)"
 // @Success 200 {object} models.ApiResponse "Trabajador actualizado"
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
 // @Security BearerAuth

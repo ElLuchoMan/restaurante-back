@@ -180,7 +180,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 // @Tags cambios_horario
 // @Accept json
 // @Produce json
-// @Param body body models.CambiosHorario true "Datos del cambio de horario"
+// @Param body body models.CambiosHorarioCreateRequest true "Datos del cambio de horario (fecha YYYY-MM-DD, horas HH:MM:SS)"
 // @Success 201 {object} models.ApiResponse{data=map[string]interface{}} "Cambio de horario creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
@@ -328,7 +328,7 @@ func (c *CambiosHorarioController) Post() {
 // @Accept json
 // @Produce json
 // @Param id query int true "ID del cambio de horario"
-// @Param body body models.CambiosHorario true "Datos del cambio de horario a actualizar"
+// @Param body body models.CambiosHorarioUpdateRequest true "Datos del cambio de horario a actualizar (sólo campos a modificar)"
 // @Success 200 {object} models.ApiResponse{data=map[string]interface{}} "Cambio de horario actualizado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 404 {object} models.ApiResponse "Cambio de horario no encontrado"

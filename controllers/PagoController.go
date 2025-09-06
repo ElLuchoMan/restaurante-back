@@ -186,7 +186,7 @@ func (c *PagoController) GetById() {
 // @Tags pagos
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Pago true  "Datos del pago a crear"
+// @Param   body  body   models.PagoCreateRequest true  "Datos del pago a crear (fecha YYYY-MM-DD, hora HH:MM:SS)"
 // @Success 201 {object} models.ApiResponse{data=models.Pago} "Pago creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
@@ -318,7 +318,7 @@ func (c *PagoController) Post() {
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID del Pago"
-// @Param   body  body   models.Pago true  "Datos del pago a actualizar"
+// @Param   body  body   models.PagoUpdateRequest true  "Datos del pago a actualizar (sólo campos a modificar, formatos: fecha YYYY-MM-DD, hora HH:MM:SS)"
 // @Success 200 {object} models.ApiResponse{data=models.Pago} "Pago actualizado"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
 // @Security BearerAuth
@@ -356,90 +356,85 @@ func (c *PagoController) Put() {
 	var input map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al decodificar la solicitud",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
-	// Validar y actualizar los campos
-	if fechaStr, ok := input["FECHA"].(string); ok && fechaStr != "" {
+	// Helpers para aceptar claves en minúsculas o MAYÚSCULAS
+	getStr := func(keys ...string) (string, bool) {
+		for _, k := range keys {
+			if v, ok := input[k].(string); ok && v != "" {
+				return v, true
+			}
+		}
+		return "", false
+	}
+	getFloat := func(keys ...string) (float64, bool) {
+		for _, k := range keys {
+			if v, ok := input[k].(float64); ok {
+				return v, true
+			}
+		}
+		return 0, false
+	}
+
+	// fecha
+	if fechaStr, ok := getStr("fecha", "FECHA"); ok {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido (YYYY-MM-DD)", Cause: err.Error()}
 			c.ServeJSON()
 			return
 		}
 		pago.FECHA = parsedDate
 	}
 
-	// Procesar HORA
-	if horaStr, ok := input["HORA"].(string); ok && horaStr != "" {
-		// Validar el formato de HORA
+	// hora (obligatoria)
+	if horaStr, ok := getStr("hora", "HORA"); ok {
 		parsedHora, err := time.Parse("15:04:05", horaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de hora inválido, debe ser HH:mm:ss",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido (HH:MM:SS)", Cause: err.Error()}
 			c.ServeJSON()
 			return
 		}
 		pago.HORA = parsedHora
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo HORA no puede estar vacío",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo hora no puede estar vacío"}
 		c.ServeJSON()
 		return
 	}
 
-	if monto, ok := input["MONTO"].(float64); ok {
+	if monto, ok := getFloat("monto", "MONTO"); ok {
 		pago.MONTO = int64(monto)
 	}
 
-	if estado, ok := input["ESTADO_PAGO"].(string); ok && estado != "" {
+	if estado, ok := getStr("estadoPago", "ESTADO_PAGO"); ok {
 		estado = strings.ToUpper(estado)
 		if !estadosPagoPermitidos[estado] {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Estado de pago inválido. Debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'",
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Estado de pago inválido. Debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'"}
 			c.ServeJSON()
 			return
 		}
 		pago.ESTADO_PAGO = estado
 	}
 
-	if updatedBy, ok := input["UPDATED_BY"].(string); ok {
+	if updatedBy, ok := getStr("updatedBy", "UPDATED_BY"); ok {
 		pago.UPDATED_BY = &updatedBy
 	}
 
 	// Actualizar la fecha de modificación
 	pago.UPDATED_AT = time.Now().UTC()
 
-	if pkMetodoPago, ok := input["PK_ID_METODO_PAGO"].(float64); ok && pkMetodoPago != 0 {
-		val := int64(pkMetodoPago)
-		pago.PK_ID_METODO_PAGO = &models.MetodoPago{PK_ID_METODO_PAGO: val}
+	if v, ok := getFloat("metodoPagoId", "PK_ID_METODO_PAGO"); ok && v != 0 {
+		pago.PK_ID_METODO_PAGO = &models.MetodoPago{PK_ID_METODO_PAGO: int64(v)}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo PK_ID_METODO_PAGO es obligatorio y debe ser un número válido",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo metodoPagoId es obligatorio y debe ser un número válido"}
 		c.ServeJSON()
 		return
 	}
@@ -447,22 +442,14 @@ func (c *PagoController) Put() {
 	// Guardar los cambios en la base de datos
 	if _, err := o.Update(&pago); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar el pago",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el pago", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
 	// Responder con los datos actualizados
 	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Pago actualizado correctamente",
-		Data:    pago,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Pago actualizado correctamente", Data: pago}
 	c.ServeJSON()
 }
 

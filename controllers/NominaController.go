@@ -101,7 +101,7 @@ func (c *NominaController) GetAll() {
 // @Tags nominas
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Nomina true  "Datos de la nómina a crear (sin 'MONTO')"
+// @Param   body  body   models.NominaCreateRequest true  "Datos de la nómina a crear (sin 'MONTO'; fecha YYYY-MM-DD)"
 // @Success 201 {object} models.ApiResponse{data=models.Nomina} "Nómina creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"

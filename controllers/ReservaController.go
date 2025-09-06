@@ -150,7 +150,7 @@ func (c *ReservaController) GetById() {
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param   body  body   models.Reserva true  "Datos de la reserva a crear"
+// @Param   body  body   models.ReservaCreateRequest true  "Datos de la reserva a crear (fecha YYYY-MM-DD, hora HH:MM:SS)"
 // @Success 201 {object} models.Reserva "Reserva creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /reservas [post]
@@ -340,7 +340,7 @@ func (c *ReservaController) Post() {
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID de la Reserva"
-// @Param   body  body   models.Reserva true  "Datos de la reserva a actualizar"
+// @Param   body  body   models.ReservaUpdateRequest true  "Datos de la reserva a actualizar (sólo campos a modificar)"
 // @Success 200 {object} models.Reserva "Reserva actualizada"
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas [put]
@@ -559,6 +559,18 @@ func (c *ReservaController) GetByParameter() {
 		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
 		reservas[i].FECHA = reservas[i].FECHA.UTC()
 		reservas[i].HORA = reservas[i].HORA.UTC()
+	}
+
+	// Si no hay resultados, devolver 200 con mensaje claro
+	if len(reservas) == 0 {
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusOK,
+			Message: "No se encontraron reservas",
+			Data:    reservas,
+		}
+		c.ServeJSON()
+		return
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
