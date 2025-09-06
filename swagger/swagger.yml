@@ -22,6 +22,9 @@ definitions:
   models.ApiResponse{data=[]map[string]interface{}}:
     title: ApiResponse{data=[]map[string]interface{}}
     type: object
+  models.ApiResponse{data=[]models.Categoria}:
+    title: Categoria}
+    type: object
   models.ApiResponse{data=[]models.Cliente}:
     title: Cliente}
     type: object
@@ -55,6 +58,9 @@ definitions:
   models.ApiResponse{data=[]models.Restaurante}:
     title: Restaurante}
     type: object
+  models.ApiResponse{data=[]models.Subcategoria}:
+    title: Subcategoria}
+    type: object
   models.ApiResponse{data=[]models.Trabajador}:
     title: Trabajador}
     type: object
@@ -63,6 +69,9 @@ definitions:
     type: object
   models.ApiResponse{data=map[string]interface{}}:
     title: ApiResponse{data=map[string]interface{}}
+    type: object
+  models.ApiResponse{data=models.Categoria}:
+    title: Categoria}
     type: object
   models.ApiResponse{data=models.Cliente}:
     title: Cliente}
@@ -96,6 +105,9 @@ definitions:
     type: object
   models.ApiResponse{data=models.Restaurante}:
     title: Restaurante}
+    type: object
+  models.ApiResponse{data=models.Subcategoria}:
+    title: Subcategoria}
     type: object
   models.ApiResponse{data=models.Trabajador}:
     title: Trabajador}
@@ -149,6 +161,20 @@ definitions:
       horaCierre:
         type: string
         example: "17:00:00"
+  models.CategoriaCreateRequest:
+    title: CategoriaCreateRequest
+    type: object
+    properties:
+      nombre:
+        type: string
+        example: Bebidas
+  models.CategoriaUpdateRequest:
+    title: CategoriaUpdateRequest
+    type: object
+    properties:
+      nombre:
+        type: string
+        example: Bebidas frías
   models.Cliente:
     title: Cliente
     type: object
@@ -644,6 +670,28 @@ definitions:
       nombreRestaurante:
         type: string
         example: El Fogón Centro
+  models.SubcategoriaCreateRequest:
+    title: SubcategoriaCreateRequest
+    type: object
+    properties:
+      categoriaId:
+        type: integer
+        example: 1
+        format: int64
+      nombre:
+        type: string
+        example: Gaseosas
+  models.SubcategoriaUpdateRequest:
+    title: SubcategoriaUpdateRequest
+    type: object
+    properties:
+      categoriaId:
+        type: integer
+        example: 1
+        format: int64
+      nombre:
+        type: string
+        example: Gaseosas zero
   models.TrabajadorCreateRequest:
     title: TrabajadorCreateRequest
     type: object

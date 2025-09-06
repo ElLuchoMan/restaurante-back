@@ -71,6 +71,20 @@ func init() {
 			beego.NSRouter("/search", &controllers.ProductoController{}, "get:GetById"),
 		),
 
+		// Categorías (protegido)
+		beego.NSNamespace("/categorias",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.CategoriaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.CategoriaController{}, "get:GetById"),
+		),
+
+		// Subcategorías (protegido)
+		beego.NSNamespace("/subcategorias",
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.SubcategoriaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &controllers.SubcategoriaController{}, "get:GetById"),
+		),
+
 		// Reservas (público según tu definición actual)
 		beego.NSNamespace("/reservas",
 			beego.NSRouter("/", &controllers.ReservaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
