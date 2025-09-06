@@ -1,0 +1,10 @@
+restaurante-back.exe
+restaurante-back.exe~
+coverage*.html
+coverage.out
+tmp/
+swagger.zip
+swagger/
+static/
+views/
+
