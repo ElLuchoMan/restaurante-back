@@ -1,0 +1,15 @@
+rules:
+  # Contexto
+  - "Backend en Go con Beego y PostgreSQL; estructura por capas (controladores, servicios, repositorios, modelos)."
+  # Estilo y Calidad
+  - "Formatea con gofmt, aplica golangci-lint y sigue patrones idiomáticos; maneja errores envolviéndolos y usando context.Context."
+  # Pruebas
+  - "Ejecuta 'go test ./...' antes de enviar cambios, valida con 'powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean' y añade pruebas en tests/ si modificas la lógica."
+  # Seguridad
+  - "Usa consultas parametrizadas para evitar SQL injection, valida/sanitiza entradas y guarda secretos en variables de entorno."
+  # Convenciones de Git
+  - "Realiza commits pequeños y descriptivos en español en modo imperativo, relaciona issues con #id y no subas binarios ni credenciales."
+  # Ignorar
+  - "Omite archivos generados, cobertura y contenido de tmp/ en commits."
+  # Instrucciones para la IA
+  - "Sigue estas reglas, actualiza README y tests cuando cambies comportamiento y responde en español."
