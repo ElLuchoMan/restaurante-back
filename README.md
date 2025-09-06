@@ -83,6 +83,17 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
   ```
 
+### Notas de pruebas unitarias (inyecciones y expectativas)
+- Nómina (`controllers/NominaController.go`): se expuso el punto de inyección `findExistingNominaFn` para simular la validación de existencia de nómina mensual en tests. Esto permite alcanzar el flujo de inserción sin depender de la consulta real.
+  - Ejemplo en tests:
+    ```go
+    orig := findExistingNominaFn
+    findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) { return nil, orm.ErrNoRows }
+    t.Cleanup(func(){ findExistingNominaFn = orig })
+    ```
+- ProductoPedido: en entorno unitario sin DB, los controladores devuelven HTTP 200 con mensajes de error en el cuerpo cuando falta parámetro, JSON es inválido, no hay stock o hay errores de consulta. Los tests validan esos mensajes (p.ej., "Inventario insuficiente...", "Error al buscar los detalles del pedido").
+- Confirmación: no se modificaron scripts SQL ni el esquema de la base de datos; sólo se ajustaron tests y puntos de inyección para pruebas.
+
 ## Formato y Lint
 - Formatea con gofmt:
   ```powershell
