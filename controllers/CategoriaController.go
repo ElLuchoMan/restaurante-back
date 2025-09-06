@@ -9,6 +9,28 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type categoriaQuerySeter interface{ All(interface{}, ...string) (int64, error) }
+
+type categoriaOrmer interface{
+	QueryTable(interface{}) categoriaQuerySeter
+	Insert(interface{}) (int64, error)
+	Read(interface{}, ...string) error
+	Update(interface{}, ...string) (int64, error)
+	Delete(interface{}, ...string) (int64, error)
+}
+
+type catQSAdapter struct{ qs orm.QuerySeter }
+func (a catQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
+
+type catOrmAdapter struct{ o orm.Ormer }
+func (a catOrmAdapter) QueryTable(i interface{}) categoriaQuerySeter { return catQSAdapter{qs: a.o.QueryTable(i)} }
+func (a catOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
+func (a catOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
+func (a catOrmAdapter) Update(v interface{}, cols ...string) (int64, error) { return a.o.Update(v, cols...) }
+func (a catOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) { return a.o.Delete(v, cols...) }
+
+var catOrmNew = func() categoriaOrmer { return catOrmAdapter{o: orm.NewOrm()} }
+
 type CategoriaController struct {
 	web.Controller
 }
@@ -22,7 +44,7 @@ type CategoriaController struct {
 // @Failure 500 {object} models.ApiResponse
 // @Router /categorias [get]
 func (c *CategoriaController) GetAll() {
-	o := orm.NewOrm()
+	o := catOrmNew()
 	var categorias []models.Categoria
 	if _, err := o.QueryTable(new(models.Categoria)).All(&categorias); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -44,7 +66,7 @@ func (c *CategoriaController) GetAll() {
 // @Failure 404 {object} models.ApiResponse
 // @Router /categorias/search [get]
 func (c *CategoriaController) GetById() {
-	o := orm.NewOrm()
+	o := catOrmNew()
 	id, _ := c.GetInt64("id")
 	cat := models.Categoria{PK_ID_CATEGORIA: id}
 	if err := o.Read(&cat); err != nil {
@@ -68,7 +90,7 @@ func (c *CategoriaController) GetById() {
 // @Failure 500 {object} models.ApiResponse
 // @Router /categorias [post]
 func (c *CategoriaController) Post() {
-	o := orm.NewOrm()
+	o := catOrmNew()
 	var in struct{
 		Nombre string `json:"nombre"`
 	}
@@ -101,7 +123,7 @@ func (c *CategoriaController) Post() {
 // @Failure 404 {object} models.ApiResponse
 // @Router /categorias [put]
 func (c *CategoriaController) Put() {
-	o := orm.NewOrm()
+	o := catOrmNew()
 	id, _ := c.GetInt64("id")
 	cat := models.Categoria{PK_ID_CATEGORIA: id}
 	if err := o.Read(&cat); err != nil {
@@ -138,7 +160,7 @@ func (c *CategoriaController) Put() {
 // @Failure 404 {object} models.ApiResponse
 // @Router /categorias [delete]
 func (c *CategoriaController) Delete() {
-	o := orm.NewOrm()
+	o := catOrmNew()
 	id, _ := c.GetInt64("id")
 	if _, err := o.Delete(&models.Categoria{PK_ID_CATEGORIA: id}); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)

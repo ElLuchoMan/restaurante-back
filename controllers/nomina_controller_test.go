@@ -53,10 +53,14 @@ func TestNominaPostDBError(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"estadoNomina\":\"OTRO\"}")
+	ctx.Input.RequestBody = []byte("{\"estadoNomina\":\"OTRO\",\"fechaNomina\":\"2024-01-20\"}")
 	c := NominaController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
+
+	orig := findExistingNominaFn
+	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) { return nil, orm.ErrNoRows }
+	t.Cleanup(func(){ findExistingNominaFn = orig })
 
 	c.Post()
 

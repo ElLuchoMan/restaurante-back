@@ -8,6 +8,9 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type resContactoOrmer interface{ QueryTable(interface{}) orm.QuerySeter }
+var resContactoOrmNew = func() resContactoOrmer { return orm.NewOrm() }
+
 type ReservaContactoController struct { web.Controller }
 
 // @Title GetAll
@@ -21,7 +24,7 @@ type ReservaContactoController struct { web.Controller }
 // @Failure 500 {object} models.ApiResponse
 // @Router /reserva_contacto [get]
 func (c *ReservaContactoController) GetAll() {
-	o := orm.NewOrm()
+	o := resContactoOrmNew()
 	qs := o.QueryTable(new(models.ReservaContacto))
 	if v, err := c.GetInt64("documento_contacto"); err == nil && v > 0 { qs = qs.Filter("DocumentoContacto", v) }
 	if v, err := c.GetInt64("documento_cliente"); err == nil && v > 0 { qs = qs.Filter("PKDocumentoCliente", v) }
@@ -41,10 +44,10 @@ func (c *ReservaContactoController) GetAll() {
 // @Failure 404 {object} models.ApiResponse
 // @Router /reserva_contacto/search [get]
 func (c *ReservaContactoController) GetById() {
-	o := orm.NewOrm()
+	o := resContactoOrmNew()
 	id, _ := c.GetInt64("id")
 	row := models.ReservaContacto{PKIDContacto: id}
-	if err := o.Read(&row); err != nil { c.Ctx.Output.SetStatus(http.StatusOK); c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Contacto no encontrado"}; c.ServeJSON(); return }
+	if err := o.QueryTable(new(models.ReservaContacto)).Filter("PKIDContacto", id).One(&row); err != nil { c.Ctx.Output.SetStatus(http.StatusOK); c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Contacto no encontrado"}; c.ServeJSON(); return }
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Contacto encontrado", Data: row}
 	c.ServeJSON()
 }

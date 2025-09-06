@@ -21,6 +21,17 @@ var (
 	queryAllNominas    = func(o orm.Ormer, out *[]models.Nomina) (int64, error) { return o.QueryTable(new(models.Nomina)).All(out) }
 	readNominaFn       = func(o orm.Ormer, n *models.Nomina) error { return o.Read(n) }
 	updateNominaFn     = func(o orm.Ormer, n *models.Nomina, cols ...string) (int64, error) { return o.Update(n, cols...) }
+	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) {
+		var existing models.Nomina
+		err := o.Raw(
+			"SELECT pk_id_nomina, fecha, monto, estado_nomina FROM nomina WHERE EXTRACT(YEAR FROM fecha) = ? AND EXTRACT(MONTH FROM fecha) = ? LIMIT 1",
+			fecha.Year(), int(fecha.Month()),
+		).QueryRow(&existing)
+		if err != nil {
+			return nil, err
+		}
+		return &existing, nil
+	}
 )
 
 // Estados permitidos para la nómina
@@ -124,6 +135,42 @@ func (c *NominaController) Post() {
 	if input.FECHA.IsZero() {
 		now := time.Now()
 		input.FECHA = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	}
+
+	// Reglas de negocio
+	// 1) No generar nómina antes del día 20 del mes
+	if input.FECHA.Day() < 20 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "No se puede generar una nómina antes del día 20 del mes",
+		}
+		c.ServeJSON()
+		return
+	}
+	// 2) Si ya existe una nómina del mes, marcar control_nomina como REGENERADA y retornar la existente
+	existing, getErr := findExistingNominaFn(o, input.FECHA)
+	if getErr == nil && existing != nil && existing.PK_ID_NOMINA != 0 {
+		// Upsert en control_nomina
+		if _, err := o.Raw(
+			"INSERT INTO control_nomina (fecha, estado) VALUES ($1, 'REGENERADA') ON CONFLICT (fecha) DO UPDATE SET estado = 'REGENERADA'",
+			existing.FECHA,
+		).Exec(); err != nil {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al marcar nómina como REGENERADA", Cause: err.Error()}
+			c.ServeJSON()
+			return
+		}
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Nómina ya existía; marcada como REGENERADA", Data: *existing}
+		c.ServeJSON()
+		return
+	}
+	if getErr != nil && getErr != orm.ErrNoRows {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al validar nóminas del mes", Cause: getErr.Error()}
+		c.ServeJSON()
+		return
 	}
 
 	if !estadosNominaPermitidos[input.ESTADO_NOMINA] {

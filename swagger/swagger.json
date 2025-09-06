@@ -77,20 +77,12 @@
             "title": "Pedido}",
             "type": "object"
         },
-        "models.ApiResponse{data=[]models.PrecioProductoHist}": {
-            "title": "PrecioProductoHist}",
-            "type": "object"
-        },
         "models.ApiResponse{data=[]models.Producto}": {
             "title": "Producto}",
             "type": "object"
         },
         "models.ApiResponse{data=[]models.ReservaContacto}": {
             "title": "ReservaContacto}",
-            "type": "object"
-        },
-        "models.ApiResponse{data=[]models.RestauranteDia}": {
-            "title": "RestauranteDia}",
             "type": "object"
         },
         "models.ApiResponse{data=[]models.Restaurante}": {
@@ -157,20 +149,12 @@
             "title": "Pedido}",
             "type": "object"
         },
-        "models.ApiResponse{data=models.PrecioProductoHist}": {
-            "title": "PrecioProductoHist}",
-            "type": "object"
-        },
         "models.ApiResponse{data=models.Producto}": {
             "title": "Producto}",
             "type": "object"
         },
         "models.ApiResponse{data=models.ReservaContacto}": {
             "title": "ReservaContacto}",
-            "type": "object"
-        },
-        "models.ApiResponse{data=models.RestauranteDia}": {
-            "title": "RestauranteDia}",
             "type": "object"
         },
         "models.ApiResponse{data=models.Restaurante}": {

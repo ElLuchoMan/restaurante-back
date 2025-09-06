@@ -9,6 +9,32 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type subcatQuerySeter interface{
+	All(interface{}, ...string) (int64, error)
+	Filter(string, ...interface{}) subcatQuerySeter
+}
+
+type subcatOrmer interface{
+	QueryTable(interface{}) subcatQuerySeter
+	Insert(interface{}) (int64, error)
+	Read(interface{}, ...string) error
+	Update(interface{}, ...string) (int64, error)
+	Delete(interface{}, ...string) (int64, error)
+}
+
+type subQSAdapter struct{ qs orm.QuerySeter }
+func (a subQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
+func (a subQSAdapter) Filter(field string, args ...interface{}) subcatQuerySeter { return subQSAdapter{qs: a.qs.Filter(field, args...)} }
+
+type subOrmAdapter struct{ o orm.Ormer }
+func (a subOrmAdapter) QueryTable(i interface{}) subcatQuerySeter { return subQSAdapter{qs: a.o.QueryTable(i)} }
+func (a subOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
+func (a subOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
+func (a subOrmAdapter) Update(v interface{}, cols ...string) (int64, error) { return a.o.Update(v, cols...) }
+func (a subOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) { return a.o.Delete(v, cols...) }
+
+var subcatOrmNew = func() subcatOrmer { return subOrmAdapter{o: orm.NewOrm()} }
+
 type SubcategoriaController struct { web.Controller }
 
 // @Title GetAll
@@ -21,7 +47,7 @@ type SubcategoriaController struct { web.Controller }
 // @Failure 500 {object} models.ApiResponse
 // @Router /subcategorias [get]
 func (c *SubcategoriaController) GetAll() {
-	o := orm.NewOrm()
+	o := subcatOrmNew()
 	qs := o.QueryTable(new(models.Subcategoria))
 	if catID, err := c.GetInt64("categoria_id"); err == nil && catID > 0 { qs = qs.Filter("PK_ID_CATEGORIA", catID) }
 	var subs []models.Subcategoria
@@ -44,7 +70,7 @@ func (c *SubcategoriaController) GetAll() {
 // @Failure 404 {object} models.ApiResponse
 // @Router /subcategorias/search [get]
 func (c *SubcategoriaController) GetById() {
-	o := orm.NewOrm()
+	o := subcatOrmNew()
 	id, _ := c.GetInt64("id")
 	s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
 	if err := o.Read(&s); err != nil {
@@ -67,7 +93,7 @@ func (c *SubcategoriaController) GetById() {
 // @Failure 500 {object} models.ApiResponse
 // @Router /subcategorias [post]
 func (c *SubcategoriaController) Post() {
-	o := orm.NewOrm()
+	o := subcatOrmNew()
 	var in struct{ Nombre string `json:"nombre"`; CategoriaId int64 `json:"categoriaId"` }
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" || in.CategoriaId == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -96,7 +122,7 @@ func (c *SubcategoriaController) Post() {
 // @Failure 404 {object} models.ApiResponse
 // @Router /subcategorias [put]
 func (c *SubcategoriaController) Put() {
-	o := orm.NewOrm()
+	o := subcatOrmNew()
 	id, _ := c.GetInt64("id")
 	s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
 	if err := o.Read(&s); err != nil {
@@ -132,7 +158,7 @@ func (c *SubcategoriaController) Put() {
 // @Failure 404 {object} models.ApiResponse
 // @Router /subcategorias [delete]
 func (c *SubcategoriaController) Delete() {
-	o := orm.NewOrm()
+	o := subcatOrmNew()
 	id, _ := c.GetInt64("id")
 	if _, err := o.Delete(&models.Subcategoria{PK_ID_SUBCATEGORIA: id}); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)

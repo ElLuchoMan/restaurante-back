@@ -3336,7 +3336,7 @@ const docTemplate = `{
         },
         "/precio_producto_hist": {
             "get": {
-                "description": "Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD)",
+                "description": "Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD). Devuelve nombre, estadoProducto, precio y fechaVigencia.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3365,22 +3365,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.PrecioProductoHist"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -3394,6 +3379,7 @@ const docTemplate = `{
         },
         "/precio_producto_hist/search": {
             "get": {
+                "description": "Devuelve nombre, estadoProducto, precio y fechaVigencia para el registro indicado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3417,19 +3403,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.PrecioProductoHist"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
@@ -4326,6 +4300,7 @@ const docTemplate = `{
         },
         "/restaurante_dia": {
             "get": {
+                "description": "Devuelve restauranteId, nombreRestaurante, horaApertura y dia.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4354,22 +4329,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.RestauranteDia"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -4383,6 +4343,7 @@ const docTemplate = `{
         },
         "/restaurante_dia/search": {
             "get": {
+                "description": "Devuelve restauranteId, nombreRestaurante, horaApertura y dia.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4406,19 +4367,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.RestauranteDia"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
@@ -6045,23 +5994,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.PrecioProductoHist": {
-            "type": "object",
-            "properties": {
-                "fechaVigencia": {
-                    "type": "string"
-                },
-                "precio": {
-                    "type": "integer"
-                },
-                "precioHistId": {
-                    "type": "integer"
-                },
-                "productoId": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.Producto": {
             "type": "object",
             "properties": {
@@ -6288,20 +6220,6 @@ const docTemplate = `{
                 "nombreRestaurante": {
                     "type": "string",
                     "example": "El Fogón de María"
-                }
-            }
-        },
-        "models.RestauranteDia": {
-            "type": "object",
-            "properties": {
-                "dia": {
-                    "$ref": "#/definitions/models.DiaSemana"
-                },
-                "restauranteDiaId": {
-                    "type": "integer"
-                },
-                "restauranteId": {
-                    "type": "integer"
                 }
             }
         },

@@ -9,6 +9,9 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type ctrlNomOrmer interface{ Raw(string, ...interface{}) orm.RawSeter; QueryTable(interface{}) orm.QuerySeter }
+var ctrlNomOrmNew = func() ctrlNomOrmer { return orm.NewOrm() }
+
 type ControlNominaController struct { web.Controller }
 
 // @Title GetAll
@@ -22,7 +25,7 @@ type ControlNominaController struct { web.Controller }
 // @Failure 500 {object} models.ApiResponse
 // @Router /control_nomina [get]
 func (c *ControlNominaController) GetAll() {
-	o := orm.NewOrm()
+	o := ctrlNomOrmNew()
 	qs := o.QueryTable(new(models.ControlNomina))
 	if f := c.GetString("fecha"); f != "" {
 		if d, err := time.Parse("2006-01-02", f); err == nil { qs = qs.Filter("Fecha", d) }
@@ -47,10 +50,10 @@ func (c *ControlNominaController) GetAll() {
 // @Failure 404 {object} models.ApiResponse
 // @Router /control_nomina/search [get]
 func (c *ControlNominaController) GetById() {
-	o := orm.NewOrm()
+	o := ctrlNomOrmNew()
 	id, _ := c.GetInt64("id")
 	row := models.ControlNomina{PK_ID_CONTROL_NOMINA: id}
-	if err := o.Read(&row); err != nil {
+	if err := o.QueryTable(new(models.ControlNomina)).Filter("PK_ID_CONTROL_NOMINA", id).One(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Registro no encontrado"}
 		c.ServeJSON(); return

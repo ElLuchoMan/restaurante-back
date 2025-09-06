@@ -9,56 +9,105 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type pphOrmer interface{ Raw(string, ...interface{}) orm.RawSeter }
+var pphOrmNew = func() pphOrmer { return orm.NewOrm() }
+
 type PrecioProductoHistController struct { web.Controller }
 
 // @Title GetAll
 // @Summary Listar historial de precios
-// @Description Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD)
+// @Description Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD). Devuelve nombre, estadoProducto, precio y fechaVigencia.
 // @Tags precio_producto_hist
 // @Accept json
 // @Produce json
 // @Param producto_id query int false "ID del producto"
 // @Param fecha query string false "Fecha de vigencia (YYYY-MM-DD)"
-// @Success 200 {object} models.ApiResponse{data=[]models.PrecioProductoHist}
+// @Success 200 {object} models.ApiResponse
 // @Failure 500 {object} models.ApiResponse
 // @Router /precio_producto_hist [get]
 func (c *PrecioProductoHistController) GetAll() {
-	o := orm.NewOrm()
-	qs := o.QueryTable(new(models.PrecioProductoHist))
+	o := pphOrmNew()
+
+	query := `
+SELECT pr.nombre, pr.estado_producto, pph.precio, pph.fecha_vigencia
+FROM precio_producto_hist pph
+JOIN producto pr ON pr.pk_id_producto = pph.pk_id_producto
+WHERE 1=1`
+	args := []interface{}{}
+
 	if pid, err := c.GetInt64("producto_id"); err == nil && pid > 0 {
-		qs = qs.Filter("PKIDProducto", pid)
+		query += " AND pph.pk_id_producto = ?"
+		args = append(args, pid)
 	}
 	if f := c.GetString("fecha"); f != "" {
-		if d, err := time.Parse("2006-01-02", f); err == nil { qs = qs.Filter("FechaVigencia", d) }
+		if d, err := time.Parse("2006-01-02", f); err == nil {
+			query += " AND pph.fecha_vigencia = ?"
+			args = append(args, d)
+		}
 	}
-	var list []models.PrecioProductoHist
-	if _, err := qs.All(&list); err != nil {
+	query += " ORDER BY pph.fecha_vigencia ASC"
+
+	var rows []struct{
+		Nombre string `orm:"column(nombre)"`
+		Estado string `orm:"column(estado_producto)"`
+		Precio int64  `orm:"column(precio)"`
+		Fecha  time.Time `orm:"column(fecha_vigencia)"`
+	}
+	if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener historial de precios", Cause: err.Error()}
 		c.ServeJSON(); return
 	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Historial de precios", Data: list}
+
+	resp := make([]map[string]interface{}, 0, len(rows))
+	for _, r := range rows {
+		resp = append(resp, map[string]interface{}{
+			"nombre":         r.Nombre,
+			"estadoProducto": r.Estado,
+			"precio":         r.Precio,
+			"fechaVigencia":  r.Fecha,
+		})
+	}
+
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Historial de precios", Data: resp}
 	c.ServeJSON()
 }
 
 // @Title GetById
 // @Summary Obtener historial por ID
+// @Description Devuelve nombre, estadoProducto, precio y fechaVigencia para el registro indicado.
 // @Tags precio_producto_hist
 // @Accept json
 // @Produce json
 // @Param id query int true "ID del historial"
-// @Success 200 {object} models.ApiResponse{data=models.PrecioProductoHist}
+// @Success 200 {object} models.ApiResponse
 // @Failure 404 {object} models.ApiResponse
 // @Router /precio_producto_hist/search [get]
 func (c *PrecioProductoHistController) GetById() {
-	o := orm.NewOrm()
+	o := pphOrmNew()
 	id, _ := c.GetInt64("id")
-	row := models.PrecioProductoHist{PK_ID_PRECIO_HIST: id}
-	if err := o.Read(&row); err != nil {
+	query := `
+SELECT pr.nombre, pr.estado_producto, pph.precio, pph.fecha_vigencia
+FROM precio_producto_hist pph
+JOIN producto pr ON pr.pk_id_producto = pph.pk_id_producto
+WHERE pph.pk_id_precio_hist = ?`
+	var row struct{
+		Nombre string `orm:"column(nombre)"`
+		Estado string `orm:"column(estado_producto)"`
+		Precio int64  `orm:"column(precio)"`
+		Fecha  time.Time `orm:"column(fecha_vigencia)"`
+	}
+	if err := o.Raw(query, id).QueryRow(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Historial no encontrado"}
 		c.ServeJSON(); return
 	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Historial encontrado", Data: row}
+	resp := map[string]interface{}{
+		"nombre":         row.Nombre,
+		"estadoProducto": row.Estado,
+		"precio":         row.Precio,
+		"fechaVigencia":  row.Fecha,
+	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Historial encontrado", Data: resp}
 	c.ServeJSON()
 }

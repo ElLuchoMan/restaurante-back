@@ -597,17 +597,6 @@ definitions:
       productos:
         type: string
     type: object
-  models.PrecioProductoHist:
-    properties:
-      fechaVigencia:
-        type: string
-      precio:
-        type: integer
-      precioHistId:
-        type: integer
-      productoId:
-        type: integer
-    type: object
   models.Producto:
     properties:
       calorias:
@@ -764,15 +753,6 @@ definitions:
       nombreRestaurante:
         example: El Fogón de María
         type: string
-    type: object
-  models.RestauranteDia:
-    properties:
-      dia:
-        $ref: '#/definitions/models.DiaSemana'
-      restauranteDiaId:
-        type: integer
-      restauranteId:
-        type: integer
     type: object
   models.RestauranteUpdateRequest:
     properties:
@@ -2985,7 +2965,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: 'Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD)'
+      description: 'Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD).
+        Devuelve nombre, estadoProducto, precio y fechaVigencia.'
       parameters:
       - description: ID del producto
         in: query
@@ -3001,14 +2982,7 @@ paths:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/models.ApiResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.PrecioProductoHist'
-                  type: array
-              type: object
+            $ref: '#/definitions/models.ApiResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -3020,6 +2994,8 @@ paths:
     get:
       consumes:
       - application/json
+      description: Devuelve nombre, estadoProducto, precio y fechaVigencia para el
+        registro indicado.
       parameters:
       - description: ID del historial
         in: query
@@ -3032,12 +3008,7 @@ paths:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/models.ApiResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.PrecioProductoHist'
-              type: object
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Not Found
           schema:
@@ -3610,6 +3581,7 @@ paths:
     get:
       consumes:
       - application/json
+      description: Devuelve restauranteId, nombreRestaurante, horaApertura y dia.
       parameters:
       - description: ID del restaurante
         in: query
@@ -3625,14 +3597,7 @@ paths:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/models.ApiResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.RestauranteDia'
-                  type: array
-              type: object
+            $ref: '#/definitions/models.ApiResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -3644,6 +3609,7 @@ paths:
     get:
       consumes:
       - application/json
+      description: Devuelve restauranteId, nombreRestaurante, horaApertura y dia.
       parameters:
       - description: ID del registro
         in: query
@@ -3656,12 +3622,7 @@ paths:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/models.ApiResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.RestauranteDia'
-              type: object
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Not Found
           schema:
