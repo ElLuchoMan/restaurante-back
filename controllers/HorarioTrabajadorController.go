@@ -16,9 +16,9 @@ type HorarioTrabajadorController struct {
 }
 
 func isValidDia(dia string) bool {
-	// Normalizar a la forma que usan las constantes en models (Title case)
-	nd := diaToDB(dia)
-	switch models.DiaSemana(nd) {
+	// Normalizar a Title Case que usa la DB
+	db := diaToDB(dia)
+	switch models.DiaSemana(db) {
 	case models.DiaLunes, models.DiaMartes, models.DiaMiercoles,
 		models.DiaJueves, models.DiaViernes, models.DiaSabado, models.DiaDomingo:
 		return true
@@ -34,7 +34,6 @@ func diaToDB(d string) string {
 		return ""
 	}
 	d = strings.ToLower(d)
-	// Asegurar al menos 1 caracter
 	if len(d) == 1 {
 		return strings.ToUpper(d)
 	}
@@ -63,8 +62,7 @@ func (c *HorarioTrabajadorController) GetAll() {
 		conds = append(conds, "pk_documento_trabajador = ?")
 		args = append(args, doc)
 	}
-	if dia := strings.ToUpper(c.GetString("dia")); dia != "" {
-		// validar entrada (isValidDia trabaja con mayúsculas)
+	if dia := c.GetString("dia"); dia != "" {
 		if isValidDia(dia) {
 			conds = append(conds, "dia = ?")
 			args = append(args, diaToDB(dia))
@@ -126,8 +124,8 @@ func (c *HorarioTrabajadorController) Post() {
 		return
 	}
 
-	dia := strings.ToUpper(input.DIA)
-	if !isValidDia(dia) {
+	dbDia := diaToDB(input.DIA)
+	if !isValidDia(dbDia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Día inválido"}
 		c.ServeJSON()
@@ -138,22 +136,18 @@ func (c *HorarioTrabajadorController) Post() {
 	horaFin, err2 := time.Parse("15:04:05", input.HORA_FIN)
 	if err1 != nil || err2 != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Formato de hora inválido",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido"}
 		c.ServeJSON()
 		return
 	}
 
-	// Normalizar fecha a un año válido (1) para evitar error en PostgreSQL al insertar
+	// Normalizar a año 1 para times en Postgres
 	horaInicio = time.Date(1, 1, 1, horaInicio.Hour(), horaInicio.Minute(), horaInicio.Second(), 0, time.UTC)
 	horaFin = time.Date(1, 1, 1, horaFin.Hour(), horaFin.Minute(), horaFin.Second(), 0, time.UTC)
 
 	horario := models.HorarioTrabajador{
 		PK_DOCUMENTO_TRABAJADOR: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR},
-		// Guardar en el formato que requiere la DB (ej. "Lunes")
-		DIA:                     diaToDB(dia),
+		DIA:                     dbDia,
 		HORA_INICIO:             horaInicio,
 		HORA_FIN:                horaFin,
 	}
@@ -171,21 +165,13 @@ func (c *HorarioTrabajadorController) Post() {
 		horario.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR, horario.DIA, horario.HORA_INICIO, horario.HORA_FIN,
 	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear horario",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear horario", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Horario creado correctamente",
-		Data:    horario,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Horario creado correctamente", Data: horario}
 	c.ServeJSON()
 }
 
@@ -212,7 +198,7 @@ func (c *HorarioTrabajadorController) Put() {
 		c.ServeJSON()
 		return
 	}
-	dia := strings.ToUpper(c.GetString("dia"))
+	dia := c.GetString("dia")
 	if dia == "" || !isValidDia(dia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}
@@ -313,7 +299,7 @@ func (c *HorarioTrabajadorController) Delete() {
 		c.ServeJSON()
 		return
 	}
-	dia := strings.ToUpper(c.GetString("dia"))
+	dia := c.GetString("dia")
 	if dia == "" || !isValidDia(dia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}

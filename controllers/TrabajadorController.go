@@ -224,7 +224,7 @@ func (c *TrabajadorController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo documentoTrabajador es obligatorio y debe ser un número válido",
+			Message: "El campo 'documentoTrabajador' es obligatorio y debe ser un número válido",
 		}
 		c.ServeJSON()
 		return
@@ -237,7 +237,7 @@ func (c *TrabajadorController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo NOMBRE es obligatorio",
+			Message: "El campo 'nombre' es obligatorio",
 		}
 		c.ServeJSON()
 		return
@@ -250,29 +250,20 @@ func (c *TrabajadorController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo APELLIDO es obligatorio",
+			Message: "El campo 'apellido' es obligatorio",
 		}
 		c.ServeJSON()
 		return
 	}
 
-	// Procesar ROL
+	// Procesar ROL (aceptar cualquier string en creación)
 	if rol, ok := input["rol"].(string); ok && rol != "" {
 		trabajador.ROL = models.RolTrabajador(rol)
-		if !trabajador.ROL.IsValid() {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Rol inválido",
-			}
-			c.ServeJSON()
-			return
-		}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo ROL es obligatorio",
+			Message: "El campo 'rol' es obligatorio",
 		}
 		c.ServeJSON()
 		return
@@ -285,7 +276,7 @@ func (c *TrabajadorController) Post() {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para FECHA_INGRESO",
+				Message: "Formato de fecha inválido para 'fechaIngreso'",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
@@ -296,7 +287,7 @@ func (c *TrabajadorController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo FECHA_INGRESO es obligatorio",
+			Message: "El campo 'fechaIngreso' es obligatorio",
 		}
 		c.ServeJSON()
 		return
@@ -309,7 +300,7 @@ func (c *TrabajadorController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo SUELDO es obligatorio",
+			Message: "El campo 'sueldo' es obligatorio",
 		}
 		c.ServeJSON()
 		return
@@ -333,7 +324,7 @@ func (c *TrabajadorController) Post() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "El campo PASSWORD es obligatorio",
+			Message: "El campo 'password' es obligatorio",
 		}
 		c.ServeJSON()
 		return
@@ -357,7 +348,7 @@ func (c *TrabajadorController) Post() {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para FECHA_NACIMIENTO",
+				Message: "Formato de fecha inválido para 'fechaNacimiento'",
 				Cause:   err.Error(),
 			}
 			c.ServeJSON()
@@ -399,7 +390,7 @@ func (c *TrabajadorController) Post() {
 // @Produce json
 // @Param   id    query    int  true   "ID del Trabajador"
 // @Param   body  body   models.Trabajador true  "Datos del trabajador a actualizar"
-// @Success 200 {object} models.Trabajador "Trabajador actualizado"
+// @Success 200 {object} models.ApiResponse "Trabajador actualizado"
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
 // @Security BearerAuth
 // @Router /trabajadores [put]
@@ -442,94 +433,76 @@ func (c *TrabajadorController) Put() {
 		return
 	}
 
-	// Actualizar campos proporcionados
-	if nombre, ok := input["NOMBRE"].(string); ok && nombre != "" {
-		trabajador.NOMBRE = nombre
-	}
-
-	if apellido, ok := input["APELLIDO"].(string); ok && apellido != "" {
-		trabajador.APELLIDO = apellido
-	}
-
-	if rol, ok := input["ROL"].(string); ok && rol != "" {
-		r := models.RolTrabajador(rol)
-		if !r.IsValid() {
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Rol inválido"}
-			c.ServeJSON()
-			return
+	// helper to read case-insensitive fields
+	getStr := func(keys ...string) (string, bool) {
+		for _, k := range keys {
+			if v, ok := input[k].(string); ok && v != "" {
+				return v, true
+			}
 		}
-		trabajador.ROL = r
+		return "", false
+	}
+	getFloat := func(keys ...string) (float64, bool) {
+		for _, k := range keys {
+			if v, ok := input[k].(float64); ok {
+				return v, true
+			}
+		}
+		return 0, false
+	}
+	getBool := func(keys ...string) (bool, bool) {
+		for _, k := range keys {
+			if v, ok := input[k].(bool); ok {
+				return v, true
+			}
+		}
+		return false, false
 	}
 
-	if sueldo, ok := input["SUELDO"].(float64); ok {
-		trabajador.SUELDO = int64(sueldo)
-	}
+	if v, ok := getStr("NOMBRE", "nombre"); ok { trabajador.NOMBRE = v }
+	if v, ok := getStr("APELLIDO", "apellido"); ok { trabajador.APELLIDO = v }
+	if v, ok := getStr("ROL", "rol"); ok { trabajador.ROL = models.RolTrabajador(v) }
+	if v, ok := getFloat("SUELDO", "sueldo"); ok { trabajador.SUELDO = int64(v) }
+	if v, ok := getBool("NUEVO", "nuevo"); ok { trabajador.NUEVO = v }
+	if v, ok := getStr("TELEFONO", "telefono"); ok { trabajador.TELEFONO = &v }
 
-	if nuevo, ok := input["NUEVO"].(bool); ok {
-		trabajador.NUEVO = nuevo
-	}
-
-	if telefono, ok := input["TELEFONO"].(string); ok && telefono != "" {
-		trabajador.TELEFONO = &telefono
-	}
-
-	if fechaIngresoStr, ok := input["FECHA_INGRESO"].(string); ok && fechaIngresoStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaIngresoStr)
+	if v, ok := getStr("FECHA_INGRESO", "fechaIngreso"); ok {
+		parsedDate, err := time.Parse("2006-01-02", v)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para FECHA_INGRESO",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para FECHA_INGRESO", Cause: err.Error()}
 			c.ServeJSON()
 			return
 		}
 		trabajador.FECHA_INGRESO = parsedDate
 	}
-
-	if fechaRetiroStr, ok := input["FECHA_RETIRO"].(string); ok && fechaRetiroStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaRetiroStr)
+	if v, ok := getStr("FECHA_RETIRO", "fechaRetiro"); ok {
+		parsedDate, err := time.Parse("2006-01-02", v)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para FECHA_RETIRO",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para FECHA_RETIRO", Cause: err.Error()}
 			c.ServeJSON()
 			return
 		}
 		fechaRetiro := parsedDate
 		trabajador.FECHA_RETIRO = &fechaRetiro
 	}
-
-	if fechaNacimientoStr, ok := input["FECHA_NACIMIENTO"].(string); ok && fechaNacimientoStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaNacimientoStr)
+	if v, ok := getStr("FECHA_NACIMIENTO", "fechaNacimiento"); ok {
+		parsedDate, err := time.Parse("2006-01-02", v)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para FECHA_NACIMIENTO",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para FECHA_NACIMIENTO", Cause: err.Error()}
 			c.ServeJSON()
 			return
 		}
 		fechaNacimiento := parsedDate
 		trabajador.FECHA_NACIMIENTO = &fechaNacimiento
 	}
-
-	if password, ok := input["PASSWORD"].(string); ok && password != "" {
-		hashedPassword, err := hashPassword(password)
+	if v, ok := getStr("PASSWORD", "password"); ok {
+		hashedPassword, err := hashPassword(v)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al procesar la contraseña",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al procesar la contraseña", Cause: err.Error()}
 			c.ServeJSON()
 			return
 		}
@@ -539,10 +512,7 @@ func (c *TrabajadorController) Put() {
 	// Validar fechas (FECHA_INGRESO y FECHA_RETIRO)
 	if err := validateDates(&trabajador.FECHA_INGRESO, trabajador.FECHA_RETIRO); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()}
 		c.ServeJSON()
 		return
 	}
@@ -550,11 +520,7 @@ func (c *TrabajadorController) Put() {
 	// Actualizar en la base de datos
 	if _, err := o.Update(&trabajador); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar el trabajador",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el trabajador", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
@@ -564,11 +530,7 @@ func (c *TrabajadorController) Put() {
 
 	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Trabajador actualizado correctamente",
-		Data:    trabajador,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Trabajador actualizado correctamente", Data: trabajador}
 	c.ServeJSON()
 }
 
@@ -605,17 +567,10 @@ func (c *TrabajadorController) Delete() {
 	if err := o.Read(&trabajador); err != nil {
 		if err == orm.ErrNoRows {
 			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Trabajador no encontrado",
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Trabajador no encontrado"}
 		} else {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al buscar el trabajador",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al buscar el trabajador", Cause: err.Error()}
 		}
 		c.ServeJSON()
 		return
@@ -628,21 +583,13 @@ func (c *TrabajadorController) Delete() {
 	// Actualizar el registro en la base de datos
 	if _, err := o.Update(&trabajador, "FECHA_RETIRO"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar la fecha de retiro del trabajador",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la fecha de retiro del trabajador", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
 	trabajador.PASSWORD = ""
 	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Fecha de retiro del trabajador actualizada correctamente",
-		Data:    trabajador,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Fecha de retiro del trabajador actualizada correctamente", Data: trabajador}
 	c.ServeJSON()
 }

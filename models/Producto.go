@@ -15,7 +15,7 @@ type Producto struct {
 	DESCRIPCION        *string        `orm:"column(descripcion);type(text);null" json:"descripcion,omitempty"`
 	PRECIO             int64          `orm:"column(precio);type(bigint)" json:"precio"`
 	ESTADO_PRODUCTO    EstadoProducto `orm:"column(estado_producto);type(estado_producto)" json:"estadoProducto"`
-	IMAGEN             string         `orm:"column(imagen);null" json:"imagen"`
+	IMAGEN             string         `orm:"column(imagen);type(bytea);null" json:"imagen"`
 	CANTIDAD           int            `orm:"column(cantidad);type(integer)" json:"cantidad"`
 	PK_ID_SUBCATEGORIA *Subcategoria  `orm:"column(pk_id_subcategoria);rel(fk)" json:"subcategoriaId"`
 }

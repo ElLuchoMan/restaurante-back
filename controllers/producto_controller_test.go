@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/beego/beego/v2/server/web/context"
 	"restaurante/models"
+
+	"github.com/beego/beego/v2/server/web/context"
 )
 
 func int64Ptr(i int64) *int64 { return &i }
@@ -95,6 +96,7 @@ func TestProductoPostMissingNombre(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
+	ctx.Input.RequestBody = body.Bytes()
 	c := ProductoController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})

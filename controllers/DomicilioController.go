@@ -191,7 +191,7 @@ SELECT p.pk_id_pedido AS pedido_id,
            'cantidad',      d.cantidad,
            'precio',        d.precio,
            'subtotal',      d.cantidad * d.precio
-       )),'[]'::jsonb)::text
+       )), '[]'::jsonb)::text
           FROM detalle_pedido d
           JOIN producto pr ON pr.pk_id_producto = d.pk_id_producto
          WHERE d.pk_id_pedido = p.pk_id_pedido) AS productos
@@ -301,14 +301,24 @@ func (c *DomicilioController) Post() {
 	if input.CreatedBy != nil {
 		domicilio.CreatedBy = input.CreatedBy
 	}
-	if input.Estado != "" {
-		if !isValidEstadoDomicilio(string(input.Estado)) {
+	// compat: aceptar "estado" o "estadoDomicilio"
+	est := string(input.Estado)
+	if est == "" {
+		// intentar leer desde payload crudo si vino como 'estado'
+		var raw map[string]interface{}
+		_ = json.Unmarshal(c.Ctx.Input.RequestBody, &raw)
+		if v, ok := raw["estado"].(string); ok {
+			est = v
+		}
+	}
+	if est != "" {
+		if !isValidEstadoDomicilio(est) {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Campo 'estadoDomicilio' inválido"}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Campo 'estado' inválido"}
 			c.ServeJSON()
 			return
 		}
-		domicilio.Estado = models.EstadoDomicilio(strings.ToUpper(string(input.Estado)))
+		domicilio.Estado = models.EstadoDomicilio(strings.ToUpper(est))
 	}
 	if input.TrabajadorID != nil {
 		domicilio.Trabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: *input.TrabajadorID}

@@ -327,16 +327,16 @@ func (c *ProductoController) Delete() {
 
 func validateProducto(producto *models.Producto) error {
 	if producto.NOMBRE == "" {
-		return fmt.Errorf("el campo 'NOMBRE' es obligatorio")
+		return fmt.Errorf("el campo 'nombre' es obligatorio")
 	}
 	if producto.PRECIO <= 0 {
-		return fmt.Errorf("el campo 'PRECIO' debe ser un número mayor a 0")
+		return fmt.Errorf("el campo 'precio' debe ser un número mayor a 0")
 	}
 	if producto.CALORIAS != nil && *producto.CALORIAS < 0 {
-		return fmt.Errorf("el campo 'CALORIAS' debe ser un número positivo")
+		return fmt.Errorf("el campo 'calorias' debe ser un número positivo")
 	}
 	if producto.ESTADO_PRODUCTO != models.EstadoProductoDisponible && producto.ESTADO_PRODUCTO != models.EstadoProductoNoDisponible {
-		return fmt.Errorf("el campo 'ESTADO_PRODUCTO' debe ser 'DISPONIBLE' o 'NO_DISPONIBLE'")
+		return fmt.Errorf("el campo 'estadoProducto' debe ser 'DISPONIBLE' o 'NO_DISPONIBLE'")
 	}
 	return nil
 }

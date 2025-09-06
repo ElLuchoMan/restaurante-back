@@ -3,12 +3,14 @@ package database
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
+
+	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 	_ "github.com/lib/pq"
-	"restaurante/models"
 )
 
 // registerDataBase allows tests to stub orm.RegisterDataBase.
@@ -28,13 +30,17 @@ func InitDB() error {
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
 	err := registerDataBase("default", "postgres", connStr)
-
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Conexión a la base de datos exitosa!")
 	fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
+
+	// Permitir desactivar el seed en unit tests para evitar depender del alias registrado
+	if os.Getenv("SKIP_DB_SEED") == "1" {
+		return nil
+	}
 
 	if err := seedMetodoPago(); err != nil {
 		fmt.Println("Error al poblar METODO_PAGO:", err)

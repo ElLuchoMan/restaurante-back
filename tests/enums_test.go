@@ -73,13 +73,13 @@ func TestEstadoEnums(t *testing.T) {
 	}
 
 	dias := map[string]models.DiaSemana{
-		"LUNES":     models.DiaLunes,
-		"MARTES":    models.DiaMartes,
-		"MIERCOLES": models.DiaMiercoles,
-		"JUEVES":    models.DiaJueves,
-		"VIERNES":   models.DiaViernes,
-		"SABADO":    models.DiaSabado,
-		"DOMINGO":   models.DiaDomingo,
+		"Lunes":     models.DiaLunes,
+		"Martes":    models.DiaMartes,
+		"Miercoles": models.DiaMiercoles,
+		"Jueves":    models.DiaJueves,
+		"Viernes":   models.DiaViernes,
+		"Sabado":    models.DiaSabado,
+		"Domingo":   models.DiaDomingo,
 	}
 	for expect, val := range dias {
 		if string(val) != expect {
