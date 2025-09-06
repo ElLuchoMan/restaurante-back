@@ -1,0 +1,144 @@
+package controllers
+
+import (
+	"encoding/json"
+	"net/http"
+	"restaurante/models"
+
+	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/server/web"
+)
+
+type SubcategoriaController struct { web.Controller }
+
+// @Title GetAll
+// @Summary Obtener todas las subcategorías
+// @Tags subcategorias
+// @Accept json
+// @Produce json
+// @Param categoria_id query int false "Filtrar por categoría"
+// @Success 200 {object} models.ApiResponse{data=[]models.Subcategoria}
+// @Failure 500 {object} models.ApiResponse
+// @Router /subcategorias [get]
+func (c *SubcategoriaController) GetAll() {
+	o := orm.NewOrm()
+	qs := o.QueryTable(new(models.Subcategoria))
+	if catID, err := c.GetInt64("categoria_id"); err == nil && catID > 0 { qs = qs.Filter("PK_ID_CATEGORIA", catID) }
+	var subs []models.Subcategoria
+	if _, err := qs.All(&subs); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener subcategorías", Cause: err.Error()}
+		c.ServeJSON(); return
+	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategorías obtenidas", Data: subs}
+	c.ServeJSON()
+}
+
+// @Title GetById
+// @Summary Obtener subcategoría por ID
+// @Tags subcategorias
+// @Accept json
+// @Produce json
+// @Param id query int true "ID de la subcategoría"
+// @Success 200 {object} models.ApiResponse{data=models.Subcategoria}
+// @Failure 404 {object} models.ApiResponse
+// @Router /subcategorias/search [get]
+func (c *SubcategoriaController) GetById() {
+	o := orm.NewOrm()
+	id, _ := c.GetInt64("id")
+	s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
+	if err := o.Read(&s); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
+		c.ServeJSON(); return
+	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría encontrada", Data: s}
+	c.ServeJSON()
+}
+
+// @Title Post
+// @Summary Crear subcategoría
+// @Tags subcategorias
+// @Accept json
+// @Produce json
+// @Param body body models.SubcategoriaCreateRequest true "Datos de subcategoría"
+// @Success 201 {object} models.ApiResponse{data=models.Subcategoria}
+// @Failure 400 {object} models.ApiResponse
+// @Failure 500 {object} models.ApiResponse
+// @Router /subcategorias [post]
+func (c *SubcategoriaController) Post() {
+	o := orm.NewOrm()
+	var in struct{ Nombre string `json:"nombre"`; CategoriaId int64 `json:"categoriaId"` }
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" || in.CategoriaId == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o campos requeridos faltantes"}
+		c.ServeJSON(); return
+	}
+	s := models.Subcategoria{NOMBRE: in.Nombre, PK_ID_CATEGORIA: &models.Categoria{PK_ID_CATEGORIA: in.CategoriaId}}
+	if _, err := o.Insert(&s); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear subcategoría", Cause: err.Error()}
+		c.ServeJSON(); return
+	}
+	c.Ctx.Output.SetStatus(http.StatusCreated)
+	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Subcategoría creada", Data: s}
+	c.ServeJSON()
+}
+
+// @Title Put
+// @Summary Actualizar subcategoría
+// @Tags subcategorias
+// @Accept json
+// @Produce json
+// @Param id query int true "ID de la subcategoría"
+// @Param body body models.SubcategoriaUpdateRequest true "Datos a actualizar"
+// @Success 200 {object} models.ApiResponse{data=models.Subcategoria}
+// @Failure 404 {object} models.ApiResponse
+// @Router /subcategorias [put]
+func (c *SubcategoriaController) Put() {
+	o := orm.NewOrm()
+	id, _ := c.GetInt64("id")
+	s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
+	if err := o.Read(&s); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
+		c.ServeJSON(); return
+	}
+	var in struct{ Nombre *string `json:"nombre"`; CategoriaId *int64 `json:"categoriaId"` }
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
+		c.ServeJSON(); return
+	}
+	cols := []string{}
+	if in.Nombre != nil { s.NOMBRE = *in.Nombre; cols = append(cols, "NOMBRE") }
+	if in.CategoriaId != nil { s.PK_ID_CATEGORIA = &models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}; cols = append(cols, "PK_ID_CATEGORIA") }
+	if _, err := o.Update(&s, cols...); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar subcategoría", Cause: err.Error()}
+		c.ServeJSON(); return
+	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría actualizada", Data: s}
+	c.ServeJSON()
+}
+
+// @Title Delete
+// @Summary Eliminar subcategoría
+// @Tags subcategorias
+// @Accept json
+// @Produce json
+// @Param id query int true "ID de la subcategoría"
+// @Success 200 {object} models.ApiResponse
+// @Failure 404 {object} models.ApiResponse
+// @Router /subcategorias [delete]
+func (c *SubcategoriaController) Delete() {
+	o := orm.NewOrm()
+	id, _ := c.GetInt64("id")
+	if _, err := o.Delete(&models.Subcategoria{PK_ID_SUBCATEGORIA: id}); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
+		c.ServeJSON(); return
+	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría eliminada"}
+	c.ServeJSON()
+}
