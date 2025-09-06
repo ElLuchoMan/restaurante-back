@@ -1,109 +1,137 @@
-# Restaurant Backend
+# Restaurante - Backend (Beego v2 + PostgreSQL)
 
-[![AutoGen with AI](https://img.shields.io/badge/AutoGen%20with%20AI-blue)](#)
+## Descripción
+API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, pagos, productos, reservas, nómina y más. Basada en Beego v2 con documentación Swagger.
 
-## Description
-Go-based REST API for managing restaurant operations such as customers, orders, payments, and scheduling.
-
-## Technologies
-- Go 1.25
-- Beego v2.3.8
-- PostgreSQL driver (`github.com/lib/pq`) v1.10.9
-- JWT (`github.com/dgrijalva/jwt-go`) v3.2.0
-- Swaggo (`github.com/swaggo/http-swagger`) v1.3.4 / `github.com/swaggo/swag` v1.16.6
-- goconvey v1.8.1 for testing
-
-## Project Structure
-```
-.
-├── conf/             # application configuration files
-├── controllers/      # HTTP controllers and tests
-├── database/         # database initialization and helpers
-├── docs/             # Swagger specifications
-├── models/           # data models
-├── routers/          # route definitions
-├── static/           # static assets
-├── tests/            # integration tests and utilities
-├── views/            # HTML templates
-└── main.go           # application entry point
-```
-
-## Installation
-1. Ensure Go 1.25 is installed.
-2. Clone the repository and enter its directory.
-3. Download dependencies:
-   ```sh
-   go mod download
-   ```
-4. Configuration files reside in `conf/` (`app.conf`, `app.test.conf`).
-
-## Development
-- Start the development server with live reload and Swagger generation:
-  ```sh
+## Inicio rápido
+- Levantar en desarrollo (con Swagger auto-generado):
+  ```powershell
   bee run -downdoc=true -gendoc=true
   ```
-- Alternatively, run the app directly:
-  ```sh
-  go run main.go
+- Ejecutar pruebas con cobertura (genera coverage.out y coverage.html):
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
   ```
 
-## Enumerated Types and Payroll
-- **States** are modeled with enums under `models/enums.go`:
-  - `EstadoReserva`: `PENDIENTE`, `CONFIRMADA`, `CANCELADA`, `CUMPLIDA`.
-  - `EstadoNomina`: `PAGO`, `NO_PAGO`.
-  - Additional enums exist for domicilios, pagos, pedidos, productos y días de la semana.
+## Tecnologías
+- Go 1.25
+- Beego v2.3.8
+- PostgreSQL (`github.com/lib/pq`) v1.10.9
+- JWT (`github.com/dgrijalva/jwt-go`) v3.2.0
+- Swagger UI (`github.com/swaggo/http-swagger`) v1.3.4 / Generador (`github.com/swaggo/swag`) v1.16.6
+- Goconvey v1.8.1 para pruebas
 
-- **Price history** for products is stored in the `precio_producto_hist` table. A new entry is
-  created when a product is registered or its price changes, storing the effective date of the
-  change.
-- `POST /producto_pedido` and `PUT /producto_pedido` no longer accept `precio` in the payload; the database trigger assigns it automatically.
-- **Payroll (nómina)** operations:
-- `POST /nominas` accepts optional `generar_nomina_automatica` and
-  `verificar_nomina` flags to auto-generate payments (passing the payroll
-  date as `p_fecha`) and verify payroll records without requiring an ID.
-- `PUT /nominas?id=...` transitions a payroll to `PAGO`.
-- `DELETE /nominas?id=...` performs a logical deletion setting the state to `NO_PAGO`.
-
-## Database Tables
-The schema is prebuilt and maintained outside this repository; no migration files are tracked here.
-- **nomina**: stores payroll records including amount, state, and audit timestamps.
-- **reserva**: manages restaurant reservations with date, time, party size, and status.
-- **precio_producto_hist**: tracks product price changes over time with an effective date for each entry.
-- **cambios_horario**: logs schedule adjustments such as opening/closing hours and whether the restaurant opens.
-- **domicilio**: la columna `entregado` es generada automáticamente por la base de datos y no debe incluirse en las solicitudes de creación o actualización.
-- **pedido**: la base de datos valida que `delivery` sea `false` o que `pk_id_domicilio` tenga un valor.
-
-## Testing
-```sh
-go test ./...
+## Estructura del proyecto
+```
+.
+├── conf/             # Configuraciones de la app (app.conf, app.test.conf)
+├── controllers/      # Controladores HTTP y tests
+├── database/         # Inicialización y utilidades de base de datos
+├── docs/             # Definiciones Swagger (generadas)
+├── models/           # Modelos de dominio
+├── routers/          # Rutas y namespaces
+├── static/           # Activos estáticos
+├── tests/            # Pruebas y utilidades (unitarias/integración)
+├── views/            # Plantillas HTML
+└── main.go           # Punto de entrada
 ```
 
-## Testing with coverage file
-```sh
+## Requisitos
+- Go 1.25+
+- PostgreSQL disponible (local o remoto)
+- Opcional: Bee CLI para hot-reload/documentación (`bee`)
+
+## Configuración
+- Los archivos de configuración están en `conf/`.
+- Por defecto se usa `conf/app.conf`. Para pruebas se usa `conf/app.test.conf` (ver `tests/setup_test.go`).
+- Puedes sobrescribir la ruta del archivo con la variable de entorno `BEEGO_APP_CONFIG_FILE`.
+- Variables relevantes en tiempo de ejecución:
+  - `SKIP_CRON=1`: desactiva el cron de nómina automática.
+  - `CRON_ONE_SHOT=1`: ejecuta una sola iteración del cron (para pruebas).
+  - `SKIP_WEB_RUN=1`: evita levantar el servidor web (útil en tests unitarios).
+
+## Ejecución local
+- Con Bee (opcional):
+  ```powershell
+  bee run -downdoc=true -gendoc=true
+  ```
+- Directo con Go:
+  ```powershell
+  go run main.go
+  ```
+- Swagger UI estará disponible en `/swagger/` con base path `/restaurante/v1`.
+
+## Pruebas
+- Unitarias (por defecto no tocan DB real):
+  ```powershell
+  go test ./...
+  ```
+- Integración (requiere DB y `conf/app.test.conf`):
+  ```powershell
+  $env:INTEGRATION = "1"; go test ./...; Remove-Item Env:\INTEGRATION
+  ```
+
+### Cobertura (recomendada)
+Usa el script de `tools/cover.ps1` para ejecutar todas las pruebas con `-covermode=atomic`, combinar perfiles por paquete si hace falta y generar `coverage.out` + `coverage.html`:
+```powershell
 powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
 ```
 
-## Production
-1. Build the binary:
-   ```sh
-   go build -o restaurante-back
-   ```
-2. Run the server:
-   ```sh
-   ./restaurante-back
-   ```
+## Formato y Lint
+- Formatea con gofmt:
+  ```powershell
+  gofmt -s -w .
+  ```
+- Lint (si usas golangci-lint):
+  ```powershell
+  golangci-lint run
+  ```
+- Recomendado: configurar pre-commit para ejecutar gofmt y golangci-lint antes de hacer commit.
 
-## How to make a PR
-1. Fork the repository and create a feature branch.
-2. Commit your changes and push the branch.
-3. Open a pull request via [GitHub](https://github.com/ElLuchoMan/restaurante-back/pulls) in **Draft** state.
-4. Address feedback, then mark the PR as **Ready for Review**.
+## Swagger
+- La documentación se sirve en `/swagger/` cuando la app está corriendo.
+- Para regenerar los archivos en `docs/` (si cambias los comentarios Swagger):
+  ```powershell
+  go install github.com/swaggo/swag/cmd/swag@latest
+  swag init -g main.go -o docs
+  ```
 
-## API Documentation
-- Open `docs/swagger.yaml` or serve the project and navigate to `/swagger/` for Swagger UI.
+## Autenticación y rutas
+- Autenticación vía Bearer Token en cabecera `Authorization` (ver `@securityDefinitions.apikey BearerAuth`).
+- Base path: `/restaurante/v1`.
+- Rutas destacadas (ver `routers/router.go` para el detalle):
+  - Público: `POST /clientes` (registro), `POST /login`, `GET/POST/PUT/DELETE /productos`, `GET/POST/PUT/DELETE /reservas`.
+  - Protegido (requiere token): clientes (GET/PUT/DELETE), pedidos, domicilios, trabajadores, horario_trabajador, métodos de pago, pagos, nóminas, incidencias, nomina_trabajador, producto_pedido.
 
-## Additional Documentation
-See the [`docs/` directory](docs/) for extended documentation.
+## Notas de dominio
+- Enums en `models/enums.go` (reservas, nómina, domicilios, pagos, pedidos, productos, días de semana).
+- Historial de precios: tabla `precio_producto_hist`. Se crea registro al crear producto o cambiar precio con fecha de vigencia.
+- `POST/PUT /producto_pedido`: ya no se envía `precio`; la base de datos lo asigna vía trigger.
+- Nómina:
+  - `POST /nominas` acepta `generar_nomina_automatica` y `verificar_nomina` (usa `p_fecha`).
+  - `PUT /nominas?id=...` cambia estado a `PAGO`.
+  - `DELETE /nominas?id=...` realiza borrado lógico (`NO_PAGO`).
+- Validaciones a nivel de BD:
+  - `domicilio.entregado` es generado automáticamente (no incluir en payloads).
+  - En `pedido`: `delivery=false` o `pk_id_domicilio` debe tener valor.
+- Esquema de BD mantenido fuera del repo (no hay migraciones aquí).
 
-## License
+## Despliegue
+Compilación y ejecución:
+```powershell
+go build -o restaurante-back
+./restaurante-back
+```
+En Windows el binario será `restaurante-back.exe`.
+
+## Cómo contribuir (PRs)
+1. Crea una rama a partir de `develop`.
+2. Haz commits pequeños y descriptivos en español (modo imperativo).
+3. Abre un Pull Request como Draft en GitHub y referencia issues con `#id`.
+4. Asegura pasar gofmt, lint y pruebas. Luego marca como Ready for Review.
+
+## Documentación adicional
+Consulta el directorio `docs/` y la UI en `/swagger/`.
+
+## Licencia
 © 2025 ElLuchoMan
