@@ -15,6 +15,14 @@ type NominaController struct {
 	web.Controller
 }
 
+// puntos de inyección
+var (
+	ormNewNomina       = orm.NewOrm
+	queryAllNominas    = func(o orm.Ormer, out *[]models.Nomina) (int64, error) { return o.QueryTable(new(models.Nomina)).All(out) }
+	readNominaFn       = func(o orm.Ormer, n *models.Nomina) error { return o.Read(n) }
+	updateNominaFn     = func(o orm.Ormer, n *models.Nomina, cols ...string) (int64, error) { return o.Update(n, cols...) }
+)
+
 // Estados permitidos para la nómina
 var estadosNominaPermitidos = map[models.EstadoNomina]bool{
 	models.EstadoNominaPago:   true,
@@ -35,10 +43,10 @@ var estadosNominaPermitidos = map[models.EstadoNomina]bool{
 // @Security BearerAuth
 // @Router /nominas [get]
 func (c *NominaController) GetAll() {
-	o := orm.NewOrm()
+	o := ormNewNomina()
 	var nominas []models.Nomina
 
-	_, err := o.QueryTable(new(models.Nomina)).All(&nominas)
+	_, err := queryAllNominas(o, &nominas)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -100,7 +108,7 @@ func (c *NominaController) GetAll() {
 // @Security BearerAuth
 // @Router /nominas [post]
 func (c *NominaController) Post() {
-	o := orm.NewOrm()
+	o := ormNewNomina()
 	var input models.Nomina
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
@@ -172,7 +180,7 @@ func (c *NominaController) Post() {
 // @Security BearerAuth
 // @Router /nominas [put]
 func (c *NominaController) Put() {
-	o := orm.NewOrm()
+	o := ormNewNomina()
 
 	// Obtener el ID
 	idStr := c.GetString("id")
@@ -190,7 +198,7 @@ func (c *NominaController) Put() {
 
 	// Buscar la nómina
 	nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
-	if err := o.Read(&nomina); err == orm.ErrNoRows {
+	if err := readNominaFn(o, &nomina); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -213,7 +221,7 @@ func (c *NominaController) Put() {
 	nomina.ESTADO_NOMINA = models.EstadoNominaPago
 
 	// Guardar los cambios
-	if _, err := o.Update(&nomina, "ESTADO_NOMINA"); err != nil {
+	if _, err := updateNominaFn(o, &nomina, "ESTADO_NOMINA"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -246,7 +254,7 @@ func (c *NominaController) Put() {
 // @Security BearerAuth
 // @Router /nominas [delete]
 func (c *NominaController) Delete() {
-	o := orm.NewOrm()
+	o := ormNewNomina()
 
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
@@ -262,7 +270,7 @@ func (c *NominaController) Delete() {
 	}
 
 	nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
-	if err := o.Read(&nomina); err != nil {
+	if err := readNominaFn(o, &nomina); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -273,7 +281,7 @@ func (c *NominaController) Delete() {
 	}
 
 	nomina.ESTADO_NOMINA = models.EstadoNominaNoPago
-	if _, err := o.Update(&nomina, "ESTADO_NOMINA"); err != nil {
+	if _, err := updateNominaFn(o, &nomina, "ESTADO_NOMINA"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

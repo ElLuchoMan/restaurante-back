@@ -18,6 +18,22 @@ type ProductoController struct {
 	web.Controller
 }
 
+// puntos de inyección para tests
+var (
+	ormNewProducto      = orm.NewOrm
+	queryProductosAll   = func(o orm.Ormer, onlyActive bool, productos *[]models.Producto) (int64, error) {
+		qs := o.QueryTable(new(models.Producto))
+		if onlyActive {
+			qs = qs.Filter("ESTADO_PRODUCTO", models.EstadoProductoDisponible)
+		}
+		return qs.All(productos)
+	}
+	readProductoFn      = func(o orm.Ormer, p *models.Producto) error { return o.Read(p) }
+	insertProductoFn    = func(o orm.Ormer, p *models.Producto) (int64, error) { return o.Insert(p) }
+	insertPrecioHistFn  = func(o orm.Ormer, h *models.PrecioProductoHist) (int64, error) { return o.Insert(h) }
+	updateProductoFn    = func(o orm.Ormer, p *models.Producto, cols ...string) (int64, error) { return o.Update(p, cols...) }
+)
+
 // @Title GetAll
 // @Summary Obtener productos con filtros
 // @Description Devuelve productos registrados con filtros opcionales para imágenes y disponibilidad.
@@ -30,21 +46,15 @@ type ProductoController struct {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [get]
 func (c *ProductoController) GetAll() {
-	o := orm.NewOrm()
+	o := ormNewProducto()
 	var productos []models.Producto
 
 	// Obtener valores de los parámetros
 	includeImage, _ := c.GetBool("includeImage", false)
 	onlyActive, _ := c.GetBool("onlyActive", false)
 
-	// Construir la consulta con filtros
-	query := o.QueryTable(new(models.Producto))
-	if onlyActive {
-		query = query.Filter("ESTADO_PRODUCTO", models.EstadoProductoDisponible)
-	}
-
-	// Ejecutar la consulta
-	_, err := query.All(&productos)
+	// Ejecutar la consulta con filtros
+	_, err := queryProductosAll(o, onlyActive, &productos)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -83,7 +93,7 @@ func (c *ProductoController) GetAll() {
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos/search [get]
 func (c *ProductoController) GetById() {
-	o := orm.NewOrm()
+	o := ormNewProducto()
 	id, err := c.GetInt("id")
 
 	if err != nil || id == 0 {
@@ -128,7 +138,7 @@ func (c *ProductoController) GetById() {
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /productos [post]
 func (c *ProductoController) Post() {
-	o := orm.NewOrm()
+	o := ormNewProducto()
 	var producto models.Producto
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &producto); err != nil {
@@ -147,7 +157,7 @@ func (c *ProductoController) Post() {
 		return
 	}
 
-	if _, err := o.Insert(&producto); err != nil {
+	if _, err := insertProductoFn(o, &producto); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear el producto", Cause: err.Error()}
 		c.ServeJSON()
@@ -155,7 +165,7 @@ func (c *ProductoController) Post() {
 	}
 
 	hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
-	if _, err := o.Insert(&hist); err != nil {
+	if _, err := insertPrecioHistFn(o, &hist); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
 		c.ServeJSON()
@@ -179,7 +189,7 @@ func (c *ProductoController) Post() {
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos [put]
 func (c *ProductoController) Put() {
-	o := orm.NewOrm()
+	o := ormNewProducto()
 
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
@@ -192,7 +202,7 @@ func (c *ProductoController) Put() {
 
 	producto := models.Producto{PK_ID_PRODUCTO: int64(id)}
 
-	if o.Read(&producto) == nil {
+	if readProductoFn(o, &producto) == nil {
 		original := producto
 
 		var input models.Producto
@@ -228,7 +238,7 @@ func (c *ProductoController) Put() {
 			return
 		}
 
-		if _, err = o.Update(&producto); err != nil {
+		if _, err = updateProductoFn(o, &producto); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el producto.", Cause: err.Error()}
 			c.ServeJSON()
@@ -237,7 +247,7 @@ func (c *ProductoController) Put() {
 
 		if producto.PRECIO != original.PRECIO {
 			hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
-			if _, err := o.Insert(&hist); err != nil {
+			if _, err := insertPrecioHistFn(o, &hist); err != nil {
 				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
 				c.ServeJSON()
@@ -268,7 +278,7 @@ func (c *ProductoController) Put() {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [delete]
 func (c *ProductoController) Delete() {
-	o := orm.NewOrm()
+	o := ormNewProducto()
 
 	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
@@ -306,7 +316,7 @@ func (c *ProductoController) Delete() {
 	}
 	// Cambiar el estado del producto a "NO_DISPONIBLE" para el borrado lógico
 	producto.ESTADO_PRODUCTO = models.EstadoProductoNoDisponible
-	if _, err := o.Update(producto, "ESTADO_PRODUCTO"); err != nil {
+	if _, err := updateProductoFn(o, producto, "ESTADO_PRODUCTO"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -343,7 +353,7 @@ func validateProducto(producto *models.Producto) error {
 
 func getProductoByID(id int64, o orm.Ormer) (*models.Producto, error) {
 	producto := &models.Producto{PK_ID_PRODUCTO: id}
-	if err := o.Read(producto); err != nil {
+	if err := readProductoFn(o, producto); err != nil {
 		if err == orm.ErrNoRows {
 			return nil, fmt.Errorf("producto no encontrado")
 		}

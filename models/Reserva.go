@@ -12,8 +12,8 @@ type Reserva struct {
 	FECHA             time.Time        `orm:"column(fecha);type(date)" json:"fechaReserva"`
 	HORA              time.Time        `orm:"column(hora);type(time);size(8)" json:"horaReserva"`
 	PERSONAS          int              `orm:"column(personas)" json:"personas"`
-	PK_ID_CONTACTO    *ReservaContacto `orm:"column(pk_id_contacto);rel(fk)" json:"contactoId"`
-	PK_ID_RESTAURANTE *Restaurante     `orm:"column(pk_id_restaurante);rel(fk)" json:"restauranteId"`
+	PK_ID_CONTACTO    *ReservaContacto `orm:"column(pk_id_contacto);rel(fk)" json:"contactoId" swaggertype:"integer"`
+	PK_ID_RESTAURANTE *Restaurante     `orm:"column(pk_id_restaurante);rel(fk)" json:"restauranteId" swaggertype:"integer"`
 	ESTADO_RESERVA    *EstadoReserva   `orm:"column(estado_reserva);type(estado_reserva);null" json:"estadoReserva,omitempty"`
 	INDICACIONES      *string          `orm:"column(indicaciones);null" json:"indicaciones,omitempty"`
 	CREATED_AT        time.Time        `orm:"column(created_at);type(timestamptz);auto_now_add" json:"createdAt"`

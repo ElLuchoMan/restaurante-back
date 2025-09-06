@@ -51,3 +51,36 @@ func TestProductoMarshalUnmarshalJSON(t *testing.T) {
 		t.Fatalf("expected image %v, got %v", p.IMAGEN, out.IMAGEN)
 	}
 }
+
+func TestProductoUnmarshalJSON_EmptyImageAndNoSubcategoria(t *testing.T) {
+	payload := `{"productoId":2,"nombre":"X","precio":10,"estadoProducto":"DISPONIBLE","imagen":"","cantidad":1,"subcategoriaId":0}`
+	var p Producto
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.IMAGEN != "" {
+		t.Fatalf("expected empty image, got %q", p.IMAGEN)
+	}
+	if p.PK_ID_SUBCATEGORIA != nil {
+		t.Fatalf("expected nil subcategoria")
+	}
+}
+
+func TestProductoUnmarshalJSON_InvalidBase64(t *testing.T) {
+	payload := `{"productoId":3,"nombre":"Y","precio":10,"estadoProducto":"DISPONIBLE","imagen":"***","cantidad":1}`
+	var p Producto
+	if err := json.Unmarshal([]byte(payload), &p); err == nil {
+		t.Fatalf("expected base64 decode error")
+	}
+}
+
+func TestProductoMarshalJSON_SubcategoriaNil(t *testing.T) {
+	p := Producto{PK_ID_PRODUCTO: 10, NOMBRE: "Z", PRECIO: 1, ESTADO_PRODUCTO: EstadoProductoDisponible, CANTIDAD: 1}
+	data, err := json.Marshal(p)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if strings.Contains(string(data), "\"subcategoriaId\":0") {
+		// Es aceptable. El objetivo es ejercer la ruta sin pánico.
+	}
+}

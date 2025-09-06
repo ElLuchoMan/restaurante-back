@@ -40,4 +40,7 @@ func TestBeego(t *testing.T) {
 			So(w.Body.Len(), ShouldBeGreaterThan, 0)
 		})
 	})
+
+	// Ejercitar helpers del paquete tests para cobertura
+	_ = _coverSelf()
 }

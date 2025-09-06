@@ -3466,22 +3466,10 @@
                     "200": {
                         "description": "Lista de reservas",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.Reserva"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
                         }
                     },
                     "500": {
@@ -3526,19 +3514,7 @@
                     "200": {
                         "description": "Reserva actualizada",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Reserva"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.Reserva"
                         }
                     },
                     "404": {
@@ -3576,19 +3552,7 @@
                     "201": {
                         "description": "Reserva creada",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Reserva"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.Reserva"
                         }
                     },
                     "400": {
@@ -3667,22 +3631,10 @@
                     "200": {
                         "description": "Lista de reservas encontradas",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.Reserva"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
                         }
                     },
                     "400": {
@@ -3726,19 +3678,7 @@
                     "200": {
                         "description": "Reserva encontrada",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Reserva"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.Reserva"
                         }
                     },
                     "404": {
@@ -4306,17 +4246,6 @@
                 }
             }
         },
-        "models.Categoria": {
-            "type": "object",
-            "properties": {
-                "categoriaId": {
-                    "type": "integer"
-                },
-                "nombre": {
-                    "type": "string"
-                }
-            }
-        },
         "models.Cliente": {
             "type": "object",
             "properties": {
@@ -4398,7 +4327,7 @@
                     "type": "string"
                 },
                 "trabajadorAsignado": {
-                    "$ref": "#/definitions/models.Trabajador"
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4517,7 +4446,7 @@
                     "$ref": "#/definitions/models.DiaSemana"
                 },
                 "documentoTrabajador": {
-                    "$ref": "#/definitions/models.Trabajador"
+                    "type": "integer"
                 },
                 "horaFin": {
                     "type": "string"
@@ -4534,7 +4463,7 @@
             "type": "object",
             "properties": {
                 "documentoTrabajador": {
-                    "$ref": "#/definitions/models.Trabajador"
+                    "type": "integer"
                 },
                 "fechaIncidencia": {
                     "type": "string"
@@ -4602,13 +4531,13 @@
                     "type": "string"
                 },
                 "documentoTrabajador": {
-                    "$ref": "#/definitions/models.Trabajador"
+                    "type": "integer"
                 },
                 "montoIncidencias": {
                     "type": "integer"
                 },
                 "nominaId": {
-                    "$ref": "#/definitions/models.Nomina"
+                    "type": "integer"
                 },
                 "nominaTrabajadorId": {
                     "type": "integer"
@@ -4665,7 +4594,7 @@
                     "type": "string"
                 },
                 "metodoPagoId": {
-                    "$ref": "#/definitions/models.MetodoPago"
+                    "type": "integer"
                 },
                 "monto": {
                     "type": "integer"
@@ -4688,10 +4617,10 @@
                     "type": "boolean"
                 },
                 "documentoCliente": {
-                    "$ref": "#/definitions/models.Cliente"
+                    "type": "integer"
                 },
                 "domicilioId": {
-                    "$ref": "#/definitions/models.Domicilio"
+                    "type": "integer"
                 },
                 "estadoPedido": {
                     "$ref": "#/definitions/models.EstadoPedido"
@@ -4703,13 +4632,13 @@
                     "type": "string"
                 },
                 "pagoId": {
-                    "$ref": "#/definitions/models.Pago"
+                    "type": "integer"
                 },
                 "pedidoId": {
                     "type": "integer"
                 },
                 "restauranteId": {
-                    "$ref": "#/definitions/models.Restaurante"
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4785,7 +4714,7 @@
                     "type": "integer"
                 },
                 "subcategoriaId": {
-                    "$ref": "#/definitions/models.Subcategoria"
+                    "type": "integer"
                 }
             }
         },
@@ -4793,7 +4722,7 @@
             "type": "object",
             "properties": {
                 "contactoId": {
-                    "$ref": "#/definitions/models.ReservaContacto"
+                    "type": "integer"
                 },
                 "createdAt": {
                     "type": "string"
@@ -4820,7 +4749,7 @@
                     "type": "integer"
                 },
                 "restauranteId": {
-                    "$ref": "#/definitions/models.Restaurante"
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4830,31 +4759,11 @@
                 }
             }
         },
-        "models.ReservaContacto": {
-            "type": "object",
-            "properties": {
-                "contactoId": {
-                    "type": "integer"
-                },
-                "documentoCliente": {
-                    "$ref": "#/definitions/models.Cliente"
-                },
-                "documentoContacto": {
-                    "type": "integer"
-                },
-                "nombreCompleto": {
-                    "type": "string"
-                },
-                "telefono": {
-                    "type": "string"
-                }
-            }
-        },
         "models.Restaurante": {
             "type": "object",
             "properties": {
                 "cambioHorarioId": {
-                    "$ref": "#/definitions/models.CambiosHorario"
+                    "type": "integer"
                 },
                 "horaApertura": {
                     "type": "string"
@@ -4883,20 +4792,6 @@
                 "RolDomiciliario",
                 "RolOficiosVarios"
             ]
-        },
-        "models.Subcategoria": {
-            "type": "object",
-            "properties": {
-                "categoriaId": {
-                    "$ref": "#/definitions/models.Categoria"
-                },
-                "nombre": {
-                    "type": "string"
-                },
-                "subcategoriaId": {
-                    "type": "integer"
-                }
-            }
         },
         "models.Trabajador": {
             "type": "object",
@@ -4932,7 +4827,7 @@
                     "type": "string"
                 },
                 "restauranteId": {
-                    "$ref": "#/definitions/models.Restaurante"
+                    "type": "integer"
                 },
                 "rol": {
                     "$ref": "#/definitions/models.RolTrabajador"

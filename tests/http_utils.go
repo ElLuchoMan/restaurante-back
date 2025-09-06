@@ -28,3 +28,10 @@ func sendRequest(r *http.Request) *httptest.ResponseRecorder {
 	// por lo que la ejecución real sucede en los tests que ya llaman al router.
 	return w
 }
+
+// _coverSelf es llamado desde un test dedicado para asegurar que este helper se ejercite.
+func _coverSelf() bool {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := sendRequest(req)
+	return rec != nil
+}

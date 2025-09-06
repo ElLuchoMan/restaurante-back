@@ -31,3 +31,22 @@ func TestNominaTableName(t *testing.T) {
 		t.Errorf("expected table name nomina, got %s", n.TableName())
 	}
 }
+
+func TestNominaUnmarshalJSON_OK(t *testing.T) {
+	var n Nomina
+	payload := []byte(`{"fechaNomina":"2024-08-15"}`)
+	if err := json.Unmarshal(payload, &n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n.FECHA.IsZero() {
+		t.Fatalf("expected FECHA to be set")
+	}
+}
+
+func TestNominaUnmarshalJSON_Error(t *testing.T) {
+	var n Nomina
+	payload := []byte(`{"fechaNomina":"invalid"}`)
+	if err := json.Unmarshal(payload, &n); err == nil {
+		t.Fatalf("expected error for invalid date format")
+	}
+}

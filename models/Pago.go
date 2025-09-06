@@ -13,7 +13,7 @@ type Pago struct {
 	HORA              time.Time   `orm:"column(hora);type(time)" json:"horaPago"`
 	MONTO             int64       `orm:"column(monto)" json:"monto"`
 	ESTADO_PAGO       EstadoPago  `orm:"column(estado_pago);type(estado_pago)" json:"estadoPago"`
-	PK_ID_METODO_PAGO *MetodoPago `orm:"column(pk_id_metodo_pago);rel(fk)" json:"metodoPagoId"`
+	PK_ID_METODO_PAGO *MetodoPago `orm:"column(pk_id_metodo_pago);rel(fk)" json:"metodoPagoId" swaggertype:"integer"`
 	UPDATED_AT        time.Time   `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt"`
 	UPDATED_BY        *string     `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 }

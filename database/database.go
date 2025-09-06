@@ -19,6 +19,24 @@ var registerDataBase = orm.RegisterDataBase
 // loadLocation allows tests to stub time.LoadLocation.
 var loadLocation = time.LoadLocation
 
+// newOrmForSeed allows tests to stub orm.NewOrm when seeding.
+var newOrmForSeed = orm.NewOrm
+
+// Lightweight indirections to allow unit testing seed without a real DB.
+var (
+	queryTableFn = func(o orm.Ormer, model interface{}) orm.QuerySeter { return o.QueryTable(model) }
+	filterFn     = func(qs orm.QuerySeter, expr string, args ...interface{}) orm.QuerySeter { return qs.Filter(expr, args...) }
+	countFn      = func(qs orm.QuerySeter) (int64, error) { return qs.Count() }
+	insertFn     = func(o orm.Ormer, model interface{}) (int64, error) { return o.Insert(model) }
+)
+
+// countMetodoPagoByTipo encapsula la consulta usada por el seed para poder ser stubbeada en tests.
+var countMetodoPagoByTipo = func(o orm.Ormer, tipo string) (int64, error) {
+	qs := queryTableFn(o, new(models.MetodoPago))
+	qs = filterFn(qs, "TIPO", tipo)
+	return countFn(qs)
+}
+
 func InitDB() error {
 	quiet := os.Getenv("QUIET_TESTS") == "1"
 
@@ -71,7 +89,7 @@ func InitTimezone() {
 }
 
 func seedMetodoPago() error {
-	o := orm.NewOrm()
+	o := newOrmForSeed()
 
 	defaults := []models.MetodoPago{
 		{TIPO: "Efectivo"},
@@ -79,12 +97,12 @@ func seedMetodoPago() error {
 	}
 
 	for _, m := range defaults {
-		cnt, err := o.QueryTable(new(models.MetodoPago)).Filter("TIPO", m.TIPO).Count()
+		cnt, err := countMetodoPagoByTipo(o, m.TIPO)
 		if err != nil {
 			return err
 		}
 		if cnt == 0 {
-			if _, err := o.Insert(&m); err != nil {
+			if _, err := insertFn(o, &m); err != nil {
 				return err
 			}
 		}

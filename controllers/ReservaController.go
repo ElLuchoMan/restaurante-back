@@ -56,7 +56,7 @@ var queryReservasByParam = func(o orm.Ormer, contactoID int64, fecha time.Time, 
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Success 200 {object} models.ApiResponse{data=[]models.Reserva} "Lista de reservas"
+// @Success 200 {array} models.Reserva "Lista de reservas"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas [get]
 func (c *ReservaController) GetAll() {
@@ -99,7 +99,7 @@ func (c *ReservaController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID de la Reserva"
-// @Success 200 {object} models.ApiResponse{data=models.Reserva} "Reserva encontrada"
+// @Success 200 {object} models.Reserva "Reserva encontrada"
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas/search [get]
 func (c *ReservaController) GetById() {
@@ -151,7 +151,7 @@ func (c *ReservaController) GetById() {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.Reserva true  "Datos de la reserva a crear"
-// @Success 201 {object} models.ApiResponse{data=models.Reserva} "Reserva creada"
+// @Success 201 {object} models.Reserva "Reserva creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /reservas [post]
 func (c *ReservaController) Post() {
@@ -341,7 +341,7 @@ func (c *ReservaController) Post() {
 // @Produce json
 // @Param   id    query    int  true   "ID de la Reserva"
 // @Param   body  body   models.Reserva true  "Datos de la reserva a actualizar"
-// @Success 200 {object} models.ApiResponse{data=models.Reserva} "Reserva actualizada"
+// @Success 200 {object} models.Reserva "Reserva actualizada"
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
 // @Router /reservas [put]
 func (c *ReservaController) Put() {
@@ -512,7 +512,7 @@ func (c *ReservaController) Put() {
 // @Produce json
 // @Param contactoId query int false "ID del Contacto (Opcional)"
 // @Param fecha query string false "Fecha de la reserva (YYYY-MM-DD) (Opcional)"
-// @Success 200 {object} models.ApiResponse{data=[]models.Reserva} "Lista de reservas encontradas"
+// @Success 200 {array} models.Reserva "Lista de reservas encontradas"
 // @Failure 400 {object} models.ApiResponse "Error en los parámetros"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas/parameter [get]
@@ -614,7 +614,7 @@ func (c *ReservaController) Delete() {
 	reserva.UPDATED_AT = time.Now() // Actualizar la fecha de modificación
 
 	// Guardar los cambios en la base de datos
-	if _, err := updateReserva(o, &reserva, "ESTADO_RESERVA", "UPDATED_AT"); err != nil {
+	if _, err := updateReserva(o, &reserva, "estadoReserva", "updatedAt"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

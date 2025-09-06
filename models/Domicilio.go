@@ -30,7 +30,7 @@ type Domicilio struct {
     UpdatedAt   time.Time       `orm:"column(updated_at);type(timestamptz);auto_now;null" json:"updatedAt"`
     CreatedBy   *string         `orm:"column(created_by);type(text);null" json:"createdBy,omitempty"`
     UpdatedBy   *string         `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
-    Trabajador  *Trabajador     `orm:"column(pk_documento_trabajador);rel(fk);null" json:"trabajadorAsignado,omitempty"`
+    Trabajador  *Trabajador     `orm:"column(pk_documento_trabajador);rel(fk);null" json:"trabajadorAsignado,omitempty" swaggertype:"integer"`
 }
 
 func (d *Domicilio) TableName() string { return "domicilio" }

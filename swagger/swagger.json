@@ -77,10 +77,6 @@
             "title": "Producto}",
             "type": "object"
         },
-        "models.ApiResponse{data=[]models.Reserva}": {
-            "title": "Reserva}",
-            "type": "object"
-        },
         "models.ApiResponse{data=[]models.Restaurante}": {
             "title": "Restaurante}",
             "type": "object"
@@ -135,10 +131,6 @@
         },
         "models.ApiResponse{data=models.Producto}": {
             "title": "Producto}",
-            "type": "object"
-        },
-        "models.ApiResponse{data=models.Reserva}": {
-            "title": "Reserva}",
             "type": "object"
         },
         "models.ApiResponse{data=models.Restaurante}": {

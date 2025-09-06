@@ -3473,22 +3473,10 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de reservas",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.Reserva"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
                         }
                     },
                     "500": {
@@ -3533,19 +3521,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Reserva actualizada",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Reserva"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.Reserva"
                         }
                     },
                     "404": {
@@ -3583,19 +3559,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Reserva creada",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Reserva"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.Reserva"
                         }
                     },
                     "400": {
@@ -3674,22 +3638,10 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de reservas encontradas",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.Reserva"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
                         }
                     },
                     "400": {
@@ -3733,19 +3685,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Reserva encontrada",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Reserva"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/models.Reserva"
                         }
                     },
                     "404": {
@@ -4313,17 +4253,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Categoria": {
-            "type": "object",
-            "properties": {
-                "categoriaId": {
-                    "type": "integer"
-                },
-                "nombre": {
-                    "type": "string"
-                }
-            }
-        },
         "models.Cliente": {
             "type": "object",
             "properties": {
@@ -4405,7 +4334,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "trabajadorAsignado": {
-                    "$ref": "#/definitions/models.Trabajador"
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4524,7 +4453,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.DiaSemana"
                 },
                 "documentoTrabajador": {
-                    "$ref": "#/definitions/models.Trabajador"
+                    "type": "integer"
                 },
                 "horaFin": {
                     "type": "string"
@@ -4541,7 +4470,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "documentoTrabajador": {
-                    "$ref": "#/definitions/models.Trabajador"
+                    "type": "integer"
                 },
                 "fechaIncidencia": {
                     "type": "string"
@@ -4609,13 +4538,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "documentoTrabajador": {
-                    "$ref": "#/definitions/models.Trabajador"
+                    "type": "integer"
                 },
                 "montoIncidencias": {
                     "type": "integer"
                 },
                 "nominaId": {
-                    "$ref": "#/definitions/models.Nomina"
+                    "type": "integer"
                 },
                 "nominaTrabajadorId": {
                     "type": "integer"
@@ -4672,7 +4601,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "metodoPagoId": {
-                    "$ref": "#/definitions/models.MetodoPago"
+                    "type": "integer"
                 },
                 "monto": {
                     "type": "integer"
@@ -4695,10 +4624,10 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "documentoCliente": {
-                    "$ref": "#/definitions/models.Cliente"
+                    "type": "integer"
                 },
                 "domicilioId": {
-                    "$ref": "#/definitions/models.Domicilio"
+                    "type": "integer"
                 },
                 "estadoPedido": {
                     "$ref": "#/definitions/models.EstadoPedido"
@@ -4710,13 +4639,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "pagoId": {
-                    "$ref": "#/definitions/models.Pago"
+                    "type": "integer"
                 },
                 "pedidoId": {
                     "type": "integer"
                 },
                 "restauranteId": {
-                    "$ref": "#/definitions/models.Restaurante"
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4792,7 +4721,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "subcategoriaId": {
-                    "$ref": "#/definitions/models.Subcategoria"
+                    "type": "integer"
                 }
             }
         },
@@ -4800,7 +4729,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "contactoId": {
-                    "$ref": "#/definitions/models.ReservaContacto"
+                    "type": "integer"
                 },
                 "createdAt": {
                     "type": "string"
@@ -4827,7 +4756,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "restauranteId": {
-                    "$ref": "#/definitions/models.Restaurante"
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -4837,31 +4766,11 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ReservaContacto": {
-            "type": "object",
-            "properties": {
-                "contactoId": {
-                    "type": "integer"
-                },
-                "documentoCliente": {
-                    "$ref": "#/definitions/models.Cliente"
-                },
-                "documentoContacto": {
-                    "type": "integer"
-                },
-                "nombreCompleto": {
-                    "type": "string"
-                },
-                "telefono": {
-                    "type": "string"
-                }
-            }
-        },
         "models.Restaurante": {
             "type": "object",
             "properties": {
                 "cambioHorarioId": {
-                    "$ref": "#/definitions/models.CambiosHorario"
+                    "type": "integer"
                 },
                 "horaApertura": {
                     "type": "string"
@@ -4890,20 +4799,6 @@ const docTemplate = `{
                 "RolDomiciliario",
                 "RolOficiosVarios"
             ]
-        },
-        "models.Subcategoria": {
-            "type": "object",
-            "properties": {
-                "categoriaId": {
-                    "$ref": "#/definitions/models.Categoria"
-                },
-                "nombre": {
-                    "type": "string"
-                },
-                "subcategoriaId": {
-                    "type": "integer"
-                }
-            }
         },
         "models.Trabajador": {
             "type": "object",
@@ -4939,7 +4834,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "restauranteId": {
-                    "$ref": "#/definitions/models.Restaurante"
+                    "type": "integer"
                 },
                 "rol": {
                     "$ref": "#/definitions/models.RolTrabajador"

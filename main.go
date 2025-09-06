@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"restaurante/database"
 	_ "restaurante/docs"
 	"restaurante/models"
@@ -19,17 +21,35 @@ import (
 
 var dbReady bool
 
+// Funciones variables para testear init sin efectos secundarios complejos
+var (
+	initDBFunc       = database.InitDB
+	initTimezoneFunc = database.InitTimezone
+)
+
 func init() {
+	appInit()
+}
+
+func appInit() {
 	// Inicializar la base de datos y la zona horaria
-	if err := database.InitDB(); err != nil {
+	if err := initDBFunc(); err != nil {
 		log.Println("Error al conectar a la base de datos:", err)
 		dbReady = false
 	} else {
 		dbReady = true
 	}
-	database.InitTimezone()
+	initTimezoneFunc()
 	fmt.Println("Loaded timezone:", database.BogotaZone)
 }
+
+// Funciones variables para facilitar pruebas del cron
+var (
+	nowFn           = time.Now
+	sleepFn         = time.Sleep
+	cronInsertNom   = func(o orm.Ormer, n *models.Nomina) (int64, error) { return o.Insert(n) }
+	cronRawExec     = func(o orm.Ormer, query string, args ...interface{}) (sql.Result, error) { return o.Raw(query, args...).Exec() }
+)
 
 // Función para ejecutar la generación automática de nómina
 func generarNominaAutomatica() {
@@ -37,7 +57,7 @@ func generarNominaAutomatica() {
 
 	for {
 		// Ejecutar la función de nómina cada día a las 00:00
-		now := time.Now().In(database.BogotaZone)
+		now := nowFn().In(database.BogotaZone)
 		if now.Hour() == 0 && now.Minute() == 0 {
 			fmt.Println("Ejecutando generación automática de nómina...")
 
@@ -46,10 +66,10 @@ func generarNominaAutomatica() {
 				ESTADO_NOMINA: models.EstadoNominaNoPago,
 				MONTO:         0,
 			}
-			if _, err := o.Insert(&nomina); err != nil {
+			if _, err := cronInsertNom(o, &nomina); err != nil {
 				fmt.Println("Error al crear la nómina:", err)
 			} else {
-				if _, err := o.Raw("CALL generar_nomina_automatica(?, ?)", nomina.PK_ID_NOMINA, nomina.FECHA).Exec(); err != nil {
+				if _, err := cronRawExec(o, "CALL generar_nomina_automatica(?, ?)", nomina.PK_ID_NOMINA, nomina.FECHA); err != nil {
 					fmt.Println("Error al generar la nómina automática:", err)
 				} else {
 					fmt.Println("Nómina generada automáticamente con éxito.")
@@ -57,8 +77,13 @@ func generarNominaAutomatica() {
 			}
 		}
 
+		// Modo de una sola iteración para pruebas
+		if os.Getenv("CRON_ONE_SHOT") == "1" {
+			return
+		}
+
 		// Esperar 1 minuto antes de verificar de nuevo
-		time.Sleep(1 * time.Minute)
+		sleepFn(1 * time.Minute)
 	}
 }
 
@@ -96,11 +121,13 @@ func main() {
 	web.BConfig.WebConfig.DirectoryIndex = true
 	web.Handler("/swagger/*", httpSwagger.WrapHandler)
 
-	// Iniciar el cron job en un goroutine solo si la DB está disponible
-	if dbReady {
+	// Iniciar el cron job solo si la DB está disponible y no se ha pedido omitirlo
+	if dbReady && os.Getenv("SKIP_CRON") != "1" {
 		go generarNominaAutomatica()
 	}
 
-	// Iniciar el servidor
-	web.Run()
+	// Iniciar el servidor salvo que se pida omitir (para tests/unit)
+	if os.Getenv("SKIP_WEB_RUN") != "1" {
+		web.Run()
+	}
 }
