@@ -50,6 +50,23 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   - `CRON_ONE_SHOT=1`: ejecuta una sola iteración del cron (para pruebas).
   - `SKIP_WEB_RUN=1`: evita levantar el servidor web (útil en tests unitarios).
 
+## Variables de entorno (DB y ejecución)
+- Base de datos (equivalentes a `conf/app.conf` por defecto):
+  - `db_host` (default: `localhost`)
+  - `db_port` (default: `5432`)
+  - `db_user` (default: `postgres`)
+  - `db_pass` (default: `12346`)
+  - `db_name` (default: `restaurante_db`)
+- App/Tests:
+  - `BEEGO_APP_CONFIG_FILE`: ruta a `app.conf` alternativo.
+  - `INTEGRATION=1`: habilita pruebas de integración y el seed de datos de prueba.
+  - `SKIP_DB_SEED=1`: omite seed de datos (se fuerza a `1` en modo no integración).
+  - `SKIP_WEB_RUN=1`, `SKIP_CRON=1`, `CRON_ONE_SHOT=1`: ver arriba.
+
+## Enlaces rápidos
+- Script de cobertura: [`tools/cover.ps1`](tools/cover.ps1)
+- Definición de rutas: [`routers/router.go`](routers/router.go)
+
 ## Ejecución local
 - Con Bee (opcional):
   ```powershell
