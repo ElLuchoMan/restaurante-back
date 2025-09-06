@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"restaurante/models"
@@ -165,6 +166,19 @@ func ValidateToken(ctx *context.Context) {
 	if ctx.Input.Method() == "POST" && ctx.Input.URL() == "/restaurante/v1/clientes" {
 		fmt.Println("POST público /restaurante/v1/clientes: sin validación de token")
 		return
+	}
+
+	// 2b) En desarrollo, permitir solicitudes iniciadas desde Swagger UI sin token
+	if web.BConfig.RunMode == "dev" {
+		referer := ctx.Input.Header("Referer")
+		if strings.Contains(referer, "/swagger/") {
+			fmt.Println("Bypass de token por Swagger UI en modo dev")
+			return
+		}
+		// Por seguridad adicional, si se pidiera a rutas de swagger (estático)
+		if strings.HasPrefix(ctx.Input.URL(), "/swagger/") {
+			return
+		}
 	}
 
 	// 3) Resto de rutas: exigir token
