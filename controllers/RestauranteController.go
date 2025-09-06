@@ -20,7 +20,7 @@ type RestauranteController struct {
 // @Tags restaurantes
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Restaurante "Lista de restaurantes"
+// @Success 200 {object} models.ApiResponse{data=[]models.Restaurante} "Lista de restaurantes"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /restaurantes [get]
 func (c *RestauranteController) GetAll() {
@@ -54,7 +54,7 @@ func (c *RestauranteController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Restaurante"
-// @Success 200 {object} models.Restaurante "Restaurante encontrado"
+// @Success 200 {object} models.ApiResponse{data=models.Restaurante} "Restaurante encontrado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes/search [get]
 func (c *RestauranteController) GetById() {
@@ -102,7 +102,7 @@ func (c *RestauranteController) GetById() {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.Restaurante true  "Datos del restaurante a crear"
-// @Success 201 {object} models.Restaurante "Restaurante creado"
+// @Success 201 {object} models.ApiResponse{data=models.Restaurante} "Restaurante creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /restaurantes [post]
 func (c *RestauranteController) Post() {
@@ -150,7 +150,7 @@ func (c *RestauranteController) Post() {
 // @Produce json
 // @Param   id    query    int  true   "ID del Restaurante"
 // @Param   body  body   models.Restaurante true  "Datos del restaurante a actualizar"
-// @Success 200 {object} models.Restaurante "Restaurante actualizado"
+// @Success 200 {object} models.ApiResponse{data=models.Restaurante} "Restaurante actualizado"
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes [put]
 func (c *RestauranteController) Put() {

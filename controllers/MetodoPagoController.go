@@ -50,7 +50,7 @@ type MetodoPagoController struct {
 // @Tags metodos_pago
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.MetodoPago "Lista de métodos de pago"
+// @Success 200 {object} models.ApiResponse{data=[]models.MetodoPago} "Lista de métodos de pago"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /metodos_pago [get]
@@ -86,7 +86,7 @@ func (c *MetodoPagoController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Método de Pago"
-// @Success 200 {object} models.MetodoPago "Método de pago encontrado"
+// @Success 200 {object} models.ApiResponse{data=models.MetodoPago} "Método de pago encontrado"
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
 // @Security BearerAuth
 // @Router /metodos_pago/search [get]
@@ -135,7 +135,7 @@ func (c *MetodoPagoController) GetById() {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.MetodoPago true  "Datos del método de pago a crear"
-// @Success 201 {object} models.MetodoPago "Método de pago creado"
+// @Success 201 {object} models.ApiResponse{data=models.MetodoPago} "Método de pago creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /metodos_pago [post]
@@ -183,7 +183,7 @@ func (c *MetodoPagoController) Post() {
 // @Produce json
 // @Param   id    query    int  true   "ID del Método de Pago"
 // @Param   body  body   models.MetodoPago true  "Datos del método de pago a actualizar"
-// @Success 200 {object} models.MetodoPago "Método de pago actualizado"
+// @Success 200 {object} models.ApiResponse{data=models.MetodoPago} "Método de pago actualizado"
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
 // @Security BearerAuth
 // @Router /metodos_pago [put]

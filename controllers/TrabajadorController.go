@@ -50,7 +50,7 @@ func validateDates(fechaIngreso, fechaRetiro *time.Time) error {
 // @Param   rol              query   string   false   "Filtrar por rol del trabajador"
 // @Param   incluir_retirados query  bool     false   "Incluir trabajadores retirados (true/false)"
 // @Param   solo_retirados    query  bool     false   "Ver solo trabajadores retirados (true/false)"
-// @Success 200 {array} models.Trabajador "Lista de trabajadores"
+// @Success 200 {object} models.ApiResponse{data=[]models.Trabajador} "Lista de trabajadores"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /trabajadores [get]
@@ -141,7 +141,7 @@ func (c *TrabajadorController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Trabajador"
-// @Success 200 {object} models.Trabajador "Trabajador encontrado"
+// @Success 200 {object} models.ApiResponse{data=models.Trabajador} "Trabajador encontrado"
 // @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
 // @Security BearerAuth
 // @Router /trabajadores/search [get]
@@ -194,7 +194,7 @@ func (c *TrabajadorController) GetById() {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.Trabajador true  "Datos del trabajador a crear"
-// @Success 201 {object} models.Trabajador "Trabajador creado"
+// @Success 201 {object} models.ApiResponse{data=models.Trabajador} "Trabajador creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /trabajadores [post]

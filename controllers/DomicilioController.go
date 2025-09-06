@@ -38,7 +38,7 @@ func isValidEstadoDomicilio(e string) bool {
 // @Param   estado       query   string   false   "Filtrar por estado del domicilio"
 // @Param   updated_by   query   string   false   "Filtrar por usuario que realizó la última actualización"
 // @Param   trabajador   query   int      false   "ID del domiciliario solicitante"
-// @Success 200 {array} models.Domicilio "Lista de domicilios"
+// @Success 200 {object} models.ApiResponse{data=[]models.Domicilio} "Lista de domicilios"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /domicilios [get]
@@ -122,7 +122,7 @@ func (c *DomicilioController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Domicilio"
-// @Success 200 {object} models.ApiResponse "Domicilio encontrado (con cliente/pedido si aplica)"
+// @Success 200 {object} models.ApiResponse{data=models.Domicilio} "Domicilio encontrado (con cliente/pedido si aplica)"
 // @Failure 400 {object} models.ApiResponse "Parámetro inválido"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
@@ -251,7 +251,7 @@ ORDER BY p.pk_id_pedido DESC LIMIT 1;`
 // @Accept json
 // @Produce json
 // @Param   body  body   models.DomicilioCreate true  "Datos del domicilio a crear (sólo campos permitidos)"
-// @Success 201 {object} models.Domicilio "Domicilio creado"
+// @Success 201 {object} models.ApiResponse{data=models.Domicilio} "Domicilio creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /domicilios [post]
@@ -388,7 +388,7 @@ func (c *DomicilioController) Post() {
 // @Produce json
 // @Param   id    query    int  true   "ID del Domicilio"
 // @Param   body  body   models.Domicilio true  "Datos del domicilio a actualizar"
-// @Success 200 {object} models.Domicilio "Domicilio actualizado"
+// @Success 200 {object} models.ApiResponse{data=models.Domicilio} "Domicilio actualizado"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Security BearerAuth
 // @Router /domicilios [put]

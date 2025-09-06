@@ -59,10 +59,11 @@ func isUniqueEmailErr(err error) bool {
 // @Tags clientes
 // @Accept json
 // @Produce json
-// @Param   limit  query    int     false  "Cantidad de resultados por página (por defecto es 10)"
-// @Param   offset query    int     false  "Número de registros a omitir desde el inicio (por defecto es 0)"
-// @Param   fields  query    string  false  "Especifica los campos a incluir en la respuesta (opciones: 'nombre_completo_telefono')"
-// @Success 200 {array} interface{} "Lista de clientes con los campos especificados"
+// @Param   limit  query    int     false  "Cantidad de resultados por página" minimum(1) maximum(100) default(10)
+// @Param   offset query    int     false  "Número de registros a omitir" minimum(0) default(0)
+// @Param   fields  query    string  false  "Campos a incluir en la respuesta (opciones: 'nombre_completo_telefono')"
+// @Success 200 {object} models.ApiResponse{data=[]models.Cliente} "Lista de clientes"
+// @Failure 401 {object} models.ApiResponse "No autorizado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /clientes [get]
@@ -155,7 +156,8 @@ func (c *ClienteController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Cliente"
-// @Success 200 {object} models.Cliente "Cliente encontrado"
+// @Success 200 {object} models.ApiResponse{data=models.Cliente} "Cliente encontrado"
+// @Failure 401 {object} models.ApiResponse "No autorizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Security BearerAuth
 // @Router /clientes/search [get]
@@ -215,7 +217,7 @@ func (c *ClienteController) GetById() {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.Cliente true  "Datos del cliente a crear"
-// @Success 201 {object} models.Cliente "Cliente creado"
+// @Success 201 {object} models.ApiResponse{data=models.Cliente} "Cliente creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 409 {object} models.ApiResponse "Correo ya registrado"
 // @Router /clientes [post]
@@ -303,7 +305,8 @@ func (c *ClienteController) Post() {
 // @Produce json
 // @Param   id    query    int  true   "ID del Cliente"
 // @Param   body  body   models.Cliente true  "Datos del cliente a actualizar"
-// @Success 200 {object} models.Cliente "Cliente actualizado"
+// @Success 200 {object} models.ApiResponse{data=models.Cliente} "Cliente actualizado"
+// @Failure 401 {object} models.ApiResponse "No autorizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Failure 409 {object} models.ApiResponse "Correo ya registrado"
 // @Security BearerAuth
@@ -431,6 +434,7 @@ func (c *ClienteController) Put() {
 // @Produce json
 // @Param   id     query    int     true        "ID del Cliente"
 // @Success 200 {object} models.ApiResponse "Cliente eliminado"
+// @Failure 401 {object} models.ApiResponse "No autorizado"
 // @Failure 404 {object} models.ApiResponse "Cliente no encontrado"
 // @Security BearerAuth
 // @Router /clientes [delete]

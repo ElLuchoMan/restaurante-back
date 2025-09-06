@@ -21,7 +21,7 @@ type IncidenciaController struct {
 // @Tags incidencias
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Incidencia "Lista de incidencias"
+// @Success 200 {object} models.ApiResponse{data=[]models.Incidencia} "Lista de incidencias"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [get]
@@ -51,15 +51,15 @@ func (c *IncidenciaController) GetAll() {
 }
 
 // @Title GetByDocumentAndDate
-// @Summary Obtener incidencias por documento del trabajador y fecha
-// @Description Devuelve las incidencias de un trabajador en un mes y año específico.
+// @Summary Obtener incidencias por documento y/o fecha
+// @Description Devuelve una lista de incidencias según los filtros proporcionados.
 // @Tags incidencias
 // @Accept json
 // @Produce json
 // @Param   documento     query    int     true   "Documento del Trabajador"
 // @Param   mes           query    int     true   "Mes de la Incidencia (1-12)"
 // @Param   anio          query    int     true   "Año de la Incidencia"
-// @Success 200 {array} models.Incidencia "Lista de incidencias encontradas"
+// @Success 200 {object} models.ApiResponse{data=[]models.Incidencia} "Lista de incidencias encontradas"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 404 {object} models.ApiResponse "No se encontraron incidencias"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"

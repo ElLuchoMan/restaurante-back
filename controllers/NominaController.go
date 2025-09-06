@@ -30,7 +30,7 @@ var estadosNominaPermitidos = map[models.EstadoNomina]bool{
 // @Param   fecha    query   string   false   "Filtrar por fecha exacta (YYYY-MM-DD)"
 // @Param   mes      query   int      false   "Filtrar por mes (1-12)"
 // @Param   anio     query   int      false   "Filtrar por año (YYYY)"
-// @Success 200 {array} models.Nomina "Lista de nóminas"
+// @Success 200 {object} models.ApiResponse{data=[]models.Nomina} "Lista de nóminas"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nominas [get]
@@ -94,7 +94,7 @@ func (c *NominaController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.Nomina true  "Datos de la nómina a crear (sin 'MONTO')"
-// @Success 201 {object} models.Nomina "Nómina creada"
+// @Success 201 {object} models.ApiResponse{data=models.Nomina} "Nómina creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
@@ -165,7 +165,7 @@ func (c *NominaController) Post() {
 // @Accept json
 // @Produce json
 // @Param   id    query    int  true   "ID de la Nómina"
-// @Success 200 {object} models.Nomina "Nómina actualizada"
+// @Success 200 {object} models.ApiResponse{data=models.Nomina} "Nómina actualizada"
 // @Failure 404 {object} models.ApiResponse "Nómina no encontrada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"

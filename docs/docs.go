@@ -244,30 +244,55 @@ const docTemplate = `{
                 "summary": "Obtener todos los clientes con opción de filtrar campos",
                 "parameters": [
                     {
+                        "maximum": 100,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Cantidad de resultados por página (por defecto es 10)",
+                        "default": 10,
+                        "description": "Cantidad de resultados por página",
                         "name": "limit",
                         "in": "query"
                     },
                     {
+                        "minimum": 0,
                         "type": "integer",
-                        "description": "Número de registros a omitir desde el inicio (por defecto es 0)",
+                        "default": 0,
+                        "description": "Número de registros a omitir",
                         "name": "offset",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Especifica los campos a incluir en la respuesta (opciones: 'nombre_completo_telefono')",
+                        "description": "Campos a incluir en la respuesta (opciones: 'nombre_completo_telefono')",
                         "name": "fields",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de clientes con los campos especificados",
+                        "description": "Lista de clientes",
                         "schema": {
-                            "type": "array",
-                            "items": {}
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Cliente"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -317,7 +342,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Cliente actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.Cliente"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cliente"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
@@ -361,7 +404,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Cliente creado",
                         "schema": {
-                            "$ref": "#/definitions/models.Cliente"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cliente"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -411,6 +466,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Cliente no encontrado",
                         "schema": {
@@ -451,7 +512,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Cliente encontrado",
                         "schema": {
-                            "$ref": "#/definitions/models.Cliente"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cliente"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
@@ -523,10 +602,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de domicilios",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Domicilio"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Domicilio"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -576,7 +667,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Domicilio actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.Domicilio"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Domicilio"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -619,7 +722,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Domicilio creado",
                         "schema": {
-                            "$ref": "#/definitions/models.Domicilio"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Domicilio"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -756,7 +871,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Domicilio encontrado (con cliente/pedido si aplica)",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Domicilio"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1028,10 +1155,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de incidencias",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Incidencia"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Incidencia"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -1204,7 +1343,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve las incidencias de un trabajador en un mes y año específico.",
+                "description": "Devuelve una lista de incidencias según los filtros proporcionados.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1214,7 +1353,7 @@ const docTemplate = `{
                 "tags": [
                     "incidencias"
                 ],
-                "summary": "Obtener incidencias por documento del trabajador y fecha",
+                "summary": "Obtener incidencias por documento y/o fecha",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1242,10 +1381,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de incidencias encontradas",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Incidencia"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Incidencia"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1337,10 +1488,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de métodos de pago",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.MetodoPago"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.MetodoPago"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -1390,7 +1553,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Método de pago actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.MetodoPago"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MetodoPago"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -1433,7 +1608,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Método de pago creado",
                         "schema": {
-                            "$ref": "#/definitions/models.MetodoPago"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MetodoPago"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1517,7 +1704,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Método de pago encontrado",
                         "schema": {
-                            "$ref": "#/definitions/models.MetodoPago"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MetodoPago"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -1797,10 +1996,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de nóminas",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Nomina"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Nomina"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -1841,7 +2052,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Nómina actualizada",
                         "schema": {
-                            "$ref": "#/definitions/models.Nomina"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Nomina"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1896,7 +2119,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Nómina creada",
                         "schema": {
-                            "$ref": "#/definitions/models.Nomina"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Nomina"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -2015,10 +2250,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de pagos",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Pago"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Pago"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -2068,7 +2315,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Pago actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.Pago"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Pago"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -2111,7 +2370,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Pago creado",
                         "schema": {
-                            "$ref": "#/definitions/models.Pago"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Pago"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -2195,7 +2466,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Pago encontrado",
                         "schema": {
-                            "$ref": "#/definitions/models.Pago"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Pago"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -2791,10 +3074,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de productos",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Producto"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Producto"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -2839,7 +3134,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Producto actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.Producto"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Producto"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -2877,7 +3184,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Producto creado",
                         "schema": {
-                            "$ref": "#/definitions/models.Producto"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Producto"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -2957,7 +3276,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Producto encontrado",
                         "schema": {
-                            "$ref": "#/definitions/models.Producto"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Producto"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -2986,10 +3317,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de reservas",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Reserva"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Reserva"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -3034,7 +3377,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Reserva actualizada",
                         "schema": {
-                            "$ref": "#/definitions/models.Reserva"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Reserva"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -3072,7 +3427,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Reserva creada",
                         "schema": {
-                            "$ref": "#/definitions/models.Reserva"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Reserva"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -3151,10 +3518,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de reservas encontradas",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Reserva"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Reserva"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -3198,7 +3577,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Reserva encontrada",
                         "schema": {
-                            "$ref": "#/definitions/models.Reserva"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Reserva"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -3227,10 +3618,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de restaurantes",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Restaurante"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Restaurante"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -3275,7 +3678,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Restaurante actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.Restaurante"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Restaurante"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -3313,7 +3728,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Restaurante creado",
                         "schema": {
-                            "$ref": "#/definitions/models.Restaurante"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Restaurante"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -3384,7 +3811,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Restaurante encontrado",
                         "schema": {
-                            "$ref": "#/definitions/models.Restaurante"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Restaurante"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -3444,10 +3883,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de trabajadores",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Trabajador"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Trabajador"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -3540,7 +3991,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Trabajador creado",
                         "schema": {
-                            "$ref": "#/definitions/models.Trabajador"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Trabajador"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -3624,7 +4087,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Trabajador encontrado",
                         "schema": {
-                            "$ref": "#/definitions/models.Trabajador"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Trabajador"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {

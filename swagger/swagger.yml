@@ -3,9 +3,6 @@ info: {}
 basePath: /restaurante/v1
 paths: {}
 definitions:
-  interface{}:
-    title: interface{}
-    type: object
   map[string]interface{}:
     title: map[string]interface{}
     type: object
@@ -25,11 +22,68 @@ definitions:
         $ref: '#/definitions/models.any'
       message:
         type: string
+  models.ApiResponse{data=[]models.Cliente}:
+    title: Cliente}
+    type: object
+  models.ApiResponse{data=[]models.Domicilio}:
+    title: Domicilio}
+    type: object
+  models.ApiResponse{data=[]models.Incidencia}:
+    title: Incidencia}
+    type: object
+  models.ApiResponse{data=[]models.MetodoPago}:
+    title: MetodoPago}
+    type: object
+  models.ApiResponse{data=[]models.Nomina}:
+    title: Nomina}
+    type: object
+  models.ApiResponse{data=[]models.Pago}:
+    title: Pago}
+    type: object
   models.ApiResponse{data=[]models.Pedido}:
     title: Pedido}
     type: object
+  models.ApiResponse{data=[]models.Producto}:
+    title: Producto}
+    type: object
+  models.ApiResponse{data=[]models.Reserva}:
+    title: Reserva}
+    type: object
+  models.ApiResponse{data=[]models.Restaurante}:
+    title: Restaurante}
+    type: object
+  models.ApiResponse{data=[]models.Trabajador}:
+    title: Trabajador}
+    type: object
+  models.ApiResponse{data=models.Cliente}:
+    title: Cliente}
+    type: object
+  models.ApiResponse{data=models.Domicilio}:
+    title: Domicilio}
+    type: object
+  models.ApiResponse{data=models.MetodoPago}:
+    title: MetodoPago}
+    type: object
+  models.ApiResponse{data=models.Nomina}:
+    title: Nomina}
+    type: object
+  models.ApiResponse{data=models.Pago}:
+    title: Pago}
+    type: object
   models.ApiResponse{data=models.Pedido}:
     title: Pedido}
+    type: object
+  models.ApiResponse{data=models.Producto}:
+    title: Producto}
+    type: object
+  models.ApiResponse{data=models.Reserva}:
+    title: Reserva}
+    type: object
+  models.ApiResponse{data=models.Restaurante}:
+    title: Restaurante}
+    type: object
+  models.ApiResponse{data=models.Trabajador}:
+    title: Trabajador}
     type: object
   models.CambiosHorario:
     title: CambiosHorario

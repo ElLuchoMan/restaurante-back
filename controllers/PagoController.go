@@ -46,7 +46,7 @@ var estadosPagoPermitidos = map[string]bool{
 // @Param   anio     query   int      false   "Filtrar por año (YYYY)"
 // @Param   estado   query   string   false   "Filtrar por estado del pago (PAGADO, PENDIENTE, NO_PAGO)"
 // @Param   metodo_pago     query   int      false   "Filtrar por metodo de pago"
-// @Success 200 {array} models.Pago "Lista de pagos"
+// @Success 200 {object} models.ApiResponse{data=[]models.Pago} "Lista de pagos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /pagos [get]
@@ -134,7 +134,7 @@ func (c *PagoController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Pago"
-// @Success 200 {object} models.Pago "Pago encontrado"
+// @Success 200 {object} models.ApiResponse{data=models.Pago} "Pago encontrado"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
 // @Security BearerAuth
 // @Router /pagos/search [get]
@@ -187,7 +187,7 @@ func (c *PagoController) GetById() {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.Pago true  "Datos del pago a crear"
-// @Success 201 {object} models.Pago "Pago creado"
+// @Success 201 {object} models.ApiResponse{data=models.Pago} "Pago creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Security BearerAuth
 // @Router /pagos [post]
@@ -319,7 +319,7 @@ func (c *PagoController) Post() {
 // @Produce json
 // @Param   id    query    int  true   "ID del Pago"
 // @Param   body  body   models.Pago true  "Datos del pago a actualizar"
-// @Success 200 {object} models.Pago "Pago actualizado"
+// @Success 200 {object} models.ApiResponse{data=models.Pago} "Pago actualizado"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
 // @Security BearerAuth
 // @Router /pagos [put]

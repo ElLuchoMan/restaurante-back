@@ -598,6 +598,10 @@ paths:
           description: Cliente eliminado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Cliente no encontrado
           schema:
@@ -613,16 +617,20 @@ paths:
       description: Devuelve todos los clientes registrados en la base de datos, con
         opción de retornar solo nombre completo y teléfono.
       parameters:
-      - description: Cantidad de resultados por página (por defecto es 10)
+      - default: 10
+        description: Cantidad de resultados por página
         in: query
+        maximum: 100
+        minimum: 1
         name: limit
         type: integer
-      - description: Número de registros a omitir desde el inicio (por defecto es
-          0)
+      - default: 0
+        description: Número de registros a omitir
         in: query
+        minimum: 0
         name: offset
         type: integer
-      - description: 'Especifica los campos a incluir en la respuesta (opciones: ''nombre_completo_telefono'')'
+      - description: 'Campos a incluir en la respuesta (opciones: ''nombre_completo_telefono'')'
         in: query
         name: fields
         type: string
@@ -630,10 +638,20 @@ paths:
       - application/json
       responses:
         "200":
-          description: Lista de clientes con los campos especificados
+          description: Lista de clientes
           schema:
-            items: {}
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Cliente'
+                  type: array
+              type: object
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "500":
           description: Error en la base de datos
           schema:
@@ -660,7 +678,12 @@ paths:
         "201":
           description: Cliente creado
           schema:
-            $ref: '#/definitions/models.Cliente'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cliente'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -694,7 +717,16 @@ paths:
         "200":
           description: Cliente actualizado
           schema:
-            $ref: '#/definitions/models.Cliente'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cliente'
+              type: object
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Cliente no encontrado
           schema:
@@ -725,7 +757,16 @@ paths:
         "200":
           description: Cliente encontrado
           schema:
-            $ref: '#/definitions/models.Cliente'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cliente'
+              type: object
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Cliente no encontrado
           schema:
@@ -796,9 +837,14 @@ paths:
         "200":
           description: Lista de domicilios
           schema:
-            items:
-              $ref: '#/definitions/models.Domicilio'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Domicilio'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -826,7 +872,12 @@ paths:
         "201":
           description: Domicilio creado
           schema:
-            $ref: '#/definitions/models.Domicilio'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Domicilio'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -859,7 +910,12 @@ paths:
         "200":
           description: Domicilio actualizado
           schema:
-            $ref: '#/definitions/models.Domicilio'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Domicilio'
+              type: object
         "404":
           description: Domicilio no encontrado
           schema:
@@ -923,7 +979,12 @@ paths:
         "200":
           description: Domicilio encontrado (con cliente/pedido si aplica)
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Domicilio'
+              type: object
         "400":
           description: Parámetro inválido
           schema:
@@ -1124,9 +1185,14 @@ paths:
         "200":
           description: Lista de incidencias
           schema:
-            items:
-              $ref: '#/definitions/models.Incidencia'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Incidencia'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -1213,7 +1279,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Devuelve las incidencias de un trabajador en un mes y año específico.
+      description: Devuelve una lista de incidencias según los filtros proporcionados.
       parameters:
       - description: Documento del Trabajador
         in: query
@@ -1236,9 +1302,14 @@ paths:
         "200":
           description: Lista de incidencias encontradas
           schema:
-            items:
-              $ref: '#/definitions/models.Incidencia'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Incidencia'
+                  type: array
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -1253,7 +1324,7 @@ paths:
             $ref: '#/definitions/models.ApiResponse'
       security:
       - BearerAuth: []
-      summary: Obtener incidencias por documento del trabajador y fecha
+      summary: Obtener incidencias por documento y/o fecha
       tags:
       - incidencias
   /login:
@@ -1324,9 +1395,14 @@ paths:
         "200":
           description: Lista de métodos de pago
           schema:
-            items:
-              $ref: '#/definitions/models.MetodoPago'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.MetodoPago'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -1353,7 +1429,12 @@ paths:
         "201":
           description: Método de pago creado
           schema:
-            $ref: '#/definitions/models.MetodoPago'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MetodoPago'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -1385,7 +1466,12 @@ paths:
         "200":
           description: Método de pago actualizado
           schema:
-            $ref: '#/definitions/models.MetodoPago'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MetodoPago'
+              type: object
         "404":
           description: Método de pago no encontrado
           schema:
@@ -1412,7 +1498,12 @@ paths:
         "200":
           description: Método de pago encontrado
           schema:
-            $ref: '#/definitions/models.MetodoPago'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MetodoPago'
+              type: object
         "404":
           description: Método de pago no encontrado
           schema:
@@ -1622,9 +1713,14 @@ paths:
         "200":
           description: Lista de nóminas
           schema:
-            items:
-              $ref: '#/definitions/models.Nomina'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Nomina'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -1652,7 +1748,12 @@ paths:
         "201":
           description: Nómina creada
           schema:
-            $ref: '#/definitions/models.Nomina'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Nomina'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -1682,7 +1783,12 @@ paths:
         "200":
           description: Nómina actualizada
           schema:
-            $ref: '#/definitions/models.Nomina'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Nomina'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -1763,9 +1869,14 @@ paths:
         "200":
           description: Lista de pagos
           schema:
-            items:
-              $ref: '#/definitions/models.Pago'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Pago'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -1792,7 +1903,12 @@ paths:
         "201":
           description: Pago creado
           schema:
-            $ref: '#/definitions/models.Pago'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Pago'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -1824,7 +1940,12 @@ paths:
         "200":
           description: Pago actualizado
           schema:
-            $ref: '#/definitions/models.Pago'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Pago'
+              type: object
         "404":
           description: Pago no encontrado
           schema:
@@ -1851,7 +1972,12 @@ paths:
         "200":
           description: Pago encontrado
           schema:
-            $ref: '#/definitions/models.Pago'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Pago'
+              type: object
         "404":
           description: Pago no encontrado
           schema:
@@ -2268,9 +2394,14 @@ paths:
         "200":
           description: Lista de productos
           schema:
-            items:
-              $ref: '#/definitions/models.Producto'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Producto'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -2295,7 +2426,12 @@ paths:
         "201":
           description: Producto creado
           schema:
-            $ref: '#/definitions/models.Producto'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Producto'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -2326,7 +2462,12 @@ paths:
         "200":
           description: Producto actualizado
           schema:
-            $ref: '#/definitions/models.Producto'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Producto'
+              type: object
         "404":
           description: Producto no encontrado
           schema:
@@ -2352,7 +2493,12 @@ paths:
         "200":
           description: Producto encontrado
           schema:
-            $ref: '#/definitions/models.Producto'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Producto'
+              type: object
         "404":
           description: Producto no encontrado
           schema:
@@ -2395,9 +2541,14 @@ paths:
         "200":
           description: Lista de reservas
           schema:
-            items:
-              $ref: '#/definitions/models.Reserva'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Reserva'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -2422,7 +2573,12 @@ paths:
         "201":
           description: Reserva creada
           schema:
-            $ref: '#/definitions/models.Reserva'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Reserva'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -2452,7 +2608,12 @@ paths:
         "200":
           description: Reserva actualizada
           schema:
-            $ref: '#/definitions/models.Reserva'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Reserva'
+              type: object
         "404":
           description: Reserva no encontrada
           schema:
@@ -2482,9 +2643,14 @@ paths:
         "200":
           description: Lista de reservas encontradas
           schema:
-            items:
-              $ref: '#/definitions/models.Reserva'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Reserva'
+                  type: array
+              type: object
         "400":
           description: Error en los parámetros
           schema:
@@ -2513,7 +2679,12 @@ paths:
         "200":
           description: Reserva encontrada
           schema:
-            $ref: '#/definitions/models.Reserva'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Reserva'
+              type: object
         "404":
           description: Reserva no encontrada
           schema:
@@ -2554,9 +2725,14 @@ paths:
         "200":
           description: Lista de restaurantes
           schema:
-            items:
-              $ref: '#/definitions/models.Restaurante'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Restaurante'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -2581,7 +2757,12 @@ paths:
         "201":
           description: Restaurante creado
           schema:
-            $ref: '#/definitions/models.Restaurante'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Restaurante'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -2611,7 +2792,12 @@ paths:
         "200":
           description: Restaurante actualizado
           schema:
-            $ref: '#/definitions/models.Restaurante'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Restaurante'
+              type: object
         "404":
           description: Restaurante no encontrado
           schema:
@@ -2636,7 +2822,12 @@ paths:
         "200":
           description: Restaurante encontrado
           schema:
-            $ref: '#/definitions/models.Restaurante'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Restaurante'
+              type: object
         "404":
           description: Restaurante no encontrado
           schema:
@@ -2700,9 +2891,14 @@ paths:
         "200":
           description: Lista de trabajadores
           schema:
-            items:
-              $ref: '#/definitions/models.Trabajador'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Trabajador'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -2729,7 +2925,12 @@ paths:
         "201":
           description: Trabajador creado
           schema:
-            $ref: '#/definitions/models.Trabajador'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Trabajador'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -2788,7 +2989,12 @@ paths:
         "200":
           description: Trabajador encontrado
           schema:
-            $ref: '#/definitions/models.Trabajador'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Trabajador'
+              type: object
         "404":
           description: Trabajador no encontrado
           schema:

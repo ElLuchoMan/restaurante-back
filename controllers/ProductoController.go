@@ -26,7 +26,7 @@ type ProductoController struct {
 // @Produce json
 // @Param   includeImage  query    bool   false  "Incluir imágenes Base64 en la respuesta (true o false, por defecto es false)"
 // @Param   onlyActive    query    bool   false  "Filtrar solo productos disponibles (true o false, por defecto es false)"
-// @Success 200 {array} models.Producto "Lista de productos"
+// @Success 200 {object} models.ApiResponse{data=[]models.Producto} "Lista de productos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /productos [get]
 func (c *ProductoController) GetAll() {
@@ -79,7 +79,7 @@ func (c *ProductoController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID del Producto"
-// @Success 200 {object} models.Producto "Producto encontrado"
+// @Success 200 {object} models.ApiResponse{data=models.Producto} "Producto encontrado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos/search [get]
 func (c *ProductoController) GetById() {
@@ -124,7 +124,7 @@ func (c *ProductoController) GetById() {
 // @Accept json
 // @Produce json
 // @Param   producto  body     models.Producto true "Producto con imagen Base64"
-// @Success 201 {object} models.Producto "Producto creado"
+// @Success 201 {object} models.ApiResponse{data=models.Producto} "Producto creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /productos [post]
 func (c *ProductoController) Post() {
@@ -175,7 +175,7 @@ func (c *ProductoController) Post() {
 // @Produce json
 // @Param   id        query   int              true  "ID del Producto"
 // @Param   producto  body    models.Producto true  "Datos del producto"
-// @Success 200 {object} models.Producto "Producto actualizado"
+// @Success 200 {object} models.ApiResponse{data=models.Producto} "Producto actualizado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Router /productos [put]
 func (c *ProductoController) Put() {
