@@ -34,11 +34,23 @@ const docTemplate = `{
                     "200": {
                         "description": "Listado de cambios de horario",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": true
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "additionalProperties": true
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -83,8 +95,20 @@ const docTemplate = `{
                     "200": {
                         "description": "Cambio de horario actualizado",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -134,8 +158,20 @@ const docTemplate = `{
                     "201": {
                         "description": "Cambio de horario creado",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -937,10 +973,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de horarios",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.HorarioTrabajador"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.HorarioTrabajador"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -1055,7 +1103,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Horario creado",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.HorarioTrabajador"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1750,10 +1810,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Listado de relaciones nómina-trabajador",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.NominaTrabajador"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.NominaTrabajador"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -1796,7 +1868,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Nómina-trabajador creada",
                         "schema": {
-                            "$ref": "#/definitions/models.NominaTrabajadorResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.NominaTrabajadorResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1850,11 +1934,23 @@ const docTemplate = `{
                     "200": {
                         "description": "Relaciones nómina-trabajador encontradas",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": true
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "additionalProperties": true
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -1933,10 +2029,22 @@ const docTemplate = `{
                     "200": {
                         "description": "Relaciones nómina-trabajador encontradas",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.NominaTrabajador"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.NominaTrabajador"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -2854,7 +2962,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Detalles del pedido obtenidos exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PedidoDetails"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -2909,7 +3029,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Lista de productos del pedido",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -2969,7 +3101,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Productos actualizados exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -3025,7 +3169,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Pedido con productos agregado exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -4113,6 +4269,15 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.ProductoPedidoResponse": {
+            "type": "object",
+            "properties": {
+                "detalles": {},
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.ApiResponse": {
             "type": "object",
             "properties": {
@@ -4557,6 +4722,44 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedBy": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PedidoDetails": {
+            "type": "object",
+            "properties": {
+                "delivery": {
+                    "type": "boolean"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "domicilioId": {
+                    "type": "integer"
+                },
+                "estadoPedido": {
+                    "type": "string"
+                },
+                "fechaPedido": {
+                    "type": "string"
+                },
+                "horaPedido": {
+                    "type": "string"
+                },
+                "metodoPago": {
+                    "type": "string"
+                },
+                "metodoPagoId": {
+                    "type": "integer"
+                },
+                "pagoId": {
+                    "type": "integer"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                },
+                "productos": {
                     "type": "string"
                 }
             }

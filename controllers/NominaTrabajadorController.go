@@ -21,7 +21,7 @@ type NominaTrabajadorController struct {
 // @Tags nomina_trabajador
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.NominaTrabajador "Listado de relaciones nómina-trabajador"
+// @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajador} "Listado de relaciones nómina-trabajador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador [get]
@@ -59,7 +59,7 @@ func (c *NominaTrabajadorController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param body body models.NominaTrabajadorRequest true "Datos de la nómina-trabajador"
-// @Success 201 {object} models.NominaTrabajadorResponse "Nómina-trabajador creada"
+// @Success 201 {object} models.ApiResponse{data=models.NominaTrabajadorResponse} "Nómina-trabajador creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
@@ -222,7 +222,7 @@ func (c *NominaTrabajadorController) Post() {
 // @Param no_pagas query bool false "Consultar solo nóminas no pagadas"
 // @Param mes query int false "Mes (1-12) para filtrar nóminas"
 // @Param anio query int false "Año (YYYY) para filtrar nóminas"
-// @Success 200 {array} models.NominaTrabajador "Relaciones nómina-trabajador encontradas"
+// @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajador} "Relaciones nómina-trabajador encontradas"
 // @Failure 404 {object} models.ApiResponse "Relación nómina-trabajador no encontrada"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
@@ -333,7 +333,7 @@ func obtenerMesEnEspañol(mes time.Month) string {
 // @Produce json
 // @Param mes query int false "Mes (1-12) para filtrar nóminas"
 // @Param anio query int false "Año (YYYY) para filtrar nóminas"
-// @Success 200 {array} map[string]interface{} "Relaciones nómina-trabajador encontradas"
+// @Success 200 {object} models.ApiResponse{data=[]map[string]interface{}} "Relaciones nómina-trabajador encontradas"
 // @Failure 404 {object} models.ApiResponse "No se encontraron relaciones nómina-trabajador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth

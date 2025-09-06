@@ -40,7 +40,7 @@ type detallePedidoInput struct {
 // @Accept json
 // @Produce json
 // @Param pedido_id query int true "ID del pedido"
-// @Success 200 {object} models.ApiResponse "Lista de productos del pedido"
+// @Success 200 {object} models.ApiResponse{data=controllers.ProductoPedidoResponse} "Lista de productos del pedido"
 // @Failure 404 {object} models.ApiResponse "No se encontraron productos asociados a este pedido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
@@ -99,7 +99,7 @@ func (c *ProductoPedidoController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param body body map[string]interface{} true "Datos del pedido con productos"
-// @Success 201 {object} models.ApiResponse "Pedido con productos agregado exitosamente"
+// @Success 201 {object} models.ApiResponse{data=controllers.ProductoPedidoResponse} "Pedido con productos agregado exitosamente"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
@@ -188,7 +188,7 @@ func (c *ProductoPedidoController) Post() {
 // @Produce json
 // @Param pedido_id query int true "ID del pedido a actualizar"
 // @Param body body []map[string]interface{} true "Lista actualizada de productos"
-// @Success 200 {object} models.ApiResponse "Productos actualizados exitosamente"
+// @Success 200 {object} models.ApiResponse{data=controllers.ProductoPedidoResponse} "Productos actualizados exitosamente"
 // @Failure 400 {object} models.ApiResponse "Datos inválidos"
 // @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"

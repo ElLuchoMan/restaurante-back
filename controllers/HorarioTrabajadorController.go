@@ -48,7 +48,7 @@ func diaToDB(d string) string {
 // @Produce json
 // @Param   documento  query int false "Documento del trabajador"
 // @Param   dia        query string false "Día a filtrar"
-// @Success 200 {array} models.HorarioTrabajador "Lista de horarios"
+// @Success 200 {object} models.ApiResponse{data=[]models.HorarioTrabajador} "Lista de horarios"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /horario_trabajador [get]
@@ -100,7 +100,7 @@ func (c *HorarioTrabajadorController) GetAll() {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.HorarioTrabajador true  "Datos del horario"
-// @Success 201 {object} models.ApiResponse "Horario creado"
+// @Success 201 {object} models.ApiResponse{data=models.HorarioTrabajador} "Horario creado"
 // @Failure 400 {object} models.ApiResponse "Solicitud inválida"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth

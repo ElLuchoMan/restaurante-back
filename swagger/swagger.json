@@ -33,6 +33,10 @@
                 }
             }
         },
+        "models.ApiResponse{data=[]map[string]interface{}}": {
+            "title": "ApiResponse{data=[]map[string]interface{}}",
+            "type": "object"
+        },
         "models.ApiResponse{data=[]models.Cliente}": {
             "title": "Cliente}",
             "type": "object"
@@ -41,12 +45,20 @@
             "title": "Domicilio}",
             "type": "object"
         },
+        "models.ApiResponse{data=[]models.HorarioTrabajador}": {
+            "title": "HorarioTrabajador}",
+            "type": "object"
+        },
         "models.ApiResponse{data=[]models.Incidencia}": {
             "title": "Incidencia}",
             "type": "object"
         },
         "models.ApiResponse{data=[]models.MetodoPago}": {
             "title": "MetodoPago}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.NominaTrabajador}": {
+            "title": "NominaTrabajador}",
             "type": "object"
         },
         "models.ApiResponse{data=[]models.Nomina}": {
@@ -77,6 +89,14 @@
             "title": "Trabajador}",
             "type": "object"
         },
+        "models.ApiResponse{data=controllers.ProductoPedidoResponse}": {
+            "title": "ProductoPedidoResponse}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=map[string]interface{}}": {
+            "title": "ApiResponse{data=map[string]interface{}}",
+            "type": "object"
+        },
         "models.ApiResponse{data=models.Cliente}": {
             "title": "Cliente}",
             "type": "object"
@@ -85,8 +105,16 @@
             "title": "Domicilio}",
             "type": "object"
         },
+        "models.ApiResponse{data=models.HorarioTrabajador}": {
+            "title": "HorarioTrabajador}",
+            "type": "object"
+        },
         "models.ApiResponse{data=models.MetodoPago}": {
             "title": "MetodoPago}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.NominaTrabajadorResponse}": {
+            "title": "NominaTrabajadorResponse}",
             "type": "object"
         },
         "models.ApiResponse{data=models.Nomina}": {
@@ -95,6 +123,10 @@
         },
         "models.ApiResponse{data=models.Pago}": {
             "title": "Pago}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.PedidoDetails}": {
+            "title": "PedidoDetails}",
             "type": "object"
         },
         "models.ApiResponse{data=models.Pedido}": {
@@ -434,33 +466,6 @@
                 }
             }
         },
-        "models.NominaTrabajador": {
-            "title": "NominaTrabajador",
-            "type": "object",
-            "properties": {
-                "detalles": {
-                    "type": "string"
-                },
-                "documentoTrabajador": {
-                    "$ref": "#/definitions/models.Trabajador"
-                },
-                "montoIncidencias": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "nominaId": {
-                    "$ref": "#/definitions/models.Nomina"
-                },
-                "nominaTrabajadorId": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "sueldoBase": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
         "models.NominaTrabajadorRequest": {
             "title": "NominaTrabajadorRequest",
             "type": "object",
@@ -472,31 +477,6 @@
                 "documentoTrabajador": {
                     "type": "integer",
                     "example": 1015466494,
-                    "format": "int64"
-                }
-            }
-        },
-        "models.NominaTrabajadorResponse": {
-            "title": "NominaTrabajadorResponse",
-            "type": "object",
-            "properties": {
-                "detalles": {
-                    "type": "string",
-                    "example": "Pago correspondiente al mes de enero"
-                },
-                "documentoTrabajador": {
-                    "type": "integer",
-                    "example": 1015466494,
-                    "format": "int64"
-                },
-                "montoIncidencias": {
-                    "type": "integer",
-                    "example": 50000,
-                    "format": "int64"
-                },
-                "sueldoBase": {
-                    "type": "integer",
-                    "example": 2000000,
                     "format": "int64"
                 }
             }

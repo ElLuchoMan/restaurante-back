@@ -70,7 +70,7 @@ var (
 // @Tags cambios_horario
 // @Accept json
 // @Produce json
-// @Success 200 {array} map[string]interface{} "Listado de cambios de horario"
+// @Success 200 {object} models.ApiResponse{data=[]map[string]interface{}} "Listado de cambios de horario"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [get]
 func (c *CambiosHorarioController) GetAll() {
@@ -123,7 +123,7 @@ func (c *CambiosHorarioController) GetAll() {
 // @Tags cambios_horario
 // @Accept json
 // @Produce json
-// @Success 200 {object} map[string]interface{} "Cambio de horario para la fecha actual"
+// @Success 200 {object} models.ApiResponse{data=map[string]interface{}} "Cambio de horario para la fecha actual"
 // @Failure 200 {object} models.ApiResponse "No hay cambios de horario para la fecha actual"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario/actual [get]
@@ -181,7 +181,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 // @Accept json
 // @Produce json
 // @Param body body models.CambiosHorario true "Datos del cambio de horario"
-// @Success 201 {object} map[string]interface{} "Cambio de horario creado"
+// @Success 201 {object} models.ApiResponse{data=map[string]interface{}} "Cambio de horario creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [post]
@@ -329,7 +329,7 @@ func (c *CambiosHorarioController) Post() {
 // @Produce json
 // @Param id query int true "ID del cambio de horario"
 // @Param body body models.CambiosHorario true "Datos del cambio de horario a actualizar"
-// @Success 200 {object} map[string]interface{} "Cambio de horario actualizado"
+// @Success 200 {object} models.ApiResponse{data=map[string]interface{}} "Cambio de horario actualizado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 404 {object} models.ApiResponse "Cambio de horario no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"

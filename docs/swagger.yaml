@@ -1,5 +1,11 @@
 basePath: /restaurante/v1
 definitions:
+  controllers.ProductoPedidoResponse:
+    properties:
+      detalles: {}
+      pedidoId:
+        type: integer
+    type: object
   models.ApiResponse:
     properties:
       cause:
@@ -307,6 +313,31 @@ definitions:
       updatedBy:
         type: string
     type: object
+  models.PedidoDetails:
+    properties:
+      delivery:
+        type: boolean
+      documentoCliente:
+        type: integer
+      domicilioId:
+        type: integer
+      estadoPedido:
+        type: string
+      fechaPedido:
+        type: string
+      horaPedido:
+        type: string
+      metodoPago:
+        type: string
+      metodoPagoId:
+        type: integer
+      pagoId:
+        type: integer
+      pedidoId:
+        type: integer
+      productos:
+        type: string
+    type: object
   models.Producto:
     properties:
       calorias:
@@ -480,10 +511,15 @@ paths:
         "200":
           description: Listado de cambios de horario
           schema:
-            items:
-              additionalProperties: true
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
               type: object
-            type: array
         "500":
           description: Error en la base de datos
           schema:
@@ -508,8 +544,13 @@ paths:
         "201":
           description: Cambio de horario creado
           schema:
-            additionalProperties: true
-            type: object
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -543,8 +584,13 @@ paths:
         "200":
           description: Cambio de horario actualizado
           schema:
-            additionalProperties: true
-            type: object
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -1057,9 +1103,14 @@ paths:
         "200":
           description: Lista de horarios
           schema:
-            items:
-              $ref: '#/definitions/models.HorarioTrabajador'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.HorarioTrabajador'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -1086,7 +1137,12 @@ paths:
         "201":
           description: Horario creado
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.HorarioTrabajador'
+              type: object
         "400":
           description: Solicitud inválida
           schema:
@@ -1525,9 +1581,14 @@ paths:
         "200":
           description: Listado de relaciones nómina-trabajador
           schema:
-            items:
-              $ref: '#/definitions/models.NominaTrabajador'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.NominaTrabajador'
+                  type: array
+              type: object
         "500":
           description: Error en la base de datos
           schema:
@@ -1555,7 +1616,12 @@ paths:
         "201":
           description: Nómina-trabajador creada
           schema:
-            $ref: '#/definitions/models.NominaTrabajadorResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.NominaTrabajadorResponse'
+              type: object
         "400":
           description: Error en la solicitud
           schema:
@@ -1590,10 +1656,15 @@ paths:
         "200":
           description: Relaciones nómina-trabajador encontradas
           schema:
-            items:
-              additionalProperties: true
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
               type: object
-            type: array
         "404":
           description: No se encontraron relaciones nómina-trabajador
           schema:
@@ -1646,9 +1717,14 @@ paths:
         "200":
           description: Relaciones nómina-trabajador encontradas
           schema:
-            items:
-              $ref: '#/definitions/models.NominaTrabajador'
-            type: array
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.NominaTrabajador'
+                  type: array
+              type: object
         "404":
           description: Relación nómina-trabajador no encontrada
           schema:
@@ -2219,7 +2295,12 @@ paths:
         "200":
           description: Detalles del pedido obtenidos exitosamente
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PedidoDetails'
+              type: object
         "400":
           description: Error en los parámetros de filtro
           schema:
@@ -2254,7 +2335,12 @@ paths:
         "200":
           description: Lista de productos del pedido
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/controllers.ProductoPedidoResponse'
+              type: object
         "404":
           description: No se encontraron productos asociados a este pedido
           schema:
@@ -2286,7 +2372,12 @@ paths:
         "201":
           description: Pedido con productos agregado exitosamente
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/controllers.ProductoPedidoResponse'
+              type: object
         "400":
           description: Datos inválidos
           schema:
@@ -2325,7 +2416,12 @@ paths:
         "200":
           description: Productos actualizados exitosamente
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/controllers.ProductoPedidoResponse'
+              type: object
         "400":
           description: Datos inválidos
           schema:

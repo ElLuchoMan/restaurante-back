@@ -369,7 +369,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 // @Accept json
 // @Produce json
 // @Param pedido_id query int false "ID del pedido (filtrar por pedido específico)"
-// @Success 200 {object} models.ApiResponse "Detalles del pedido obtenidos exitosamente"
+// @Success 200 {object} models.ApiResponse{data=models.PedidoDetails} "Detalles del pedido obtenidos exitosamente"
 // @Failure 400 {object} models.ApiResponse "Error en los parámetros de filtro"
 // @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error al obtener los detalles del pedido"
