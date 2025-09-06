@@ -74,6 +74,13 @@ func TestProductoUnmarshalJSON_InvalidBase64(t *testing.T) {
 	}
 }
 
+func TestProductoUnmarshalJSON_InvalidJSON(t *testing.T) {
+        var p Producto
+        if err := p.UnmarshalJSON([]byte("{invalid")); err == nil {
+                t.Fatalf("expected error for invalid JSON")
+        }
+}
+
 func TestProductoMarshalJSON_SubcategoriaNil(t *testing.T) {
 	p := Producto{PK_ID_PRODUCTO: 10, NOMBRE: "Z", PRECIO: 1, ESTADO_PRODUCTO: EstadoProductoDisponible, CANTIDAD: 1}
 	data, err := json.Marshal(p)
