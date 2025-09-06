@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"restaurante/database"
 	"restaurante/models"
@@ -17,6 +18,9 @@ type CambiosHorarioController struct {
 
 // Hook existente en tu versión (lo mantenemos igual: recibe string)
 var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
+	if o == nil {
+		return errors.New("nil ormer")
+	}
 	return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)
 }
 
@@ -29,18 +33,33 @@ Si tu struct realmente se llama PK_ID_CAMBIO_HORARIO, cámbialo también aquí y
 */
 var (
 	queryAllCambiosHorario = func(o orm.Ormer, horarios *[]models.CambiosHorario) (int64, error) {
+		if o == nil {
+			return 0, errors.New("nil ormer")
+		}
 		return o.QueryTable(new(models.CambiosHorario)).All(horarios)
 	}
 	insertCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
+		if o == nil {
+			return 0, errors.New("nil ormer")
+		}
 		return o.Insert(horario)
 	}
 	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error {
+		if o == nil {
+			return errors.New("nil ormer")
+		}
 		return o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).One(horario)
 	}
 	updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
+		if o == nil {
+			return 0, errors.New("nil ormer")
+		}
 		return o.Update(horario)
 	}
 	deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) {
+		if o == nil {
+			return 0, errors.New("nil ormer")
+		}
 		return o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).Delete()
 	}
 )

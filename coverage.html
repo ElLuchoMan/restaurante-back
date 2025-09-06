@@ -55,7 +55,7 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">restaurante/controllers/CambiosHorarioController.go (97.0%)</option>
+				<option value="file0">restaurante/controllers/CambiosHorarioController.go (100.0%)</option>
 				
 				<option value="file1">restaurante/controllers/ClienteController.go (97.0%)</option>
 				
@@ -63,15 +63,15 @@
 				
 				<option value="file3">restaurante/controllers/HorarioTrabajadorController.go (64.0%)</option>
 				
-				<option value="file4">restaurante/controllers/IncidenciaController.go (33.1%)</option>
+				<option value="file4">restaurante/controllers/IncidenciaController.go (62.3%)</option>
 				
 				<option value="file5">restaurante/controllers/LoginController.go (94.4%)</option>
 				
 				<option value="file6">restaurante/controllers/MetodoPagoController.go (88.0%)</option>
 				
-				<option value="file7">restaurante/controllers/NominaController.go (48.8%)</option>
+				<option value="file7">restaurante/controllers/NominaController.go (49.2%)</option>
 				
-				<option value="file8">restaurante/controllers/NominaTrabajadorController.go (60.6%)</option>
+				<option value="file8">restaurante/controllers/NominaTrabajadorController.go (54.6%)</option>
 				
 				<option value="file9">restaurante/controllers/PagoController.go (90.0%)</option>
 				
@@ -122,6 +122,7 @@
 
 import (
         "encoding/json"
+        "errors"
         "net/http"
         "restaurante/database"
         "restaurante/models"
@@ -136,9 +137,12 @@ type CambiosHorarioController struct {
 }
 
 // Hook existente en tu versión (lo mantenemos igual: recibe string)
-var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error <span class="cov0" title="0">{
-        return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)
-}</span>
+var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error <span class="cov1" title="2">{
+        if o == nil </span><span class="cov1" title="1">{
+                return errors.New("nil ormer")
+        }</span>
+        <span class="cov1" title="1">return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)</span>
+}
 
 /*
 Hooks extra para poder mockear en tests SIN tocar Postgres.
@@ -148,21 +152,36 @@ filtras con "cambioHorarioId". Si ese es el campo del struct (no la columna), se
 Si tu struct realmente se llama PK_ID_CAMBIO_HORARIO, cámbialo también aquí y en los tests.
 */
 var (
-        queryAllCambiosHorario = func(o orm.Ormer, horarios *[]models.CambiosHorario) (int64, error) <span class="cov0" title="0">{
-                return o.QueryTable(new(models.CambiosHorario)).All(horarios)
-        }</span>
-        insertCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) <span class="cov0" title="0">{
-                return o.Insert(horario)
-        }</span>
-        queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error <span class="cov0" title="0">{
-                return o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).One(horario)
-        }</span>
-        updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) <span class="cov0" title="0">{
-                return o.Update(horario)
-        }</span>
-        deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) <span class="cov0" title="0">{
-                return o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).Delete()
-        }</span>
+        queryAllCambiosHorario = func(o orm.Ormer, horarios *[]models.CambiosHorario) (int64, error) <span class="cov1" title="2">{
+                if o == nil </span><span class="cov1" title="1">{
+                        return 0, errors.New("nil ormer")
+                }</span>
+                <span class="cov1" title="1">return o.QueryTable(new(models.CambiosHorario)).All(horarios)</span>
+        }
+        insertCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) <span class="cov1" title="2">{
+                if o == nil </span><span class="cov1" title="1">{
+                        return 0, errors.New("nil ormer")
+                }</span>
+                <span class="cov1" title="1">return o.Insert(horario)</span>
+        }
+        queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error <span class="cov2" title="3">{
+                if o == nil </span><span class="cov1" title="1">{
+                        return errors.New("nil ormer")
+                }</span>
+                <span class="cov1" title="2">return o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).One(horario)</span>
+        }
+        updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) <span class="cov1" title="2">{
+                if o == nil </span><span class="cov1" title="1">{
+                        return 0, errors.New("nil ormer")
+                }</span>
+                <span class="cov1" title="1">return o.Update(horario)</span>
+        }
+        deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) <span class="cov1" title="2">{
+                if o == nil </span><span class="cov1" title="1">{
+                        return 0, errors.New("nil ormer")
+                }</span>
+                <span class="cov1" title="1">return o.QueryTable(new(models.CambiosHorario)).Filter("PK_ID_CAMBIO_HORARIO", id).Delete()</span>
+        }
 )
 
 // @Title GetAll
@@ -174,7 +193,7 @@ var (
 // @Success 200 {array} map[string]interface{} "Listado de cambios de horario"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [get]
-func (c *CambiosHorarioController) GetAll() <span class="cov5" title="3">{
+func (c *CambiosHorarioController) GetAll() <span class="cov3" title="8">{
         o := orm.NewOrm()
         var horarios []models.CambiosHorario
 
@@ -190,27 +209,27 @@ func (c *CambiosHorarioController) GetAll() <span class="cov5" title="3">{
                 return
         }</span>
 
-        <span class="cov3" title="2">var response []map[string]interface{}
-        for _, horario := range horarios </span><span class="cov5" title="3">{
+        <span class="cov3" title="7">var response []map[string]interface{}
+        for _, horario := range horarios </span><span class="cov10" title="1010">{
                 h := map[string]interface{}{
                         "cambioHorarioId":    horario.PK_ID_CAMBIO_HORARIO,
                         "fechaCambioHorario": horario.FECHA.Format("2006-01-02"),
                         "abierto":            horario.ABIERTO,
                 }
-                if horario.HORA_APERTURA != nil </span><span class="cov1" title="1">{
+                if horario.HORA_APERTURA != nil </span><span class="cov2" title="3">{
                         h["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
-                }</span> else<span class="cov3" title="2"> {
+                }</span> else<span class="cov9" title="1007"> {
                         h["horaApertura"] = nil
                 }</span>
-                <span class="cov5" title="3">if !horario.HORA_CIERRE.IsZero() </span><span class="cov1" title="1">{
+                <span class="cov10" title="1010">if !horario.HORA_CIERRE.IsZero() </span><span class="cov2" title="3">{
                         h["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
-                }</span> else<span class="cov3" title="2"> {
+                }</span> else<span class="cov9" title="1007"> {
                         h["horaCierre"] = nil
                 }</span>
-                <span class="cov5" title="3">response = append(response, h)</span>
+                <span class="cov10" title="1010">response = append(response, h)</span>
         }
 
-        <span class="cov3" title="2">c.Data["json"] = models.ApiResponse{
+        <span class="cov3" title="7">c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Cambios de horario obtenidos correctamente",
                 Data:    response,
@@ -228,14 +247,14 @@ func (c *CambiosHorarioController) GetAll() <span class="cov5" title="3">{
 // @Failure 200 {object} models.ApiResponse "No hay cambios de horario para la fecha actual"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario/actual [get]
-func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov5" title="3">{
+func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov3" title="5">{
         o := orm.NewOrm()
         var cambioHorario models.CambiosHorario
 
         currentDate := time.Now().In(database.BogotaZone)
 
         err := queryCambioHorarioByDate(o, currentDate.Format("2006-01-02"), &amp;cambioHorario)
-        if err == orm.ErrNoRows </span><span class="cov1" title="1">{
+        if err == orm.ErrNoRows </span><span class="cov1" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusOK,
@@ -243,7 +262,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov5" title="
                 }
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov3" title="2"> if err != nil </span><span class="cov1" title="1">{
+        }</span> else<span class="cov2" title="3"> if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -254,7 +273,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov5" title="
                 return
         }</span>
 
-        <span class="cov1" title="1">response := map[string]interface{}{
+        <span class="cov1" title="2">response := map[string]interface{}{
                 "cambioHorarioId":    cambioHorario.PK_ID_CAMBIO_HORARIO,
                 "fechaCambioHorario": cambioHorario.FECHA.Format("2006-01-02"),
                 "abierto":            cambioHorario.ABIERTO,
@@ -262,11 +281,11 @@ func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov5" title="
         if cambioHorario.HORA_APERTURA != nil </span><span class="cov1" title="1">{
                 response["horaApertura"] = cambioHorario.HORA_APERTURA.Format("15:04:05")
         }</span>
-        <span class="cov1" title="1">if !cambioHorario.HORA_CIERRE.IsZero() </span><span class="cov1" title="1">{
+        <span class="cov1" title="2">if !cambioHorario.HORA_CIERRE.IsZero() </span><span class="cov1" title="1">{
                 response["horaCierre"] = cambioHorario.HORA_CIERRE.Format("15:04:05")
         }</span>
 
-        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov1" title="2">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Cambio de horario encontrado para la fecha actual",
@@ -286,7 +305,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() <span class="cov5" title="
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [post]
-func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
+func (c *CambiosHorarioController) Post() <span class="cov4" title="20">{
         o := orm.NewOrm()
         var input map[string]interface{}
         var horario models.CambiosHorario
@@ -302,7 +321,7 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                 return
         }</span>
 
-        <span class="cov9" title="10">if fechaStr, ok := input["fechaCambioHorario"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov9" title="9">{
+        <span class="cov4" title="19">if fechaStr, ok := input["fechaCambioHorario"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov4" title="17">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
                 if err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -314,8 +333,8 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov8" title="8">horario.FECHA = parsedDate</span>
-        } else<span class="cov1" title="1"> {
+                <span class="cov4" title="16">horario.FECHA = parsedDate</span>
+        } else<span class="cov1" title="2"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -325,7 +344,7 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                 return
         }</span>
 
-        <span class="cov8" title="8">if abierto, ok := input["abierto"].(bool); ok </span><span class="cov8" title="7">{
+        <span class="cov4" title="16">if abierto, ok := input["abierto"].(bool); ok </span><span class="cov4" title="15">{
                 horario.ABIERTO = abierto
         }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -337,13 +356,13 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                 return
         }</span>
 
-        <span class="cov8" title="7">if !horario.ABIERTO </span><span class="cov3" title="2">{
+        <span class="cov4" title="15">if !horario.ABIERTO </span><span class="cov2" title="3">{
                 horaApertura, _ := time.Parse("15:04:05", "00:00:00")
                 horaCierre, _ := time.Parse("15:04:05", "23:59:59")
                 horario.HORA_APERTURA = &amp;horaApertura
                 horario.HORA_CIERRE = horaCierre
-        }</span> else<span class="cov7" title="5"> {
-                if horaAperturaStr, ok := input["horaApertura"].(string); ok &amp;&amp; horaAperturaStr != "" </span><span class="cov6" title="4">{
+        }</span> else<span class="cov4" title="12"> {
+                if horaAperturaStr, ok := input["horaApertura"].(string); ok &amp;&amp; horaAperturaStr != "" </span><span class="cov4" title="11">{
                         parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
                         if err != nil </span><span class="cov1" title="1">{
                                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -355,7 +374,7 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                                 c.ServeJSON()
                                 return
                         }</span>
-                        <span class="cov5" title="3">horario.HORA_APERTURA = &amp;parsedHora</span>
+                        <span class="cov3" title="10">horario.HORA_APERTURA = &amp;parsedHora</span>
                 } else<span class="cov1" title="1"> {
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
                         c.Data["json"] = models.ApiResponse{
@@ -366,7 +385,7 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                         return
                 }</span>
 
-                <span class="cov5" title="3">if horaCierreStr, ok := input["horaCierre"].(string); ok &amp;&amp; horaCierreStr != "" </span><span class="cov3" title="2">{
+                <span class="cov3" title="10">if horaCierreStr, ok := input["horaCierre"].(string); ok &amp;&amp; horaCierreStr != "" </span><span class="cov3" title="9">{
                         parsedHora, err := time.Parse("15:04:05", horaCierreStr)
                         if err != nil </span><span class="cov1" title="1">{
                                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -378,7 +397,7 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                                 c.ServeJSON()
                                 return
                         }</span>
-                        <span class="cov1" title="1">horario.HORA_CIERRE = parsedHora</span>
+                        <span class="cov3" title="8">horario.HORA_CIERRE = parsedHora</span>
                 } else<span class="cov1" title="1"> {
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
                         c.Data["json"] = models.ApiResponse{
@@ -390,7 +409,7 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                 }</span>
         }
 
-        <span class="cov5" title="3">if _, err := insertCambioHorario(o, &amp;horario); err != nil </span><span class="cov1" title="1">{
+        <span class="cov4" title="11">if _, err := insertCambioHorario(o, &amp;horario); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -401,19 +420,19 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
                 return
         }</span>
 
-        <span class="cov3" title="2">response := map[string]interface{}{
+        <span class="cov3" title="10">response := map[string]interface{}{
                 "cambioHorarioId":    horario.PK_ID_CAMBIO_HORARIO,
                 "fechaCambioHorario": horario.FECHA.Format("2006-01-02"),
                 "abierto":            horario.ABIERTO,
         }
-        if horario.HORA_APERTURA != nil </span><span class="cov3" title="2">{
+        if horario.HORA_APERTURA != nil </span><span class="cov3" title="10">{
                 response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
         }</span>
-        <span class="cov3" title="2">if !horario.HORA_CIERRE.IsZero() </span><span class="cov3" title="2">{
+        <span class="cov3" title="10">if !horario.HORA_CIERRE.IsZero() </span><span class="cov3" title="10">{
                 response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
         }</span>
 
-        <span class="cov3" title="2">c.Ctx.Output.SetStatus(http.StatusCreated)
+        <span class="cov3" title="10">c.Ctx.Output.SetStatus(http.StatusCreated)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusCreated,
                 Message: "Cambio de horario creado correctamente",
@@ -435,7 +454,7 @@ func (c *CambiosHorarioController) Post() <span class="cov10" title="11">{
 // @Failure 404 {object} models.ApiResponse "Cambio de horario no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [put]
-func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
+func (c *CambiosHorarioController) Put() <span class="cov4" title="19">{
         o := orm.NewOrm()
         id, err := c.GetInt64("id")
         if err != nil || id == 0 </span><span class="cov1" title="1">{
@@ -448,7 +467,7 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                 return
         }</span>
 
-        <span class="cov9" title="9">var input map[string]interface{}
+        <span class="cov4" title="18">var input map[string]interface{}
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -460,8 +479,8 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                 return
         }</span>
 
-        <span class="cov8" title="8">var horario models.CambiosHorario
-        if err := queryCambioHorarioByID(o, id, &amp;horario); err == orm.ErrNoRows </span><span class="cov1" title="1">{
+        <span class="cov4" title="17">var horario models.CambiosHorario
+        if err := queryCambioHorarioByID(o, id, &amp;horario); err == orm.ErrNoRows </span><span class="cov1" title="2">{
                 // Se mantiene tu semántica original: 200 con Code=404 en el body
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
@@ -470,7 +489,7 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                 }
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov8" title="7"> if err != nil </span><span class="cov1" title="1">{
+        }</span> else<span class="cov4" title="15"> if err != nil </span><span class="cov1" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -481,7 +500,7 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                 return
         }</span>
 
-        <span class="cov7" title="6">if fechaStr, ok := input["fechaCambioHorario"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov3" title="2">{
+        <span class="cov4" title="13">if fechaStr, ok := input["fechaCambioHorario"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov3" title="5">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
                 if err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -493,12 +512,12 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov1" title="1">horario.FECHA = parsedDate</span>
+                <span class="cov2" title="4">horario.FECHA = parsedDate</span>
         }
 
-        <span class="cov7" title="5">if abierto, ok := input["abierto"].(bool); ok </span><span class="cov7" title="5">{
+        <span class="cov4" title="12">if abierto, ok := input["abierto"].(bool); ok </span><span class="cov3" title="8">{
                 horario.ABIERTO = abierto
-                if !abierto </span><span class="cov1" title="1">{
+                if !abierto </span><span class="cov1" title="2">{
                         horaApertura, _ := time.Parse("15:04:05", "00:00:00")
                         horaCierre, _ := time.Parse("15:04:05", "23:59:59")
                         horario.HORA_APERTURA = &amp;horaApertura
@@ -506,8 +525,8 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                 }</span>
         }
 
-        <span class="cov7" title="5">if horario.ABIERTO </span><span class="cov6" title="4">{
-                if horaAperturaStr, ok := input["horaApertura"].(string); ok &amp;&amp; horaAperturaStr != "" </span><span class="cov6" title="4">{
+        <span class="cov4" title="12">if horario.ABIERTO </span><span class="cov3" title="9">{
+                if horaAperturaStr, ok := input["horaApertura"].(string); ok &amp;&amp; horaAperturaStr != "" </span><span class="cov3" title="7">{
                         parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
                         if err != nil </span><span class="cov1" title="1">{
                                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -519,10 +538,10 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                                 c.ServeJSON()
                                 return
                         }</span>
-                        <span class="cov5" title="3">horario.HORA_APERTURA = &amp;parsedHora</span>
+                        <span class="cov3" title="6">horario.HORA_APERTURA = &amp;parsedHora</span>
                 }
 
-                <span class="cov5" title="3">if horaCierreStr, ok := input["horaCierre"].(string); ok &amp;&amp; horaCierreStr != "" </span><span class="cov5" title="3">{
+                <span class="cov3" title="8">if horaCierreStr, ok := input["horaCierre"].(string); ok &amp;&amp; horaCierreStr != "" </span><span class="cov3" title="6">{
                         parsedHora, err := time.Parse("15:04:05", horaCierreStr)
                         if err != nil </span><span class="cov1" title="1">{
                                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -534,11 +553,11 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                                 c.ServeJSON()
                                 return
                         }</span>
-                        <span class="cov3" title="2">horario.HORA_CIERRE = parsedHora</span>
+                        <span class="cov3" title="5">horario.HORA_CIERRE = parsedHora</span>
                 }
         }
 
-        <span class="cov5" title="3">if _, err := updateCambioHorario(o, &amp;horario); err != nil </span><span class="cov1" title="1">{
+        <span class="cov3" title="10">if _, err := updateCambioHorario(o, &amp;horario); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -549,19 +568,19 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
                 return
         }</span>
 
-        <span class="cov3" title="2">response := map[string]interface{}{
+        <span class="cov3" title="9">response := map[string]interface{}{
                 "cambioHorarioId": horario.PK_ID_CAMBIO_HORARIO,
                 "fecha":           horario.FECHA.Format("2006-01-02"),
                 "abierto":         horario.ABIERTO,
         }
-        if horario.HORA_APERTURA != nil </span><span class="cov3" title="2">{
+        if horario.HORA_APERTURA != nil </span><span class="cov3" title="8">{
                 response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
         }</span>
-        <span class="cov3" title="2">if !horario.HORA_CIERRE.IsZero() </span><span class="cov3" title="2">{
+        <span class="cov3" title="9">if !horario.HORA_CIERRE.IsZero() </span><span class="cov3" title="8">{
                 response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
         }</span>
 
-        <span class="cov3" title="2">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov3" title="9">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Cambio de horario actualizado correctamente",
@@ -581,10 +600,10 @@ func (c *CambiosHorarioController) Put() <span class="cov9" title="10">{
 // @Failure 404 {object} models.ApiResponse "Cambio de horario no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /cambios_horario [delete]
-func (c *CambiosHorarioController) Delete() <span class="cov6" title="4">{
+func (c *CambiosHorarioController) Delete() <span class="cov3" title="7">{
         o := orm.NewOrm()
         id, err := c.GetInt64("id")
-        if err != nil || id == 0 </span><span class="cov1" title="1">{
+        if err != nil || id == 0 </span><span class="cov2" title="3">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -594,7 +613,7 @@ func (c *CambiosHorarioController) Delete() <span class="cov6" title="4">{
                 return
         }</span>
 
-        <span class="cov5" title="3">if num, err := deleteCambioHorarioByID(o, id); err != nil </span><span class="cov1" title="1">{
+        <span class="cov2" title="4">if num, err := deleteCambioHorarioByID(o, id); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -602,7 +621,7 @@ func (c *CambiosHorarioController) Delete() <span class="cov6" title="4">{
                         Cause:   err.Error(),
                 }
                 c.ServeJSON()
-        }</span> else<span class="cov3" title="2"> if num == 0 </span><span class="cov1" title="1">{
+        }</span> else<span class="cov2" title="3"> if num == 0 </span><span class="cov1" title="2">{
                 // Se mantiene tu semántica: 200 con Code=404
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
@@ -2103,7 +2122,7 @@ func (c *IncidenciaController) GetAll() <span class="cov1" title="1">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias/search [get]
-func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov7" title="3">{
+func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov7" title="4">{
         o := orm.NewOrm()
 
         // Obtener parámetros de la consulta
@@ -2118,7 +2137,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov7" title="
                 return
         }</span>
 
-        <span class="cov4" title="2">mes, err := c.GetInt("mes")
+        <span class="cov6" title="3">mes, err := c.GetInt("mes")
         if err != nil || mes &lt; 1 || mes &gt; 12 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -2129,7 +2148,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov7" title="
                 return
         }</span>
 
-        <span class="cov1" title="1">anio, err := c.GetInt("anio")
+        <span class="cov4" title="2">anio, err := c.GetInt("anio")
         if err != nil || anio &lt; 1900 || anio &gt; time.Now().Year() </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -2141,7 +2160,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov7" title="
         }</span>
 
         // Calcular rango de fechas
-        <span class="cov0" title="0">fechaInicio := time.Date(anio, time.Month(mes), 1, 0, 0, 0, 0, time.UTC)
+        <span class="cov1" title="1">fechaInicio := time.Date(anio, time.Month(mes), 1, 0, 0, 0, 0, time.UTC)
         fechaFin := fechaInicio.AddDate(0, 1, 0).Add(-time.Second) // Fin del mes
 
         // Filtrar las incidencias
@@ -2152,7 +2171,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov7" title="
                 Filter("FECHA__lte", fechaFin.Format("2006-01-02")).
                 All(&amp;incidencias)
 
-        if err == orm.ErrNoRows || len(incidencias) == 0 </span><span class="cov0" title="0">{
+        if err == orm.ErrNoRows || len(incidencias) == 0 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -2193,13 +2212,13 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov7" title="
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [post]
-func (c *IncidenciaController) Post() <span class="cov10" title="5">{
+func (c *IncidenciaController) Post() <span class="cov10" title="7">{
         o := orm.NewOrm()
         var input map[string]interface{}
         var incidencia models.Incidencia
 
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov10" title="5">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov8" title="5">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2211,7 +2230,7 @@ func (c *IncidenciaController) Post() <span class="cov10" title="5">{
         }</span>
 
         // Validar y procesar fechaIncidencia
-        <span class="cov0" title="0">if fechaStr, ok := input["fechaIncidencia"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov0" title="0">{
+        <span class="cov4" title="2">if fechaStr, ok := input["fechaIncidencia"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov4" title="2">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
                 if err != nil </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2223,7 +2242,7 @@ func (c *IncidenciaController) Post() <span class="cov10" title="5">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">incidencia.FECHA = parsedDate</span>
+                <span class="cov4" title="2">incidencia.FECHA = parsedDate</span>
         } else<span class="cov0" title="0"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -2235,7 +2254,7 @@ func (c *IncidenciaController) Post() <span class="cov10" title="5">{
         }</span>
 
         // Validar y procesar monto
-        <span class="cov0" title="0">if monto, ok := input["monto"].(float64); ok </span><span class="cov0" title="0">{
+        <span class="cov4" title="2">if monto, ok := input["monto"].(float64); ok </span><span class="cov4" title="2">{
                 incidencia.MONTO = int64(monto)
         }</span> else<span class="cov0" title="0"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2248,9 +2267,9 @@ func (c *IncidenciaController) Post() <span class="cov10" title="5">{
         }</span>
 
         // Validar y procesar resta
-        <span class="cov0" title="0">if resta, ok := input["resta"].(bool); ok </span><span class="cov0" title="0">{
+        <span class="cov4" title="2">if resta, ok := input["resta"].(bool); ok </span><span class="cov1" title="1">{
                 incidencia.RESTA = resta
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2261,9 +2280,9 @@ func (c *IncidenciaController) Post() <span class="cov10" title="5">{
         }</span>
 
         // Validar y procesar motivo
-        <span class="cov0" title="0">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov0" title="0">{
                 incidencia.MOTIVO = motivo
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
@@ -2339,7 +2358,7 @@ func (c *IncidenciaController) Post() <span class="cov10" title="5">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [put]
-func (c *IncidenciaController) Put() <span class="cov7" title="3">{
+func (c *IncidenciaController) Put() <span class="cov7" title="4">{
         o := orm.NewOrm()
 
         // Obtener el ID de la incidencia desde los parámetros
@@ -2356,7 +2375,7 @@ func (c *IncidenciaController) Put() <span class="cov7" title="3">{
         }</span>
 
         // Buscar la incidencia por ID
-        <span class="cov4" title="2">incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
+        <span class="cov6" title="3">incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
         if err := o.Read(&amp;incidencia); err == orm.ErrNoRows </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
@@ -2368,7 +2387,7 @@ func (c *IncidenciaController) Put() <span class="cov7" title="3">{
         }</span>
 
         // Deserializar los datos actualizados desde el cuerpo de la solicitud
-        <span class="cov4" title="2">var input map[string]interface{}
+        <span class="cov6" title="3">var input map[string]interface{}
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov4" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -2381,7 +2400,7 @@ func (c *IncidenciaController) Put() <span class="cov7" title="3">{
         }</span>
 
         // Validar y actualizar los campos
-        <span class="cov0" title="0">if fechaStr, ok := input["fechaIncidencia"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if fechaStr, ok := input["fechaIncidencia"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov1" title="1">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
                 if err != nil </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2393,28 +2412,28 @@ func (c *IncidenciaController) Put() <span class="cov7" title="3">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov0" title="0">incidencia.FECHA = parsedDate</span>
+                <span class="cov1" title="1">incidencia.FECHA = parsedDate</span>
         }
 
-        <span class="cov0" title="0">if monto, ok := input["monto"].(float64); ok </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if monto, ok := input["monto"].(float64); ok </span><span class="cov1" title="1">{
                 incidencia.MONTO = int64(monto)
         }</span>
 
-        <span class="cov0" title="0">if resta, ok := input["resta"].(bool); ok </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if resta, ok := input["resta"].(bool); ok </span><span class="cov1" title="1">{
                 incidencia.RESTA = resta
         }</span>
 
-        <span class="cov0" title="0">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov1" title="1">{
                 incidencia.MOTIVO = motivo
         }</span>
 
-        <span class="cov0" title="0">if documento, ok := input["documentoTrabajador"].(float64); ok &amp;&amp; documento != 0 </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if documento, ok := input["documentoTrabajador"].(float64); ok &amp;&amp; documento != 0 </span><span class="cov1" title="1">{
                 doc := int64(documento)
                 incidencia.PK_DOCUMENTO_TRABAJADOR = &amp;models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
         }</span>
 
         // Guardar los cambios en la base de datos
-        <span class="cov0" title="0">if _, err := o.Update(&amp;incidencia); err != nil </span><span class="cov0" title="0">{
+        <span class="cov1" title="1">if _, err := o.Update(&amp;incidencia); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2461,7 +2480,7 @@ func (c *IncidenciaController) Put() <span class="cov7" title="3">{
 // @Failure 404 {object} models.ApiResponse "Incidencia no encontrada"
 // @Security BearerAuth
 // @Router /incidencias [delete]
-func (c *IncidenciaController) Delete() <span class="cov1" title="1">{
+func (c *IncidenciaController) Delete() <span class="cov4" title="2">{
         o := orm.NewOrm()
         id, err := c.GetInt64("id")
         if err != nil </span><span class="cov1" title="1">{
@@ -2474,7 +2493,7 @@ func (c *IncidenciaController) Delete() <span class="cov1" title="1">{
                 return
         }</span>
 
-        <span class="cov0" title="0">_, err = o.Delete(&amp;models.Incidencia{PK_ID_INCIDENCIA: id})
+        <span class="cov1" title="1">_, err = o.Delete(&amp;models.Incidencia{PK_ID_INCIDENCIA: id})
         if err == orm.ErrNoRows </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
@@ -2483,7 +2502,7 @@ func (c *IncidenciaController) Delete() <span class="cov1" title="1">{
                 }
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov0" title="0"> if err != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov1" title="1"> if err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -3129,7 +3148,8 @@ func (c *NominaController) Post() <span class="cov10" title="2">{
                 return
         }</span>
         <span class="cov1" title="1">if input.FECHA.IsZero() </span><span class="cov1" title="1">{
-                input.FECHA = time.Now()
+                now := time.Now()
+                input.FECHA = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
         }</span>
 
         <span class="cov1" title="1">if !estadosNominaPermitidos[input.ESTADO_NOMINA] </span><span class="cov1" title="1">{
@@ -3138,8 +3158,7 @@ func (c *NominaController) Post() <span class="cov10" title="2">{
 
         <span class="cov1" title="1">input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
 
-        _, err := o.Insert(&amp;input)
-        if err != nil </span><span class="cov1" title="1">{
+        if _, err := o.Insert(&amp;input); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -3150,7 +3169,6 @@ func (c *NominaController) Post() <span class="cov10" title="2">{
                 return
         }</span>
 
-        // Ejecutar funciones adicionales si se solicitan
         <span class="cov0" title="0">if gen </span><span class="cov0" title="0">{
                 if _, err := o.Raw("CALL generar_nomina_automatica(?, ?)", input.PK_ID_NOMINA, input.FECHA).Exec(); err != nil </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -3178,10 +3196,9 @@ func (c *NominaController) Post() <span class="cov10" title="2">{
         }
 
         <span class="cov0" title="0">var updatedNomina models.Nomina
-        err = o.QueryTable(new(models.Nomina)).
+        if err := o.QueryTable(new(models.Nomina)).
                 Filter("PK_ID_NOMINA", input.PK_ID_NOMINA).
-                One(&amp;updatedNomina)
-        if err != nil </span><span class="cov0" title="0">{
+                One(&amp;updatedNomina); err != nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -3488,7 +3505,37 @@ func (c *NominaTrabajadorController) Post() <span class="cov10" title="3">{
         nominaTrabajador.DETALLES = &amp;descripcion
 
         // Registrar en la base de datos
-        _, err = o.Insert(&amp;nominaTrabajador)
+        // Asignar la nómina correspondiente (usar la nómina más reciente si no se especifica)
+        var ultimaNomina models.Nomina
+        err = o.QueryTable(new(models.Nomina)).OrderBy("-fecha").One(&amp;ultimaNomina)
+        if err != nil </span><span class="cov0" title="0">{
+                c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+                c.Data["json"] = models.ApiResponse{
+                        Code:    http.StatusInternalServerError,
+                        Message: "Error al obtener la nómina activa",
+                        Cause:   err.Error(),
+                }
+                c.ServeJSON()
+                return
+        }</span>
+        <span class="cov0" title="0">nominaTrabajador.PK_ID_NOMINA = &amp;ultimaNomina
+
+        // Verificar si ya existe la relación (mismo trabajador y misma nómina)
+        exists := o.QueryTable(new(models.NominaTrabajador)).
+                Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
+                Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
+                Exist()
+        if exists </span><span class="cov0" title="0">{
+                c.Ctx.Output.SetStatus(http.StatusConflict)
+                c.Data["json"] = models.ApiResponse{
+                        Code:    http.StatusConflict,
+                        Message: "La relación nómina-trabajador ya existe para esta nómina y trabajador",
+                }
+                c.ServeJSON()
+                return
+        }</span>
+
+        <span class="cov0" title="0">_, err = o.Insert(&amp;nominaTrabajador)
         if err != nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
