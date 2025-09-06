@@ -89,7 +89,7 @@ func (c *NominaController) GetAll() {
 
 // @Title Post
 // @Summary Crear una nueva nómina
-// @Description Inserta un registro en la tabla "NOMINA" para activar el trigger y generar automáticamente los cálculos de nómina.
+// @Description Inserta un registro en la tabla "NOMINA"; el trigger genera automáticamente los cálculos.
 // @Tags nominas
 // @Accept json
 // @Produce json
@@ -102,9 +102,6 @@ func (c *NominaController) GetAll() {
 func (c *NominaController) Post() {
 	o := orm.NewOrm()
 	var input models.Nomina
-
-	gen, _ := c.GetBool("generar_nomina_automatica", false)
-	ver, _ := c.GetBool("verificar_nomina", false)
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -125,7 +122,7 @@ func (c *NominaController) Post() {
 		input.ESTADO_NOMINA = models.EstadoNominaNoPago
 	}
 
-	input.MONTO = 0 // Dejar en 0 para que sea calculado automáticamente por la función
+	input.MONTO = 0 // lo calcula el trigger tras el insert
 
 	if _, err := o.Insert(&input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -136,32 +133,6 @@ func (c *NominaController) Post() {
 		}
 		c.ServeJSON()
 		return
-	}
-
-	if gen {
-		if _, err := o.Raw("CALL generar_nomina_automatica(?, ?)", input.PK_ID_NOMINA, input.FECHA).Exec(); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al generar nómina automática",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
-	}
-
-	if ver {
-		if _, err := o.Raw("CALL verificar_nomina()").Exec(); err != nil {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al verificar nómina",
-				Cause:   err.Error(),
-			}
-			c.ServeJSON()
-			return
-		}
 	}
 
 	var updatedNomina models.Nomina

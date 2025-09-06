@@ -85,10 +85,10 @@ definitions:
     enum:
     - DiaLunes = "Lunes"
     - DiaMartes = "Martes"
-    - DiaMiercoles = "Miercoles"
+    - DiaMiercoles = "Miércoles"
     - DiaJueves = "Jueves"
     - DiaViernes = "Viernes"
-    - DiaSabado = "Sabado"
+    - DiaSabado = "Sábado"
     - DiaDomingo = "Domingo"
     example: Lunes
   models.Domicilio:

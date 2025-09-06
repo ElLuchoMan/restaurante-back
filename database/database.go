@@ -20,6 +20,8 @@ var registerDataBase = orm.RegisterDataBase
 var loadLocation = time.LoadLocation
 
 func InitDB() error {
+	quiet := os.Getenv("QUIET_TESTS") == "1"
+
 	dbHost, _ := web.AppConfig.String("db_host")
 	dbPort, _ := web.AppConfig.String("db_port")
 	dbUser, _ := web.AppConfig.String("db_user")
@@ -29,21 +31,27 @@ func InitDB() error {
 	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable TimeZone=UTC",
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
-	err := registerDataBase("default", "postgres", connStr)
-	if err != nil {
+	if err := registerDataBase("default", "postgres", connStr); err != nil {
 		return err
 	}
 
-	fmt.Println("Conexión a la base de datos exitosa!")
-	fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
+	if !quiet {
+		fmt.Println("Conexión a la base de datos exitosa!")
+		fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
+	}
 
 	// Permitir desactivar el seed en unit tests para evitar depender del alias registrado
 	if os.Getenv("SKIP_DB_SEED") == "1" {
 		return nil
 	}
 
-	if err := seedMetodoPago(); err != nil {
-		fmt.Println("Error al poblar METODO_PAGO:", err)
+	// Ejecutar seed solo si el alias realmente existe en el ORM
+	if _, err := orm.GetDB("default"); err == nil {
+		if err := seedMetodoPago(); err != nil {
+			if !quiet {
+				fmt.Println("Error al poblar METODO_PAGO:", err)
+			}
+		}
 	}
 
 	return nil
@@ -55,7 +63,9 @@ func InitTimezone() {
 	var err error
 	BogotaZone, err = loadLocation("America/Bogota")
 	if err != nil {
-		log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
+		if os.Getenv("QUIET_TESTS") != "1" {
+			log.Println("Advertencia: Error al cargar el timezone 'America/Bogota'. Usando UTC.")
+		}
 		BogotaZone = time.FixedZone("UTC-5", -5*60*60)
 	}
 }

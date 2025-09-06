@@ -60,10 +60,10 @@ type DiaSemana = string
 const (
 	DiaLunes     DiaSemana = "Lunes"
 	DiaMartes    DiaSemana = "Martes"
-	DiaMiercoles DiaSemana = "Miercoles"
+	DiaMiercoles DiaSemana = "Miércoles"
 	DiaJueves    DiaSemana = "Jueves"
 	DiaViernes   DiaSemana = "Viernes"
-	DiaSabado    DiaSemana = "Sabado"
+	DiaSabado    DiaSemana = "Sábado"
 	DiaDomingo   DiaSemana = "Domingo"
 )
 

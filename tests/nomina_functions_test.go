@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -11,6 +12,9 @@ import (
 )
 
 func TestNominaGenerarYVerificar(t *testing.T) {
+	if os.Getenv("INTEGRATION") != "1" {
+		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
+	}
 	body := strings.NewReader(`{"FECHA":"2024-01-01T00:00:00Z"}`)
 	req := httptest.NewRequest(
 		http.MethodPost,

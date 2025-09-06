@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"restaurante/models"
 	"strconv"
 	"strings"
@@ -14,6 +15,9 @@ import (
 )
 
 func TestProductoPriceHistoryLifecycle(t *testing.T) {
+	if os.Getenv("INTEGRATION") != "1" {
+		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
+	}
 	o, err := getOrmer()
 	if err != nil {
 		t.Fatalf("orm not available: %v", err)

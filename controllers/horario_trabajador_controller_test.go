@@ -104,7 +104,7 @@ func TestHorarioTrabajadorPutSuccess(t *testing.T) {
 }
 
 func TestIsValidDia(t *testing.T) {
-	valid := []string{"LUNES", "martes", "Miercoles", "JUEVES", "viernes", "sabado", "DOMINGO"}
+	valid := []string{"LUNES", "martes", "Miércoles", "JUEVES", "viernes", "sábado", "DOMINGO"}
 	for _, d := range valid {
 		if !isValidDia(d) {
 			t.Errorf("expected %s to be valid", d)

@@ -20,14 +20,21 @@ func TestMain(m *testing.M) {
 	os.Chdir(appPath)
 	beego.TestBeegoInit(appPath)
 
+	// Saltar integración por defecto: solo correr con INTEGRATION=1
+	integration := os.Getenv("INTEGRATION") == "1"
+	if !integration {
+		// Desactivar seed y silenciar en modo no integración
+		_ = os.Setenv("SKIP_DB_SEED", "1")
+		_ = os.Setenv("QUIET_TESTS", "1")
+	}
+
 	// Initialize the database using the test configuration
 	if err := database.InitDB(); err != nil {
-		// Log the error but allow tests that do not require the
-		// database to run. This avoids reporting a coverage of
-		// "[no statements]" when the database is unavailable.
-		log.Println("Database unavailable, tests will run without DB:", err)
-	} else {
-		// Populate required seed data when a DB connection is available
+		if integration {
+			log.Println("Database unavailable, integration tests may fail:", err)
+		}
+	} else if integration {
+		// Solo poblar datos cuando se ejecuta en modo integración
 		SeedTestData()
 	}
 

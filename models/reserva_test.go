@@ -21,11 +21,11 @@ func TestReservaMarshalJSON(t *testing.T) {
 		t.Fatalf("json.Unmarshal returned error: %v", err)
 	}
 
-	if data["fechareserva"] != "12-09-2024" {
-		t.Errorf("expected fechareserva 12-09-2024, got %v", data["fechareserva"])
+	if data["fechaReserva"] != "12-09-2024" {
+		t.Errorf("expected fechaReserva 12-09-2024, got %v", data["fechaReserva"])
 	}
-	if data["estadoreserva"] != string(EstadoReservaConfirmada) {
-		t.Errorf("expected estadoreserva %s, got %v", EstadoReservaConfirmada, data["estadoreserva"])
+	if data["estadoReserva"] != string(EstadoReservaConfirmada) {
+		t.Errorf("expected estadoReserva %s, got %v", EstadoReservaConfirmada, data["estadoReserva"])
 	}
 }
 

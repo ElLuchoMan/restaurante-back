@@ -1,16 +1,20 @@
 package test
 
 import (
-    "net/http"
-    "strings"
-    "testing"
+	"net/http"
+	"os"
+	"strings"
+	"testing"
 
-    . "github.com/smartystreets/goconvey/convey"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 // TestLoginInvalidJSON ensures that the login endpoint returns
 // a 400 Bad Request response when the provided JSON is malformed.
 func TestLoginInvalidJSON(t *testing.T) {
+    if os.Getenv("INTEGRATION") != "1" {
+        t.Skip("Skipping integration test: set INTEGRATION=1 to run")
+    }
     rBody := strings.NewReader("{")
     req, _ := http.NewRequest("POST", "/restaurante/v1/login", rBody)
     req.Header.Set("Content-Type", "application/json")

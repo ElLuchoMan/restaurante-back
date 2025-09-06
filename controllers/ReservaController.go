@@ -614,7 +614,7 @@ func (c *ReservaController) Delete() {
 	reserva.UPDATED_AT = time.Now() // Actualizar la fecha de modificación
 
 	// Guardar los cambios en la base de datos
-	if _, err := updateReserva(o, &reserva, "estadoReserva", "updatedAt"); err != nil {
+	if _, err := updateReserva(o, &reserva, "ESTADO_RESERVA", "UPDATED_AT"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

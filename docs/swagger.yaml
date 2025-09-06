@@ -53,10 +53,10 @@ definitions:
     enum:
     - Lunes
     - Martes
-    - Miercoles
+    - Miércoles
     - Jueves
     - Viernes
-    - Sabado
+    - Sábado
     - Domingo
     type: string
     x-enum-varnames:
@@ -1637,8 +1637,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Inserta un registro en la tabla "NOMINA" para activar el trigger
-        y generar automáticamente los cálculos de nómina.
+      description: Inserta un registro en la tabla "NOMINA"; el trigger genera automáticamente
+        los cálculos.
       parameters:
       - description: Datos de la nómina a crear (sin 'MONTO')
         in: body
@@ -2761,7 +2761,7 @@ paths:
         "200":
           description: Trabajador actualizado
           schema:
-            $ref: '#/definitions/models.Trabajador'
+            $ref: '#/definitions/models.ApiResponse'
         "404":
           description: Trabajador no encontrado
           schema:

@@ -2,9 +2,11 @@ package test
 
 import (
 	"fmt"
-	"github.com/beego/beego/v2/client/orm"
+	"os"
 	"restaurante/models"
 	"testing"
+
+	"github.com/beego/beego/v2/client/orm"
 )
 
 func getOrmer() (orm.Ormer, error) {
@@ -22,6 +24,9 @@ func getOrmer() (orm.Ormer, error) {
 }
 
 func TestDetallePedidoTrigger(t *testing.T) {
+	if os.Getenv("INTEGRATION") != "1" {
+		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
+	}
 	o, err := getOrmer()
 	if err != nil {
 		t.Fatalf("orm not available: %v", err)
@@ -36,6 +41,9 @@ func TestDetallePedidoTrigger(t *testing.T) {
 }
 
 func TestDetallePedidoTriggerOnInsert(t *testing.T) {
+	if os.Getenv("INTEGRATION") != "1" {
+		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
+	}
 	o, err := getOrmer()
 	if err != nil {
 		t.Fatalf("orm not available: %v", err)
@@ -64,6 +72,9 @@ func TestDetallePedidoTriggerOnInsert(t *testing.T) {
 }
 
 func TestSetPrecioDetallePedidoTriggerExists(t *testing.T) {
+	if os.Getenv("INTEGRATION") != "1" {
+		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
+	}
 	o, err := getOrmer()
 	if err != nil {
 		t.Fatalf("orm not available: %v", err)

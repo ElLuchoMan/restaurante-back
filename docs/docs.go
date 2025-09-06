@@ -1870,7 +1870,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Inserta un registro en la tabla \"NOMINA\" para activar el trigger y generar automáticamente los cálculos de nómina.",
+                "description": "Inserta un registro en la tabla \"NOMINA\"; el trigger genera automáticamente los cálculos.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3497,7 +3497,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Trabajador actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.Trabajador"
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
@@ -3718,10 +3718,10 @@ const docTemplate = `{
             "enum": [
                 "Lunes",
                 "Martes",
-                "Miercoles",
+                "Miércoles",
                 "Jueves",
                 "Viernes",
-                "Sabado",
+                "Sábado",
                 "Domingo"
             ],
             "x-enum-varnames": [

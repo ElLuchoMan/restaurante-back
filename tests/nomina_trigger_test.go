@@ -1,6 +1,7 @@
 package test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -8,6 +9,9 @@ import (
 )
 
 func TestNominaTriggerGeneratesMonto(t *testing.T) {
+	if os.Getenv("INTEGRATION") != "1" {
+		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
+	}
 	o, err := getOrmer()
 	if err != nil {
 		t.Fatalf("orm not available: %v", err)
@@ -48,6 +52,9 @@ func TestNominaTriggerGeneratesMonto(t *testing.T) {
 }
 
 func TestNominaTriggerExists(t *testing.T) {
+	if os.Getenv("INTEGRATION") != "1" {
+		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
+	}
 	o, err := getOrmer()
 	if err != nil {
 		t.Fatalf("orm not available: %v", err)
