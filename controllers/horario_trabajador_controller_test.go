@@ -223,3 +223,224 @@ func TestHorarioTrabajadorDeleteSuccess(t *testing.T) {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
+
+func TestHorarioTrabajadorPostDecodeError(t *testing.T) {
+	c, w := setupHTCtx(http.MethodPost, "/horario_trabajador", "{")
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al decodificar la solicitud") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPostInvalidTimeFormat(t *testing.T) {
+	body := `{"documentoTrabajador":1,"dia":"LUNES","horaInicio":"08:00","horaFin":"17:00:00"}`
+	c, w := setupHTCtx(http.MethodPost, "/horario_trabajador", body)
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Formato de hora inválido") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPostDBError(t *testing.T) {
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("db error")
+	}
+	defer func() { MockExec = nil }()
+	body := `{"documentoTrabajador":1,"dia":"LUNES","horaInicio":"08:00:00","horaFin":"17:00:00"}`
+	c, w := setupHTCtx(http.MethodPost, "/horario_trabajador", body)
+	c.Post()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al crear horario") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPutInvalidDocumento(t *testing.T) {
+	body := `{"horaInicio":"09:00:00"}`
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=abc&dia=LUNES", body)
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Parámetro 'documento' inválido") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPutNotFound(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		return nil, orm.ErrNoRows
+	}
+	defer func() { MockQuery = nil }()
+	body := `{"horaInicio":"09:00:00"}`
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
+	c.Put()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Horario no encontrado") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPutQueryError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		return nil, errors.New("db error")
+	}
+	defer func() { MockQuery = nil }()
+	body := `{"horaInicio":"09:00:00"}`
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
+	c.Put()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al consultar horario") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPutDecodeError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
+		vals := [][]driver.Value{{int64(1), "LUNES", time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 17, 0, 0, 0, time.UTC)}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	defer func() { MockQuery = nil }()
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", "{")
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al decodificar la solicitud") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPutInvalidHoraInicio(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
+		vals := [][]driver.Value{{int64(1), "LUNES", time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 17, 0, 0, 0, time.UTC)}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	defer func() { MockQuery = nil }()
+	body := `{"horaInicio":"bad","horaFin":"18:00:00"}`
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Formato de horaInicio inválido") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPutInvalidHoraFin(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
+		vals := [][]driver.Value{{int64(1), "LUNES", time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 17, 0, 0, 0, time.UTC)}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	defer func() { MockQuery = nil }()
+	body := `{"horaFin":"bad"}`
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Formato de horaFin inválido") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPutInvalidHours(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
+		vals := [][]driver.Value{{int64(1), "LUNES", time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 17, 0, 0, 0, time.UTC)}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	defer func() { MockQuery = nil }()
+	body := `{"horaInicio":"18:00:00","horaFin":"17:00:00"}`
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "horaFin debe ser mayor que horaInicio") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorPutDBError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
+		vals := [][]driver.Value{{int64(1), "LUNES", time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC), time.Date(2024, 1, 1, 17, 0, 0, 0, time.UTC)}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("db error")
+	}
+	defer func() { MockQuery = nil; MockExec = nil }()
+	body := `{"horaFin":"18:00:00"}`
+	c, w := setupHTCtx(http.MethodPut, "/horario_trabajador?documento=1&dia=LUNES", body)
+	c.Put()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al actualizar horario") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorDeleteInvalidDocumento(t *testing.T) {
+	c, w := setupHTCtx(http.MethodDelete, "/horario_trabajador?documento=abc&dia=LUNES", "")
+	c.Delete()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Parámetro 'documento' inválido") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorDeleteQueryError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		return nil, errors.New("db error")
+	}
+	defer func() { MockQuery = nil }()
+	c, w := setupHTCtx(http.MethodDelete, "/horario_trabajador?documento=1&dia=LUNES", "")
+	c.Delete()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al eliminar horario") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHorarioTrabajadorDeleteExecError(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_trabajador", "dia"}
+		vals := [][]driver.Value{{int64(1), "Lunes"}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("db error")
+	}
+	defer func() { MockQuery = nil; MockExec = nil }()
+	c, w := setupHTCtx(http.MethodDelete, "/horario_trabajador?documento=1&dia=LUNES", "")
+	c.Delete()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al eliminar horario") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
