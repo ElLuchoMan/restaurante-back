@@ -15,6 +15,22 @@ type IncidenciaController struct {
 	web.Controller
 }
 
+// Hooks de ORM para pruebas
+type incidenciaOrmer interface {
+	QueryTable(interface{}) orm.QuerySeter
+	Insert(interface{}) (int64, error)
+	Read(interface{}, ...string) error
+	Update(interface{}, ...string) (int64, error)
+	Delete(interface{}, ...string) (int64, error)
+}
+type incidenciaOrmAdapter struct{ o orm.Ormer }
+func (a incidenciaOrmAdapter) QueryTable(i interface{}) orm.QuerySeter { return a.o.QueryTable(i) }
+func (a incidenciaOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
+func (a incidenciaOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
+func (a incidenciaOrmAdapter) Update(v interface{}, cols ...string) (int64, error) { return a.o.Update(v, cols...) }
+func (a incidenciaOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) { return a.o.Delete(v, cols...) }
+var incidenciaOrmNew = func() incidenciaOrmer { return incidenciaOrmAdapter{o: orm.NewOrm()} }
+
 // @Title GetAll
 // @Summary Obtener todas las incidencias
 // @Description Devuelve una lista de todas las incidencias registradas en la base de datos.
@@ -26,7 +42,7 @@ type IncidenciaController struct {
 // @Security BearerAuth
 // @Router /incidencias [get]
 func (c *IncidenciaController) GetAll() {
-	o := orm.NewOrm()
+	o := incidenciaOrmNew()
 	var incidencias []models.Incidencia
 
 	_, err := o.QueryTable(new(models.Incidencia)).All(&incidencias)
@@ -66,7 +82,7 @@ func (c *IncidenciaController) GetAll() {
 // @Security BearerAuth
 // @Router /incidencias/search [get]
 func (c *IncidenciaController) GetByDocumentAndDate() {
-	o := orm.NewOrm()
+	o := incidenciaOrmNew()
 
 	// Obtener parámetros de la consulta
 	documento, err := c.GetInt64("documento")
@@ -156,7 +172,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 // @Security BearerAuth
 // @Router /incidencias [post]
 func (c *IncidenciaController) Post() {
-	o := orm.NewOrm()
+	o := incidenciaOrmNew()
 	var input map[string]interface{}
 	var incidencia models.Incidencia
 
@@ -302,7 +318,7 @@ func (c *IncidenciaController) Post() {
 // @Security BearerAuth
 // @Router /incidencias [put]
 func (c *IncidenciaController) Put() {
-	o := orm.NewOrm()
+	o := incidenciaOrmNew()
 
 	// Obtener el ID de la incidencia desde los parámetros
 	idStr := c.GetString("id")
@@ -424,7 +440,7 @@ func (c *IncidenciaController) Put() {
 // @Security BearerAuth
 // @Router /incidencias [delete]
 func (c *IncidenciaController) Delete() {
-	o := orm.NewOrm()
+	o := incidenciaOrmNew()
 	id, err := c.GetInt64("id")
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)

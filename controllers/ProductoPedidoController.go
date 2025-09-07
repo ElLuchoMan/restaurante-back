@@ -18,6 +18,9 @@ type productoPedidoOrmer interface {
 
 // productoPedidoNewOrm allows tests to stub orm.NewOrm.
 var productoPedidoNewOrm = func() productoPedidoOrmer { return orm.NewOrm() }
+// Hooks para pruebas (permite stubear Begin y el Ormer base en tests)
+var productoPedidoBaseOrmNew = func() orm.Ormer { return orm.NewOrm() }
+var productoPedidoBeginTx = func(o orm.Ormer) (orm.TxOrmer, error) { return o.Begin() }
 
 type ProductoPedidoController struct {
 	web.Controller
@@ -141,7 +144,7 @@ func (c *ProductoPedidoController) Post() {
 	}
 
 	// Validación previa de stock para responder con detalle
-	o := orm.NewOrm()
+	o := productoPedidoBaseOrmNew()
 	if len(nuevos) > 0 {
 		ids := make([]int64, 0, len(nuevos))
 		for pid := range nuevos { ids = append(ids, pid) }
@@ -170,7 +173,7 @@ func (c *ProductoPedidoController) Post() {
 		}
 	}
 
-	tx, err := o.Begin()
+	tx, err := productoPedidoBeginTx(o)
 	if err != nil {
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible iniciar transacción", Cause: err.Error()}
 		c.ServeJSON()
@@ -298,7 +301,7 @@ func (c *ProductoPedidoController) Update() {
 		nuevos[d.PKIDProducto] += d.Cantidad
 	}
 
-	o := orm.NewOrm()
+	o := productoPedidoBaseOrmNew()
 
 	// Obtener cantidades actuales del pedido
 	var actuales []models.DetallePedido
@@ -356,7 +359,7 @@ func (c *ProductoPedidoController) Update() {
 		}
 	}
 
-	tx, err := o.Begin()
+	tx, err := productoPedidoBeginTx(o)
 	if err != nil {
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible iniciar transacción", Cause: err.Error()}
 		c.ServeJSON()
