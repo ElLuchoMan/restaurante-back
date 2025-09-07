@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
+
+	"restaurante/models"
 )
 
 // Test mínimo para que el paquete database tenga cobertura sin tocar la DB real.
@@ -96,14 +99,89 @@ func TestInitDBSuccess(t *testing.T) {
 	}
 }
 
-type fakeOrm struct{ orm.Ormer; inserted int; insertErr error }
+// InitDB debe retornar temprano cuando SKIP_DB_SEED está activo.
+func TestInitDBSkipSeed(t *testing.T) {
+	t.Setenv("SKIP_DB_SEED", "1")
+	_ = web.AppConfig.Set("db_host", "localhost")
+	_ = web.AppConfig.Set("db_port", "5432")
+	_ = web.AppConfig.Set("db_user", "user")
+	_ = web.AppConfig.Set("db_pass", "pass")
+	_ = web.AppConfig.Set("db_name", "db")
+
+	orig := registerDataBase
+	registerDataBase = func(alias, driver, conn string, params ...orm.DBOption) error { return nil }
+	t.Cleanup(func() { registerDataBase = orig })
+
+	if err := InitDB(); err != nil {
+		t.Fatalf("InitDB devolvió error: %v", err)
+	}
+}
+
+// Verifica que cuando el seed falla, el flujo continúa sin propagar el error.
+func TestInitDBSeedError(t *testing.T) {
+	t.Setenv("SKIP_DB_SEED", "0")
+	_ = web.AppConfig.Set("db_host", "localhost")
+	_ = web.AppConfig.Set("db_port", "5432")
+	_ = web.AppConfig.Set("db_user", "user")
+	_ = web.AppConfig.Set("db_pass", "pass")
+	_ = web.AppConfig.Set("db_name", "db")
+
+	origReg := registerDataBase
+	registerDataBase = func(alias, driver, conn string, params ...orm.DBOption) error { return nil }
+	origGetDB := getDB
+	getDB = func(aliasNames ...string) (*sql.DB, error) { return nil, nil }
+	origCount := countMetodoPagoByTipo
+	countMetodoPagoByTipo = func(o orm.Ormer, tipo string) (int64, error) { return 0, errors.New("boom") }
+	origNew := newOrmForSeed
+	newOrmForSeed = func() orm.Ormer { return nil }
+	t.Cleanup(func() {
+		registerDataBase = origReg
+		getDB = origGetDB
+		countMetodoPagoByTipo = origCount
+		newOrmForSeed = origNew
+	})
+
+	if err := InitDB(); err != nil {
+		t.Fatalf("InitDB devolvió error: %v", err)
+	}
+}
+
+// Asegura que las funciones de indirection se ejecuten correctamente.
+func TestIndirectionHelpers(t *testing.T) {
+	o := &simpleOrm{}
+	if _, err := countMetodoPagoByTipo(o, "tipo"); err != nil {
+		t.Fatalf("countMetodoPagoByTipo devolvió error: %v", err)
+	}
+	if _, err := insertFn(o, &models.MetodoPago{}); err != nil {
+		t.Fatalf("insertFn devolvió error: %v", err)
+	}
+}
+
+type simpleQS struct{ orm.QuerySeter }
+
+func (s *simpleQS) Filter(expr string, args ...interface{}) orm.QuerySeter { return s }
+
+func (s *simpleQS) Count() (int64, error) { return 0, nil }
+
+type simpleOrm struct{ orm.Ormer }
+
+func (o *simpleOrm) QueryTable(model interface{}) orm.QuerySeter { return &simpleQS{} }
+
+func (o *simpleOrm) Insert(model interface{}) (int64, error) { return 1, nil }
+
+type fakeOrm struct {
+	orm.Ormer
+	inserted  int
+	insertErr error
+}
+
 func (f *fakeOrm) Insert(interface{}) (int64, error) { f.inserted++; return 1, f.insertErr }
 
 func TestSeedMetodoPago_InsertsWhenEmpty(t *testing.T) {
 	origNew := newOrmForSeed
 	origCount := countMetodoPagoByTipo
 	origInsert := insertFn
-	t.Cleanup(func(){ newOrmForSeed = origNew; countMetodoPagoByTipo = origCount; insertFn = origInsert })
+	t.Cleanup(func() { newOrmForSeed = origNew; countMetodoPagoByTipo = origCount; insertFn = origInsert })
 
 	fo := &fakeOrm{}
 	newOrmForSeed = func() orm.Ormer { return fo }
@@ -122,7 +200,7 @@ func TestSeedMetodoPago_NoInsertWhenExists(t *testing.T) {
 	origNew := newOrmForSeed
 	origCount := countMetodoPagoByTipo
 	origInsert := insertFn
-	t.Cleanup(func(){ newOrmForSeed = origNew; countMetodoPagoByTipo = origCount; insertFn = origInsert })
+	t.Cleanup(func() { newOrmForSeed = origNew; countMetodoPagoByTipo = origCount; insertFn = origInsert })
 
 	fo := &fakeOrm{}
 	newOrmForSeed = func() orm.Ormer { return fo }
@@ -140,7 +218,7 @@ func TestSeedMetodoPago_NoInsertWhenExists(t *testing.T) {
 func TestSeedMetodoPago_ErrorOnCount(t *testing.T) {
 	origNew := newOrmForSeed
 	origCount := countMetodoPagoByTipo
-	t.Cleanup(func(){ newOrmForSeed = origNew; countMetodoPagoByTipo = origCount })
+	t.Cleanup(func() { newOrmForSeed = origNew; countMetodoPagoByTipo = origCount })
 
 	fo := &fakeOrm{}
 	newOrmForSeed = func() orm.Ormer { return fo }
@@ -155,7 +233,7 @@ func TestSeedMetodoPago_ErrorOnInsert(t *testing.T) {
 	origNew := newOrmForSeed
 	origCount := countMetodoPagoByTipo
 	origInsert := insertFn
-	t.Cleanup(func(){ newOrmForSeed = origNew; countMetodoPagoByTipo = origCount; insertFn = origInsert })
+	t.Cleanup(func() { newOrmForSeed = origNew; countMetodoPagoByTipo = origCount; insertFn = origInsert })
 
 	fo := &fakeOrm{insertErr: errors.New("insert fail")}
 	newOrmForSeed = func() orm.Ormer { return fo }
