@@ -45,15 +45,35 @@ func appInit() {
 
 // Funciones variables para facilitar pruebas del cron
 var (
-	nowFn           = time.Now
-	sleepFn         = time.Sleep
-	cronInsertNom   = func(o orm.Ormer, n *models.Nomina) (int64, error) { return o.Insert(n) }
-	cronRawExec     = func(o orm.Ormer, query string, args ...interface{}) (sql.Result, error) { return o.Raw(query, args...).Exec() }
+	nowFn         = time.Now
+	sleepFn       = time.Sleep
+	cronNewOrm    = orm.NewOrm
+	cronInsertNom = ormInsert
+	cronRawExec   = ormRawExec
+	webRun        = web.Run
 )
+
+func ormInsert(o orm.Ormer, n *models.Nomina) (int64, error) {
+	if o == nil {
+		return 0, nil
+	}
+	return o.Insert(n)
+}
+
+func ormRawExec(o orm.Ormer, query string, args ...interface{}) (sql.Result, error) {
+	if o == nil {
+		return nil, nil
+	}
+	rs := o.Raw(query, args...)
+	if rs == nil {
+		return nil, nil
+	}
+	return rs.Exec()
+}
 
 // Función para ejecutar la generación automática de nómina
 func generarNominaAutomatica() {
-	o := orm.NewOrm() // Usar la conexión existente
+	o := cronNewOrm() // Usar la conexión existente
 
 	for {
 		// Ejecutar la función de nómina cada día a las 00:00
@@ -128,6 +148,6 @@ func main() {
 
 	// Iniciar el servidor salvo que se pida omitir (para tests/unit)
 	if os.Getenv("SKIP_WEB_RUN") != "1" {
-		web.Run()
+		webRun()
 	}
 }
