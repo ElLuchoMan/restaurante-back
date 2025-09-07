@@ -22,12 +22,17 @@ var loadLocation = time.LoadLocation
 // newOrmForSeed allows tests to stub orm.NewOrm when seeding.
 var newOrmForSeed = orm.NewOrm
 
+// getDB allows tests to stub orm.GetDB.
+var getDB = orm.GetDB
+
 // Lightweight indirections to allow unit testing seed without a real DB.
 var (
 	queryTableFn = func(o orm.Ormer, model interface{}) orm.QuerySeter { return o.QueryTable(model) }
-	filterFn     = func(qs orm.QuerySeter, expr string, args ...interface{}) orm.QuerySeter { return qs.Filter(expr, args...) }
-	countFn      = func(qs orm.QuerySeter) (int64, error) { return qs.Count() }
-	insertFn     = func(o orm.Ormer, model interface{}) (int64, error) { return o.Insert(model) }
+	filterFn     = func(qs orm.QuerySeter, expr string, args ...interface{}) orm.QuerySeter {
+		return qs.Filter(expr, args...)
+	}
+	countFn  = func(qs orm.QuerySeter) (int64, error) { return qs.Count() }
+	insertFn = func(o orm.Ormer, model interface{}) (int64, error) { return o.Insert(model) }
 )
 
 // countMetodoPagoByTipo encapsula la consulta usada por el seed para poder ser stubbeada en tests.
@@ -64,7 +69,7 @@ func InitDB() error {
 	}
 
 	// Ejecutar seed solo si el alias realmente existe en el ORM
-	if _, err := orm.GetDB("default"); err == nil {
+	if _, err := getDB("default"); err == nil {
 		if err := seedMetodoPago(); err != nil {
 			if !quiet {
 				fmt.Println("Error al poblar METODO_PAGO:", err)
