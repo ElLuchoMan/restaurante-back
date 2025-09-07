@@ -50,3 +50,18 @@ func TestNominaUnmarshalJSON_Error(t *testing.T) {
 		t.Fatalf("expected error for invalid date format")
 	}
 }
+
+func TestNominaUnmarshalJSON_EmptyFecha_NoChange(t *testing.T) {
+	var n Nomina
+	n.MONTO = 123
+	payload := []byte(`{}`)
+	if err := json.Unmarshal(payload, &n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n.FECHA.IsZero() == false {
+		t.Fatalf("expected FECHA to remain zero when field is missing")
+	}
+	if n.MONTO != 123 {
+		t.Fatalf("expected MONTO to remain unchanged, got %d", n.MONTO)
+	}
+}

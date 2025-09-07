@@ -80,9 +80,6 @@ func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
 
 	// helper para procesar un RawMessage que puede ser número o objeto
 	parseIDToTrabajador := func(raw json.RawMessage) (*Trabajador, error) {
-		if len(raw) == 0 {
-			return nil, nil
-		}
 		// intentar número
 		var idNum int64
 		if err := json.Unmarshal(raw, &idNum); err == nil {
@@ -97,21 +94,18 @@ func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
 	}
 
 	// Parse documento trabajador (prefiere el campo principal)
-	if len(a.DocumentoTrabajador) != 0 {
-		if tr, err := parseIDToTrabajador(a.DocumentoTrabajador); err == nil {
-			n.PK_DOCUMENTO_TRABAJADOR = tr
-		}
-	} else if len(a.DocumentoTrabajadorAlt) != 0 {
-		if tr, err := parseIDToTrabajador(a.DocumentoTrabajadorAlt); err == nil {
+	chosenTrab := a.DocumentoTrabajador
+	if len(chosenTrab) == 0 {
+		chosenTrab = a.DocumentoTrabajadorAlt
+	}
+	if len(chosenTrab) != 0 {
+		if tr, err := parseIDToTrabajador(chosenTrab); err == nil {
 			n.PK_DOCUMENTO_TRABAJADOR = tr
 		}
 	}
 
 	// Parse nomina id -> Nomina pointer
 	parseIDToNomina := func(raw json.RawMessage) (*Nomina, error) {
-		if len(raw) == 0 {
-			return nil, nil
-		}
 		var idNum int64
 		if err := json.Unmarshal(raw, &idNum); err == nil {
 			return &Nomina{PK_ID_NOMINA: idNum}, nil
@@ -123,12 +117,12 @@ func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
 		return nil, nil
 	}
 
-	if len(a.NominaID) != 0 {
-		if nm, err := parseIDToNomina(a.NominaID); err == nil {
-			n.PK_ID_NOMINA = nm
-		}
-	} else if len(a.NominaIDAlt) != 0 {
-		if nm, err := parseIDToNomina(a.NominaIDAlt); err == nil {
+	chosenNom := a.NominaID
+	if len(chosenNom) == 0 {
+		chosenNom = a.NominaIDAlt
+	}
+	if len(chosenNom) != 0 {
+		if nm, err := parseIDToNomina(chosenNom); err == nil {
 			n.PK_ID_NOMINA = nm
 		}
 	}

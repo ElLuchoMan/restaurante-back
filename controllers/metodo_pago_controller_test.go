@@ -9,9 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"restaurante/models"
+
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web/context"
-	"restaurante/models"
 )
 
 func TestMetodoPagoGetByIdInvalidID(t *testing.T) {
@@ -59,6 +60,38 @@ func TestMetodoPagoGetAllWithoutDB(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
+func TestMetodoPagoGetAllSuccess(t *testing.T) {
+	m := newMockMetodoPagoOrmer()
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return m }
+	defer func() { getOrm = original }()
+
+	// poblar datos
+	_, _ = m.Insert(&models.MetodoPago{TIPO: "efectivo"})
+	_, _ = m.Insert(&models.MetodoPago{TIPO: "tarjeta"})
+
+	r := httptest.NewRequest(http.MethodGet, "/metodos_pago", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetAll()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	var resp models.ApiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected code 200, got %d", resp.Code)
 	}
 }
 
@@ -129,32 +162,32 @@ func TestMetodoPagoDeleteNotFound(t *testing.T) {
 // mockMetodoPagoOrmer provides an in-memory implementation of metodoPagoOrmer
 // used to test the controller without touching a real database.
 type mockMetodoPagoOrmer struct {
-        data   map[int64]models.MetodoPago
-        nextID int64
+	data   map[int64]models.MetodoPago
+	nextID int64
 }
 
 func newMockMetodoPagoOrmer() *mockMetodoPagoOrmer {
-        return &mockMetodoPagoOrmer{data: make(map[int64]models.MetodoPago), nextID: 1}
+	return &mockMetodoPagoOrmer{data: make(map[int64]models.MetodoPago), nextID: 1}
 }
 
 func (m *mockMetodoPagoOrmer) QueryTable(_ interface{}) metodoPagoQuerySeter {
-        return m
+	return m
 }
 
 func (m *mockMetodoPagoOrmer) All(res interface{}, _ ...string) (int64, error) {
-        slice, ok := res.(*[]models.MetodoPago)
-        if !ok {
-                return 0, errors.New("invalid result type")
-        }
-        for _, v := range m.data {
-                *slice = append(*slice, v)
-        }
-        return int64(len(m.data)), nil
+	slice, ok := res.(*[]models.MetodoPago)
+	if !ok {
+		return 0, errors.New("invalid result type")
+	}
+	for _, v := range m.data {
+		*slice = append(*slice, v)
+	}
+	return int64(len(m.data)), nil
 }
 
 func (m *mockMetodoPagoOrmer) Read(v interface{}, _ ...string) error {
 	mp := v.(*models.MetodoPago)
-        item, ok := m.data[mp.PK_ID_METODO_PAGO]
+	item, ok := m.data[mp.PK_ID_METODO_PAGO]
 	if !ok {
 		return orm.ErrNoRows
 	}
@@ -164,10 +197,10 @@ func (m *mockMetodoPagoOrmer) Read(v interface{}, _ ...string) error {
 
 func (m *mockMetodoPagoOrmer) Insert(v interface{}) (int64, error) {
 	mp := v.(*models.MetodoPago)
-        mp.PK_ID_METODO_PAGO = m.nextID
-        m.nextID++
-        m.data[mp.PK_ID_METODO_PAGO] = *mp
-        return 1, nil
+	mp.PK_ID_METODO_PAGO = m.nextID
+	m.nextID++
+	m.data[mp.PK_ID_METODO_PAGO] = *mp
+	return 1, nil
 }
 
 func (m *mockMetodoPagoOrmer) Update(v interface{}, _ ...string) (int64, error) {
@@ -187,8 +220,9 @@ func (m *mockMetodoPagoOrmer) Delete(v interface{}, _ ...string) (int64, error) 
 	delete(m.data, mp.PK_ID_METODO_PAGO)
 	return 1, nil
 }
+
 func TestMetodoPagoGetByIdSuccess(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -198,7 +232,7 @@ func TestMetodoPagoGetByIdSuccess(t *testing.T) {
 		t.Fatalf("insert: %v", err)
 	}
 
-        r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/metodos_pago/search?id=%d", mp.PK_ID_METODO_PAGO), nil)
+	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/metodos_pago/search?id=%d", mp.PK_ID_METODO_PAGO), nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
@@ -221,7 +255,7 @@ func TestMetodoPagoGetByIdSuccess(t *testing.T) {
 }
 
 func TestMetodoPagoGetByIdNotFound(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -249,7 +283,7 @@ func TestMetodoPagoGetByIdNotFound(t *testing.T) {
 }
 
 func TestMetodoPagoPostSuccess(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -274,8 +308,36 @@ func TestMetodoPagoPostSuccess(t *testing.T) {
 	}
 }
 
+// failInsertOrmer envuelve un mock y fuerza error en Insert para cubrir la rama 500
+
+type failInsertOrmer struct{ *mockMetodoPagoOrmer }
+
+func (f failInsertOrmer) Insert(v interface{}) (int64, error) { return 0, errors.New("db") }
+
+func TestMetodoPagoPostInsertError(t *testing.T) {
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return failInsertOrmer{newMockMetodoPagoOrmer()} }
+	defer func() { getOrm = original }()
+
+	body := `{"tipo":"tarjeta"}`
+	r := httptest.NewRequest(http.MethodPost, "/metodos_pago", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
 func TestMetodoPagoPutSuccess(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -305,8 +367,33 @@ func TestMetodoPagoPutSuccess(t *testing.T) {
 	}
 }
 
+// failUpdateOrmer fuerza error en Update para cubrir rama 500 del Put
+type failUpdateOrmer struct{ *mockMetodoPagoOrmer }
+
+func (f failUpdateOrmer) Read(v interface{}, _ ...string) error { return nil }
+func (f failUpdateOrmer) Update(v interface{}, _ ...string) (int64, error) { return 0, errors.New("db") }
+
+func TestMetodoPagoPutUpdateError(t *testing.T) {
+    original := getOrm
+    getOrm = func() metodoPagoOrmer { return failUpdateOrmer{newMockMetodoPagoOrmer()} }
+    defer func() { getOrm = original }()
+
+    body := `{"tipo":"x"}`
+    r := httptest.NewRequest(http.MethodPut, "/metodos_pago?id=1", strings.NewReader(body))
+    w := httptest.NewRecorder()
+    ctx := context.NewContext(); ctx.Reset(w, r)
+    ctx.Input.RequestBody = []byte(body)
+    c := MetodoPagoController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+
+    c.Put()
+
+    if w.Code != http.StatusInternalServerError {
+        t.Fatalf("expected 500, got %d", w.Code)
+    }
+}
+
 func TestMetodoPagoPutInvalidJSONWithRecord(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
@@ -333,7 +420,7 @@ func TestMetodoPagoPutInvalidJSONWithRecord(t *testing.T) {
 }
 
 func TestMetodoPagoDeleteSuccess(t *testing.T) {
-        m := newMockMetodoPagoOrmer()
+	m := newMockMetodoPagoOrmer()
 	original := getOrm
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()

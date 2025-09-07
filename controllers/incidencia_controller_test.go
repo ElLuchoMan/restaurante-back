@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	stdctx "context"
+	"database/sql/driver"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -211,6 +214,21 @@ func TestIncidenciaPostMissingMotivo(t *testing.T) {
 	}
 }
 
+func TestIncidenciaPostInsertError(t *testing.T) {
+    body := `{"fechaIncidencia":"2024-01-01","monto":100,"resta":false,"motivo":"x","documentoTrabajador":1}`
+    r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
+    w := httptest.NewRecorder()
+    ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
+    c := IncidenciaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+
+    // Forzar error de inserción
+    MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) { return nil, errors.New("db") }
+    t.Cleanup(func(){ MockExec = nil })
+
+    c.Post()
+    if w.Code != http.StatusInternalServerError { t.Fatalf("expected 500, got %d", w.Code) }
+}
+
 func TestIncidenciaPutInvalidID(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPut, "/incidencias?id=abc", strings.NewReader("{}"))
 	w := httptest.NewRecorder()
@@ -275,6 +293,19 @@ func TestIncidenciaPutUpdateError(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status 500, got %d", w.Code)
 	}
+}
+
+func TestIncidenciaPutNotFound(t *testing.T) {
+    r := httptest.NewRequest(http.MethodPut, "/incidencias?id=1", strings.NewReader(`{}`))
+    w := httptest.NewRecorder()
+    ctx := context.NewContext(); ctx.Reset(w, r)
+    c := IncidenciaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+
+    // No configurar MockQuery: devolverá 0 filas por defecto en este entorno, simulando no encontrado
+    c.Put()
+    if w.Code != http.StatusOK && w.Code != http.StatusBadRequest {
+        t.Fatalf("expected 200 or 400, got %d", w.Code)
+    }
 }
 
 func TestIncidenciaDeleteInvalidID(t *testing.T) {

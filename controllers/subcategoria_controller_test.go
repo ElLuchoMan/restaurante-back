@@ -84,4 +84,30 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
     c.Delete(); if w.Code != http.StatusOK { t.Fatalf("del ok %d", w.Code) }
 }
 
+// Tipos de prueba para error en GetAll de SubcategoriaController
+type badQSSub struct{}
+
+func (badQSSub) All(res interface{}, _ ...string) (int64, error) { return 0, orm.ErrNoRows }
+func (badQSSub) Filter(_ string, _ ...interface{}) subcatQuerySeter { return badQSSub{} }
+
+type badOrmSub struct{}
+
+func (badOrmSub) QueryTable(_ interface{}) subcatQuerySeter { return badQSSub{} }
+func (badOrmSub) Insert(interface{}) (int64, error) { return 0, nil }
+func (badOrmSub) Read(interface{}, ...string) error { return nil }
+func (badOrmSub) Update(interface{}, ...string) (int64, error) { return 1, nil }
+func (badOrmSub) Delete(interface{}, ...string) (int64, error) { return 1, nil }
+
+func TestSubcategoriaController_AllError(t *testing.T) {
+    orig := subcatOrmNew
+    subcatOrmNew = func() subcatOrmer { return badOrmSub{} }
+    defer func() { subcatOrmNew = orig }()
+
+    r := httptest.NewRequest(http.MethodGet, "/subcategorias", nil)
+    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r)
+    c := &SubcategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.GetAll()
+    if w.Code != http.StatusInternalServerError { t.Fatalf("expected 500, got %d", w.Code) }
+}
+
 

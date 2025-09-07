@@ -14,6 +14,25 @@ type RestauranteController struct {
 	web.Controller
 }
 
+// Puntos de inyección para pruebas (permiten mockear el ORM en tests)
+type restQuerySeter interface{ All(interface{}, ...string) (int64, error) }
+type restOrmer interface{
+    QueryTable(interface{}) restQuerySeter
+    Read(interface{}, ...string) error
+    Insert(interface{}) (int64, error)
+    Update(interface{}, ...string) (int64, error)
+    Delete(interface{}, ...string) (int64, error)
+}
+type restQSAdapter struct{ qs orm.QuerySeter }
+func (a restQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
+type restOrmAdapter struct{ o orm.Ormer }
+func (a restOrmAdapter) QueryTable(i interface{}) restQuerySeter { return restQSAdapter{qs: a.o.QueryTable(i)} }
+func (a restOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
+func (a restOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
+func (a restOrmAdapter) Update(v interface{}, cols ...string) (int64, error) { return a.o.Update(v, cols...) }
+func (a restOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) { return a.o.Delete(v, cols...) }
+var restOrmNew = func() restOrmer { return restOrmAdapter{o: orm.NewOrm()} }
+
 // @Title GetAll
 // @Summary Obtener todos los restaurantes
 // @Description Devuelve todos los restaurantes registrados en la base de datos.
@@ -24,7 +43,7 @@ type RestauranteController struct {
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /restaurantes [get]
 func (c *RestauranteController) GetAll() {
-	o := orm.NewOrm()
+	o := restOrmNew()
 	var restaurantes []models.Restaurante
 
 	_, err := o.QueryTable(new(models.Restaurante)).All(&restaurantes)
@@ -58,7 +77,7 @@ func (c *RestauranteController) GetAll() {
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes/search [get]
 func (c *RestauranteController) GetById() {
-	o := orm.NewOrm()
+	o := restOrmNew()
 	id, err := c.GetInt("id")
 
 	if err != nil || id == 0 {
@@ -106,7 +125,7 @@ func (c *RestauranteController) GetById() {
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Router /restaurantes [post]
 func (c *RestauranteController) Post() {
-	o := orm.NewOrm()
+	o := restOrmNew()
 	var restaurante models.Restaurante
 
 	// Deserializar el JSON del cuerpo de la solicitud
@@ -154,7 +173,7 @@ func (c *RestauranteController) Post() {
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes [put]
 func (c *RestauranteController) Put() {
-	o := orm.NewOrm()
+	o := restOrmNew()
 
 	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
@@ -228,7 +247,7 @@ func (c *RestauranteController) Put() {
 // @Failure 404 {object} models.ApiResponse "Restaurante no encontrado"
 // @Router /restaurantes [delete]
 func (c *RestauranteController) Delete() {
-	o := orm.NewOrm()
+	o := restOrmNew()
 
 	// Obtener el ID del query parameter
 	idStr := c.GetString("id")

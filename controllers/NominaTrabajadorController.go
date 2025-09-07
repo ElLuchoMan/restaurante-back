@@ -15,6 +15,33 @@ type NominaTrabajadorController struct {
 	web.Controller
 }
 
+// Interfaces y adaptadores para inyectar el ORM en tests
+type ntQuerySeter interface{
+	Filter(string, ...interface{}) ntQuerySeter
+	All(interface{}, ...string) (int64, error)
+	One(interface{}, ...string) error
+	OrderBy(...string) ntQuerySeter
+	Exist() bool
+}
+
+type ntOrmer interface{
+	QueryTable(interface{}) ntQuerySeter
+	Insert(interface{}) (int64, error)
+}
+
+type ntQSAdapter struct{ qs orm.QuerySeter }
+func (a ntQSAdapter) Filter(expr string, args ...interface{}) ntQuerySeter { return ntQSAdapter{qs: a.qs.Filter(expr, args...)} }
+func (a ntQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
+func (a ntQSAdapter) One(res interface{}, cols ...string) error { return a.qs.One(res, cols...) }
+func (a ntQSAdapter) OrderBy(expr ...string) ntQuerySeter { return ntQSAdapter{qs: a.qs.OrderBy(expr...)} }
+func (a ntQSAdapter) Exist() bool { return a.qs.Exist() }
+
+type ntOrmAdapter struct{ o orm.Ormer }
+func (a ntOrmAdapter) QueryTable(i interface{}) ntQuerySeter { return ntQSAdapter{qs: a.o.QueryTable(i)} }
+func (a ntOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
+
+var nomtraOrmNew = func() ntOrmer { return ntOrmAdapter{o: orm.NewOrm()} }
+
 // @Title GetAll
 // @Summary Obtener todas las relaciones nómina-trabajador
 // @Description Obtiene un listado de todas las relaciones nómina-trabajador registradas en la base de datos
@@ -26,7 +53,7 @@ type NominaTrabajadorController struct {
 // @Security BearerAuth
 // @Router /nomina_trabajador [get]
 func (c *NominaTrabajadorController) GetAll() {
-	o := orm.NewOrm()
+	o := nomtraOrmNew()
 	var relaciones []models.NominaTrabajador
 
 	// Obtener las relaciones desde la base de datos
@@ -65,7 +92,7 @@ func (c *NominaTrabajadorController) GetAll() {
 // @Security BearerAuth
 // @Router /nomina_trabajador [post]
 func (c *NominaTrabajadorController) Post() {
-	o := orm.NewOrm()
+	o := nomtraOrmNew()
 	var input models.NominaTrabajadorRequest
 	var nominaTrabajador models.NominaTrabajador
 

@@ -210,6 +210,25 @@ func TestPedidoPostDeliveryWithoutDomicilio(t *testing.T) {
 	}
 }
 
+func TestPedidoAssignDomicilioBadParam(t *testing.T) {
+    r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-domicilio?pedido_id=1&domicilio_id=0", nil)
+    w := httptest.NewRecorder()
+    ctx := beegoCtx.NewContext()
+    ctx.Reset(w, r)
+    c := PedidoController{}
+    c.Ctx = ctx
+    c.Data = make(map[interface{}]interface{})
+
+    c.AssignDomicilio()
+
+    if w.Code != http.StatusBadRequest {
+        t.Fatalf("expected status 400, got %d", w.Code)
+    }
+    if !strings.Contains(w.Body.String(), "debe ser un entero positivo") {
+        t.Errorf("unexpected body: %s", w.Body.String())
+    }
+}
+
 func TestPedidoPostSuccess(t *testing.T) {
 	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil

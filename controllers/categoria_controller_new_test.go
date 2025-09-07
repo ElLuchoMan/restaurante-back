@@ -92,4 +92,64 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
     c.Delete(); if w.Code != http.StatusOK { t.Fatalf("del ok %d", w.Code) }
 }
 
+// Tipos de prueba para forzar errores en CategoriaController
+type badQSCat struct{}
+
+func (badQSCat) All(res interface{}, _ ...string) (int64, error) { return 0, orm.ErrNoRows }
+
+type badOrmCat struct{ *catMockOrm }
+
+func (b badOrmCat) QueryTable(_ interface{}) categoriaQuerySeter { return badQSCat{} }
+func (b badOrmCat) Insert(v interface{}) (int64, error) { return 0, orm.ErrTxDone }
+func (b badOrmCat) Delete(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrNoRows }
+
+func TestCategoriaController_AllError_InsertError_DeleteNotFound(t *testing.T) {
+    orig := catOrmNew
+    catOrmNew = func() categoriaOrmer { return badOrmCat{newCatMockOrm()} }
+    defer func() { catOrmNew = orig }()
+
+    // GetAll -> error
+    r := httptest.NewRequest(http.MethodGet, "/categorias", nil)
+    w := httptest.NewRecorder()
+    ctx := context.NewContext(); ctx.Reset(w, r)
+    c := &CategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.GetAll()
+    if w.Code != http.StatusInternalServerError { t.Fatalf("expected 500, got %d", w.Code) }
+
+    // Post -> insert error
+    r = httptest.NewRequest(http.MethodPost, "/categorias", strings.NewReader(`{"nombre":"X"}`))
+    w = httptest.NewRecorder(); ctx = context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(`{"nombre":"X"}`)
+    c = &CategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.Post(); if w.Code != http.StatusInternalServerError { t.Fatalf("expected 500, got %d", w.Code) }
+
+    // Delete -> not found
+    r = httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
+    w = httptest.NewRecorder(); ctx = context.NewContext(); ctx.Reset(w, r)
+    c = &CategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.Delete(); if w.Code != http.StatusOK { t.Fatalf("expected 200, got %d", w.Code) }
+}
+
+// Ormer que falla en Update para probar la rama 500 en Put
+type updErrOrm struct{ *catMockOrm }
+func (m updErrOrm) QueryTable(_ interface{}) categoriaQuerySeter { return m.catMockOrm.qs }
+func (m updErrOrm) Insert(v interface{}) (int64, error) { return m.catMockOrm.Insert(v) }
+func (m updErrOrm) Read(v interface{}, _ ...string) error { return nil }
+func (m updErrOrm) Update(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrTxDone }
+func (m updErrOrm) Delete(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrNoRows }
+
+func TestCategoriaController_PutUpdateError(t *testing.T) {
+    // Mock que lee ok y falla al actualizar
+
+    orig := catOrmNew
+    catOrmNew = func() categoriaOrmer { return updErrOrm{newCatMockOrm()} }
+    defer func() { catOrmNew = orig }()
+
+    body := `{"nombre":"Z"}`
+    r := httptest.NewRequest(http.MethodPut, "/categorias?id=1", strings.NewReader(body))
+    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
+    c := &CategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.Put()
+    if w.Code != http.StatusInternalServerError { t.Fatalf("expected 500, got %d", w.Code) }
+}
+
 
