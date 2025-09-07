@@ -2412,12 +2412,12 @@ var incidenciaOrmNew = func() incidenciaOrmer <span class="cov10" title="31">{ r
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [get]
-func (c *IncidenciaController) GetAll() <span class="cov2" title="2">{
+func (c *IncidenciaController) GetAll() <span class="cov3" title="3">{
         o := incidenciaOrmNew()
         var incidencias []models.Incidencia
 
         _, err := o.QueryTable(new(models.Incidencia)).All(&amp;incidencias)
-        if err != nil </span><span class="cov1" title="1">{
+        if err != nil </span><span class="cov2" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2452,7 +2452,7 @@ func (c *IncidenciaController) GetAll() <span class="cov2" title="2">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias/search [get]
-func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov6" title="7">{
+func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov7" title="11">{
         o := incidenciaOrmNew()
 
         // Obtener parámetros de la consulta
@@ -2467,7 +2467,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov6" title="
                 return
         }</span>
 
-        <span class="cov5" title="6">mes, err := c.GetInt("mes")
+        <span class="cov7" title="10">mes, err := c.GetInt("mes")
         if err != nil || mes &lt; 1 || mes &gt; 12 </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -2478,7 +2478,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov6" title="
                 return
         }</span>
 
-        <span class="cov5" title="5">anio, err := c.GetInt("anio")
+        <span class="cov6" title="9">anio, err := c.GetInt("anio")
         if err != nil || anio &lt; 1900 || anio &gt; time.Now().Year() </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -2490,7 +2490,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov6" title="
         }</span>
 
         // Calcular rango de fechas
-        <span class="cov4" title="4">fechaInicio := time.Date(anio, time.Month(mes), 1, 0, 0, 0, 0, time.UTC)
+        <span class="cov6" title="8">fechaInicio := time.Date(anio, time.Month(mes), 1, 0, 0, 0, 0, time.UTC)
         fechaFin := fechaInicio.AddDate(0, 1, 0).Add(-time.Second) // Fin del mes
 
         // Filtrar las incidencias
@@ -2501,7 +2501,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov6" title="
                 Filter("FECHA__lte", fechaFin.Format("2006-01-02")).
                 All(&amp;incidencias)
 
-        if err == orm.ErrNoRows || len(incidencias) == 0 </span><span class="cov3" title="3">{
+        if err == orm.ErrNoRows || len(incidencias) == 0 </span><span class="cov5" title="5">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
@@ -2509,7 +2509,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov6" title="
                 }
                 c.ServeJSON()
                 return
-        }</span> else<span class="cov1" title="1"> if err != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov3" title="3"> if err != nil </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2521,7 +2521,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov6" title="
         }</span>
 
         // Responder con las incidencias encontradas
-        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov3" title="3">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Incidencias encontradas",
@@ -2542,7 +2542,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() <span class="cov6" title="
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [post]
-func (c *IncidenciaController) Post() <span class="cov7" title="11">{
+func (c *IncidenciaController) Post() <span class="cov8" title="16">{
         o := incidenciaOrmNew()
         var input map[string]interface{}
         var incidencia models.Incidencia
@@ -2560,7 +2560,7 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
         }</span>
 
         // Validar y procesar fechaIncidencia
-        <span class="cov5" title="6">if fechaStr, ok := input["fechaIncidencia"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov5" title="6">{
+        <span class="cov7" title="11">if fechaStr, ok := input["fechaIncidencia"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov7" title="11">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
                 if err != nil </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2572,7 +2572,7 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
                         c.ServeJSON()
                         return
                 }</span>
-                <span class="cov5" title="6">incidencia.FECHA = parsedDate</span>
+                <span class="cov7" title="11">incidencia.FECHA = parsedDate</span>
         } else<span class="cov0" title="0"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -2584,7 +2584,7 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
         }</span>
 
         // Validar y procesar monto
-        <span class="cov5" title="6">if monto, ok := input["monto"].(float64); ok </span><span class="cov5" title="6">{
+        <span class="cov7" title="11">if monto, ok := input["monto"].(float64); ok </span><span class="cov7" title="11">{
                 incidencia.MONTO = int64(monto)
         }</span> else<span class="cov0" title="0"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2597,7 +2597,7 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
         }</span>
 
         // Validar y procesar resta
-        <span class="cov5" title="6">if resta, ok := input["resta"].(bool); ok </span><span class="cov5" title="5">{
+        <span class="cov7" title="11">if resta, ok := input["resta"].(bool); ok </span><span class="cov7" title="10">{
                 incidencia.RESTA = resta
         }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2610,7 +2610,7 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
         }</span>
 
         // Validar y procesar motivo
-        <span class="cov5" title="5">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov4" title="4">{
+        <span class="cov7" title="10">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov6" title="9">{
                 incidencia.MOTIVO = motivo
         }</span> else<span class="cov1" title="1"> {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2623,7 +2623,7 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
         }</span>
 
         // Procesar documentoTrabajador (obligatorio)
-        <span class="cov4" title="4">if documento, ok := input["documentoTrabajador"].(float64); ok &amp;&amp; documento != 0 </span><span class="cov4" title="4">{
+        <span class="cov6" title="9">if documento, ok := input["documentoTrabajador"].(float64); ok &amp;&amp; documento != 0 </span><span class="cov6" title="9">{
                 doc := int64(documento)
                 incidencia.PK_DOCUMENTO_TRABAJADOR = &amp;models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
         }</span> else<span class="cov0" title="0"> {
@@ -2637,8 +2637,8 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
         }</span>
 
         // Insertar en la base de datos
-        <span class="cov4" title="4">_, err := o.Insert(&amp;incidencia)
-        if err != nil </span><span class="cov1" title="1">{
+        <span class="cov6" title="9">_, err := o.Insert(&amp;incidencia)
+        if err != nil </span><span class="cov2" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2650,14 +2650,14 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
         }</span>
 
         // Preparar la respuesta con el formato deseado
-        <span class="cov3" title="3">response := map[string]interface{}{
+        <span class="cov6" title="7">response := map[string]interface{}{
                 "incidenciaId":    incidencia.PK_ID_INCIDENCIA,
                 "fechaIncidencia": incidencia.FECHA.Format("2006-01-02"),
                 "monto":           incidencia.MONTO,
                 "resta":           incidencia.RESTA,
                 "motivo":          incidencia.MOTIVO,
-                "documentoTrabajador": func() int64 </span><span class="cov3" title="3">{
-                        if incidencia.PK_DOCUMENTO_TRABAJADOR != nil </span><span class="cov3" title="3">{
+                "documentoTrabajador": func() int64 </span><span class="cov6" title="7">{
+                        if incidencia.PK_DOCUMENTO_TRABAJADOR != nil </span><span class="cov6" title="7">{
                                 return incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
                         }</span>
                         <span class="cov0" title="0">return 0</span>
@@ -2665,7 +2665,7 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
         }
 
         // Responder con éxito
-        <span class="cov3" title="3">c.Ctx.Output.SetStatus(http.StatusCreated)
+        <span class="cov6" title="7">c.Ctx.Output.SetStatus(http.StatusCreated)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusCreated,
                 Message: "Incidencia creada correctamente",
@@ -2688,7 +2688,7 @@ func (c *IncidenciaController) Post() <span class="cov7" title="11">{
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [put]
-func (c *IncidenciaController) Put() <span class="cov6" title="8">{
+func (c *IncidenciaController) Put() <span class="cov7" title="10">{
         o := incidenciaOrmNew()
 
         // Obtener el ID de la incidencia desde los parámetros
@@ -2705,7 +2705,7 @@ func (c *IncidenciaController) Put() <span class="cov6" title="8">{
         }</span>
 
         // Buscar la incidencia por ID
-        <span class="cov6" title="7">incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
+        <span class="cov6" title="9">incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
         if err := o.Read(&amp;incidencia); err == orm.ErrNoRows </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
@@ -2717,7 +2717,7 @@ func (c *IncidenciaController) Put() <span class="cov6" title="8">{
         }</span>
 
         // Deserializar los datos actualizados desde el cuerpo de la solicitud
-        <span class="cov6" title="7">var input map[string]interface{}
+        <span class="cov6" title="9">var input map[string]interface{}
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov3" title="3">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -2730,7 +2730,7 @@ func (c *IncidenciaController) Put() <span class="cov6" title="8">{
         }</span>
 
         // Validar y actualizar los campos
-        <span class="cov4" title="4">if fechaStr, ok := input["fechaIncidencia"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov3" title="3">{
+        <span class="cov5" title="6">if fechaStr, ok := input["fechaIncidencia"].(string); ok &amp;&amp; fechaStr != "" </span><span class="cov3" title="3">{
                 parsedDate, err := time.Parse("2006-01-02", fechaStr)
                 if err != nil </span><span class="cov0" title="0">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2745,25 +2745,25 @@ func (c *IncidenciaController) Put() <span class="cov6" title="8">{
                 <span class="cov3" title="3">incidencia.FECHA = parsedDate</span>
         }
 
-        <span class="cov4" title="4">if monto, ok := input["monto"].(float64); ok </span><span class="cov3" title="3">{
+        <span class="cov5" title="6">if monto, ok := input["monto"].(float64); ok </span><span class="cov3" title="3">{
                 incidencia.MONTO = int64(monto)
         }</span>
 
-        <span class="cov4" title="4">if resta, ok := input["resta"].(bool); ok </span><span class="cov3" title="3">{
+        <span class="cov5" title="6">if resta, ok := input["resta"].(bool); ok </span><span class="cov3" title="3">{
                 incidencia.RESTA = resta
         }</span>
 
-        <span class="cov4" title="4">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov3" title="3">{
+        <span class="cov5" title="6">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov5" title="5">{
                 incidencia.MOTIVO = motivo
         }</span>
 
-        <span class="cov4" title="4">if documento, ok := input["documentoTrabajador"].(float64); ok &amp;&amp; documento != 0 </span><span class="cov3" title="3">{
+        <span class="cov5" title="6">if documento, ok := input["documentoTrabajador"].(float64); ok &amp;&amp; documento != 0 </span><span class="cov4" title="4">{
                 doc := int64(documento)
                 incidencia.PK_DOCUMENTO_TRABAJADOR = &amp;models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
         }</span>
 
         // Guardar los cambios en la base de datos
-        <span class="cov4" title="4">if _, err := o.Update(&amp;incidencia); err != nil </span><span class="cov1" title="1">{
+        <span class="cov5" title="6">if _, err := o.Update(&amp;incidencia); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
@@ -2775,22 +2775,22 @@ func (c *IncidenciaController) Put() <span class="cov6" title="8">{
         }</span>
 
         // Preparar la respuesta con el formato deseado
-        <span class="cov3" title="3">response := map[string]interface{}{
+        <span class="cov5" title="5">response := map[string]interface{}{
                 "incidenciaId":    incidencia.PK_ID_INCIDENCIA,
                 "fechaIncidencia": incidencia.FECHA.Format("2006-01-02"),
                 "monto":           incidencia.MONTO,
                 "resta":           incidencia.RESTA,
                 "motivo":          incidencia.MOTIVO,
-                "documentoTrabajador": func() int64 </span><span class="cov3" title="3">{
-                        if incidencia.PK_DOCUMENTO_TRABAJADOR != nil </span><span class="cov2" title="2">{
+                "documentoTrabajador": func() int64 </span><span class="cov5" title="5">{
+                        if incidencia.PK_DOCUMENTO_TRABAJADOR != nil </span><span class="cov3" title="3">{
                                 return incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
                         }</span>
-                        <span class="cov1" title="1">return 0</span>
+                        <span class="cov2" title="2">return 0</span>
                 }(),
         }
 
         // Responder con éxito
-        <span class="cov3" title="3">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov5" title="5">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Incidencia actualizada correctamente",
