@@ -1,13 +1,13 @@
 package controllers
 
 import (
-        "context"
-        "database/sql"
-        "database/sql/driver"
-        "errors"
-        "io"
+	"context"
+	"database/sql"
+	"database/sql/driver"
+	"errors"
+	"io"
 
-        "github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/client/orm"
 )
 
 type mockDriver struct{}
@@ -28,7 +28,7 @@ func (c *mockConn) Prepare(query string) (driver.Stmt, error) {
 	return nil, errors.New("not implemented")
 }
 func (c *mockConn) Close() error              { return nil }
-func (c *mockConn) Begin() (driver.Tx, error) { return nil, errors.New("not implemented") }
+func (c *mockConn) Begin() (driver.Tx, error) { return &mockTx{}, nil }
 func (c *mockConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
         if MockExec != nil {
                 return MockExec(ctx, query, args)
@@ -42,6 +42,18 @@ func (c *mockConn) QueryContext(ctx context.Context, query string, args []driver
         return nil, errors.New("mock query error")
 }
 func (c *mockConn) Ping(ctx context.Context) error { return nil }
+
+type mockTx struct{}
+var MockTxCommitErr error
+var MockTxRollbackErr error
+func (mockTx) Commit() error {
+        if MockTxCommitErr != nil { return MockTxCommitErr }
+        return nil
+}
+func (mockTx) Rollback() error {
+        if MockTxRollbackErr != nil { return MockTxRollbackErr }
+        return nil
+}
 
 func init() {
         sql.Register("mock", mockDriver{})

@@ -103,7 +103,7 @@
 				
 				<option value="file23">restaurante/docs/docs.go (100.0%)</option>
 				
-				<option value="file24">restaurante/main.go (60.0%)</option>
+				<option value="file24">restaurante/main.go (94.3%)</option>
 				
 				<option value="file25">restaurante/models/CambiosHorario.go (100.0%)</option>
 				
@@ -3740,14 +3740,17 @@ type ntQSAdapter struct{ qs orm.QuerySeter }
 func (a ntQSAdapter) Filter(expr string, args ...interface{}) ntQuerySeter <span class="cov10" title="7">{ return ntQSAdapter{qs: a.qs.Filter(expr, args...)} }</span>
 func (a ntQSAdapter) All(res interface{}, cols ...string) (int64, error) <span class="cov6" title="3">{ return a.qs.All(res, cols...) }</span>
 func (a ntQSAdapter) One(res interface{}, cols ...string) error <span class="cov1" title="1">{ return a.qs.One(res, cols...) }</span>
-func (a ntQSAdapter) OrderBy(expr ...string) ntQuerySeter <span class="cov0" title="0">{ return ntQSAdapter{qs: a.qs.OrderBy(expr...)} }</span>
-func (a ntQSAdapter) Exist() bool <span class="cov0" title="0">{ return a.qs.Exist() }</span>
+//go:noinline
+</span>func (a ntQSAdapter) OrderBy(expr <span class="cov0" title="0">...string) ntQuerySeter</span> { return ntQSAdapter{qs: a.qs.OrderBy(expr...)} }
+//go:noinline
+func (a ntQSAdapter) Exist() bool { return a.qs.Exist() }
 
-type ntOrmAdapter struct{ o orm.Ormer }
-func (a ntOrmAdapter) QueryTable(i interface{}) ntQuerySeter <span class="cov7" title="4">{ return ntQSAdapter{qs: a.o.QueryTable(i)} }</span>
-func (a ntOrmAdapter) Insert(v interface{}) (int64, error) <span class="cov0" title="0">{ return a.o.Insert(v) }</span>
+</span>type ntOrmAdapter struct{ o orm.Ormer }
+</span>func (a ntOrmAdapter) QueryTable(i interface{}) ntQuerySeter { return ntQSAdapter{qs: a.o.QueryTable(i)} }
+//go:noinline
+</span>func (a ntOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
 
-var nomtraOrmNew = func() ntOrmer <span class="cov8" title="5">{ return ntOrmAdapter{o: orm.NewOrm()} }</span>
+var nomtraOrmNew = func() ntOrmer { return ntOrmAdapter{o: orm.NewOrm()} }
 
 // @Title GetAll
 // @Summary Obtener todas las relaciones nómina-trabajador
@@ -3756,34 +3759,34 @@ var nomtraOrmNew = func() ntOrmer <span class="cov8" title="5">{ return ntOrmAda
 // @Accept json
 // @Produce json
 // @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajador} "Listado de relaciones nómina-trabajador"
-// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Failure 500 {object} models.ApiResponse "E<span class="cov1" title="1">rror en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador [get]
-func (c *NominaTrabajadorController) GetAll() <span class="cov1" title="1">{
+func (c *NominaTrabajadorController) GetAll() {
         o := nomtraOrmNew()
         var relaciones []models.NominaTrabajador
 
-        // Obtener las relaciones desde la base de datos
+</span>        // Obtener las relaciones desde la base de datos
         _, err := o.QueryTable(new(models.NominaTrabajador)).All(&amp;relaciones)
-        if err != nil </span><span class="cov1" title="1">{
+        if err != nil {
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al obtener las relaciones nómina-trabajador",
                         Cause:   err.Error(),
-                }
+                </span>}
                 c.ServeJSON()
                 return
-        }</span>
+        <span class="cov0" title="0">}
 
         // Responder con éxito
-        <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusOK)
+        c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
-                Message: "Relaciones nómina-trabajador obtenidas correctamente",
+                Message: "Re</span>laciones nómina-trabajador obtenidas correctamente",
                 Data:    relaciones,
         }
-        c.ServeJSON()</span>
+        c.ServeJSON()
 }
 
 // @Title Post
@@ -3795,37 +3798,37 @@ func (c *NominaTrabajadorController) GetAll() <span class="cov1" title="1">{
 // @Param body body models.NominaTrabajadorRequest true "Datos de la nómina-trabajador"
 // @Success 201 {object} models.ApiResponse{data=models.NominaTrabajadorResponse} "Nómina-trabajador creada"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
-// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Failure 500 {object} models.ApiResponse <span class="cov9" title="6">"Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador [post]
-func (c *NominaTrabajadorController) Post() <span class="cov9" title="6">{
+func (c *NominaTrabajadorController) Post() {
         o := nomtraOrmNew()
         var input models.NominaTrabajadorRequest
         var nominaTrabajador models.NominaTrabajador
-
+</span>
         // Decodificar la solicitud
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "Error al procesar la solicitud",
                         Cause:   err.Error(),
-                }
+                </span>}
                 c.ServeJSON()
                 return
-        }</span>
-
+        <span class="cov8" title="5">}
+</span>
         // Validar documento del trabajador
-        <span class="cov8" title="5">if input.PK_DOCUMENTO_TRABAJADOR == 0 </span><span class="cov1" title="1">{
+        if input.PK_DOCUMENTO_TRABAJADOR == 0 {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "El campo documentoTrabajador es obligatorio y debe ser válido",
-                }
-                c.ServeJSON()
+                </span>}
+        <span class="cov7" title="4">        c.ServeJSON()
                 return
-        }</span>
-        <span class="cov7" title="4">nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = &amp;models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR}
+        }
+        nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = &amp;models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR}
 
         // Calcular el rango de fechas
         now := time.Now()
@@ -3837,63 +3840,63 @@ func (c *NominaTrabajadorController) Post() <span class="cov9" title="6">{
         _, err := o.QueryTable(new(models.Incidencia)).
                 Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
                 Filter("fecha__gte", startDate).
-                Filter("fecha__lte", endDate).
+                Filter("fecha</span><span class="cov1" title="1">__lte", endDate).
                 All(&amp;incidencias)
 
-        if err != nil </span><span class="cov1" title="1">{
+        if err != nil {
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al consultar incidencias del trabajador",
                         Cause:   err.Error(),
-                }
+                </span>}
                 c.ServeJSON()
                 return
-        }</span>
+        <span class="cov6" title="3">}
 
-        // Calcular el monto de incidencias
-        <span class="cov6" title="3">var montoIncidencias int64
-        for _, incidencia := range incidencias </span><span class="cov0" title="0">{
-                if incidencia.RESTA </span><span class="cov0" title="0">{
-                        montoIncidencias -= incidencia.MONTO
-                }</span> else<span class="cov0" title="0"> {
-                        montoIncidencias += incidencia.MONTO
-                }</span>
+</span>        // Calcular el monto </span><span class="cov0" title="0">de incidencias
+        var montoIncidencias int64
+        fo</span>r _, <span class="cov0" title="0">incidencia := range incidencias {
+                if incidencia.RESTA {
+                        </span>montoIncidencias -= incidencia.MONTO
+                } else {
+        <span class="cov6" title="3">                montoIncidencias += incidencia.MONTO
+                }
         }
-        <span class="cov6" title="3">nominaTrabajador.MONTO_INCIDENCIAS = &amp;montoIncidencias
+        nominaTrabajador.MONTO_INCIDENCIAS = &amp;montoIncidencias
 
         // Consultar el sueldo del trabajador
         var trabajador models.Trabajador
-        err = o.QueryTable(new(models.Trabajador)).
+        err = o.QueryT</span><span class="cov1" title="1">able(new(models.Trabajador)).
                 Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
                 One(&amp;trabajador)
-        if err != nil </span><span class="cov1" title="1">{
+        if err != nil {
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al consultar el sueldo del trabajador",
                         Cause:   err.Error(),
-                }
-                c.ServeJSON()
+                </span>}
+        <span class="cov4" title="2">        c.ServeJSON()
                 return
-        }</span>
-        <span class="cov4" title="2">nominaTrabajador.SUELDO_BASE = trabajador.SUELDO
+        }
+        nominaTrabajador.SUELDO_BASE = trabajador.SUELDO
 
         // Registrar en la base de datos
-        // Asignar la nómina correspondiente (usar la nómina más reciente si no se especifica)
+        // Asignar la </span><span class="cov0" title="0">nómina correspondiente (usar la nómina más reciente si no se especifica)
         var ultimaNomina models.Nomina
         err = o.QueryTable(new(models.Nomina)).OrderBy("-fecha").One(&amp;ultimaNomina)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil {
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al obtener la nómina activa",
                         Cause:   err.Error(),
-                }
-                c.ServeJSON()
+                </span>}
+        <span class="cov4" title="2">        c.ServeJSON()
                 return
-        }</span>
-        <span class="cov4" title="2">nominaTrabajador.PK_ID_NOMINA = &amp;ultimaNomina
+        }
+        nominaTrabajador.PK_ID_NOMINA = &amp;ultimaNomina
 
         // Generar descripción dinámica con mes y año reales de la nómina
         descripcion := fmt.Sprintf("Nómina del mes de %s de %d más incidencias si aplica", obtenerMesEnEspañol(ultimaNomina.FECHA.Month()), ultimaNomina.FECHA.Year())
@@ -3901,41 +3904,41 @@ func (c *NominaTrabajadorController) Post() <span class="cov9" title="6">{
 
         // Verificar si ya existe la relación (mismo trabajador y misma nómina)
         exists := o.QueryTable(new(models.NominaTrabajador)).
-                Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
+                Filter("p</span><span class="cov1" title="1">k_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
                 Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
                 Exist()
-        if exists </span><span class="cov1" title="1">{
+        if exists {
                 // Idempotente: devolver 200 con la relación existente
                 var existente models.NominaTrabajador
-                if err := o.QueryTable(new(models.NominaTrabajador)).
+                if err := o.QueryTable(new(mo</span><span class="cov1" title="1">dels.NominaTrabajador)).
                         Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
                         Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
-                        One(&amp;existente); err == nil </span><span class="cov1" title="1">{
+                        One(&amp;existente); err == nil {
                         c.Ctx.Output.SetStatus(http.StatusOK)
-                        c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía", Data: existente}
-                        c.ServeJSON()
+                        </span>c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía", Data: existente}
+                <span class="cov0" title="0">        c.ServeJSON()
                         return
-                }</span>
-                <span class="cov0" title="0">c.Ctx.Output.SetStatus(http.StatusOK)
+                }
+                c.Ctx.</span>Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía"}
                 c.ServeJSON()
-                return</span>
+        <span class="cov1" title="1">        return
         }
-
-        <span class="cov1" title="1">_, err = o.Insert(&amp;nominaTrabajador)
-        if err != nil </span><span class="cov1" title="1">{
+</span>
+        _, err = o.Insert(&amp;nominaTrabajador)
+        if err != nil {
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al registrar la nómina-trabajador",
                         Cause:   err.Error(),
-                }
+                </span>}
                 c.ServeJSON()
                 return
-        }</span>
+        <span class="cov0" title="0">}
 
         // Preparar la respuesta
-        <span class="cov0" title="0">response := models.NominaTrabajadorResponse{
+        response := models.NominaTrabajadorResponse{
                 SUELDO_BASE:             trabajador.SUELDO,
                 MONTO_INCIDENCIAS:       montoIncidencias,
                 DETALLES:                descripcion,
@@ -3946,10 +3949,10 @@ func (c *NominaTrabajadorController) Post() <span class="cov9" title="6">{
         c.Ctx.Output.SetStatus(http.StatusCreated)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusCreated,
-                Message: "Nómina-trabajador creada correctamente",
+                Message: "N�</span>�mina-trabajador creada correctamente",
                 Data:    response,
         }
-        c.ServeJSON()</span>
+        c.ServeJSON()
 }
 
 // @Title GetByTrabajador
@@ -3966,90 +3969,90 @@ func (c *NominaTrabajadorController) Post() <span class="cov9" title="6">{
 // @Param anio query int false "Año (YYYY) para filtrar nóminas"
 // @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajador} "Relaciones nómina-trabajador encontradas"
 // @Failure 404 {object} models.ApiResponse "Relación nómina-trabajador no encontrada"
-// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Failure 500 {object} models.ApiResponse "Error en l<span class="cov6" title="3">a base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador/search [get]
-func (c *NominaTrabajadorController) GetByTrabajador() <span class="cov6" title="3">{
+func (c *NominaTrabajadorController) GetByTrabajador() {
         o := orm.NewOrm()
         documento, _ := c.GetInt64("documento")
         actual, _ := c.GetBool("actual")
         pagas, _ := c.GetBool("pagas")
         noPagas, _ := c.GetBool("no_pagas")
         mes, _ := c.GetInt("mes")
-        anio, _ := c.GetInt("anio")
+        anio, _ := c.GetIn</span><span class="cov1" title="1">t("anio")
 
         // Validar el documento del trabajador
-        if documento == 0 </span><span class="cov1" title="1">{
+        if documento == 0 {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "El parámetro 'documento' es obligatorio.",
-                }
+                </span>}
                 c.ServeJSON()
                 return
-        }</span>
+        <span class="cov4" title="2">}
 
         // Base de la consulta
-        <span class="cov4" title="2">var relaciones []models.NominaTrabajador
+        var relaciones []models.NominaTrabajador
         sql := `
        SELECT nt.* FROM "nomina_trabajador" nt
        JOIN "nomina" n ON nt."pk_id_nomina" = n."pk_id_nomina"
        WHERE nt."pk_documento_trabajador" = ?
    `
-        params := []interface{}{documento}
+        params := </span><span class="cov1" title="1">[]interface{}{documento}
 
-        // Filtrar por nómina actual
-        if actual </span><span class="cov1" title="1">{
+        /</span>/ Filtrar por nómina actual
+        if actual {
                 sql += ` AND n."fecha" = (SELECT MAX("fecha") FROM "nomina")`
-        }</span>
-
-        // Filtrar por nóminas pagas o no pagas
-        <span class="cov4" title="2">if pagas </span><span class="cov1" title="1">{
-                sql += ` AND n."estado_nomina" = 'PAGO'`
-        }</span> else<span class="cov1" title="1"> if noPagas </span><span class="cov0" title="0">{
+        <span class="cov4" title="2">}
+</span>
+        /</span>/ Fil<span class="cov1" title="1">trar por nó</span><span class="cov0" title="0">minas pagas o no pagas
+        if pagas {
+                </span>sql += ` AND n."estado_nomina" = 'PAGO'`
+        } else if noPagas {
                 sql += ` AND n."estado_nomina" = 'NO_PAGO'`
-        }</span>
-
+        <span class="cov4" title="2">}
+</span>
         // Filtrar por mes y año
-        <span class="cov4" title="2">if mes &gt; 0 &amp;&amp; anio &gt; 0 </span><span class="cov1" title="1">{
+        i</span>f mes &gt; 0 &amp;&amp; anio &gt; 0 {
                 sql += ` AND EXTRACT(MONTH FROM n."fecha") = ? AND EXTRACT(YEAR FROM n."fecha") = ?`
                 params = append(params, mes, anio)
-        }</span>
+        <span class="cov4" title="2">}
 
         // Ejecutar la consulta
-        <span class="cov4" title="2">_, err := o.Raw(sql, params...).QueryRows(&amp;relaciones)
+        _, err := o.Raw(sql, params...).QueryRows(&amp;relac</span><span class="cov1" title="1">iones)
 
         // Validar si hay resultados
-        if err == orm.ErrNoRows || len(relaciones) == 0 </span><span class="cov1" title="1">{
+        if err == orm.ErrNoRows || len(relaciones) == 0 {
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
                         Message: "No se encontraron relaciones nómina-trabajador para los filtros aplicados.",
-                }
-                c.ServeJSON()
+                </span>}
+</span>                c.ServeJSON()
                 return
-        }</span> else<span class="cov1" title="1"> if err != nil </span><span class="cov0" title="0">{
+        } else if err != nil {
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al buscar las relaciones nómina-trabajador.",
                         Cause:   err.Error(),
-                }
+                </span>}
                 c.ServeJSON()
                 return
-        }</span>
+        <span class="cov1" title="1">}
 
         // Responder con éxito
-        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
+        c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
-                Message: "Relaciones nómina-trabajador encontradas.",
+                Message: "Re</span>laciones nómina-trabajador encontradas.",
                 Data:    relaciones,
         }
-        c.ServeJSON()</span>
+        c.ServeJSON()
 }
 
-func obtenerMesEnEspañol(mes time.Month) string <span class="cov7" title="4">{
+func obtenerMesEnEspañol(mes time.Month) string {
         meses := map[time.Month]string{
                 time.January:   "Enero",
                 time.February:  "Febrero",
@@ -4062,10 +4065,10 @@ func obtenerMesEnEspañol(mes time.Month) string <span class="cov7" title="4">{
                 time.September: "Septiembre",
                 time.October:   "Octubre",
                 time.November:  "Noviembre",
-                time.December:  "Diciembre",
+        </span>        time.December:  "Diciembre",
         }
         return meses[mes]
-}</span>
+}
 
 // @Title GetNominasByMes
 // @Summary Consultar nóminas del mes actual o de un mes/año específico
@@ -4077,27 +4080,27 @@ func obtenerMesEnEspañol(mes time.Month) string <span class="cov7" title="4">{
 // @Param anio query int false "Año (YYYY) para filtrar nóminas"
 // @Success 200 {object} models.ApiResponse{data=[]map[string]interface{}} "Relaciones nómina-trabajador encontradas"
 // @Failure 404 {object} models.ApiResponse "No se encontraron relaciones nómina-trabajador"
-// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Failure 500 {object} models.ApiResponse "Error en l<span class="cov6" title="3">a base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador/mes [get]
-func (c *NominaTrabajadorController) GetNominasByMes() <span class="cov6" title="3">{
+func (c *NominaTrabajadorController) GetNominasByMes() {
         o := orm.NewOrm()
         mes, _ := c.GetInt("mes")
         anio, _ := c.GetInt("anio")
-
+</span>
         // Validar parámetros
-        if mes &lt; 1 || mes &gt; 12 || anio &lt; 1 </span><span class="cov1" title="1">{
+        if mes &lt; 1 || mes &gt; 12 || anio &lt; 1 {
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusBadRequest,
                         Message: "Los parámetros 'mes' y 'anio' deben ser válidos.",
-                }
+                </span>}
                 c.ServeJSON()
                 return
-        }</span>
+        <span class="cov4" title="2">}
 
         // Consulta SQL
-        <span class="cov4" title="2">var resultados []models.NominaTrabajadorDetalle
+        var resultados []models.NominaTrabajadorDetalle
         sql := `
        SELECT
                nt."sueldo_base",
@@ -4116,38 +4119,38 @@ func (c *NominaTrabajadorController) GetNominasByMes() <span class="cov6" title=
         // Ejecutar la consulta
         num, err := o.Raw(sql, mes, anio).QueryRows(&amp;resultados)
         fmt.Printf("Número de filas recuperadas: %d\n", num)
-        fmt.Printf("Resultados: %+v\n", resultados)
+        fmt.Printf("Re</span><span class="cov1" title="1">sultados: %+v\n", resultados)
 
         // Validar resultados
-        if err != nil </span><span class="cov1" title="1">{
+        if err != nil {
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusInternalServerError,
                         Message: "Error al buscar las nóminas.",
                         Cause:   err.Error(),
-                }
+                </span>}
                 c.ServeJSON()
-                return
-        }</span>
+        <span class="cov1" title="1">        return
+</span>        }
 
-        <span class="cov1" title="1">if len(resultados) == 0 </span><span class="cov0" title="0">{
+        if len(resultados) == 0 {
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{
                         Code:    http.StatusNotFound,
                         Message: "No se encontraron nóminas para el mes y año especificados.",
-                }
+                </span>}
                 c.ServeJSON()
                 return
-        }</span>
+        <span class="cov1" title="1">}
 
         // Responder con éxito
-        <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
+        c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
-                Message: "Nóminas encontradas.",
+                Message: "N�</span>�minas encontradas.",
                 Data:    resultados,
         }
-        c.ServeJSON()</span>
+        c.ServeJSON()
 }
 </pre>
 		
@@ -14559,15 +14562,15 @@ func init() <span class="cov1" title="1">{
         appInit()
 }</span>
 
-func appInit() <span class="cov1" title="1">{
+func appInit() <span class="cov6" title="3">{
         // Inicializar la base de datos y la zona horaria
-        if err := initDBFunc(); err != nil </span><span class="cov0" title="0">{
+        if err := initDBFunc(); err != nil </span><span class="cov1" title="1">{
                 log.Println("Error al conectar a la base de datos:", err)
                 dbReady = false
-        }</span> else<span class="cov1" title="1"> {
+        }</span> else<span class="cov4" title="2"> {
                 dbReady = true
         }</span>
-        <span class="cov1" title="1">initTimezoneFunc()
+        <span class="cov6" title="3">initTimezoneFunc()
         fmt.Println("Loaded timezone:", database.BogotaZone)</span>
 }
 
@@ -14577,16 +14580,17 @@ var (
         sleepFn         = time.Sleep
         cronInsertNom   = func(o orm.Ormer, n *models.Nomina) (int64, error) <span class="cov0" title="0">{ return o.Insert(n) }</span>
         cronRawExec     = func(o orm.Ormer, query string, args ...interface{}) (sql.Result, error) <span class="cov0" title="0">{ return o.Raw(query, args...).Exec() }</span>
+        webRunFunc      = web.Run
 )
 
 // Función para ejecutar la generación automática de nómina
-func generarNominaAutomatica() <span class="cov10" title="2">{
+func generarNominaAutomatica() <span class="cov9" title="6">{
         o := orm.NewOrm() // Usar la conexión existente
 
-        for </span><span class="cov10" title="2">{
+        for </span><span class="cov10" title="7">{
                 // Ejecutar la función de nómina cada día a las 00:00
                 now := nowFn().In(database.BogotaZone)
-                if now.Hour() == 0 &amp;&amp; now.Minute() == 0 </span><span class="cov0" title="0">{
+                if now.Hour() == 0 &amp;&amp; now.Minute() == 0 </span><span class="cov7" title="4">{
                         fmt.Println("Ejecutando generación automática de nómina...")
 
                         nomina := models.Nomina{
@@ -14594,28 +14598,28 @@ func generarNominaAutomatica() <span class="cov10" title="2">{
                                 ESTADO_NOMINA: models.EstadoNominaNoPago,
                                 MONTO:         0,
                         }
-                        if _, err := cronInsertNom(o, &amp;nomina); err != nil </span><span class="cov0" title="0">{
+                        if _, err := cronInsertNom(o, &amp;nomina); err != nil </span><span class="cov1" title="1">{
                                 fmt.Println("Error al crear la nómina:", err)
-                        }</span> else<span class="cov0" title="0"> {
-                                if _, err := cronRawExec(o, "CALL generar_nomina_automatica(?, ?)", nomina.PK_ID_NOMINA, nomina.FECHA); err != nil </span><span class="cov0" title="0">{
+                        }</span> else<span class="cov6" title="3"> {
+                                if _, err := cronRawExec(o, "CALL generar_nomina_automatica(?, ?)", nomina.PK_ID_NOMINA, nomina.FECHA); err != nil </span><span class="cov1" title="1">{
                                         fmt.Println("Error al generar la nómina automática:", err)
-                                }</span> else<span class="cov0" title="0"> {
+                                }</span> else<span class="cov4" title="2"> {
                                         fmt.Println("Nómina generada automáticamente con éxito.")
                                 }</span>
                         }
                 }
 
                 // Modo de una sola iteración para pruebas
-                <span class="cov10" title="2">if os.Getenv("CRON_ONE_SHOT") == "1" </span><span class="cov10" title="2">{
+                <span class="cov10" title="7">if os.Getenv("CRON_ONE_SHOT") == "1" </span><span class="cov9" title="6">{
                         return
                 }</span>
 
                 // Esperar 1 minuto antes de verificar de nuevo
-                <span class="cov0" title="0">sleepFn(1 * time.Minute)</span>
+                <span class="cov1" title="1">sleepFn(1 * time.Minute)</span>
         }
 }
 
-func setStaticHeaders(ctx *context.Context) <span class="cov1" title="1">{
+func setStaticHeaders(ctx *context.Context) <span class="cov4" title="2">{
         // Solo aplicar cache y compresión en archivos estáticos (imagenes, CSS, JS)
         if ctx.Input.URL() != "" &amp;&amp; (ctx.Input.URL() == "/assets/" || ctx.Input.URL() == "/static/") </span><span class="cov1" title="1">{
                 ctx.Output.Header("Cache-Control", "public, max-age=31536000, immutable")
@@ -14633,7 +14637,7 @@ func setStaticHeaders(ctx *context.Context) <span class="cov1" title="1">{
 // @in header
 // @name Authorization
 // @Security BearerAuth
-func main() <span class="cov1" title="1">{
+func main() <span class="cov6" title="3">{
         // Habilitar CORS para todas las rutas
         web.InsertFilter("*", web.BeforeRouter, cors.Allow(&amp;cors.Options{
                 AllowAllOrigins:  true,
@@ -14650,13 +14654,13 @@ func main() <span class="cov1" title="1">{
         web.Handler("/swagger/*", httpSwagger.WrapHandler)
 
         // Iniciar el cron job solo si la DB está disponible y no se ha pedido omitirlo
-        if dbReady &amp;&amp; os.Getenv("SKIP_CRON") != "1" </span><span class="cov0" title="0">{
+        if dbReady &amp;&amp; os.Getenv("SKIP_CRON") != "1" </span><span class="cov1" title="1">{
                 go generarNominaAutomatica()
         }</span>
 
         // Iniciar el servidor salvo que se pida omitir (para tests/unit)
-        <span class="cov1" title="1">if os.Getenv("SKIP_WEB_RUN") != "1" </span><span class="cov0" title="0">{
-                web.Run()
+        <span class="cov6" title="3">if os.Getenv("SKIP_WEB_RUN") != "1" </span><span class="cov1" title="1">{
+                webRunFunc()
         }</span>
 }
 </pre>

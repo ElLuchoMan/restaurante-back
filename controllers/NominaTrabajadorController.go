@@ -33,11 +33,14 @@ type ntQSAdapter struct{ qs orm.QuerySeter }
 func (a ntQSAdapter) Filter(expr string, args ...interface{}) ntQuerySeter { return ntQSAdapter{qs: a.qs.Filter(expr, args...)} }
 func (a ntQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
 func (a ntQSAdapter) One(res interface{}, cols ...string) error { return a.qs.One(res, cols...) }
+//go:noinline
 func (a ntQSAdapter) OrderBy(expr ...string) ntQuerySeter { return ntQSAdapter{qs: a.qs.OrderBy(expr...)} }
+//go:noinline
 func (a ntQSAdapter) Exist() bool { return a.qs.Exist() }
 
 type ntOrmAdapter struct{ o orm.Ormer }
 func (a ntOrmAdapter) QueryTable(i interface{}) ntQuerySeter { return ntQSAdapter{qs: a.o.QueryTable(i)} }
+//go:noinline
 func (a ntOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
 
 var nomtraOrmNew = func() ntOrmer { return ntOrmAdapter{o: orm.NewOrm()} }
