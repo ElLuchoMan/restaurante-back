@@ -266,11 +266,15 @@ definitions:
   models.EstadoPedido:
     enum:
     - INICIADO
+    - EN_PREPARACION
+    - LISTO
     - TERMINADO
     - CANCELADO
     type: string
     x-enum-varnames:
     - EstadoPedidoIniciado
+    - EstadoPedidoEnPreparacion
+    - EstadoPedidoListo
     - EstadoPedidoTerminado
     - EstadoPedidoCancelado
   models.EstadoProducto:

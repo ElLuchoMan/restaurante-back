@@ -13,46 +13,45 @@ linters:
     errcheck:
       check-type-assertions: false
       check-blank: false
-
-issues:
-  exclude-dirs:
-    - docs
-    - swagger
-  exclude-rules:
-    - path: ".*_test\\.go"
-      linters:
-        - errcheck
-        - ineffassign
-        - staticcheck
-        - unused
-    # Errores típicos ignorados por contrato del framework / controladores
-    - linters: [errcheck]
-      text: 'ServeJSON'
-    - linters: [errcheck]
-      text: 'Output\\.JSON'
-    - linters: [errcheck]
-      text: 'Close\\('
-    - linters: [errcheck]
-      text: 'Rollback\\('
-    - linters: [errcheck]
-      text: 'ParseMultipartForm'
-    - linters: [errcheck]
-      text: 'WriteField'
-    - linters: [errcheck]
-      text: 'GetInt\\('
-    - linters: [errcheck]
-      text: 'GetInt64\\('
-    - linters: [errcheck]
-      text: 'GetBool\\('
-    - linters: [errcheck]
-      text: 'time\\.Parse'
-    - linters: [errcheck]
-      text: 'time\\.LoadLocation'
-    - linters: [errcheck]
-      text: 'QueryRows'
-    - linters: [errcheck]
-      text: 'RowsAffected'
-    - linters: [errcheck]
-      text: 'Raw\\(.*\\)\\.Exec'
-    - linters: [errcheck]
-      text: 'web\\.AppConfig\\.String'
+  exclusions:
+    paths:
+      - docs
+      - swagger
+    rules:
+      - path: ".*_test\\.go"
+        linters:
+          - errcheck
+          - ineffassign
+          - staticcheck
+          - unused
+      # Errores típicos ignorados por contrato del framework / controladores
+      - linters: [errcheck]
+        text: 'ServeJSON'
+      - linters: [errcheck]
+        text: 'Output\\.JSON'
+      - linters: [errcheck]
+        text: 'Close\('
+      - linters: [errcheck]
+        text: 'Rollback\('
+      - linters: [errcheck]
+        text: 'ParseMultipartForm'
+      - linters: [errcheck]
+        text: 'WriteField'
+      - linters: [errcheck]
+        text: 'GetInt\('
+      - linters: [errcheck]
+        text: 'GetInt64\('
+      - linters: [errcheck]
+        text: 'GetBool\('
+      - linters: [errcheck]
+        text: 'time\\.Parse'
+      - linters: [errcheck]
+        text: 'time\\.LoadLocation'
+      - linters: [errcheck]
+        text: 'QueryRows'
+      - linters: [errcheck]
+        text: 'RowsAffected'
+      - linters: [errcheck]
+        text: 'Raw\(.*\)\\.Exec'
+      - linters: [errcheck]
+        text: 'web\\.AppConfig\\.String'

@@ -5514,11 +5514,15 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "INICIADO",
+                "EN_PREPARACION",
+                "LISTO",
                 "TERMINADO",
                 "CANCELADO"
             ],
             "x-enum-varnames": [
                 "EstadoPedidoIniciado",
+                "EstadoPedidoEnPreparacion",
+                "EstadoPedidoListo",
                 "EstadoPedidoTerminado",
                 "EstadoPedidoCancelado"
             ]

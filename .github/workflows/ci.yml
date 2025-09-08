@@ -108,4 +108,4 @@ jobs:
           version: v2.4.0
           args: >
             --timeout=5m
-            --out-format=github-actions
+            --format=github-actions
