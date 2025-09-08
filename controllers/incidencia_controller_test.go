@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web/context"
 )
 
@@ -117,6 +118,7 @@ func TestIncidenciaPostMissingFecha(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
 	c := IncidenciaController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
@@ -134,6 +136,7 @@ func TestIncidenciaPostInvalidFecha(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
 	c := IncidenciaController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
@@ -151,6 +154,7 @@ func TestIncidenciaPostMissingMonto(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
 	c := IncidenciaController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
@@ -168,6 +172,7 @@ func TestIncidenciaPostMissingDocumentoTrabajador(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
 	c := IncidenciaController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
@@ -215,18 +220,26 @@ func TestIncidenciaPostMissingMotivo(t *testing.T) {
 }
 
 func TestIncidenciaPostInsertError(t *testing.T) {
-    body := `{"fechaIncidencia":"2024-01-01","monto":100,"resta":false,"motivo":"x","documentoTrabajador":1}`
-    r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
-    w := httptest.NewRecorder()
-    ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
-    c := IncidenciaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+	body := `{"fechaIncidencia":"2024-01-01","monto":100,"resta":false,"motivo":"x","documentoTrabajador":1}`
+	r := httptest.NewRequest(http.MethodPost, "/incidencias", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
-    // Forzar error de inserción
-    MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) { return nil, errors.New("db") }
-    t.Cleanup(func(){ MockExec = nil })
+	// Forzar error de inserción
+	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("db")
+	}
+	t.Cleanup(func() { MockExec = nil })
 
-    c.Post()
-    if w.Code != http.StatusInternalServerError { t.Fatalf("expected 500, got %d", w.Code) }
+	c.Post()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
 }
 
 func TestIncidenciaPutInvalidID(t *testing.T) {
@@ -267,6 +280,7 @@ func TestIncidenciaPutInvalidFecha(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
 	c := IncidenciaController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
@@ -296,17 +310,35 @@ func TestIncidenciaPutUpdateError(t *testing.T) {
 }
 
 func TestIncidenciaPutNotFound(t *testing.T) {
-    r := httptest.NewRequest(http.MethodPut, "/incidencias?id=1", strings.NewReader(`{}`))
-    w := httptest.NewRecorder()
-    ctx := context.NewContext(); ctx.Reset(w, r)
-    c := IncidenciaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+	body := `{}`
+	r := httptest.NewRequest(http.MethodPut, "/incidencias?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := IncidenciaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
-    // No configurar MockQuery: devolverá 0 filas por defecto en este entorno, simulando no encontrado
-    c.Put()
-    if w.Code != http.StatusOK && w.Code != http.StatusBadRequest {
-        t.Fatalf("expected 200 or 400, got %d", w.Code)
-    }
+	// Forzar que Read devuelva orm.ErrNoRows
+	orig := incidenciaOrmNew
+	incidenciaOrmNew = func() incidenciaOrmer { return fakeIncidOrmReadNotFound{} }
+	t.Cleanup(func() { incidenciaOrmNew = orig })
+
+	c.Put()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
 }
+
+// fakeIncidOrmReadNotFound devuelve orm.ErrNoRows en Read para simular no encontrado
+type fakeIncidOrmReadNotFound struct{}
+
+func (fakeIncidOrmReadNotFound) QueryTable(interface{}) orm.QuerySeter        { return nil }
+func (fakeIncidOrmReadNotFound) Insert(interface{}) (int64, error)            { return 0, nil }
+func (fakeIncidOrmReadNotFound) Read(interface{}, ...string) error            { return orm.ErrNoRows }
+func (fakeIncidOrmReadNotFound) Update(interface{}, ...string) (int64, error) { return 0, nil }
+func (fakeIncidOrmReadNotFound) Delete(interface{}, ...string) (int64, error) { return 0, nil }
 
 func TestIncidenciaDeleteInvalidID(t *testing.T) {
 	r := httptest.NewRequest(http.MethodDelete, "/incidencias?id=abc", nil)
