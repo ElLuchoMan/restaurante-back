@@ -211,22 +211,22 @@ func TestPedidoPostDeliveryWithoutDomicilio(t *testing.T) {
 }
 
 func TestPedidoAssignDomicilioBadParam(t *testing.T) {
-    r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-domicilio?pedido_id=1&domicilio_id=0", nil)
-    w := httptest.NewRecorder()
-    ctx := beegoCtx.NewContext()
-    ctx.Reset(w, r)
-    c := PedidoController{}
-    c.Ctx = ctx
-    c.Data = make(map[interface{}]interface{})
+	r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-domicilio?pedido_id=1&domicilio_id=0", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := PedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
-    c.AssignDomicilio()
+	c.AssignDomicilio()
 
-    if w.Code != http.StatusBadRequest {
-        t.Fatalf("expected status 400, got %d", w.Code)
-    }
-    if !strings.Contains(w.Body.String(), "debe ser un entero positivo") {
-        t.Errorf("unexpected body: %s", w.Body.String())
-    }
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "debe ser un entero positivo") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
 }
 
 func TestPedidoPostSuccess(t *testing.T) {
@@ -261,6 +261,38 @@ func TestPedidoPostSuccess(t *testing.T) {
 	}
 }
 
+func TestPedidoPostDeliveryWithDomicilioAndRestaurante(t *testing.T) {
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return mockResult{}, nil
+	}
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_id_pedido"}
+		vals := [][]driver.Value{{int64(1)}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	defer func() { MockExec = nil; MockQuery = nil }()
+
+	body := `{"delivery":true,"pk_id_domicilio":1,"restauranteId":2}`
+	r := httptest.NewRequest(http.MethodPost, "/pedidos", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := PedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Ctx.Input.RequestBody = []byte(body)
+
+	c.Post()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Pedido creado exitosamente") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
 func TestPedidoGetAllWithFiltersNoResults(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
@@ -270,6 +302,31 @@ func TestPedidoGetAllWithFiltersNoResults(t *testing.T) {
 
 	url := "/pedidos?fecha=2024-01-01&desde=2024-01-01&hasta=2024-02-01&mes=1&anio=2024&cliente=1&metodo_pago=NEQUI&domicilio=true"
 	r := httptest.NewRequest(http.MethodGet, url, nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := PedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetAll()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "No se encontraron pedidos") {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestPedidoGetAllAnioOnly(t *testing.T) {
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
+		return &mockRows{columns: cols, values: [][]driver.Value{}}, nil
+	}
+	defer func() { MockQuery = nil }()
+
+	r := httptest.NewRequest(http.MethodGet, "/pedidos?anio=2024", nil)
 	w := httptest.NewRecorder()
 	ctx := beegoCtx.NewContext()
 	ctx.Reset(w, r)
