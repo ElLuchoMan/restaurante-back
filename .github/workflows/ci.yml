@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop, master ]
+  pull_request:
+    branches: [ develop, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Show Go env
+        run: go env
+
+      - name: Verify modules
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run gofmt (check)
+        run: |
+          fmtcount=$(gofmt -l . | wc -l)
+          if [ "$fmtcount" -ne 0 ]; then
+            echo "Archivos sin formatear:" && gofmt -l .
+            exit 1
+          fi
+
+      - name: Run tests with coverage (unit)
+        env:
+          SKIP_WEB_RUN: "1"
+          SKIP_CRON: "1"
+          SKIP_DB_SEED: "1"
+        run: |
+          go test -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tee coverage.txt
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage.out
+            coverage.txt
+
+  swagger-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Generate Swagger (dry-run)
+        run: |
+          go install github.com/swaggo/swag/cmd/swag@latest
+          swag --version
+          # Verifica que la generación no falla; no comparamos diffs para evitar ruido en PRs
+          swag init -g main.go -o docs
+
+      - name: Validate docs presence
+        run: |
+          test -f docs/swagger.json
+          test -f docs/swagger.yaml || echo "swagger.yaml no encontrado (opcional)"
+
+  lint-golangci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+
