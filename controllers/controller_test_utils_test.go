@@ -24,8 +24,33 @@ var (
 
 type mockConn struct{}
 
+type mockStmt struct{ query string }
+
+func (s *mockStmt) Close() error { return nil }
+func (s *mockStmt) NumInput() int { return -1 }
+func (s *mockStmt) Exec(args []driver.Value) (driver.Result, error) {
+        if MockExec != nil {
+                named := make([]driver.NamedValue, len(args))
+                for i, v := range args {
+                        named[i] = driver.NamedValue{Ordinal: i + 1, Value: v}
+                }
+                return MockExec(context.Background(), s.query, named)
+        }
+        return nil, errors.New("mock exec error")
+}
+func (s *mockStmt) Query(args []driver.Value) (driver.Rows, error) {
+        if MockQuery != nil {
+                named := make([]driver.NamedValue, len(args))
+                for i, v := range args {
+                        named[i] = driver.NamedValue{Ordinal: i + 1, Value: v}
+                }
+                return MockQuery(context.Background(), s.query, named)
+        }
+        return nil, errors.New("mock query error")
+}
+
 func (c *mockConn) Prepare(query string) (driver.Stmt, error) {
-	return nil, errors.New("not implemented")
+        return &mockStmt{query: query}, nil
 }
 func (c *mockConn) Close() error              { return nil }
 func (c *mockConn) Begin() (driver.Tx, error) { return &mockTx{}, nil }

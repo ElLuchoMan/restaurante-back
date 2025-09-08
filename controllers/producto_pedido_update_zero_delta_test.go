@@ -17,17 +17,11 @@ func TestProductoPedidoUpdate_ZeroDelta_ReplacesDetails(t *testing.T) {
     step := 0
     MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
         lower := strings.ToLower(q)
-        if strings.Contains(lower, "from detalle_pedido") {
-            // actuales con cantidad 2, y nuevos también 2 -> delta 0
-            cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-            vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(1000)}}
-            return &mockRows{columns: cols, values: vals}, nil
-        }
-        // reconsulta final
-        step++
-        if step > 1 && strings.Contains(lower, "detalle_pedido") {
-            cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-            vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(1000)}}
+        if strings.Contains(lower, "detalle_pedido") {
+            step++
+            // tanto la consulta inicial como la reconsulta final devuelven el mismo registro
+            cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
+            vals := [][]driver.Value{{int64(step), int64(1), int64(1), int64(2), int64(1000)}}
             return &mockRows{columns: cols, values: vals}, nil
         }
         return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil

@@ -494,7 +494,7 @@ func TestProductoPedidoUpdateEndToEndSuccess(t *testing.T) {
     MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
         lower := strings.ToLower(q)
         // actuales: primera consulta devuelve 0
-        if strings.Contains(lower, "from detalle_pedido") && call == 0 {
+        if strings.Contains(lower, "detalle_pedido") && call == 0 {
             call++
             return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
         }
@@ -505,7 +505,7 @@ func TestProductoPedidoUpdateEndToEndSuccess(t *testing.T) {
             return &mockRows{columns: cols, values: vals}, nil
         }
         // reconsulta one
-        if strings.Contains(lower, "from detalle_pedido") {
+        if strings.Contains(lower, "detalle_pedido") {
             cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
             vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(2000)}}
             return &mockRows{columns: cols, values: vals}, nil
@@ -530,7 +530,7 @@ func TestProductoPedidoUpdate_InsufficientInventory_Validation(t *testing.T) {
     call := 0
     MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
         lower := strings.ToLower(q)
-        if strings.Contains(lower, "from detalle_pedido") {
+        if strings.Contains(lower, "detalle_pedido") {
             // devolver 0 filas para actuales -> evita escaneo a struct completo
             return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
         }
@@ -563,7 +563,7 @@ func TestProductoPedidoUpdate_PositiveDelta_NoStockRowsAffected(t *testing.T) {
     call := 0
     MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
         lower := strings.ToLower(q)
-        if strings.Contains(lower, "from detalle_pedido") {
+        if strings.Contains(lower, "detalle_pedido") {
             // actuales vacío
             return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
         }
@@ -599,7 +599,7 @@ func TestProductoPedidoUpdate_PositiveDelta_ExecError(t *testing.T) {
     origQ, origE := MockQuery, MockExec
     MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
         lower := strings.ToLower(q)
-        if strings.Contains(lower, "from detalle_pedido") {
+        if strings.Contains(lower, "detalle_pedido") {
             return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
         }
         if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
@@ -637,7 +637,7 @@ func TestProductoPedidoPostEndToEndSuccess(t *testing.T) {
 			vals := [][]driver.Value{{int64(1), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
-		if strings.Contains(lower, "from detalle_pedido") {
+            if strings.Contains(lower, "detalle_pedido") {
 			cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(1000)}}
 			return &mockRows{columns: cols, values: vals}, nil
@@ -781,7 +781,7 @@ func TestProductoPedidoPost_InsertError(t *testing.T) {
         if strings.Contains(lower, "insert into") {
             return nil, errors.New("insert fail")
         }
-        if strings.Contains(lower, "from detalle_pedido") {
+        if strings.Contains(lower, "detalle_pedido") {
             cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
             vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(1000)}}
             return &mockRows{columns: cols, values: vals}, nil
