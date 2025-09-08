@@ -1,3 +1,4 @@
+version: 1.59
 run:
   timeout: 5m
   tests: true
@@ -31,19 +32,17 @@ issues:
         - unused
     # Ignorar errores no críticos que se gestionan por contrato del framework/Biblio
     - linters: [errcheck]
-      text: "ServeJSON"
+      text: 'ServeJSON'
     - linters: [errcheck]
-      text: "Output.JSON"
+      text: 'Output.JSON'
     - linters: [errcheck]
-      text: "Close\(\)"
+      text: 'Close('
     - linters: [errcheck]
-      text: "Rollback\(\)"
+      text: 'Rollback('
     - linters: [errcheck]
-      text: "ParseMultipartForm"
+      text: 'ParseMultipartForm'
     - linters: [errcheck]
-      text: "WriteField"
-    - linters: [errcheck]
-      text: "Writer.Close"
+      text: 'WriteField'
 
 errcheck:
   check-type-assertions: false
