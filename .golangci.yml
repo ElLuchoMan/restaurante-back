@@ -1,8 +1,6 @@
 run:
   timeout: 5m
   tests: false
-  skip-dirs:
-    - controllers
 
 linters:
   disable-all: true
@@ -15,7 +13,6 @@ issues:
   exclude-dirs:
     - docs
     - swagger
-    - controllers
   exclude-rules:
     # Relajar en archivos de test para evitar falso-positivos en mocks y helpers
     - path: ".*_test\\.go"
@@ -25,8 +22,7 @@ issues:
         - staticcheck
         - unused
     # Ignorar errores no críticos que se gestionan por contrato del framework/Biblio
-    - linters: [errcheck]
-      text: 'ServeJSON'
+    # Permitir explícitos `_ =` en código
     - linters: [errcheck]
       text: 'Output\.JSON'
     - linters: [errcheck]
