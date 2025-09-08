@@ -68,7 +68,7 @@ func (c *RestauranteController) GetAll() {
 			Message: "Error al obtener restaurantes de la base de datos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -77,7 +77,7 @@ func (c *RestauranteController) GetAll() {
 		Message: "Restaurantes obtenidos exitosamente",
 		Data:    restaurantes,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -101,7 +101,7 @@ func (c *RestauranteController) GetById() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -115,7 +115,7 @@ func (c *RestauranteController) GetById() {
 			Message: "Restaurante no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -125,7 +125,7 @@ func (c *RestauranteController) GetById() {
 		Message: "Restaurante encontrado",
 		Data:    restaurante,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Create
@@ -150,7 +150,7 @@ func (c *RestauranteController) Post() {
 			Message: "Error en la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -162,7 +162,7 @@ func (c *RestauranteController) Post() {
 			Message: "Error al crear el restaurante",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -172,7 +172,7 @@ func (c *RestauranteController) Post() {
 		Message: "Restaurante creado correctamente",
 		Data:    restaurante,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -199,7 +199,7 @@ func (c *RestauranteController) Put() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -214,7 +214,7 @@ func (c *RestauranteController) Put() {
 				Message: "Error en la solicitud",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
@@ -229,7 +229,7 @@ func (c *RestauranteController) Put() {
 				Message: "Error al actualizar el restaurante",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
@@ -239,14 +239,14 @@ func (c *RestauranteController) Put() {
 			Message: "Restaurante actualizado",
 			Data:    updatedRestaurante,
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Restaurante no encontrado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	}
 }
 
@@ -273,7 +273,7 @@ func (c *RestauranteController) Delete() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -285,7 +285,7 @@ func (c *RestauranteController) Delete() {
 			Code:    http.StatusOK,
 			Message: "Restaurante eliminado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -293,6 +293,6 @@ func (c *RestauranteController) Delete() {
 			Message: "Restaurante no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	}
 }
