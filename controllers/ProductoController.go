@@ -63,7 +63,7 @@ func (c *ProductoController) GetAll() {
 			Message: "Error al obtener productos de la base de datos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -80,7 +80,7 @@ func (c *ProductoController) GetAll() {
 		Message: "Productos obtenidos exitosamente",
 		Data:    productos,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -104,7 +104,7 @@ func (c *ProductoController) GetById() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -115,7 +115,7 @@ func (c *ProductoController) GetById() {
 			Code:    http.StatusNotFound,
 			Message: err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -125,7 +125,7 @@ func (c *ProductoController) GetById() {
 		Message: "Producto encontrado",
 		Data:    producto,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -191,7 +191,7 @@ func (c *ProductoController) Post() {
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &producto); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	}
@@ -201,14 +201,14 @@ func (c *ProductoController) Post() {
 	if err := validateProducto(&producto); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	if _, err := insertProductoFn(o, &producto); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear el producto", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -219,13 +219,13 @@ func (c *ProductoController) Post() {
 	if _, err := insertPrecioHistFn(o, &hist); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Producto creado correctamente", Data: producto}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -255,7 +255,7 @@ func (c *ProductoController) Put() {
 	if err != nil || id == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente.", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -309,7 +309,7 @@ func (c *ProductoController) Put() {
 			if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
 				c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-				c.ServeJSON()
+				_ = c.ServeJSON()
 				return
 			}
 
@@ -328,21 +328,21 @@ func (c *ProductoController) Put() {
 		if err := validateProducto(&producto); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
 		if reflect.DeepEqual(producto, original) {
 			c.Ctx.Output.SetStatus(http.StatusNotModified)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusNotModified, Message: "No se realizaron cambios en el producto"}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
 		if _, err = updateProductoFn(o, &producto); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el producto.", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
@@ -354,18 +354,18 @@ func (c *ProductoController) Put() {
 			if _, err := insertPrecioHistFn(o, &hist); err != nil {
 				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
-				c.ServeJSON()
+				_ = c.ServeJSON()
 				return
 			}
 		}
 
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Producto actualizado", Data: producto}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Producto no encontrado."}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	}
 
 }
@@ -394,7 +394,7 @@ func (c *ProductoController) Delete() {
 			Message: "El parámetro 'id' es inválido o está ausente.",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -406,7 +406,7 @@ func (c *ProductoController) Delete() {
 			Code:    http.StatusNotFound,
 			Message: err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	if producto.ESTADO_PRODUCTO == models.EstadoProductoNoDisponible {
@@ -415,7 +415,7 @@ func (c *ProductoController) Delete() {
 			Code:    http.StatusBadRequest,
 			Message: "El producto ya está desactivado.",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	// Cambiar el estado del producto a "NO_DISPONIBLE" para el borrado lógico
@@ -427,7 +427,7 @@ func (c *ProductoController) Delete() {
 			Message: "Error al desactivar el producto.",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -436,7 +436,7 @@ func (c *ProductoController) Delete() {
 		Code:    http.StatusOK,
 		Message: "Producto desactivado correctamente.",
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 func validateProducto(producto *models.Producto) error {

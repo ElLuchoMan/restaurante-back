@@ -106,7 +106,7 @@ func (c *PedidoController) GetAll() {
 			Message: "Error al obtener los pedidos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -116,7 +116,7 @@ func (c *PedidoController) GetAll() {
 			Code:    404,
 			Message: "No se encontraron pedidos que coincidan con los filtros proporcionados",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -126,7 +126,7 @@ func (c *PedidoController) GetAll() {
 		Message: "Pedidos obtenidos exitosamente",
 		Data:    pedidos,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title PostPedido
@@ -157,7 +157,7 @@ func (c *PedidoController) Post() {
 			Message: "Datos inválidos (JSON mal formado)",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -193,7 +193,7 @@ func (c *PedidoController) Post() {
 			Code:    400,
 			Message: "El domicilio es obligatorio cuando delivery es true",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -205,7 +205,7 @@ func (c *PedidoController) Post() {
 			Message: "Error al crear el pedido",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -215,7 +215,7 @@ func (c *PedidoController) Post() {
 		Message: "Pedido creado exitosamente",
 		Data:    pedido,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title AssignDomicilio
@@ -240,7 +240,7 @@ func (c *PedidoController) AssignDomicilio() {
 	if domicilioID <= 0 {
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = models.ApiResponse{Code: 400, Message: "El parámetro 'domicilio_id' debe ser un entero positivo"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -249,7 +249,7 @@ func (c *PedidoController) AssignDomicilio() {
 	if _, err := o.Raw("SELECT pk_id_pedido, fecha, hora, delivery, estado_pedido, pk_id_domicilio, pk_id_pago, pk_id_restaurante, updated_at, updated_by FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -258,12 +258,12 @@ func (c *PedidoController) AssignDomicilio() {
 	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO", "DELIVERY"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar domicilio", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Domicilio asignado correctamente", Data: pedido}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title AssignPago
@@ -288,7 +288,7 @@ func (c *PedidoController) AssignPago() {
 	if _, err := o.Raw("SELECT pk_id_pedido, fecha, hora, delivery, estado_pedido, pk_id_domicilio, pk_id_pago, pk_id_restaurante, updated_at, updated_by FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -297,7 +297,7 @@ func (c *PedidoController) AssignPago() {
 	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar pago", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -308,7 +308,7 @@ func (c *PedidoController) AssignPago() {
 	}
 
 	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Pago asignado correctamente", Data: pedido}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title UpdateEstadoPedido
@@ -339,7 +339,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 			Code:    400,
 			Message: "Estado inválido",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -353,7 +353,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 			Code:    404,
 			Message: "Pedido no encontrado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -365,7 +365,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 			Message: "Error al actualizar estado del pedido",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -377,7 +377,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 		Message: "Estado del pedido actualizado correctamente",
 		Data:    pedido,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetPedidoDetails
@@ -403,7 +403,7 @@ func (c *PedidoController) GetPedidoDetails() {
 			Code:    400,
 			Message: "El parámetro 'pedido_id' es obligatorio.",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -448,7 +448,7 @@ WHERE p.pk_id_pedido = ?;
 			Message: "Error al obtener los detalles del pedido",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -458,5 +458,5 @@ WHERE p.pk_id_pedido = ?;
 		Message: "Detalles del pedido obtenidos exitosamente",
 		Data:    details,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
