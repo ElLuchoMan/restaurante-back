@@ -62,7 +62,7 @@ func (c *PagoController) GetAll() {
 			Message: "Error al obtener pagos de la base de datos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -113,7 +113,7 @@ func (c *PagoController) GetAll() {
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron pagos que coincidan con los filtros proporcionados",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -124,7 +124,7 @@ func (c *PagoController) GetAll() {
 		Message: "Pagos obtenidos exitosamente",
 		Data:    filteredPagos,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -149,7 +149,7 @@ func (c *PagoController) GetById() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -162,7 +162,7 @@ func (c *PagoController) GetById() {
 			Message: "Pago no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -177,7 +177,7 @@ func (c *PagoController) GetById() {
 		Message: "Pago encontrado",
 		Data:    pago,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Create
@@ -213,7 +213,7 @@ func (c *PagoController) Post() {
 			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -221,42 +221,42 @@ func (c *PagoController) Post() {
 	if in.FechaPago == "" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo fechaPago no puede estar vacío"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	fecha, err := time.Parse("2006-01-02", in.FechaPago)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido (use YYYY-MM-DD)", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	if in.HoraPago == "" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo horaPago no puede estar vacío"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	hora, err := time.Parse("15:04:05", in.HoraPago)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido, debe ser HH:mm:ss", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	if in.Monto == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo monto es obligatorio y debe ser un número"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	if in.EstadoPago == "" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo estadoPago es obligatorio"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	in.EstadoPago = strings.ToUpper(in.EstadoPago)
@@ -267,14 +267,14 @@ func (c *PagoController) Post() {
 			Message: "Estado de pago inválido",
 			Cause:   "El estado debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	if in.MetodoPagoId == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo metodoPagoId es obligatorio y debe ser un número válido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -298,7 +298,7 @@ func (c *PagoController) Post() {
 	if _, err := o.Insert(&pago); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear el pago", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -308,7 +308,7 @@ func (c *PagoController) Post() {
 		Message: "Pago creado correctamente",
 		Data:    pago, // tu MarshalJSON ya lo devuelve con fecha DD-MM-YYYY y updatedAt DD-MM-YYYY HH:mm:ss
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -336,7 +336,7 @@ func (c *PagoController) Put() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -348,7 +348,7 @@ func (c *PagoController) Put() {
 			Code:    http.StatusNotFound,
 			Message: "Pago no encontrado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -357,7 +357,7 @@ func (c *PagoController) Put() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -385,7 +385,7 @@ func (c *PagoController) Put() {
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido (YYYY-MM-DD)", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		pago.FECHA = parsedDate
@@ -397,14 +397,14 @@ func (c *PagoController) Put() {
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido (HH:MM:SS)", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		pago.HORA = parsedHora
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo hora no puede estar vacío"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -417,7 +417,7 @@ func (c *PagoController) Put() {
 		if !estadosPagoPermitidos[estado] {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Estado de pago inválido. Debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'"}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		pago.ESTADO_PAGO = estado
@@ -435,7 +435,7 @@ func (c *PagoController) Put() {
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo metodoPagoId es obligatorio y debe ser un número válido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -443,14 +443,14 @@ func (c *PagoController) Put() {
 	if _, err := o.Update(&pago); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el pago", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	// Responder con los datos actualizados
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Pago actualizado correctamente", Data: pago}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -476,7 +476,7 @@ func (c *PagoController) Delete() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -488,7 +488,7 @@ func (c *PagoController) Delete() {
 			Code:    http.StatusOK,
 			Message: "Pago eliminado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -496,6 +496,6 @@ func (c *PagoController) Delete() {
 			Message: "Pago no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	}
 }

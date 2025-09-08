@@ -45,11 +45,27 @@ var countMetodoPagoByTipo = func(o orm.Ormer, tipo string) (int64, error) {
 func InitDB() error {
 	quiet := os.Getenv("QUIET_TESTS") == "1"
 
-	dbHost, _ := web.AppConfig.String("db_host")
-	dbPort, _ := web.AppConfig.String("db_port")
-	dbUser, _ := web.AppConfig.String("db_user")
-	dbPass, _ := web.AppConfig.String("db_pass")
-	dbName, _ := web.AppConfig.String("db_name")
+	// Validar y obtener configuración obligatoria de DB
+	dbHost, err := web.AppConfig.String("db_host")
+	if err != nil {
+		return fmt.Errorf("config db_host: %w", err)
+	}
+	dbPort, err := web.AppConfig.String("db_port")
+	if err != nil {
+		return fmt.Errorf("config db_port: %w", err)
+	}
+	dbUser, err := web.AppConfig.String("db_user")
+	if err != nil {
+		return fmt.Errorf("config db_user: %w", err)
+	}
+	dbPass, err := web.AppConfig.String("db_pass")
+	if err != nil {
+		return fmt.Errorf("config db_pass: %w", err)
+	}
+	dbName, err := web.AppConfig.String("db_name")
+	if err != nil {
+		return fmt.Errorf("config db_name: %w", err)
+	}
 
 	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable TimeZone=UTC",
 		dbUser, dbPass, dbHost, dbPort, dbName)

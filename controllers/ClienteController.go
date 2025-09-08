@@ -81,11 +81,22 @@ func (c *ClienteController) GetAll() {
 	offsetStr := c.GetString("offset")
 
 	if limitStr != "" || offsetStr != "" {
-		// Parsear valores; GetInt devuelve 0 en error, tomamos 10 como default solo
-		// cuando el parámetro `limit` fue provisto pero igual a 0.
-		limit, _ := c.GetInt("limit")
-		offset, _ := c.GetInt("offset")
-		if limit == 0 {
+		// Parsear valores controlando errores
+		limit, errL := c.GetInt("limit")
+		offset, errO := c.GetInt("offset")
+		if limitStr != "" && errL != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'limit' inválido", Cause: errL.Error()}
+			_ = c.ServeJSON()
+			return
+		}
+		if offsetStr != "" && errO != nil {
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'offset' inválido", Cause: errO.Error()}
+			_ = c.ServeJSON()
+			return
+		}
+		if limitStr != "" && limit == 0 {
 			limit = 10
 		}
 
@@ -97,7 +108,7 @@ func (c *ClienteController) GetAll() {
 				Message: "Error al obtener clientes de la base de datos",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	} else {
@@ -110,7 +121,7 @@ func (c *ClienteController) GetAll() {
 				Message: "Error al obtener clientes de la base de datos",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	}
@@ -131,7 +142,7 @@ func (c *ClienteController) GetAll() {
 			Message: "Clientes obtenidos exitosamente",
 			Data:    filteredClientes,
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -146,7 +157,7 @@ func (c *ClienteController) GetAll() {
 		Message: "Clientes obtenidos exitosamente",
 		Data:    clientes,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -172,7 +183,7 @@ func (c *ClienteController) GetById() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -185,7 +196,7 @@ func (c *ClienteController) GetById() {
 			Code:    http.StatusNotFound,
 			Message: "Cliente no encontrado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	} else if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -194,7 +205,7 @@ func (c *ClienteController) GetById() {
 			Message: "Error al consultar el cliente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -207,7 +218,7 @@ func (c *ClienteController) GetById() {
 		Message: "Cliente encontrado",
 		Data:    cliente,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Create
@@ -232,7 +243,7 @@ func (c *ClienteController) Post() {
 			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -244,7 +255,7 @@ func (c *ClienteController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo correo es obligatorio",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	cliente.CORREO = normalizeEmail(correoTrim)
@@ -258,7 +269,7 @@ func (c *ClienteController) Post() {
 			Message: "Error al procesar la contraseña",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	cliente.PASSWORD = string(hashedPassword)
@@ -272,7 +283,7 @@ func (c *ClienteController) Post() {
 				Message: "El correo ya está registrado",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -281,7 +292,7 @@ func (c *ClienteController) Post() {
 			Message: "Error al crear el cliente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -294,7 +305,7 @@ func (c *ClienteController) Post() {
 		Message: "Cliente creado correctamente",
 		Data:    cliente,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -323,7 +334,7 @@ func (c *ClienteController) Put() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -336,7 +347,7 @@ func (c *ClienteController) Put() {
 				Code:    http.StatusNotFound,
 				Message: "Cliente no encontrado",
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 		} else {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
@@ -344,7 +355,7 @@ func (c *ClienteController) Put() {
 				Message: "Error al buscar el cliente",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 		}
 		return
 	}
@@ -358,7 +369,7 @@ func (c *ClienteController) Put() {
 			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -383,7 +394,7 @@ func (c *ClienteController) Put() {
 				Message: "Error al procesar la contraseña",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		updatedCliente.PASSWORD = string(hashedPassword)
@@ -401,7 +412,7 @@ func (c *ClienteController) Put() {
 				Message: "El correo ya está registrado",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -410,7 +421,7 @@ func (c *ClienteController) Put() {
 			Message: "Error al actualizar el cliente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -423,7 +434,7 @@ func (c *ClienteController) Put() {
 		Message: "Cliente actualizado",
 		Data:    updatedCliente,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -449,7 +460,7 @@ func (c *ClienteController) Delete() {
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'id' es inválido o está ausente",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -461,7 +472,7 @@ func (c *ClienteController) Delete() {
 			Code:    http.StatusOK,
 			Message: "Cliente eliminado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -469,6 +480,6 @@ func (c *ClienteController) Delete() {
 			Message: "Cliente no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	}
 }

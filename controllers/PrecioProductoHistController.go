@@ -59,7 +59,7 @@ WHERE 1=1`
 	if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener historial de precios", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -74,7 +74,7 @@ WHERE 1=1`
 	}
 
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Historial de precios", Data: resp}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -104,7 +104,7 @@ WHERE pph.pk_id_precio_hist = ?`
 	if err := o.Raw(query, id).QueryRow(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Historial no encontrado"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	resp := map[string]interface{}{
@@ -114,5 +114,5 @@ WHERE pph.pk_id_precio_hist = ?`
 		"fechaVigencia":  row.Fecha,
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Historial encontrado", Data: resp}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

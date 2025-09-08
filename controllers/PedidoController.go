@@ -161,7 +161,13 @@ func (c *PedidoController) Post() {
 		return
 	}
 
-	loc, _ := time.LoadLocation("America/Bogota")
+	loc, errLoc := time.LoadLocation("America/Bogota")
+	if errLoc != nil {
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{Code: 500, Message: "No se pudo cargar zona horaria", Cause: errLoc.Error()}
+		_ = c.ServeJSON()
+		return
+	}
 	now := time.Now().In(loc)
 
 	// Construimos el pedido conforme a las reglas

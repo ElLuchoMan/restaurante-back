@@ -67,7 +67,7 @@ func (c *NominaController) GetAll() {
 			Message: "Error al obtener nóminas de la base de datos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -95,7 +95,7 @@ func (c *NominaController) GetAll() {
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron nóminas que coincidan con los filtros proporcionados",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -105,7 +105,7 @@ func (c *NominaController) GetAll() {
 		Message: "Nóminas obtenidas exitosamente",
 		Data:    filteredNominas,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -131,7 +131,7 @@ func (c *NominaController) Post() {
 			Message: "Error al procesar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	if input.FECHA.IsZero() {
@@ -147,7 +147,7 @@ func (c *NominaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "No se puede generar una nómina antes del día 20 del mes",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	// 2) Si ya existe una nómina del mes, marcar control_nomina como REGENERADA y retornar la existente
@@ -160,18 +160,18 @@ func (c *NominaController) Post() {
 		).Exec(); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al marcar nómina como REGENERADA", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Nómina ya existía; marcada como REGENERADA", Data: *existing}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	if getErr != nil && getErr != orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al validar nóminas del mes", Cause: getErr.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -188,7 +188,7 @@ func (c *NominaController) Post() {
 			Message: "Error al crear la nómina",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -202,7 +202,7 @@ func (c *NominaController) Post() {
 			Message: "Error al verificar la nómina generada",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -212,7 +212,7 @@ func (c *NominaController) Post() {
 		Message: "Nómina creada correctamente",
 		Data:    updatedNomina,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -241,7 +241,7 @@ func (c *NominaController) Put() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -253,7 +253,7 @@ func (c *NominaController) Put() {
 			Code:    http.StatusNotFound,
 			Message: "Nómina no encontrada",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -264,7 +264,7 @@ func (c *NominaController) Put() {
 			Code:    http.StatusBadRequest,
 			Message: "La nómina ya está en estado 'PAGO'",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	nomina.ESTADO_NOMINA = models.EstadoNominaPago
@@ -277,7 +277,7 @@ func (c *NominaController) Put() {
 			Message: "Error al actualizar el estado de la nómina",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -288,7 +288,7 @@ func (c *NominaController) Put() {
 		Message: "Estado de la nómina actualizado a 'PAGO' correctamente",
 		Data:    nomina,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -314,7 +314,7 @@ func (c *NominaController) Delete() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -325,7 +325,7 @@ func (c *NominaController) Delete() {
 			Code:    http.StatusNotFound,
 			Message: "Nómina no encontrada",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -337,7 +337,7 @@ func (c *NominaController) Delete() {
 			Message: "Error al eliminar lógicamente la nómina",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -346,5 +346,5 @@ func (c *NominaController) Delete() {
 		Code:    http.StatusOK,
 		Message: "Nómina eliminada lógicamente",
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

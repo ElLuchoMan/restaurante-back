@@ -39,11 +39,11 @@ func (c *ReservaContactoController) GetAll() {
 	if _, err := qs.All(&list); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener contactos", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Contactos obtenidos", Data: list}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -62,9 +62,9 @@ func (c *ReservaContactoController) GetById() {
 	if err := o.QueryTable(new(models.ReservaContacto)).Filter("PKIDContacto", id).One(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Contacto no encontrado"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Contacto encontrado", Data: row}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

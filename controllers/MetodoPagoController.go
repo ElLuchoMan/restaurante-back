@@ -66,7 +66,7 @@ func (c *MetodoPagoController) GetAll() {
 			Message: "Error al obtener métodos de pago de la base de datos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -76,7 +76,7 @@ func (c *MetodoPagoController) GetAll() {
 		Message: "Métodos de pago obtenidos exitosamente",
 		Data:    metodos,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -101,7 +101,7 @@ func (c *MetodoPagoController) GetById() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -115,7 +115,7 @@ func (c *MetodoPagoController) GetById() {
 			Message: "Método de pago no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -125,7 +125,7 @@ func (c *MetodoPagoController) GetById() {
 		Message: "Método de pago encontrado",
 		Data:    metodo,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Create
@@ -150,7 +150,7 @@ func (c *MetodoPagoController) Post() {
 			Message: "Error en la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -162,7 +162,7 @@ func (c *MetodoPagoController) Post() {
 			Message: "Error al crear el método de pago",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -172,7 +172,7 @@ func (c *MetodoPagoController) Post() {
 		Message: "Método de pago creado correctamente",
 		Data:    metodo,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -200,7 +200,7 @@ func (c *MetodoPagoController) Put() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -215,7 +215,7 @@ func (c *MetodoPagoController) Put() {
 				Message: "Error en la solicitud",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
@@ -228,7 +228,7 @@ func (c *MetodoPagoController) Put() {
 				Message: "Error al actualizar el método de pago",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
@@ -238,14 +238,14 @@ func (c *MetodoPagoController) Put() {
 			Message: "Método de pago actualizado",
 			Data:    updatedMetodo,
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Método de pago no encontrado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	}
 }
 
@@ -273,7 +273,7 @@ func (c *MetodoPagoController) Delete() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -285,7 +285,7 @@ func (c *MetodoPagoController) Delete() {
 			Code:    http.StatusOK,
 			Message: "Método de pago eliminado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -293,6 +293,6 @@ func (c *MetodoPagoController) Delete() {
 			Message: "Método de pago no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 	}
 }

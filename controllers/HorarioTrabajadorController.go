@@ -80,7 +80,7 @@ func (c *HorarioTrabajadorController) GetAll() {
 			Message: "Error al obtener horarios",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -90,7 +90,7 @@ func (c *HorarioTrabajadorController) GetAll() {
 		Message: "Horarios obtenidos correctamente",
 		Data:    horarios,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -115,7 +115,7 @@ func (c *HorarioTrabajadorController) Post() {
 			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -123,7 +123,7 @@ func (c *HorarioTrabajadorController) Post() {
 	if !isValidDia(dbDia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Día inválido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -132,7 +132,7 @@ func (c *HorarioTrabajadorController) Post() {
 	if err1 != nil || err2 != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -150,7 +150,7 @@ func (c *HorarioTrabajadorController) Post() {
 	if !horario.ValidHours() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "horaFin debe ser mayor que horaInicio"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -161,13 +161,13 @@ func (c *HorarioTrabajadorController) Post() {
 	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear horario", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Horario creado correctamente", Data: horario}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Put
@@ -190,14 +190,14 @@ func (c *HorarioTrabajadorController) Put() {
 	if err != nil || doc == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'documento' inválido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	dia := c.GetString("dia")
 	if dia == "" || !isValidDia(dia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	dbDia := diaToDB(dia)
@@ -210,12 +210,12 @@ func (c *HorarioTrabajadorController) Put() {
 	).QueryRow(&horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	} else if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al consultar horario", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -223,7 +223,7 @@ func (c *HorarioTrabajadorController) Put() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -233,7 +233,7 @@ func (c *HorarioTrabajadorController) Put() {
 		} else {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de horaInicio inválido"}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	}
@@ -243,7 +243,7 @@ func (c *HorarioTrabajadorController) Put() {
 		} else {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de horaFin inválido"}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	}
@@ -253,7 +253,7 @@ func (c *HorarioTrabajadorController) Put() {
 	if !horario.ValidHours() {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "horaFin debe ser mayor que horaInicio"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -263,13 +263,13 @@ func (c *HorarioTrabajadorController) Put() {
 	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar horario", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Horario actualizado correctamente", Data: horario}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -291,14 +291,14 @@ func (c *HorarioTrabajadorController) Delete() {
 	if err != nil || doc == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'documento' inválido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	dia := c.GetString("dia")
 	if dia == "" || !isValidDia(dia) {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'dia' inválido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	dbDia := diaToDB(dia)
@@ -311,12 +311,12 @@ func (c *HorarioTrabajadorController) Delete() {
 	).QueryRow(&horario); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Horario no encontrado"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	} else if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar horario", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -326,11 +326,11 @@ func (c *HorarioTrabajadorController) Delete() {
 	).Exec(); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar horario", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Horario eliminado correctamente"}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

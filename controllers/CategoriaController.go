@@ -61,11 +61,11 @@ func (c *CategoriaController) GetAll() {
 	if _, err := o.QueryTable(new(models.Categoria)).All(&categorias); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener categorías", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categorías obtenidas", Data: categorias}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -79,16 +79,22 @@ func (c *CategoriaController) GetAll() {
 // @Router /categorias/search [get]
 func (c *CategoriaController) GetById() {
 	o := catOrmNew()
-	id, _ := c.GetInt64("id")
+	id, err := c.GetInt64("id")
+	if err != nil || id == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
+		_ = c.ServeJSON()
+		return
+	}
 	cat := models.Categoria{PK_ID_CATEGORIA: id}
 	if err := o.Read(&cat); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría encontrada", Data: cat}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -109,19 +115,19 @@ func (c *CategoriaController) Post() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o nombre requerido"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	cat := models.Categoria{NOMBRE: in.Nombre}
 	if _, err := o.Insert(&cat); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear categoría", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Categoría creada", Data: cat}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Put
@@ -136,12 +142,18 @@ func (c *CategoriaController) Post() {
 // @Router /categorias [put]
 func (c *CategoriaController) Put() {
 	o := catOrmNew()
-	id, _ := c.GetInt64("id")
+	id, err := c.GetInt64("id")
+	if err != nil || id == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
+		_ = c.ServeJSON()
+		return
+	}
 	cat := models.Categoria{PK_ID_CATEGORIA: id}
 	if err := o.Read(&cat); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	var in struct {
@@ -150,7 +162,7 @@ func (c *CategoriaController) Put() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	if in.Nombre != nil {
@@ -159,11 +171,11 @@ func (c *CategoriaController) Put() {
 	if _, err := o.Update(&cat, "NOMBRE"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar categoría", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría actualizada", Data: cat}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -177,13 +189,19 @@ func (c *CategoriaController) Put() {
 // @Router /categorias [delete]
 func (c *CategoriaController) Delete() {
 	o := catOrmNew()
-	id, _ := c.GetInt64("id")
+	id, err := c.GetInt64("id")
+	if err != nil || id == 0 {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
+		_ = c.ServeJSON()
+		return
+	}
 	if _, err := o.Delete(&models.Categoria{PK_ID_CATEGORIA: id}); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría eliminada"}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

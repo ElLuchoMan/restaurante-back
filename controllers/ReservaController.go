@@ -71,7 +71,7 @@ func (c *ReservaController) GetAll() {
 			Message: "Error al obtener reservas de la base de datos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -89,7 +89,7 @@ func (c *ReservaController) GetAll() {
 		Message: "Reservas obtenidas exitosamente",
 		Data:    reservas,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -113,7 +113,7 @@ func (c *ReservaController) GetById() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -127,7 +127,7 @@ func (c *ReservaController) GetById() {
 			Message: "Reserva no encontrada",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	reserva.FECHA = reserva.FECHA.In(database.BogotaZone)
@@ -141,7 +141,7 @@ func (c *ReservaController) GetById() {
 		Message: "Reserva encontrada",
 		Data:    reserva,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Create
@@ -166,7 +166,7 @@ func (c *ReservaController) Post() {
 			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -184,7 +184,7 @@ func (c *ReservaController) Post() {
 		if !contacto.Valid() {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	}
@@ -202,7 +202,7 @@ func (c *ReservaController) Post() {
 				Message: "Formato de fecha inválido",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		reserva.FECHA = parsedDate
@@ -212,7 +212,7 @@ func (c *ReservaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo FECHA no puede estar vacío",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -226,7 +226,7 @@ func (c *ReservaController) Post() {
 				Message: "Formato de hora inválido",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		reserva.HORA = parsedHora
@@ -236,7 +236,7 @@ func (c *ReservaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo HORA no puede estar vacío",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -249,7 +249,7 @@ func (c *ReservaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo PERSONAS debe ser un número mayor a 0",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -264,7 +264,7 @@ func (c *ReservaController) Post() {
 					Message: "Estado de reserva inválido",
 					Cause:   "El estado debe ser uno de los siguientes: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA",
 				}
-				c.ServeJSON()
+				_ = c.ServeJSON()
 				return
 			}
 			reserva.ESTADO_RESERVA = &estado
@@ -290,7 +290,7 @@ func (c *ReservaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo PK_ID_CONTACTO debe ser un número",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	if restauranteID, ok := input["restauranteId"].(float64); ok {
@@ -302,7 +302,7 @@ func (c *ReservaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo PK_ID_RESTAURANTE debe ser un número",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -319,7 +319,7 @@ func (c *ReservaController) Post() {
 			Message: "Error al crear la reserva",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -330,7 +330,7 @@ func (c *ReservaController) Post() {
 		Message: "Reserva creada correctamente",
 		Data:    reserva,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -356,7 +356,7 @@ func (c *ReservaController) Put() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -368,7 +368,7 @@ func (c *ReservaController) Put() {
 			Code:    http.StatusNotFound,
 			Message: "Reserva no encontrada",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -381,7 +381,7 @@ func (c *ReservaController) Put() {
 			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -399,7 +399,7 @@ func (c *ReservaController) Put() {
 		if !contacto.Valid() {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	}
@@ -414,7 +414,7 @@ func (c *ReservaController) Put() {
 				Message: "Formato de fecha inválido",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		reserva.FECHA = parsedDate
@@ -429,7 +429,7 @@ func (c *ReservaController) Put() {
 				Message: "Formato de hora inválido",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		reserva.HORA = parsedHora
@@ -463,7 +463,7 @@ func (c *ReservaController) Put() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo PK_ID_CONTACTO debe ser un número",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	if restauranteID, ok := input["restauranteId"].(float64); ok {
@@ -475,7 +475,7 @@ func (c *ReservaController) Put() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo PK_ID_RESTAURANTE debe ser un número",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -490,7 +490,7 @@ func (c *ReservaController) Put() {
 			Message: "Error al actualizar la reserva",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -501,7 +501,7 @@ func (c *ReservaController) Put() {
 		Message: "Reserva actualizada",
 		Data:    reserva,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetByCliente
@@ -535,7 +535,7 @@ func (c *ReservaController) GetByParameter() {
 				Code:    http.StatusBadRequest,
 				Message: "El parámetro 'fecha' debe tener el formato YYYY-MM-DD",
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		useFecha = true
@@ -549,7 +549,7 @@ func (c *ReservaController) GetByParameter() {
 			Message: "Error al obtener reservas",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -569,7 +569,7 @@ func (c *ReservaController) GetByParameter() {
 			Message: "No se encontraron reservas",
 			Data:    reservas,
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -579,7 +579,7 @@ func (c *ReservaController) GetByParameter() {
 		Message: "Reservas obtenidas exitosamente",
 		Data:    reservas,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -604,7 +604,7 @@ func (c *ReservaController) Delete() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -616,7 +616,7 @@ func (c *ReservaController) Delete() {
 			Code:    http.StatusNotFound,
 			Message: "Reserva no encontrada",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -633,7 +633,7 @@ func (c *ReservaController) Delete() {
 			Message: "Error al cancelar la reserva",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -644,5 +644,5 @@ func (c *ReservaController) Delete() {
 		Message: "Reserva cancelada correctamente",
 		Data:    reserva,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

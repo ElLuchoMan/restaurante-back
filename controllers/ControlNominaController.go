@@ -40,11 +40,11 @@ func (c *ControlNominaController) GetAll() {
 	if _, err := qs.All(&list); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener control de nómina", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Control de nómina", Data: list}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -63,9 +63,9 @@ func (c *ControlNominaController) GetById() {
 	if err := o.QueryTable(new(models.ControlNomina)).Filter("PK_ID_CONTROL_NOMINA", id).One(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Registro no encontrado"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Registro encontrado", Data: row}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

@@ -55,7 +55,13 @@ func (c *DomicilioController) GetAll() {
 	updatedBy := c.GetString("updated_by")
 	fecha := c.GetString("fecha")
 	estado := strings.ToUpper(c.GetString("estado"))
-	trabajadorID, _ := c.GetInt("trabajador") // ID del domiciliario solicitante
+	trabajadorID, errTrab := c.GetInt("trabajador") // ID del domiciliario solicitante
+	if c.GetString("trabajador") != "" && errTrab != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'trabajador' inválido", Cause: errTrab.Error()}
+		_ = c.ServeJSON()
+		return
+	}
 
 	// Aplicar filtros opcionales SOLO si se proporcionan (usar nombres de campos del struct)
 	if direccion != "" {
@@ -95,7 +101,7 @@ func (c *DomicilioController) GetAll() {
 			Message: "Error al obtener domicilios de la base de datos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -106,7 +112,7 @@ func (c *DomicilioController) GetAll() {
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron domicilios que coincidan con los filtros proporcionados",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -117,7 +123,7 @@ func (c *DomicilioController) GetAll() {
 		Message: "Domicilios obtenidos exitosamente",
 		Data:    domicilios,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -142,7 +148,7 @@ func (c *DomicilioController) GetById() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -154,7 +160,7 @@ func (c *DomicilioController) GetById() {
 			Message: "Domicilio no encontrado",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -217,7 +223,9 @@ ORDER BY p.pk_id_pedido DESC LIMIT 1;`
 	if pedErr == nil {
 		var productos []map[string]interface{}
 		if ped.Productos != "" {
-			_ = json.Unmarshal([]byte(ped.Productos), &productos)
+			if err := json.Unmarshal([]byte(ped.Productos), &productos); err != nil {
+				productos = nil
+			}
 		}
 		total := 0.0
 		if ped.PagoMonto.Valid {
@@ -246,7 +254,7 @@ ORDER BY p.pk_id_pedido DESC LIMIT 1;`
 		Message: "Domicilio encontrado",
 		Data:    resp,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Create
@@ -266,7 +274,7 @@ func (c *DomicilioController) Post() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &raw); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	// Normalizar trabajadorAsignado: 0, "", null => no asignado
@@ -289,20 +297,20 @@ func (c *DomicilioController) Post() {
 		if err := json.Unmarshal(bodySan, &input); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Solicitud inválida", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
 	if input.Direccion == "" || input.Telefono == "" {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Los campos 'direccion' y 'telefono' son obligatorios"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -310,7 +318,7 @@ func (c *DomicilioController) Post() {
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -332,7 +340,7 @@ func (c *DomicilioController) Post() {
 		if !isValidEstadoDomicilio(est) {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Campo 'estado' inválido"}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		domicilio.Estado = models.EstadoDomicilio(strings.ToUpper(est))
@@ -375,7 +383,7 @@ func (c *DomicilioController) Post() {
 			Message: "Error al crear el domicilio",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -394,7 +402,7 @@ func (c *DomicilioController) Post() {
 		Message: "Domicilio creado correctamente",
 		Data:    domicilio,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -419,7 +427,7 @@ func (c *DomicilioController) Put() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -430,7 +438,7 @@ func (c *DomicilioController) Put() {
 			Code:    http.StatusNotFound,
 			Message: "Domicilio no encontrado",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -442,7 +450,7 @@ func (c *DomicilioController) Put() {
 			Message: "Error al procesar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -471,7 +479,7 @@ func (c *DomicilioController) Put() {
 			Message: "Error al actualizar el domicilio",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -490,7 +498,7 @@ func (c *DomicilioController) Put() {
 		Message: "Domicilio actualizado correctamente",
 		Data:    domicilio,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -514,7 +522,7 @@ func (c *DomicilioController) Delete() {
 			Message: "El parámetro 'id' es inválido o está ausente",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -533,7 +541,7 @@ func (c *DomicilioController) Delete() {
 			Cause:   err.Error(),
 		}
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title AsignarDomiciliario
@@ -565,7 +573,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 			Message: "Error al asignar domicilio",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -577,7 +585,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 			Message: "Error al asignar domicilio",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -596,7 +604,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 				Message: "Este domicilio ya ha sido asignado",
 			}
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -614,5 +622,5 @@ func (c *DomicilioController) AsignarDomiciliario() {
 		Message: "Domicilio asignado correctamente",
 		Data:    domicilio,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

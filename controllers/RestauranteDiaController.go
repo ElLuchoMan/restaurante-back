@@ -55,7 +55,7 @@ WHERE 1=1`
 	if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener días", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	resp := make([]map[string]interface{}, 0, len(rows))
@@ -68,7 +68,7 @@ WHERE 1=1`
 		})
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Días obtenidos", Data: resp}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -101,7 +101,7 @@ WHERE rd.pk_id_restaurante_dia = ?`
 	if err := o.Raw(query, id).QueryRow(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Registro no encontrado"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	resp := map[string]interface{}{
@@ -111,5 +111,5 @@ WHERE rd.pk_id_restaurante_dia = ?`
 		"dia":               row.Dia,
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Registro encontrado", Data: resp}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

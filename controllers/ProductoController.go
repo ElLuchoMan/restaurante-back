@@ -212,8 +212,10 @@ func (c *ProductoController) Post() {
 		return
 	}
 
-	// Alinear la secuencia del historial de precios con el máximo actual (previene duplicados de PK por desalineación de secuencia)
-	_, _ = o.Raw("SELECT setval(pg_get_serial_sequence('precio_producto_hist','pk_id_precio_hist'), COALESCE((SELECT MAX(pk_id_precio_hist) FROM precio_producto_hist),0))").Exec()
+	// Alinear la secuencia del historial de precios con el máximo actual
+	if _, err := o.Raw("SELECT setval(pg_get_serial_sequence('precio_producto_hist','pk_id_precio_hist'), COALESCE((SELECT MAX(pk_id_precio_hist) FROM precio_producto_hist),0))").Exec(); err != nil {
+		// si falla no bloqueamos creación del producto
+	}
 
 	hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 	if _, err := insertPrecioHistFn(o, &hist); err != nil {
@@ -348,7 +350,9 @@ func (c *ProductoController) Put() {
 
 		if producto.PRECIO != original.PRECIO {
 			// Alinear la secuencia antes de insertar un nuevo historial
-			_, _ = o.Raw("SELECT setval(pg_get_serial_sequence('precio_producto_hist','pk_id_precio_hist'), COALESCE((SELECT MAX(pk_id_precio_hist) FROM precio_producto_hist),0))").Exec()
+			if _, err := o.Raw("SELECT setval(pg_get_serial_sequence('precio_producto_hist','pk_id_precio_hist'), COALESCE((SELECT MAX(pk_id_precio_hist) FROM precio_producto_hist),0))").Exec(); err != nil {
+				// continuar aunque falle
+			}
 
 			hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 			if _, err := insertPrecioHistFn(o, &hist); err != nil {

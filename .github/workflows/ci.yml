@@ -91,6 +91,7 @@ jobs:
 
   lint-golangci:
     runs-on: ubuntu-latest
+    # quita esta línea si quieres que el lint BLOQUEE el PR
     continue-on-error: true
     timeout-minutes: 15
     steps:
@@ -102,10 +103,10 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Run golangci-lint (minimal set, non-blocking)
+      - name: Run golangci-lint (v2, usa .golangci.yml)
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.64.8
-          args: --disable-all --enable=govet,errcheck,ineffassign,revive --timeout=5m --out-format=github-actions --issues-exit-code=0 --go=1.25
-
-
+          version: v2.4.0
+          args: >
+            --timeout=5m
+            --out-format=github-actions

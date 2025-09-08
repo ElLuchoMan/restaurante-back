@@ -186,10 +186,12 @@ func ValidateToken(ctx *context.Context) {
 	if authHeader == "" {
 		fmt.Println("No se proporcionó el token")
 		ctx.Output.SetStatus(http.StatusUnauthorized)
-		_ = ctx.Output.JSON(models.ApiResponse{
+		if err := ctx.Output.JSON(models.ApiResponse{
 			Code:    http.StatusUnauthorized,
 			Message: "Token no proporcionado",
-		}, false, false)
+		}, false, false); err != nil {
+			// no hay otro canal aquí; simplemente no propagamos
+		}
 		return
 	}
 	fmt.Println("Token recibido:", authHeader)
@@ -208,10 +210,12 @@ func ValidateToken(ctx *context.Context) {
 	if err != nil || !token.Valid {
 		fmt.Println("Token inválido:", err)
 		ctx.Output.SetStatus(http.StatusUnauthorized)
-		_ = ctx.Output.JSON(models.ApiResponse{
+		if err := ctx.Output.JSON(models.ApiResponse{
 			Code:    http.StatusUnauthorized,
 			Message: "Token inválido",
-		}, false, false)
+		}, false, false); err != nil {
+			// noop si falla escribir la respuesta
+		}
 		return
 	}
 

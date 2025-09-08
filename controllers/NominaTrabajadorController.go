@@ -81,7 +81,7 @@ func (c *NominaTrabajadorController) GetAll() {
 			Message: "Error al obtener las relaciones nómina-trabajador",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -92,7 +92,7 @@ func (c *NominaTrabajadorController) GetAll() {
 		Message: "Relaciones nómina-trabajador obtenidas correctamente",
 		Data:    relaciones,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -120,7 +120,7 @@ func (c *NominaTrabajadorController) Post() {
 			Message: "Error al procesar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -131,7 +131,7 @@ func (c *NominaTrabajadorController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo documentoTrabajador es obligatorio y debe ser válido",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR}
@@ -156,7 +156,7 @@ func (c *NominaTrabajadorController) Post() {
 			Message: "Error al consultar incidencias del trabajador",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -183,7 +183,7 @@ func (c *NominaTrabajadorController) Post() {
 			Message: "Error al consultar el sueldo del trabajador",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	nominaTrabajador.SUELDO_BASE = trabajador.SUELDO
@@ -199,7 +199,7 @@ func (c *NominaTrabajadorController) Post() {
 			Message: "Error al obtener la nómina activa",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	nominaTrabajador.PK_ID_NOMINA = &ultimaNomina
@@ -222,12 +222,12 @@ func (c *NominaTrabajadorController) Post() {
 			One(&existente); err == nil {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía", Data: existente}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -239,7 +239,7 @@ func (c *NominaTrabajadorController) Post() {
 			Message: "Error al registrar la nómina-trabajador",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -258,7 +258,7 @@ func (c *NominaTrabajadorController) Post() {
 		Message: "Nómina-trabajador creada correctamente",
 		Data:    response,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetByTrabajador
@@ -280,12 +280,49 @@ func (c *NominaTrabajadorController) Post() {
 // @Router /nomina_trabajador/search [get]
 func (c *NominaTrabajadorController) GetByTrabajador() {
 	o := orm.NewOrm()
-	documento, _ := c.GetInt64("documento")
-	actual, _ := c.GetBool("actual")
-	pagas, _ := c.GetBool("pagas")
-	noPagas, _ := c.GetBool("no_pagas")
-	mes, _ := c.GetInt("mes")
-	anio, _ := c.GetInt("anio")
+	documento, errDoc := c.GetInt64("documento")
+	actual, errAct := c.GetBool("actual")
+	pagas, errPag := c.GetBool("pagas")
+	noPagas, errNoPag := c.GetBool("no_pagas")
+	mes, errMes := c.GetInt("mes")
+	anio, errAnio := c.GetInt("anio")
+
+	if c.GetString("documento") == "" || errDoc != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'documento' es obligatorio y debe ser válido"}
+		_ = c.ServeJSON()
+		return
+	}
+	if c.GetString("actual") != "" && errAct != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'actual' inválido", Cause: errAct.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	if c.GetString("pagas") != "" && errPag != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'pagas' inválido", Cause: errPag.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	if c.GetString("no_pagas") != "" && errNoPag != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'no_pagas' inválido", Cause: errNoPag.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	if c.GetString("mes") != "" && errMes != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'mes' inválido", Cause: errMes.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	if c.GetString("anio") != "" && errAnio != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'anio' inválido", Cause: errAnio.Error()}
+		_ = c.ServeJSON()
+		return
+	}
 
 	// Validar el documento del trabajador
 	if documento == 0 {
@@ -294,7 +331,7 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'documento' es obligatorio.",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -335,7 +372,7 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron relaciones nómina-trabajador para los filtros aplicados.",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	} else if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -344,7 +381,7 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 			Message: "Error al buscar las relaciones nómina-trabajador.",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -355,7 +392,7 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 		Message: "Relaciones nómina-trabajador encontradas.",
 		Data:    relaciones,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 func obtenerMesEnEspañol(mes time.Month) string {
@@ -391,8 +428,14 @@ func obtenerMesEnEspañol(mes time.Month) string {
 // @Router /nomina_trabajador/mes [get]
 func (c *NominaTrabajadorController) GetNominasByMes() {
 	o := orm.NewOrm()
-	mes, _ := c.GetInt("mes")
-	anio, _ := c.GetInt("anio")
+	mes, errMes := c.GetInt("mes")
+	anio, errAnio := c.GetInt("anio")
+	if c.GetString("mes") == "" || c.GetString("anio") == "" || errMes != nil || errAnio != nil {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetros 'mes' y 'anio' obligatorios y válidos"}
+		_ = c.ServeJSON()
+		return
+	}
 
 	// Validar parámetros
 	if mes < 1 || mes > 12 || anio < 1 {
@@ -401,7 +444,7 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 			Code:    http.StatusBadRequest,
 			Message: "Los parámetros 'mes' y 'anio' deben ser válidos.",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -435,7 +478,7 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 			Message: "Error al buscar las nóminas.",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -445,7 +488,7 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron nóminas para el mes y año especificados.",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -456,5 +499,5 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 		Message: "Nóminas encontradas.",
 		Data:    resultados,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

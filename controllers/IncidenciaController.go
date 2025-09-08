@@ -335,7 +335,7 @@ func (c *IncidenciaController) Put() {
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'id' es inválido o está ausente",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -347,7 +347,7 @@ func (c *IncidenciaController) Put() {
 			Code:    http.StatusNotFound,
 			Message: "Incidencia no encontrada",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -360,7 +360,7 @@ func (c *IncidenciaController) Put() {
 			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -374,7 +374,7 @@ func (c *IncidenciaController) Put() {
 				Message: "Formato de fecha inválido para fechaIncidencia",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		incidencia.FECHA = parsedDate
@@ -405,7 +405,7 @@ func (c *IncidenciaController) Put() {
 			Message: "Error al actualizar la incidencia",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -431,7 +431,7 @@ func (c *IncidenciaController) Put() {
 		Message: "Incidencia actualizada correctamente",
 		Data:    response,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -454,7 +454,7 @@ func (c *IncidenciaController) Delete() {
 			Code:    http.StatusBadRequest,
 			Message: "ID inválido o ausente",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -465,7 +465,7 @@ func (c *IncidenciaController) Delete() {
 			Code:    http.StatusNotFound,
 			Message: "Incidencia no encontrada",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	} else if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -474,7 +474,7 @@ func (c *IncidenciaController) Delete() {
 			Message: "Error al eliminar la incidencia",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -483,5 +483,5 @@ func (c *IncidenciaController) Delete() {
 		Code:    http.StatusOK,
 		Message: "Incidencia eliminada correctamente",
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
