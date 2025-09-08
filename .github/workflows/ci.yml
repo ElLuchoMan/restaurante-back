@@ -91,7 +91,6 @@ jobs:
 
   lint-golangci:
     runs-on: ubuntu-latest
-    continue-on-error: true
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -106,6 +105,6 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
-          args: --config=.golangci.yml --timeout=5m --out-format=github-actions
+          args: --config=.golangci.yml --timeout=5m --out-format=github-actions --issues-exit-code=0
 
 
