@@ -95,67 +95,65 @@
 				
 				<option value="file19">restaurante/controllers/RestauranteDiaController.go (100.0%)</option>
 				
-				<option value="file20">restaurante/controllers/SubcategoriaController.go (85.5%)</option>
+				<option value="file20">restaurante/controllers/SubcategoriaController.go (98.8%)</option>
 				
-				<option value="file21">restaurante/controllers/TrabajadorController.go (98.3%)</option>
+				<option value="file21">restaurante/controllers/TrabajadorController.go (99.7%)</option>
 				
-				<option value="file22">restaurante/controllers/restaurante_dia_more_tests.go (0.0%)</option>
+				<option value="file22">restaurante/database/database.go (100.0%)</option>
 				
-				<option value="file23">restaurante/database/database.go (100.0%)</option>
+				<option value="file23">restaurante/docs/docs.go (100.0%)</option>
 				
-				<option value="file24">restaurante/docs/docs.go (100.0%)</option>
+				<option value="file24">restaurante/main.go (100.0%)</option>
 				
-				<option value="file25">restaurante/main.go (95.2%)</option>
+				<option value="file25">restaurante/models/CambiosHorario.go (100.0%)</option>
 				
-				<option value="file26">restaurante/models/CambiosHorario.go (100.0%)</option>
+				<option value="file26">restaurante/models/Categoria.go (100.0%)</option>
 				
-				<option value="file27">restaurante/models/Categoria.go (100.0%)</option>
+				<option value="file27">restaurante/models/Cliente.go (100.0%)</option>
 				
-				<option value="file28">restaurante/models/Cliente.go (100.0%)</option>
+				<option value="file28">restaurante/models/ControlNomina.go (100.0%)</option>
 				
-				<option value="file29">restaurante/models/ControlNomina.go (100.0%)</option>
+				<option value="file29">restaurante/models/DetallePedido.go (100.0%)</option>
 				
-				<option value="file30">restaurante/models/DetallePedido.go (100.0%)</option>
+				<option value="file30">restaurante/models/Domicilio.go (100.0%)</option>
 				
-				<option value="file31">restaurante/models/Domicilio.go (100.0%)</option>
+				<option value="file31">restaurante/models/HorarioTrabajador.go (100.0%)</option>
 				
-				<option value="file32">restaurante/models/HorarioTrabajador.go (100.0%)</option>
+				<option value="file32">restaurante/models/Incidencia.go (100.0%)</option>
 				
-				<option value="file33">restaurante/models/Incidencia.go (100.0%)</option>
+				<option value="file33">restaurante/models/MetodoPago.go (100.0%)</option>
 				
-				<option value="file34">restaurante/models/MetodoPago.go (100.0%)</option>
+				<option value="file34">restaurante/models/Nomina.go (100.0%)</option>
 				
-				<option value="file35">restaurante/models/Nomina.go (100.0%)</option>
+				<option value="file35">restaurante/models/NominaTrabajador.go (100.0%)</option>
 				
-				<option value="file36">restaurante/models/NominaTrabajador.go (100.0%)</option>
+				<option value="file36">restaurante/models/Pago.go (100.0%)</option>
 				
-				<option value="file37">restaurante/models/Pago.go (100.0%)</option>
+				<option value="file37">restaurante/models/Pedido.go (100.0%)</option>
 				
-				<option value="file38">restaurante/models/Pedido.go (100.0%)</option>
+				<option value="file38">restaurante/models/PrecioProductoHist.go (100.0%)</option>
 				
-				<option value="file39">restaurante/models/PrecioProductoHist.go (100.0%)</option>
+				<option value="file39">restaurante/models/Producto.go (100.0%)</option>
 				
-				<option value="file40">restaurante/models/Producto.go (100.0%)</option>
+				<option value="file40">restaurante/models/Reserva.go (100.0%)</option>
 				
-				<option value="file41">restaurante/models/Reserva.go (100.0%)</option>
+				<option value="file41">restaurante/models/ReservaContacto.go (100.0%)</option>
 				
-				<option value="file42">restaurante/models/ReservaContacto.go (100.0%)</option>
+				<option value="file42">restaurante/models/Restaurante.go (100.0%)</option>
 				
-				<option value="file43">restaurante/models/Restaurante.go (100.0%)</option>
+				<option value="file43">restaurante/models/RestauranteDia.go (100.0%)</option>
 				
-				<option value="file44">restaurante/models/RestauranteDia.go (100.0%)</option>
+				<option value="file44">restaurante/models/Subcategoria.go (100.0%)</option>
 				
-				<option value="file45">restaurante/models/Subcategoria.go (100.0%)</option>
+				<option value="file45">restaurante/models/Trabajador.go (100.0%)</option>
 				
-				<option value="file46">restaurante/models/Trabajador.go (100.0%)</option>
+				<option value="file46">restaurante/models/enums.go (100.0%)</option>
 				
-				<option value="file47">restaurante/models/enums.go (100.0%)</option>
+				<option value="file47">restaurante/routers/router.go (100.0%)</option>
 				
-				<option value="file48">restaurante/routers/router.go (100.0%)</option>
+				<option value="file48">restaurante/tests/http_utils.go (100.0%)</option>
 				
-				<option value="file49">restaurante/tests/http_utils.go (100.0%)</option>
-				
-				<option value="file50">restaurante/tests/seed_data_stub.go (100.0%)</option>
+				<option value="file49">restaurante/tests/seed_data_stub.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -7090,7 +7088,7 @@ import (
 )
 
 type restDiaOrmer interface{ Raw(string, ...interface{}) orm.RawSeter }
-var restDiaOrmNew = func() restDiaOrmer <span class="cov10" title="4">{ return orm.NewOrm() }</span>
+var restDiaOrmNew = func() restDiaOrmer <span class="cov10" title="6">{ return orm.NewOrm() }</span>
 
 type RestauranteDiaController struct { web.Controller }
 
@@ -7105,7 +7103,7 @@ type RestauranteDiaController struct { web.Controller }
 // @Success 200 {object} models.ApiResponse
 // @Failure 500 {object} models.ApiResponse
 // @Router /restaurante_dia [get]
-func (c *RestauranteDiaController) GetAll() <span class="cov5" title="2">{
+func (c *RestauranteDiaController) GetAll() <span class="cov6" title="3">{
         o := restDiaOrmNew()
         query := `
 SELECT rd.pk_id_restaurante    AS restaurante_id,
@@ -7116,21 +7114,21 @@ FROM restaurante_dia rd
 JOIN restaurante r ON r.pk_id_restaurante = rd.pk_id_restaurante
 WHERE 1=1`
         args := []interface{}{}
-        if rid, err := c.GetInt64("restaurante_id"); err == nil &amp;&amp; rid &gt; 0 </span><span class="cov5" title="2">{
+        if rid, err := c.GetInt64("restaurante_id"); err == nil &amp;&amp; rid &gt; 0 </span><span class="cov4" title="2">{
                 query += " AND rd.pk_id_restaurante = ?"
                 args = append(args, rid)
         }</span>
-        <span class="cov5" title="2">if v := c.GetString("dia"); v != "" </span><span class="cov5" title="2">{
+        <span class="cov6" title="3">if v := c.GetString("dia"); v != "" </span><span class="cov6" title="3">{
                 query += " AND rd.dia = ?"
                 args = append(args, v)
         }</span>
-        <span class="cov5" title="2">var rows []struct {
+        <span class="cov6" title="3">var rows []struct {
                 RestID int64  `orm:"column(restaurante_id)"`
                 Nombre string `orm:"column(nombre_restaurante)"`
                 Hora   string `orm:"column(hora_apertura)"`
                 Dia    string `orm:"column(dia)"`
         }
-        if _, err := o.Raw(query, args...).QueryRows(&amp;rows); err != nil </span><span class="cov1" title="1">{
+        if _, err := o.Raw(query, args...).QueryRows(&amp;rows); err != nil </span><span class="cov4" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener días", Cause: err.Error()}
                 c.ServeJSON(); return
@@ -7158,7 +7156,7 @@ WHERE 1=1`
 // @Success 200 {object} models.ApiResponse
 // @Failure 404 {object} models.ApiResponse
 // @Router /restaurante_dia/search [get]
-func (c *RestauranteDiaController) GetById() <span class="cov5" title="2">{
+func (c *RestauranteDiaController) GetById() <span class="cov6" title="3">{
         o := restDiaOrmNew()
         id, _ := c.GetInt64("id")
         query := `
@@ -7175,7 +7173,7 @@ WHERE rd.pk_id_restaurante_dia = ?`
                 Hora   string `orm:"column(hora_apertura)"`
                 Dia    string `orm:"column(dia)"`
         }
-        if err := o.Raw(query, id).QueryRow(&amp;row); err != nil </span><span class="cov1" title="1">{
+        if err := o.Raw(query, id).QueryRow(&amp;row); err != nil </span><span class="cov4" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Registro no encontrado"}
                 c.ServeJSON(); return
@@ -7216,11 +7214,11 @@ type subcatOrmer interface{
 }
 
 type subQSAdapter struct{ qs orm.QuerySeter }
-func (a subQSAdapter) All(res interface{}, cols ...string) (int64, error) <span class="cov6" title="2">{ return a.qs.All(res, cols...) }</span>
+func (a subQSAdapter) All(res interface{}, cols ...string) (int64, error) <span class="cov5" title="2">{ return a.qs.All(res, cols...) }</span>
 func (a subQSAdapter) Filter(field string, args ...interface{}) subcatQuerySeter <span class="cov1" title="1">{ return subQSAdapter{qs: a.qs.Filter(field, args...)} }</span>
 
 type subOrmAdapter struct{ o orm.Ormer }
-func (a subOrmAdapter) QueryTable(i interface{}) subcatQuerySeter <span class="cov6" title="2">{ return subQSAdapter{qs: a.o.QueryTable(i)} }</span>
+func (a subOrmAdapter) QueryTable(i interface{}) subcatQuerySeter <span class="cov5" title="2">{ return subQSAdapter{qs: a.o.QueryTable(i)} }</span>
 func (a subOrmAdapter) Insert(v interface{}) (int64, error) <span class="cov1" title="1">{ return a.o.Insert(v) }</span>
 func (a subOrmAdapter) Read(v interface{}, cols ...string) error <span class="cov1" title="1">{ return a.o.Read(v, cols...) }</span>
 func (a subOrmAdapter) Update(v interface{}, cols ...string) (int64, error) <span class="cov1" title="1">{ return a.o.Update(v, cols...) }</span>
@@ -7239,17 +7237,17 @@ type SubcategoriaController struct { web.Controller }
 // @Success 200 {object} models.ApiResponse{data=[]models.Subcategoria}
 // @Failure 500 {object} models.ApiResponse
 // @Router /subcategorias [get]
-func (c *SubcategoriaController) GetAll() <span class="cov6" title="2">{
+func (c *SubcategoriaController) GetAll() <span class="cov8" title="3">{
         o := subcatOrmNew()
         qs := o.QueryTable(new(models.Subcategoria))
-        if catID, err := c.GetInt64("categoria_id"); err == nil &amp;&amp; catID &gt; 0 </span><span class="cov0" title="0">{ qs = qs.Filter("PK_ID_CATEGORIA", catID) }</span>
-        <span class="cov6" title="2">var subs []models.Subcategoria
+        if catID, err := c.GetInt64("categoria_id"); err == nil &amp;&amp; catID &gt; 0 </span><span class="cov1" title="1">{ qs = qs.Filter("PK_ID_CATEGORIA", catID) }</span>
+        <span class="cov8" title="3">var subs []models.Subcategoria
         if _, err := qs.All(&amp;subs); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener subcategorías", Cause: err.Error()}
                 c.ServeJSON(); return
         }</span>
-        <span class="cov1" title="1">c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategorías obtenidas", Data: subs}
+        <span class="cov5" title="2">c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategorías obtenidas", Data: subs}
         c.ServeJSON()</span>
 }
 
@@ -7262,7 +7260,7 @@ func (c *SubcategoriaController) GetAll() <span class="cov6" title="2">{
 // @Success 200 {object} models.ApiResponse{data=models.Subcategoria}
 // @Failure 404 {object} models.ApiResponse
 // @Router /subcategorias/search [get]
-func (c *SubcategoriaController) GetById() <span class="cov6" title="2">{
+func (c *SubcategoriaController) GetById() <span class="cov5" title="2">{
         o := subcatOrmNew()
         id, _ := c.GetInt64("id")
         s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
@@ -7285,7 +7283,7 @@ func (c *SubcategoriaController) GetById() <span class="cov6" title="2">{
 // @Failure 400 {object} models.ApiResponse
 // @Failure 500 {object} models.ApiResponse
 // @Router /subcategorias [post]
-func (c *SubcategoriaController) Post() <span class="cov6" title="2">{
+func (c *SubcategoriaController) Post() <span class="cov8" title="3">{
         o := subcatOrmNew()
         var in struct{ Nombre string `json:"nombre"`; CategoriaId int64 `json:"categoriaId"` }
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;in); err != nil || in.Nombre == "" || in.CategoriaId == 0 </span><span class="cov1" title="1">{
@@ -7293,8 +7291,8 @@ func (c *SubcategoriaController) Post() <span class="cov6" title="2">{
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o campos requeridos faltantes"}
                 c.ServeJSON(); return
         }</span>
-        <span class="cov1" title="1">s := models.Subcategoria{NOMBRE: in.Nombre, PK_ID_CATEGORIA: &amp;models.Categoria{PK_ID_CATEGORIA: in.CategoriaId}}
-        if _, err := o.Insert(&amp;s); err != nil </span><span class="cov0" title="0">{
+        <span class="cov5" title="2">s := models.Subcategoria{NOMBRE: in.Nombre, PK_ID_CATEGORIA: &amp;models.Categoria{PK_ID_CATEGORIA: in.CategoriaId}}
+        if _, err := o.Insert(&amp;s); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear subcategoría", Cause: err.Error()}
                 c.ServeJSON(); return
@@ -7314,7 +7312,7 @@ func (c *SubcategoriaController) Post() <span class="cov6" title="2">{
 // @Success 200 {object} models.ApiResponse{data=models.Subcategoria}
 // @Failure 404 {object} models.ApiResponse
 // @Router /subcategorias [put]
-func (c *SubcategoriaController) Put() <span class="cov10" title="3">{
+func (c *SubcategoriaController) Put() <span class="cov10" title="4">{
         o := subcatOrmNew()
         id, _ := c.GetInt64("id")
         s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
@@ -7323,16 +7321,16 @@ func (c *SubcategoriaController) Put() <span class="cov10" title="3">{
                 c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
                 c.ServeJSON(); return
         }</span>
-        <span class="cov6" title="2">var in struct{ Nombre *string `json:"nombre"`; CategoriaId *int64 `json:"categoriaId"` }
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;in); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="3">var in struct{ Nombre *string `json:"nombre"`; CategoriaId *int64 `json:"categoriaId"` }
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;in); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
                 c.ServeJSON(); return
         }</span>
-        <span class="cov6" title="2">cols := []string{}
-        if in.Nombre != nil </span><span class="cov6" title="2">{ s.NOMBRE = *in.Nombre; cols = append(cols, "NOMBRE") }</span>
-        <span class="cov6" title="2">if in.CategoriaId != nil </span><span class="cov0" title="0">{ s.PK_ID_CATEGORIA = &amp;models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}; cols = append(cols, "PK_ID_CATEGORIA") }</span>
-        <span class="cov6" title="2">if _, err := o.Update(&amp;s, cols...); err != nil </span><span class="cov1" title="1">{
+        <span class="cov5" title="2">cols := []string{}
+        if in.Nombre != nil </span><span class="cov5" title="2">{ s.NOMBRE = *in.Nombre; cols = append(cols, "NOMBRE") }</span>
+        <span class="cov5" title="2">if in.CategoriaId != nil </span><span class="cov1" title="1">{ s.PK_ID_CATEGORIA = &amp;models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}; cols = append(cols, "PK_ID_CATEGORIA") }</span>
+        <span class="cov5" title="2">if _, err := o.Update(&amp;s, cols...); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar subcategoría", Cause: err.Error()}
                 c.ServeJSON(); return
@@ -7350,7 +7348,7 @@ func (c *SubcategoriaController) Put() <span class="cov10" title="3">{
 // @Success 200 {object} models.ApiResponse
 // @Failure 404 {object} models.ApiResponse
 // @Router /subcategorias [delete]
-func (c *SubcategoriaController) Delete() <span class="cov6" title="2">{
+func (c *SubcategoriaController) Delete() <span class="cov5" title="2">{
         o := subcatOrmNew()
         id, _ := c.GetInt64("id")
         if _, err := o.Delete(&amp;models.Subcategoria{PK_ID_SUBCATEGORIA: id}); err != nil </span><span class="cov1" title="1">{
@@ -7419,7 +7417,7 @@ func validateDates(fechaIngreso, fechaRetiro *time.Time) error <span class="cov4
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /trabajadores [get]
-func (c *TrabajadorController) GetAll() <span class="cov3" title="3">{
+func (c *TrabajadorController) GetAll() <span class="cov3" title="4">{
         o := newTrabajadorOrm()
         var trabajadores []models.Trabajador
 
@@ -7428,7 +7426,7 @@ func (c *TrabajadorController) GetAll() <span class="cov3" title="3">{
         if fechaIngreso == "" </span><span class="cov2" title="2">{
                 fechaIngreso = c.GetString("fechaIngreso")
         }</span>
-        <span class="cov3" title="3">rol := c.GetString("rol")
+        <span class="cov3" title="4">rol := c.GetString("rol")
         incluirRetirados, _ := c.GetBool("incluir_retirados", false) // Por defecto, no incluir retirados
         soloRetirados, _ := c.GetBool("solo_retirados", false)       // Por defecto, no mostrar solo retirados
 
@@ -7436,14 +7434,14 @@ func (c *TrabajadorController) GetAll() <span class="cov3" title="3">{
         query := o.QueryTable(new(models.Trabajador))
         if soloRetirados </span><span class="cov1" title="1">{
                 query = query.Filter("FECHA_RETIRO__isnull", false)
-        }</span> else<span class="cov2" title="2"> if !incluirRetirados </span><span class="cov2" title="2">{
+        }</span> else<span class="cov3" title="3"> if !incluirRetirados </span><span class="cov3" title="3">{
                 query = query.Filter("FECHA_RETIRO__isnull", true)
         }</span>
 
         // Aplicar filtros adicionales
-        <span class="cov3" title="3">if fechaIngreso != "" </span><span class="cov1" title="1">{
+        <span class="cov3" title="4">if fechaIngreso != "" </span><span class="cov2" title="2">{
                 parsed, err := time.Parse("2006-01-02", fechaIngreso)
-                if err != nil </span><span class="cov0" title="0">{
+                if err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusBadRequest)
                         c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para 'fecha_ingreso', use YYYY-MM-DD", Cause: err.Error()}
                         c.ServeJSON()
@@ -7971,50 +7969,7 @@ func (c *TrabajadorController) Delete() <span class="cov4" title="5">{
 }
 </pre>
 		
-		<pre class="file" id="file22" style="display: none">package controllers
-
-import (
-        "net/http"
-        "net/http/httptest"
-        "testing"
-
-        "github.com/beego/beego/v2/server/web/context"
-)
-
-func TestRestauranteDia_GetAll_OnlyDia(t *testing.T) <span class="cov0" title="0">{
-        r := httptest.NewRequest(http.MethodGet, "/restaurante_dia?dia=Lunes", nil)
-        w := httptest.NewRecorder()
-        ctx := context.NewContext()
-        ctx.Reset(w, r)
-        c := &amp;RestauranteDiaController{}
-        c.Ctx = ctx
-        c.Data = make(map[interface{}]interface{})
-
-        c.GetAll()
-        if w.Code != http.StatusOK &amp;&amp; w.Code != http.StatusInternalServerError </span><span class="cov0" title="0">{
-                t.Fatalf("unexpected %d", w.Code)
-        }</span>
-}
-
-func TestRestauranteDia_GetById_NotFound(t *testing.T) <span class="cov0" title="0">{
-        r := httptest.NewRequest(http.MethodGet, "/restaurante_dia/search?id=999", nil)
-        w := httptest.NewRecorder()
-        ctx := context.NewContext()
-        ctx.Reset(w, r)
-        c := &amp;RestauranteDiaController{}
-        c.Ctx = ctx
-        c.Data = make(map[interface{}]interface{})
-
-        c.GetById()
-        if w.Code != http.StatusOK </span><span class="cov0" title="0">{
-                t.Fatalf("expected 200 wrapper with notfound code, got %d", w.Code)
-        }</span>
-}
-
-
-</pre>
-		
-		<pre class="file" id="file23" style="display: none">package database
+		<pre class="file" id="file22" style="display: none">package database
 
 import (
         "fmt"
@@ -8133,7 +8088,7 @@ func seedMetodoPago() error <span class="cov8" title="5">{
 }
 </pre>
 		
-		<pre class="file" id="file24" style="display: none">// Package docs Code generated by swaggo/swag. DO NOT EDIT
+		<pre class="file" id="file23" style="display: none">// Package docs Code generated by swaggo/swag. DO NOT EDIT
 package docs
 
 import "github.com/swaggo/swag"
@@ -14598,7 +14553,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file25" style="display: none">package main
+		<pre class="file" id="file24" style="display: none">package main
 
 import (
         "database/sql"
@@ -14631,15 +14586,15 @@ func init() <span class="cov1" title="1">{
         appInit()
 }</span>
 
-func appInit() <span class="cov5" title="3">{
+func appInit() <span class="cov7" title="4">{
         // Inicializar la base de datos y la zona horaria
-        if err := initDBFunc(); err != nil </span><span class="cov0" title="0">{
+        if err := initDBFunc(); err != nil </span><span class="cov1" title="1">{
                 log.Println("Error al conectar a la base de datos:", err)
                 dbReady = false
         }</span> else<span class="cov5" title="3"> {
                 dbReady = true
         }</span>
-        <span class="cov5" title="3">initTimezoneFunc()
+        <span class="cov7" title="4">initTimezoneFunc()
         fmt.Println("Loaded timezone:", database.BogotaZone)</span>
 }
 
@@ -14753,7 +14708,7 @@ func main() <span class="cov5" title="3">{
 }
 </pre>
 		
-		<pre class="file" id="file26" style="display: none">package models
+		<pre class="file" id="file25" style="display: none">package models
 
 import (
         "encoding/json"
@@ -14789,7 +14744,7 @@ func (t CambiosHorario) MarshalJSON() ([]byte, error) <span class="cov1" title="
 }</span>
 </pre>
 		
-		<pre class="file" id="file27" style="display: none">package models
+		<pre class="file" id="file26" style="display: none">package models
 
 import (
         "github.com/beego/beego/v2/client/orm"
@@ -14809,7 +14764,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file28" style="display: none">package models
+		<pre class="file" id="file27" style="display: none">package models
 
 import (
         "github.com/beego/beego/v2/client/orm"
@@ -14835,7 +14790,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file29" style="display: none">package models
+		<pre class="file" id="file28" style="display: none">package models
 
 import (
         "time"
@@ -14885,7 +14840,7 @@ func (c *ControlNomina) Update(o simpleOrmer, cols ...string) (int64, error) <sp
 }
 </pre>
 		
-		<pre class="file" id="file30" style="display: none">package models
+		<pre class="file" id="file29" style="display: none">package models
 
 import "github.com/beego/beego/v2/client/orm"
 
@@ -14912,7 +14867,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file31" style="display: none">package models
+		<pre class="file" id="file30" style="display: none">package models
 
 import (
         "time"
@@ -14954,7 +14909,7 @@ func init() <span class="cov1" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file32" style="display: none">package models
+		<pre class="file" id="file31" style="display: none">package models
 
 import (
         "encoding/json"
@@ -15009,7 +14964,7 @@ func (h HorarioTrabajador) MarshalJSON() ([]byte, error) <span class="cov10" tit
 }
 </pre>
 		
-		<pre class="file" id="file33" style="display: none">package models
+		<pre class="file" id="file32" style="display: none">package models
 
 import (
         "encoding/json"
@@ -15047,7 +15002,7 @@ func (t Incidencia) MarshalJSON() ([]byte, error) <span class="cov1" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file34" style="display: none">package models
+		<pre class="file" id="file33" style="display: none">package models
 
 import "github.com/beego/beego/v2/client/orm"
 
@@ -15066,7 +15021,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file35" style="display: none">package models
+		<pre class="file" id="file34" style="display: none">package models
 
 import (
         "encoding/json"
@@ -15123,7 +15078,7 @@ func (n *Nomina) UnmarshalJSON(data []byte) error <span class="cov10" title="7">
 }
 </pre>
 		
-		<pre class="file" id="file36" style="display: none">package models
+		<pre class="file" id="file35" style="display: none">package models
 
 import (
         "encoding/json"
@@ -15256,7 +15211,7 @@ func (n *NominaTrabajador) UnmarshalJSON(data []byte) error <span class="cov10" 
 }
 </pre>
 		
-		<pre class="file" id="file37" style="display: none">package models
+		<pre class="file" id="file36" style="display: none">package models
 
 import (
         "encoding/json"
@@ -15300,7 +15255,7 @@ func (d Pago) MarshalJSON() ([]byte, error) <span class="cov10" title="2">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file38" style="display: none">package models
+		<pre class="file" id="file37" style="display: none">package models
 
 import (
         "encoding/json"
@@ -15361,7 +15316,7 @@ func (d Pedido) MarshalJSON() ([]byte, error) <span class="cov1" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file39" style="display: none">package models
+		<pre class="file" id="file38" style="display: none">package models
 
 import (
         "time"
@@ -15392,7 +15347,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file40" style="display: none">package models
+		<pre class="file" id="file39" style="display: none">package models
 
 import (
         "encoding/base64"
@@ -15486,7 +15441,7 @@ func init() <span class="cov1" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file41" style="display: none">package models
+		<pre class="file" id="file40" style="display: none">package models
 
 import (
         "encoding/json"
@@ -15532,7 +15487,7 @@ func (t Reserva) MarshalJSON() ([]byte, error) <span class="cov10" title="3">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file42" style="display: none">package models
+		<pre class="file" id="file41" style="display: none">package models
 
 import "github.com/beego/beego/v2/client/orm"
 
@@ -15561,7 +15516,7 @@ func init() <span class="cov1" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file43" style="display: none">package models
+		<pre class="file" id="file42" style="display: none">package models
 
 import (
         "time"
@@ -15585,7 +15540,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file44" style="display: none">package models
+		<pre class="file" id="file43" style="display: none">package models
 
 import "github.com/beego/beego/v2/client/orm"
 
@@ -15609,7 +15564,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file45" style="display: none">package models
+		<pre class="file" id="file44" style="display: none">package models
 
 import (
         "github.com/beego/beego/v2/client/orm"
@@ -15630,7 +15585,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file46" style="display: none">package models
+		<pre class="file" id="file45" style="display: none">package models
 
 import (
         "encoding/json"
@@ -15691,7 +15646,7 @@ func (d Trabajador) MarshalJSON() ([]byte, error) <span class="cov10" title="2">
 }
 </pre>
 		
-		<pre class="file" id="file47" style="display: none">package models
+		<pre class="file" id="file46" style="display: none">package models
 
 // EstadoDomicilio represents the estado_domicilio_enum values.
 type EstadoDomicilio = string
@@ -15799,7 +15754,7 @@ func (e EstadoControlNomina) IsValid() bool <span class="cov10" title="6">{
 }
 </pre>
 		
-		<pre class="file" id="file48" style="display: none">package routers
+		<pre class="file" id="file47" style="display: none">package routers
 
 import (
         "restaurante/controllers"
@@ -15975,7 +15930,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file49" style="display: none">package test
+		<pre class="file" id="file48" style="display: none">package test
 
 import (
         "bytes"
@@ -16013,7 +15968,7 @@ func _coverSelf() bool <span class="cov1" title="1">{
         return rec != nil
 }</pre>
 		
-		<pre class="file" id="file50" style="display: none">//go:build !integration
+		<pre class="file" id="file49" style="display: none">//go:build !integration
 // +build !integration
 
 package test

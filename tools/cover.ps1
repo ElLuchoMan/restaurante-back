@@ -65,21 +65,21 @@ if (!(Test-Path .\coverage.out)) {
   exit 1
 }
 
-# 4) Generar HTML (con timestamp para evitar caché) y también coverage.html
+# 4) Generar HTML único (cover.html) y sobrescribir si existe
 $profile = (Resolve-Path .\coverage.out).Path
-$ts = Get-Date -Format 'yyyyMMdd-HHmmss'
-$outHtmlTs = (Join-Path (Resolve-Path .).Path "coverage-$ts.html")
 $outHtml = (Join-Path (Resolve-Path .).Path 'coverage.html')
 
-& (Get-Command go).Source tool cover -html="$profile" -o "$outHtmlTs"
-Copy-Item -Force "$outHtmlTs" "$outHtml"
+Remove-Item -Force "$outHtml" -ErrorAction SilentlyContinue
+
+# Evitar sintaxis con '=' que a veces falla en PowerShell
+& (Get-Command go).Source tool cover -html "$profile" -o "$outHtml"
 
 # 5) Resumen en consola
 Write-Host "`nResumen por función:"
-& (Get-Command go).Source tool cover -func="$profile"
+& (Get-Command go).Source tool cover -func "$profile"
 
-# 6) Abrir en navegador (cache-busting correcto)
-$cacheBust = "file:///$($outHtmlTs)?ts=$ts"
-Start-Process "$cacheBust"
+# 6) Abrir en navegador el cover.html estable
+$fileUrl = "file:///$outHtml"
+Start-Process "$fileUrl"
 
-Write-Host "`nOK -> $outHtmlTs"
+Write-Host "`nOK -> $outHtml"
