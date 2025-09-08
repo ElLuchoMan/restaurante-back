@@ -94,6 +94,36 @@ func TestProductoPedidoGetAllDBError(t *testing.T) {
 	}
 }
 
+func TestProductoPedidoGetAllNotFound(t *testing.T) {
+        original := productoPedidoNewOrm
+        productoPedidoNewOrm = func() productoPedidoOrmer {
+                return fakeOrmerPP{query: func(i interface{}) orm.QuerySeter {
+                        return fakeQueryPP{all: func(res interface{}, cols ...string) (int64, error) {
+                                // devolver slice vacío sin error para disparar 404
+                                return 0, nil
+                        }}
+                }}
+        }
+        defer func() { productoPedidoNewOrm = original }()
+
+        r := httptest.NewRequest(http.MethodGet, "/producto_pedido?pedido_id=1", nil)
+        w := httptest.NewRecorder()
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        c := ProductoPedidoController{}
+        c.Ctx = ctx
+        c.Data = make(map[interface{}]interface{})
+
+        c.GetAll()
+
+        if w.Code != http.StatusOK {
+                t.Fatalf("expected status 200, got %d", w.Code)
+        }
+        if !strings.Contains(w.Body.String(), "No se encontraron productos") {
+                t.Errorf("unexpected body: %s", w.Body.String())
+        }
+}
+
 func TestProductoPedidoPostInvalidJSON(t *testing.T) {
 	body := "{"
 	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", bytes.NewBufferString(body))
@@ -286,8 +316,7 @@ func TestProductoPedidoUpdate_DeleteError(t *testing.T) {
 }
 
 func TestProductoPedidoPost_BeginTxError(t *testing.T) {
-    origQ, origE := MockQuery, MockExec
-    // stock suficiente
+    origQ, origBegin := MockQuery, productoPedidoBeginTx
     MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
         if strings.Contains(strings.ToLower(q), "select pk_id_producto, cantidad from producto") {
             cols := []string{"pk_id_producto", "cantidad"}
@@ -296,21 +325,16 @@ func TestProductoPedidoPost_BeginTxError(t *testing.T) {
         }
         return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
     }
-    // no configurar MockExec para que Begin falle en este entorno
-    MockExec = nil
-    t.Cleanup(func(){ MockQuery, MockExec = origQ, origE })
+    productoPedidoBeginTx = func(o orm.Ormer) (orm.TxOrmer, error) { return nil, errors.New("begin fail") }
+    t.Cleanup(func(){ MockQuery = origQ; productoPedidoBeginTx = origBegin })
 
     body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":2}]}`
     r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
     w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
     c := ProductoPedidoController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
     c.Post()
-    if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
-        t.Fatalf("expected 200 or 500, got %d", w.Code)
-    }
     if !strings.Contains(w.Body.String(), "No fue posible iniciar transacción") {
-        // permitir otras respuestas según entorno, pero preferimos ver el mensaje de begin
-        _ = w.Body.String()
+        t.Fatalf("expected begin error, body: %s", w.Body.String())
     }
 }
 
@@ -722,7 +746,7 @@ func TestProductoPedidoPost_UpdateStockNoRowsAffected(t *testing.T) {
         lower := strings.ToLower(q)
         if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
             cols := []string{"pk_id_producto", "cantidad"}
-            vals := [][]driver.Value{{int64(1), int64(1)}} // justo 1 disponible
+            vals := [][]driver.Value{{int64(1), int64(10)}} // stock suficiente
             return &mockRows{columns: cols, values: vals}, nil
         }
         return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
@@ -743,6 +767,62 @@ func TestProductoPedidoPost_UpdateStockNoRowsAffected(t *testing.T) {
     c.Post()
     if w.Code != http.StatusOK { t.Fatalf("expected 200, got %d. Body: %s", w.Code, w.Body.String()) }
     if !strings.Contains(w.Body.String(), "Inventario insuficiente") { t.Errorf("expected insufficient inventory, body: %s", w.Body.String()) }
+}
+
+func TestProductoPedidoPost_InsertError(t *testing.T) {
+    origQ, origE := MockQuery, MockExec
+    MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
+        lower := strings.ToLower(q)
+        if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
+            cols := []string{"pk_id_producto", "cantidad"}
+            vals := [][]driver.Value{{int64(1), int64(10)}}
+            return &mockRows{columns: cols, values: vals}, nil
+        }
+        if strings.Contains(lower, "insert into") {
+            return nil, errors.New("insert fail")
+        }
+        if strings.Contains(lower, "from detalle_pedido") {
+            cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
+            vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(1000)}}
+            return &mockRows{columns: cols, values: vals}, nil
+        }
+        return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
+    }
+    MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
+        return mockResult{}, nil
+    }
+    t.Cleanup(func(){ MockQuery, MockExec = origQ, origE })
+
+    body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":2}]}`
+    r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
+    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
+    c := ProductoPedidoController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+
+    c.Post()
+    if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
+        t.Fatalf("expected 500 or 200, got %d", w.Code)
+    }
+    if !strings.Contains(w.Body.String(), "Error al crear el pedido") {
+        t.Errorf("expected insert error, body: %s", w.Body.String())
+    }
+}
+
+func TestProductoPedidoUpdate_FilterInvalidItem(t *testing.T) {
+    origQ := MockQuery
+    // Provocar error en búsqueda para terminar luego de consolidar nuevos
+    MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
+        return nil, errors.New("db error")
+    }
+    t.Cleanup(func(){ MockQuery = origQ })
+
+    body := `[{"productoId":0,"cantidad":-1},{"productoId":1,"cantidad":1}]`
+    r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
+    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
+    c := ProductoPedidoController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.Update()
+    if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
+        t.Fatalf("unexpected status %d", w.Code)
+    }
 }
 
 // omitido: caso de inventario insuficiente en Update, por fragilidad del escaneo ORM en este entorno
