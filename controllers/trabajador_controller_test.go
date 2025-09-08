@@ -143,17 +143,30 @@ func TestGetAllNoResults(t *testing.T) {
 }
 
 func TestGetAllSoloRetirados(t *testing.T) {
-	database.BogotaZone = time.UTC
-	f := time.Now()
-	mq := &mockQuery{trabajadores: []models.Trabajador{{FECHA_RETIRO: &f, FECHA_NACIMIENTO: &f, FECHA_INGRESO: f}}}
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{query: mq} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodGet, "/trabajadores?solo_retirados=true", "")
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("got %d", w.Code)
-	}
+        database.BogotaZone = time.UTC
+        f := time.Now()
+        mq := &mockQuery{trabajadores: []models.Trabajador{{FECHA_RETIRO: &f, FECHA_NACIMIENTO: &f, FECHA_INGRESO: f}}}
+        original := newTrabajadorOrm
+        newTrabajadorOrm = func() orm.Ormer { return &mockOrm{query: mq} }
+        defer func() { newTrabajadorOrm = original }()
+        c, w := buildContext(http.MethodGet, "/trabajadores?solo_retirados=true", "")
+        c.GetAll()
+        if w.Code != http.StatusOK {
+                t.Fatalf("got %d", w.Code)
+        }
+}
+
+func TestGetAllInvalidDate(t *testing.T) {
+        database.BogotaZone = time.UTC
+        mq := &mockQuery{trabajadores: []models.Trabajador{}}
+        original := newTrabajadorOrm
+        newTrabajadorOrm = func() orm.Ormer { return &mockOrm{query: mq} }
+        defer func() { newTrabajadorOrm = original }()
+        c, w := buildContext(http.MethodGet, "/trabajadores?fecha_ingreso=bad", "")
+        c.GetAll()
+        if w.Code != http.StatusBadRequest {
+                t.Fatalf("got %d", w.Code)
+        }
 }
 
 // GetById tests

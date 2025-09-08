@@ -39,6 +39,12 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
     c := &SubcategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
     c.GetAll(); if w.Code != http.StatusOK { t.Fatalf("getAll %d", w.Code) }
 
+    // GetAll with categoria filter
+    r = httptest.NewRequest(http.MethodGet, "/subcategorias?categoria_id=1", nil)
+    w = httptest.NewRecorder(); ctx = context.NewContext(); ctx.Reset(w, r)
+    c = &SubcategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.GetAll(); if w.Code != http.StatusOK { t.Fatalf("getAll filter %d", w.Code) }
+
     // GetById not found
     r = httptest.NewRequest(http.MethodGet, "/subcategorias/search?id=5", nil)
     w = httptest.NewRecorder(); ctx = context.NewContext(); ctx.Reset(w, r)
@@ -64,10 +70,11 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
     c = &SubcategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
     c.Put(); if w.Code != http.StatusOK { t.Fatalf("put nf %d", w.Code) }
 
-    // Put ok
+    // Put ok updating nombre and categoria
     sub := models.Subcategoria{NOMBRE: "Sodas"}; m.Insert(&sub)
-    r = httptest.NewRequest(http.MethodPut, "/subcategorias?id=1", strings.NewReader(`{"nombre":"Sodas light"}`))
-    w = httptest.NewRecorder(); ctx = context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(`{"nombre":"Sodas light"}`)
+    body = `{"nombre":"Sodas light","categoriaId":2}`
+    r = httptest.NewRequest(http.MethodPut, "/subcategorias?id=1", strings.NewReader(body))
+    w = httptest.NewRecorder(); ctx = context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
     c = &SubcategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
     c.Put(); if w.Code != http.StatusOK { t.Fatalf("put ok %d", w.Code) }
 
@@ -108,6 +115,42 @@ func TestSubcategoriaController_AllError(t *testing.T) {
     c := &SubcategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
     c.GetAll()
     if w.Code != http.StatusInternalServerError { t.Fatalf("expected 500, got %d", w.Code) }
+}
+
+// Orm que falla en Insert para cubrir error en Post
+type insertFailOrm struct{}
+
+func (insertFailOrm) QueryTable(interface{}) subcatQuerySeter { return nil }
+func (insertFailOrm) Insert(interface{}) (int64, error) { return 0, orm.ErrTxDone }
+func (insertFailOrm) Read(interface{}, ...string) error { return nil }
+func (insertFailOrm) Update(interface{}, ...string) (int64, error) { return 0, nil }
+func (insertFailOrm) Delete(interface{}, ...string) (int64, error) { return 0, nil }
+
+func TestSubcategoriaController_Post_InsertError(t *testing.T) {
+    orig := subcatOrmNew
+    subcatOrmNew = func() subcatOrmer { return insertFailOrm{} }
+    defer func() { subcatOrmNew = orig }()
+
+    body := `{"nombre":"Ref","categoriaId":1}`
+    r := httptest.NewRequest(http.MethodPost, "/subcategorias", strings.NewReader(body))
+    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
+    c := &SubcategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.Post()
+    if w.Code != http.StatusInternalServerError { t.Fatalf("expected 500, got %d", w.Code) }
+}
+
+func TestSubcategoriaController_Put_InvalidJSON(t *testing.T) {
+    m := newSubMockOrm()
+    m.Insert(&models.Subcategoria{NOMBRE: "X"})
+    orig := subcatOrmNew
+    subcatOrmNew = func() subcatOrmer { return m }
+    defer func() { subcatOrmNew = orig }()
+
+    r := httptest.NewRequest(http.MethodPut, "/subcategorias?id=1", strings.NewReader("bad"))
+    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte("bad")
+    c := &SubcategoriaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.Put()
+    if w.Code != http.StatusBadRequest { t.Fatalf("put invalid json %d", w.Code) }
 }
 
 
