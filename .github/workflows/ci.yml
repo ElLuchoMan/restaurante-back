@@ -5,6 +5,12 @@ on:
     branches: [ develop, master ]
   pull_request:
     branches: [ develop, master ]
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "Ejecución manual del workflow"
+        required: false
+        default: "manual"
 
 permissions:
   contents: read
