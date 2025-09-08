@@ -58,7 +58,7 @@ func (c *ProductoPedidoController) GetAll() {
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'pedido_id' es obligatorio y debe ser válido",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -72,7 +72,7 @@ func (c *ProductoPedidoController) GetAll() {
 			Message: "Error al obtener los productos del pedido",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -81,7 +81,7 @@ func (c *ProductoPedidoController) GetAll() {
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron productos asociados a este pedido",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -95,7 +95,7 @@ func (c *ProductoPedidoController) GetAll() {
 		Message: "Productos del pedido obtenidos exitosamente",
 		Data:    response,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -122,7 +122,7 @@ func (c *ProductoPedidoController) Post() {
 			Message: "Datos inválidos",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -131,7 +131,7 @@ func (c *ProductoPedidoController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El pedido y los detalles de los productos son obligatorios",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -176,7 +176,7 @@ func (c *ProductoPedidoController) Post() {
 		}
 		if len(insuf) > 0 {
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos", Data: insuf}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 	}
@@ -184,7 +184,7 @@ func (c *ProductoPedidoController) Post() {
 	tx, err := productoPedidoBeginTx(o)
 	if err != nil {
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible iniciar transacción", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -194,16 +194,16 @@ func (c *ProductoPedidoController) Post() {
 		// Descontar stock de manera segura
 		res, err := tx.Raw("UPDATE producto SET cantidad = cantidad - ? WHERE pk_id_producto = ? AND cantidad >= ?", qty, prodID, qty).Exec()
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al descontar inventario", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		affected, _ := res.RowsAffected()
 		if affected == 0 {
-			tx.Rollback()
+			_ = tx.Rollback()
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos"}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
@@ -214,9 +214,9 @@ func (c *ProductoPedidoController) Post() {
 			Cantidad:     qty,
 		}
 		if _, err := tx.Insert(&detalle); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear el pedido con productos", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 
@@ -226,18 +226,18 @@ func (c *ProductoPedidoController) Post() {
 			Filter("PKIDPedido", *detalle.PKIDPedido).
 			Filter("PKIDProducto", *detalle.PKIDProducto).
 			One(&actualizado); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener el precio del producto", Cause: err.Error()}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		detalles = append(detalles, actualizado)
 	}
 
 	if err := tx.Commit(); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible confirmar transacción", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 

@@ -58,7 +58,7 @@ func (c *LoginController) Login() {
 			Message: "Error al decodificar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -76,7 +76,7 @@ func (c *LoginController) Login() {
 				Code:    http.StatusUnauthorized,
 				Message: "Credenciales inválidas",
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		nombre := trabajador.NOMBRE + " " + trabajador.APELLIDO
@@ -97,7 +97,7 @@ func (c *LoginController) Login() {
 				Code:    http.StatusUnauthorized,
 				Message: "Credenciales inválidas",
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		nombre := cliente.NOMBRE + " " + cliente.APELLIDO
@@ -112,7 +112,7 @@ func (c *LoginController) Login() {
 		Code:    http.StatusUnauthorized,
 		Message: "Credenciales inválidas",
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // Función para generar y devolver un token JWT
@@ -138,7 +138,7 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
 			Message: "Error al generar el token",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -151,7 +151,7 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
 			"nombre": nombre,
 		},
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 func ValidateToken(ctx *context.Context) {

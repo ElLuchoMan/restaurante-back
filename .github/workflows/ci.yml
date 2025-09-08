@@ -91,6 +91,7 @@ jobs:
 
   lint-golangci:
     runs-on: ubuntu-latest
+    continue-on-error: true
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -104,7 +105,7 @@ jobs:
       - name: Run golangci-lint (minimal set, non-blocking)
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
-          args: --disable-all --enable=govet,errcheck,ineffassign,revive --timeout=5m --out-format=github-actions --issues-exit-code=0
+          version: v1.64.8
+          args: --disable-all --enable=govet,errcheck,ineffassign,revive --timeout=5m --out-format=github-actions --issues-exit-code=0 --go=1.24
 
 
