@@ -152,3 +152,19 @@ func TestNominaTrabajadorUnmarshalJSON_NonNumberNonObject(t *testing.T) {
         t.Fatalf("expected nil pointers when values are strings, got trabajador=%+v nomina=%+v", n.PK_DOCUMENTO_TRABAJADOR, n.PK_ID_NOMINA)
     }
 }
+
+func TestNominaTrabajadorTableName(t *testing.T) {
+    var n NominaTrabajador
+    if got := n.TableName(); got != "nomina_trabajador" {
+        t.Fatalf("expected table name 'nomina_trabajador', got %q", got)
+    }
+}
+
+func TestNominaTrabajadorUnmarshalJSON_InvalidTypeArray(t *testing.T) {
+    var n NominaTrabajador
+    // JSON sintácticamente válido pero del tipo incorrecto para el alias (se espera objeto)
+    payload := []byte(`[]`)
+    if err := json.Unmarshal(payload, &n); err == nil {
+        t.Fatalf("expected error for invalid JSON type (array), got nil")
+    }
+}
