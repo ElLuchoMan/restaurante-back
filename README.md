@@ -136,6 +136,7 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   - BD fija `precio` por trigger según vigencia.
   - Inventario: al crear/actualizar detalles, se descuenta/devolver stock en transacción.
   - Sin stock suficiente: 400 con detalle por `productoId` (`requerido`/`disponible`).
+  - Estados de pedido: INICIADO → EN_PREPARACION → LISTO → TERMINADO/CANCELADO. Los estados EN_PREPARACION y LISTO están disponibles para el flujo de cocina.
 - Domicilios: `delivery=false` exige `pk_id_domicilio = NULL`; asignar domicilio marca `delivery=true` automáticamente.
 - Filtros corregidos: `domicilios` (estado, updated_by, trabajador), `pedidos` (año sin mes), `trabajadores` (fecha ingreso exacta), etc.
 - Nómina (`nominas`):

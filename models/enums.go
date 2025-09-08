@@ -27,13 +27,15 @@ const (
 )
 
 // EstadoPedido represents the estado_pedido_enum values.
-// Valores válidos: "iniciado", "terminado", "cancelado".
+// Valores válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO.
 type EstadoPedido = string
 
 const (
-	EstadoPedidoIniciado  EstadoPedido = "INICIADO"
-	EstadoPedidoTerminado EstadoPedido = "TERMINADO"
-	EstadoPedidoCancelado EstadoPedido = "CANCELADO"
+	EstadoPedidoIniciado      EstadoPedido = "INICIADO"
+	EstadoPedidoEnPreparacion EstadoPedido = "EN_PREPARACION"
+	EstadoPedidoListo         EstadoPedido = "LISTO"
+	EstadoPedidoTerminado     EstadoPedido = "TERMINADO"
+	EstadoPedidoCancelado     EstadoPedido = "CANCELADO"
 )
 
 // EstadoProducto represents the estado_producto_enum values.

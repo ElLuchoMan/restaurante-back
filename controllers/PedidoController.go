@@ -314,6 +314,7 @@ func (c *PedidoController) AssignPago() {
 // @Title UpdateEstadoPedido
 // @Summary Actualizar el estado de un pedido
 // @Description Actualiza el estado de un pedido existente.
+// Estados permitidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO.
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -328,7 +329,11 @@ func (c *PedidoController) UpdateEstadoPedido() {
 	pedidoID, _ := c.GetInt64("pedido_id")
 	estado := c.GetString("estado")
 
-	if estado != models.EstadoPedidoIniciado && estado != models.EstadoPedidoTerminado && estado != models.EstadoPedidoCancelado {
+	if estado != models.EstadoPedidoIniciado &&
+		estado != models.EstadoPedidoEnPreparacion &&
+		estado != models.EstadoPedidoListo &&
+		estado != models.EstadoPedidoTerminado &&
+		estado != models.EstadoPedidoCancelado {
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = models.ApiResponse{
 			Code:    400,
