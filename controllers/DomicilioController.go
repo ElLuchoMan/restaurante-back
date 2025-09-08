@@ -14,6 +14,9 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+// jsonMarshal is a variable to allow mocking json.Marshal in tests.
+var jsonMarshal = json.Marshal
+
 type DomicilioController struct {
 	web.Controller
 }
@@ -282,7 +285,7 @@ func (c *DomicilioController) Post() {
 		}
 	}
 	// Decodificar al DTO ya sanitizado
-	if bodySan, err := json.Marshal(raw); err == nil {
+	if bodySan, err := jsonMarshal(raw); err == nil {
 		if err := json.Unmarshal(bodySan, &input); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
@@ -321,7 +324,9 @@ func (c *DomicilioController) Post() {
 	// compat: aceptar "estado" o "estadoDomicilio"
 	est := string(input.Estado)
 	if est == "" {
-		if v, ok := raw["estado"].(string); ok { est = v }
+		if v, ok := raw["estado"].(string); ok {
+			est = v
+		}
 	}
 	if est != "" {
 		if !isValidEstadoDomicilio(est) {
