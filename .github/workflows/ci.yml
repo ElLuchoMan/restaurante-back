@@ -91,8 +91,7 @@ jobs:
 
   lint-golangci:
     runs-on: ubuntu-latest
-    # quita esta línea si quieres que el lint BLOQUEE el PR
-    continue-on-error: true
+    continue-on-error: false
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -104,7 +103,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Run golangci-lint (v2, usa .golangci.yml)
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.4.0
           args: >
