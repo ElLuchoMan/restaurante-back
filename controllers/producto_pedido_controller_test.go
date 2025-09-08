@@ -882,6 +882,89 @@ func TestProductoPedidoUpdate_ReconsultaOneError(t *testing.T) {
     }
 }
 
+func TestProductoPedidoUpdate_DeleteExecError(t *testing.T) {
+    origQ, origE := MockQuery, MockExec
+    // actuales vacío y stock suficiente
+    MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
+        lower := strings.ToLower(q)
+        if strings.Contains(lower, "detalle_pedido") {
+            return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
+        }
+        if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
+            cols := []string{"pk_id_producto", "cantidad"}
+            vals := [][]driver.Value{{int64(1), int64(10)}}
+            return &mockRows{columns: cols, values: vals}, nil
+        }
+        return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
+    }
+    MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
+        lower := strings.ToLower(q)
+        if strings.Contains(lower, "delete") && strings.Contains(lower, "detalle_pedido") {
+            return nil, errors.New("delete fail")
+        }
+        return mockResult{}, nil
+    }
+    t.Cleanup(func(){ MockQuery, MockExec = origQ, origE })
+
+    body := `[{"productoId":1,"cantidad":2}]`
+    r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
+    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
+    c := ProductoPedidoController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.Update()
+    if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
+        t.Fatalf("expected 500 or 200, got %d. Body: %s", w.Code, w.Body.String())
+    }
+    if !strings.Contains(strings.ToLower(w.Body.String()), "actualizar los productos del pedido") {
+        t.Fatalf("expected delete error message, body: %s", w.Body.String())
+    }
+}
+
+func TestProductoPedidoUpdate_NegativeDelta_AdjustInventoryExecError(t *testing.T) {
+    origQ, origE := MockQuery, MockExec
+    call := 0
+    MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
+        lower := strings.ToLower(q)
+        if strings.Contains(lower, "detalle_pedido") {
+            // actuales: cantidad previa alta para delta negativo
+            if call == 0 {
+                call++
+                cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
+                vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(3), int64(1000)}}
+                return &mockRows{columns: cols, values: vals}, nil
+            }
+            // reconsultas no deberían alcanzarse
+            return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
+        }
+        // validación stock no se usa para delta negativo, pero devolver algo neutro
+        if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
+            cols := []string{"pk_id_producto", "cantidad"}
+            vals := [][]driver.Value{{int64(1), int64(10)}}
+            return &mockRows{columns: cols, values: vals}, nil
+        }
+        return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
+    }
+    MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
+        lower := strings.ToLower(q)
+        if strings.Contains(lower, "update producto set cantidad = cantidad +") {
+            return nil, errors.New("restock fail")
+        }
+        return mockResult{}, nil
+    }
+    t.Cleanup(func(){ MockQuery, MockExec = origQ, origE })
+
+    body := `[{"productoId":1,"cantidad":1}]` // actuales 3 -> delta -2
+    r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
+    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r); ctx.Input.RequestBody = []byte(body)
+    c := ProductoPedidoController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+    c.Update()
+    if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
+        t.Fatalf("expected 500 or 200, got %d. Body: %s", w.Code, w.Body.String())
+    }
+    if !strings.Contains(strings.ToLower(w.Body.String()), "ajustar inventario") {
+        t.Fatalf("expected adjust inventory error, body: %s", w.Body.String())
+    }
+}
+
 // omitido: caso de inventario insuficiente en Update, por fragilidad del escaneo ORM en este entorno
 
 // Nota: se omite un test adicional complejo para Update con delta negativo, ya cubierto por otros caminos.
