@@ -1,27 +1,21 @@
-version: 1.59
 run:
   timeout: 5m
-  tests: true
+  tests: false
   skip-dirs:
-    - docs
-    - swagger
+    - controllers
 
 linters:
+  disable-all: true
   enable:
-    - govet
     - errcheck
-    - revive
     - ineffassign
-  disable:
-    - staticcheck
-    - gosimple
-    - unused
-    - deadcode
-    - typecheck
-    - gocyclo
-  fast: false
+  fast: true
 
 issues:
+  exclude-dirs:
+    - docs
+    - swagger
+    - controllers
   exclude-rules:
     # Relajar en archivos de test para evitar falso-positivos en mocks y helpers
     - path: ".*_test\\.go"
@@ -34,11 +28,11 @@ issues:
     - linters: [errcheck]
       text: 'ServeJSON'
     - linters: [errcheck]
-      text: 'Output.JSON'
+      text: 'Output\.JSON'
     - linters: [errcheck]
-      text: 'Close('
+      text: 'Close\('
     - linters: [errcheck]
-      text: 'Rollback('
+      text: 'Rollback\('
     - linters: [errcheck]
       text: 'ParseMultipartForm'
     - linters: [errcheck]

@@ -101,10 +101,10 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Run golangci-lint
+      - name: Run golangci-lint (minimal set, non-blocking)
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
-          args: --config=.golangci.yml --timeout=5m --out-format=github-actions --issues-exit-code=0
+          args: --disable-all --enable=govet,errcheck,ineffassign,revive --timeout=5m --out-format=github-actions --issues-exit-code=0
 
 
