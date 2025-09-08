@@ -13,7 +13,16 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web/context"
 
+	"restaurante/database"
 	"restaurante/models"
+)
+
+var (
+	originalQueryAllReservas     = queryAllReservas
+	originalReadReserva          = readReserva
+	originalInsertReserva        = insertReserva
+	originalUpdateReserva        = updateReserva
+	originalQueryReservasByParam = queryReservasByParam
 )
 
 func resetReservaMocks() {
@@ -54,6 +63,17 @@ func TestReservaGetAllWithoutDB(t *testing.T) {
 	if !strings.Contains(w.Body.String(), "Error al obtener reservas") {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
+}
+
+func TestReservaDefaultFuncsCoverage(t *testing.T) {
+	o := orm.NewOrm()
+	var r models.Reserva
+	var rs []models.Reserva
+	originalQueryAllReservas(o, &rs)
+	_ = originalReadReserva(o, &r)
+	originalInsertReserva(o, &r)
+	originalUpdateReserva(o, &r)
+	originalQueryReservasByParam(o, 1, time.Now(), true, true, &rs)
 }
 
 func TestReservaGetByIdInvalidID(t *testing.T) {
@@ -222,6 +242,9 @@ func TestReservaDeleteInvalidID(t *testing.T) {
 }
 
 func TestReservaGetAllSuccess(t *testing.T) {
+	originalZone := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = originalZone })
 	hora, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
 	db := []models.Reserva{{
 		PK_ID_RESERVA: int64(1),
@@ -250,6 +273,9 @@ func TestReservaGetAllSuccess(t *testing.T) {
 }
 
 func TestReservaGetByIdScenarios(t *testing.T) {
+	originalZone := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = originalZone })
 	hora, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
 	db := map[int64]models.Reserva{1: {
 		PK_ID_RESERVA: int64(1),
@@ -416,6 +442,31 @@ func TestReservaPostInvalidContacto(t *testing.T) {
 	}
 }
 
+func TestReservaPostInvalidRestaurante(t *testing.T) {
+	t.Cleanup(resetReservaMocks)
+	payload := map[string]interface{}{
+		"fechaReserva":  "2024-01-01",
+		"horaReserva":   "12:00:00",
+		"personas":      2,
+		"contactoId":    123,
+		"restauranteId": "abc",
+	}
+	body, _ := json.Marshal(payload)
+	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = body
+	c := ReservaController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
 func TestReservaPostInvalidReservaContacto(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
@@ -479,16 +530,17 @@ func TestReservaPostSuccess(t *testing.T) {
 	}
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":   "2024-01-01",
-		"horaReserva":    "12:00:00",
-		"personas":       2,
-		"contactoId":     123,
-		"restauranteId":  1,
-		"estadoReserva":  models.EstadoReservaConfirmada,
-		"indicaciones":   "Ninguna",
-		"createdBy":      "admin",
-		"nombreCompleto": "John Doe",
-		"telefono":       "123",
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"estadoReserva":     models.EstadoReservaConfirmada,
+		"indicaciones":      "Ninguna",
+		"createdBy":         "admin",
+		"nombreCompleto":    "John Doe",
+		"telefono":          "123",
+		"documentoContacto": 999,
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -611,8 +663,23 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 
-	// update error
+	// invalid restaurante
 	payload["contactoId"] = 123
+	payload["restauranteId"] = "abc"
+	body, _ = json.Marshal(payload)
+	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
+	w = httptest.NewRecorder()
+	ctx = context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = body
+	c.Ctx = ctx
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+
+	// update error
+	payload["restauranteId"] = 1
 	body, _ = json.Marshal(payload)
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) { return 0, errors.New("db") }
 	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
@@ -632,16 +699,17 @@ func TestReservaPutScenarios(t *testing.T) {
 		return 1, nil
 	}
 	payload = map[string]interface{}{
-		"fechaReserva":   "2024-01-02",
-		"horaReserva":    "13:00:00",
-		"personas":       3,
-		"estadoReserva":  models.EstadoReservaConfirmada,
-		"indicaciones":   "OK",
-		"updatedBy":      "admin",
-		"nombreCompleto": "John",
-		"telefono":       "123",
-		"contactoId":     123,
-		"restauranteId":  1,
+		"fechaReserva":      "2024-01-02",
+		"horaReserva":       "13:00:00",
+		"personas":          3,
+		"estadoReserva":     models.EstadoReservaConfirmada,
+		"indicaciones":      "OK",
+		"updatedBy":         "admin",
+		"nombreCompleto":    "John",
+		"telefono":          "123",
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 777,
 	}
 	body, _ = json.Marshal(payload)
 	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
@@ -667,6 +735,9 @@ func TestReservaPutScenarios(t *testing.T) {
 }
 
 func TestReservaGetByParameterSuccess(t *testing.T) {
+	originalZone := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = originalZone })
 	hora, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
 	db := []models.Reserva{{
 		PK_ID_RESERVA:  int64(1),
@@ -693,6 +764,29 @@ func TestReservaGetByParameterSuccess(t *testing.T) {
 	c.GetByParameter()
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestReservaGetByParameterNoResults(t *testing.T) {
+	originalZone := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = originalZone })
+	ormNew = func() orm.Ormer { return nil }
+	queryReservasByParam = func(o orm.Ormer, contacto int64, fecha time.Time, useContacto, useFecha bool, reservas *[]models.Reserva) (int64, error) {
+		return 0, nil
+	}
+	t.Cleanup(resetReservaMocks)
+	r := httptest.NewRequest(http.MethodGet, "/reservas/parameter?contactoId=123&fecha=2024-01-01", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ReservaController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+
+	c.GetByParameter()
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "No se encontraron reservas") {
+		t.Fatalf("expected no results, got status %d body %s", w.Code, w.Body.String())
 	}
 }
 
@@ -799,5 +893,34 @@ func TestReservaPutInvalidEstadoIgnored(t *testing.T) {
 	}
 	if updated.ESTADO_RESERVA == nil || *updated.ESTADO_RESERVA != pend {
 		t.Fatalf("estado should remain %s, got %v", pend, updated.ESTADO_RESERVA)
+	}
+}
+
+func TestReservaPutInvalidReservaContacto(t *testing.T) {
+	ormNew = func() orm.Ormer { return nil }
+	readReserva = func(o orm.Ormer, r *models.Reserva) error { return nil }
+	t.Cleanup(resetReservaMocks)
+	payload := map[string]interface{}{
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 1,
+		"documentoCliente":  2,
+	}
+	body, _ := json.Marshal(payload)
+	r := httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = body
+	c := ReservaController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
 	}
 }
