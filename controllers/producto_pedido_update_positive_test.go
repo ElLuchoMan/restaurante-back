@@ -16,28 +16,22 @@ func TestProductoPedidoUpdate_PositiveDelta_Success(t *testing.T) {
     step := 0
     MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
         lower := strings.ToLower(q)
-        if strings.Contains(lower, "from detalle_pedido") {
-            // actuales vacíos (para que delta sea positivo íntegro)
-            return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
+        if strings.Contains(lower, "detalle_pedido") {
+            if step == 0 {
+                // consulta inicial de detalles: sin registros para que delta sea positivo
+                step++
+                return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
+            }
+            // reconsulta después del insert para obtener el precio definitivo
+            cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
+            vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}}
+            return &mockRows{columns: cols, values: vals}, nil
         }
         if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
             // stock suficiente
             cols := []string{"pk_id_producto", "cantidad"}
             vals := [][]driver.Value{{int64(1), int64(10)}}
             return &mockRows{columns: cols, values: vals}, nil
-        }
-        if strings.Contains(lower, "from detalle_pedido") {
-            // reconsulta (redundante por el primer if), pero dejamos retorno genérico
-            return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-        }
-        // reconsulta one luego de insert
-        if strings.Contains(lower, "detalle_pedido") {
-            step++
-            if step >= 2 {
-                cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-                vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(1000)}}
-                return &mockRows{columns: cols, values: vals}, nil
-            }
         }
         return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
     }

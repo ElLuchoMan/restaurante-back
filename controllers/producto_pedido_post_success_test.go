@@ -21,9 +21,14 @@ func TestProductoPedidoPost_Success_Transaction(t *testing.T) {
             vals := [][]driver.Value{{int64(1), int64(10)}}
             return &mockRows{columns: cols, values: vals}, nil
         }
-        if strings.Contains(lower, "from detalle_pedido") {
-            cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-            vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(1000)}}
+        if strings.Contains(lower, "insert into") && strings.Contains(lower, "detalle_pedido") {
+            // retorno del INSERT ... RETURNING pk_id_detalle
+            return &mockRows{columns: []string{"pk_id_detalle"}, values: [][]driver.Value{{int64(1)}}}, nil
+        }
+        if strings.Contains(lower, "detalle_pedido") {
+            // reconsulta después del insert para obtener precio definitivo
+            cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
+            vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}}
             return &mockRows{columns: cols, values: vals}, nil
         }
         // otras consultas (BEGIN/COMMIT/UPDATE) se satisfacen vía MockExec

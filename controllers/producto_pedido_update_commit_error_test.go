@@ -19,14 +19,15 @@ func TestProductoPedidoUpdate_CommitError(t *testing.T) {
     step := 0
     MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
         lower := strings.ToLower(q)
-        if strings.Contains(lower, "from detalle_pedido") {
-            // primera consulta (actuales) y luego reconsultas
+        if strings.Contains(lower, "detalle_pedido") {
             if step == 0 {
+                // consulta inicial sin registros
                 step++
                 return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
             }
-            cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-            vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(1000)}}
+            // reconsulta después de insert
+            cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
+            vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}}
             return &mockRows{columns: cols, values: vals}, nil
         }
         if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
