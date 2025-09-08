@@ -68,11 +68,11 @@ func (c *SubcategoriaController) GetAll() {
 	if _, err := qs.All(&subs); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener subcategorías", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategorías obtenidas", Data: subs}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetById
@@ -91,11 +91,11 @@ func (c *SubcategoriaController) GetById() {
 	if err := o.Read(&s); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría encontrada", Data: s}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -117,19 +117,19 @@ func (c *SubcategoriaController) Post() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" || in.CategoriaId == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o campos requeridos faltantes"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	s := models.Subcategoria{NOMBRE: in.Nombre, PK_ID_CATEGORIA: &models.Categoria{PK_ID_CATEGORIA: in.CategoriaId}}
 	if _, err := o.Insert(&s); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear subcategoría", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Subcategoría creada", Data: s}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Put
@@ -149,7 +149,7 @@ func (c *SubcategoriaController) Put() {
 	if err := o.Read(&s); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	var in struct {
@@ -159,7 +159,7 @@ func (c *SubcategoriaController) Put() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	cols := []string{}
@@ -174,11 +174,11 @@ func (c *SubcategoriaController) Put() {
 	if _, err := o.Update(&s, cols...); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar subcategoría", Cause: err.Error()}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría actualizada", Data: s}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -196,9 +196,9 @@ func (c *SubcategoriaController) Delete() {
 	if _, err := o.Delete(&models.Subcategoria{PK_ID_SUBCATEGORIA: id}); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría eliminada"}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }

@@ -59,7 +59,7 @@ func (c *IncidenciaController) GetAll() {
 			Message: "Error al obtener incidencias",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -69,7 +69,7 @@ func (c *IncidenciaController) GetAll() {
 		Message: "Incidencias obtenidas correctamente",
 		Data:    incidencias,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title GetByDocumentAndDate
@@ -98,7 +98,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'documento' es inválido o ausente",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -109,7 +109,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'mes' es inválido. Debe estar entre 1 y 12",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -120,7 +120,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'anio' es inválido o ausente",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -142,7 +142,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron incidencias para los parámetros proporcionados",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	} else if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -151,7 +151,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 			Message: "Error al buscar incidencias",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -162,7 +162,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 		Message: "Incidencias encontradas",
 		Data:    incidencias,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -190,7 +190,7 @@ func (c *IncidenciaController) Post() {
 			Message: "Error al procesar la solicitud",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -204,7 +204,7 @@ func (c *IncidenciaController) Post() {
 				Message: "Formato de fecha inválido para fechaIncidencia",
 				Cause:   err.Error(),
 			}
-			c.ServeJSON()
+			_ = c.ServeJSON()
 			return
 		}
 		incidencia.FECHA = parsedDate
@@ -214,7 +214,7 @@ func (c *IncidenciaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo fechaIncidencia es obligatorio",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -227,7 +227,7 @@ func (c *IncidenciaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo monto es obligatorio y debe ser un número",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -240,7 +240,7 @@ func (c *IncidenciaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo resta es obligatorio",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -253,7 +253,7 @@ func (c *IncidenciaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo motivo es obligatorio",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -267,7 +267,7 @@ func (c *IncidenciaController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo documentoTrabajador es obligatorio",
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -280,7 +280,7 @@ func (c *IncidenciaController) Post() {
 			Message: "Error al crear la incidencia",
 			Cause:   err.Error(),
 		}
-		c.ServeJSON()
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -306,7 +306,7 @@ func (c *IncidenciaController) Post() {
 		Message: "Incidencia creada correctamente",
 		Data:    response,
 	}
-	c.ServeJSON()
+	_ = c.ServeJSON()
 }
 
 // @Title Update
