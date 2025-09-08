@@ -57,14 +57,14 @@ func (n *NominaTrabajador) TableUnique() [][]string {
 // - "documentoTrabajador" o "pk_documento_trabajador" (número o objeto Trabajador)
 func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
 	type alias struct {
-		SUELDO_BASE             *int64          `json:"sueldoBase,omitempty"`
-		MONTO_INCIDENCIAS       *int64          `json:"montoIncidencias,omitempty"`
-		DETALLES                *string         `json:"detalles,omitempty"`
+		SUELDO_BASE       *int64  `json:"sueldoBase,omitempty"`
+		MONTO_INCIDENCIAS *int64  `json:"montoIncidencias,omitempty"`
+		DETALLES          *string `json:"detalles,omitempty"`
 		// posibles nombres entrantes
-		DocumentoTrabajador     json.RawMessage `json:"documentoTrabajador,omitempty"`
-		DocumentoTrabajadorAlt  json.RawMessage `json:"pk_documento_trabajador,omitempty"`
-		NominaID                json.RawMessage `json:"nominaId,omitempty"`
-		NominaIDAlt             json.RawMessage `json:"pk_id_nomina,omitempty"`
+		DocumentoTrabajador    json.RawMessage `json:"documentoTrabajador,omitempty"`
+		DocumentoTrabajadorAlt json.RawMessage `json:"pk_documento_trabajador,omitempty"`
+		NominaID               json.RawMessage `json:"nominaId,omitempty"`
+		NominaIDAlt            json.RawMessage `json:"pk_id_nomina,omitempty"`
 	}
 
 	var a alias

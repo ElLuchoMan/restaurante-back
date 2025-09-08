@@ -585,57 +585,57 @@ func TestPedidoUpdateEstadoPedidoSuccess(t *testing.T) {
 }
 
 func TestPedidoUpdateEstadoPedidoSuccess_EnPreparacion(t *testing.T) {
-    MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-        cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-        now := time.Now()
-        vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-        return &mockRows{columns: cols, values: vals}, nil
-    }
-    MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-        return mockResult{}, nil
-    }
-    defer func() { MockQuery = nil; MockExec = nil }()
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
+		now := time.Now()
+		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return mockResult{}, nil
+	}
+	defer func() { MockQuery = nil; MockExec = nil }()
 
-    r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=EN_PREPARACION", nil)
-    w := httptest.NewRecorder()
-    ctx := beegoCtx.NewContext()
-    ctx.Reset(w, r)
-    c := PedidoController{}
-    c.Ctx = ctx
-    c.Data = make(map[interface{}]interface{})
+	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=EN_PREPARACION", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := PedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
-    c.UpdateEstadoPedido()
+	c.UpdateEstadoPedido()
 
-    if w.Code != http.StatusOK {
-        t.Fatalf("expected status 200, got %d", w.Code)
-    }
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
 }
 
 func TestPedidoUpdateEstadoPedidoSuccess_Listo(t *testing.T) {
-    MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-        cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-        now := time.Now()
-        vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-        return &mockRows{columns: cols, values: vals}, nil
-    }
-    MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-        return mockResult{}, nil
-    }
-    defer func() { MockQuery = nil; MockExec = nil }()
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
+		now := time.Now()
+		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+		return mockResult{}, nil
+	}
+	defer func() { MockQuery = nil; MockExec = nil }()
 
-    r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=LISTO", nil)
-    w := httptest.NewRecorder()
-    ctx := beegoCtx.NewContext()
-    ctx.Reset(w, r)
-    c := PedidoController{}
-    c.Ctx = ctx
-    c.Data = make(map[interface{}]interface{})
+	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=LISTO", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := PedidoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
-    c.UpdateEstadoPedido()
+	c.UpdateEstadoPedido()
 
-    if w.Code != http.StatusOK {
-        t.Fatalf("expected status 200, got %d", w.Code)
-    }
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
 }
 
 func TestPedidoGetPedidoDetailsSuccess(t *testing.T) {

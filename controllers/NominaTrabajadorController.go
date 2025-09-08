@@ -16,7 +16,7 @@ type NominaTrabajadorController struct {
 }
 
 // Interfaces y adaptadores para inyectar el ORM en tests
-type ntQuerySeter interface{
+type ntQuerySeter interface {
 	Filter(string, ...interface{}) ntQuerySeter
 	All(interface{}, ...string) (int64, error)
 	One(interface{}, ...string) error
@@ -24,22 +24,35 @@ type ntQuerySeter interface{
 	Exist() bool
 }
 
-type ntOrmer interface{
+type ntOrmer interface {
 	QueryTable(interface{}) ntQuerySeter
 	Insert(interface{}) (int64, error)
 }
 
 type ntQSAdapter struct{ qs orm.QuerySeter }
-func (a ntQSAdapter) Filter(expr string, args ...interface{}) ntQuerySeter { return ntQSAdapter{qs: a.qs.Filter(expr, args...)} }
-func (a ntQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
+
+func (a ntQSAdapter) Filter(expr string, args ...interface{}) ntQuerySeter {
+	return ntQSAdapter{qs: a.qs.Filter(expr, args...)}
+}
+func (a ntQSAdapter) All(res interface{}, cols ...string) (int64, error) {
+	return a.qs.All(res, cols...)
+}
 func (a ntQSAdapter) One(res interface{}, cols ...string) error { return a.qs.One(res, cols...) }
+
 //go:noinline
-func (a ntQSAdapter) OrderBy(expr ...string) ntQuerySeter { return ntQSAdapter{qs: a.qs.OrderBy(expr...)} }
+func (a ntQSAdapter) OrderBy(expr ...string) ntQuerySeter {
+	return ntQSAdapter{qs: a.qs.OrderBy(expr...)}
+}
+
 //go:noinline
 func (a ntQSAdapter) Exist() bool { return a.qs.Exist() }
 
 type ntOrmAdapter struct{ o orm.Ormer }
-func (a ntOrmAdapter) QueryTable(i interface{}) ntQuerySeter { return ntQSAdapter{qs: a.o.QueryTable(i)} }
+
+func (a ntOrmAdapter) QueryTable(i interface{}) ntQuerySeter {
+	return ntQSAdapter{qs: a.o.QueryTable(i)}
+}
+
 //go:noinline
 func (a ntOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
 

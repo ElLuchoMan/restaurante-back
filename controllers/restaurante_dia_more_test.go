@@ -37,5 +37,3 @@ func TestRestauranteDia_GetById_NotFound(t *testing.T) {
 		t.Fatalf("expected 200 wrapper with notfound code, got %d", w.Code)
 	}
 }
-
-

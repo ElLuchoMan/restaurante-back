@@ -9,23 +9,33 @@ import (
 )
 
 func TestControlNominaGetAllWithDate(t *testing.T) {
-    // permitir éxito o error dependiendo del mock global
+	// permitir éxito o error dependiendo del mock global
 
-    r := httptest.NewRequest(http.MethodGet, "/control_nomina?fecha=2024-01-01", nil)
-    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r)
-    c := &ControlNominaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
-    c.GetAll()
-    if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError { t.Fatalf("unexpected %d", w.Code) }
+	r := httptest.NewRequest(http.MethodGet, "/control_nomina?fecha=2024-01-01", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &ControlNominaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetAll()
+	if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
+		t.Fatalf("unexpected %d", w.Code)
+	}
 }
 
 func TestControlNominaGetByIdSuccess(t *testing.T) {
-    // aceptar 200 u otro según el entorno
+	// aceptar 200 u otro según el entorno
 
-    r := httptest.NewRequest(http.MethodGet, "/control_nomina/search?id=1", nil)
-    w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r)
-    c := &ControlNominaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
-    c.GetById()
-    if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError { t.Fatalf("unexpected %d", w.Code) }
+	r := httptest.NewRequest(http.MethodGet, "/control_nomina/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &ControlNominaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetById()
+	if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
+		t.Fatalf("unexpected %d", w.Code)
+	}
 }
-
-

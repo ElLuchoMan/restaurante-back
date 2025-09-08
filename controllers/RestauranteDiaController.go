@@ -8,10 +8,13 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type restDiaOrmer interface{ Raw(string, ...interface{}) orm.RawSeter }
+type restDiaOrmer interface {
+	Raw(string, ...interface{}) orm.RawSeter
+}
+
 var restDiaOrmNew = func() restDiaOrmer { return orm.NewOrm() }
 
-type RestauranteDiaController struct { web.Controller }
+type RestauranteDiaController struct{ web.Controller }
 
 // @Title GetAll
 // @Summary Listar días de servicio del restaurante
@@ -52,7 +55,8 @@ WHERE 1=1`
 	if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener días", Cause: err.Error()}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	resp := make([]map[string]interface{}, 0, len(rows))
 	for _, r := range rows {
@@ -97,7 +101,8 @@ WHERE rd.pk_id_restaurante_dia = ?`
 	if err := o.Raw(query, id).QueryRow(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Registro no encontrado"}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	resp := map[string]interface{}{
 		"restauranteId":     row.RestID,

@@ -9,12 +9,12 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type subcatQuerySeter interface{
+type subcatQuerySeter interface {
 	All(interface{}, ...string) (int64, error)
 	Filter(string, ...interface{}) subcatQuerySeter
 }
 
-type subcatOrmer interface{
+type subcatOrmer interface {
 	QueryTable(interface{}) subcatQuerySeter
 	Insert(interface{}) (int64, error)
 	Read(interface{}, ...string) error
@@ -23,19 +23,31 @@ type subcatOrmer interface{
 }
 
 type subQSAdapter struct{ qs orm.QuerySeter }
-func (a subQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
-func (a subQSAdapter) Filter(field string, args ...interface{}) subcatQuerySeter { return subQSAdapter{qs: a.qs.Filter(field, args...)} }
+
+func (a subQSAdapter) All(res interface{}, cols ...string) (int64, error) {
+	return a.qs.All(res, cols...)
+}
+func (a subQSAdapter) Filter(field string, args ...interface{}) subcatQuerySeter {
+	return subQSAdapter{qs: a.qs.Filter(field, args...)}
+}
 
 type subOrmAdapter struct{ o orm.Ormer }
-func (a subOrmAdapter) QueryTable(i interface{}) subcatQuerySeter { return subQSAdapter{qs: a.o.QueryTable(i)} }
-func (a subOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
+
+func (a subOrmAdapter) QueryTable(i interface{}) subcatQuerySeter {
+	return subQSAdapter{qs: a.o.QueryTable(i)}
+}
+func (a subOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
 func (a subOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a subOrmAdapter) Update(v interface{}, cols ...string) (int64, error) { return a.o.Update(v, cols...) }
-func (a subOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) { return a.o.Delete(v, cols...) }
+func (a subOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
+	return a.o.Update(v, cols...)
+}
+func (a subOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
+	return a.o.Delete(v, cols...)
+}
 
 var subcatOrmNew = func() subcatOrmer { return subOrmAdapter{o: orm.NewOrm()} }
 
-type SubcategoriaController struct { web.Controller }
+type SubcategoriaController struct{ web.Controller }
 
 // @Title GetAll
 // @Summary Obtener todas las subcategorías
@@ -49,12 +61,15 @@ type SubcategoriaController struct { web.Controller }
 func (c *SubcategoriaController) GetAll() {
 	o := subcatOrmNew()
 	qs := o.QueryTable(new(models.Subcategoria))
-	if catID, err := c.GetInt64("categoria_id"); err == nil && catID > 0 { qs = qs.Filter("PK_ID_CATEGORIA", catID) }
+	if catID, err := c.GetInt64("categoria_id"); err == nil && catID > 0 {
+		qs = qs.Filter("PK_ID_CATEGORIA", catID)
+	}
 	var subs []models.Subcategoria
 	if _, err := qs.All(&subs); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener subcategorías", Cause: err.Error()}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategorías obtenidas", Data: subs}
 	c.ServeJSON()
@@ -76,7 +91,8 @@ func (c *SubcategoriaController) GetById() {
 	if err := o.Read(&s); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría encontrada", Data: s}
 	c.ServeJSON()
@@ -94,17 +110,22 @@ func (c *SubcategoriaController) GetById() {
 // @Router /subcategorias [post]
 func (c *SubcategoriaController) Post() {
 	o := subcatOrmNew()
-	var in struct{ Nombre string `json:"nombre"`; CategoriaId int64 `json:"categoriaId"` }
+	var in struct {
+		Nombre      string `json:"nombre"`
+		CategoriaId int64  `json:"categoriaId"`
+	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" || in.CategoriaId == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o campos requeridos faltantes"}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	s := models.Subcategoria{NOMBRE: in.Nombre, PK_ID_CATEGORIA: &models.Categoria{PK_ID_CATEGORIA: in.CategoriaId}}
 	if _, err := o.Insert(&s); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear subcategoría", Cause: err.Error()}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Subcategoría creada", Data: s}
@@ -128,21 +149,33 @@ func (c *SubcategoriaController) Put() {
 	if err := o.Read(&s); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
-	var in struct{ Nombre *string `json:"nombre"`; CategoriaId *int64 `json:"categoriaId"` }
+	var in struct {
+		Nombre      *string `json:"nombre"`
+		CategoriaId *int64  `json:"categoriaId"`
+	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	cols := []string{}
-	if in.Nombre != nil { s.NOMBRE = *in.Nombre; cols = append(cols, "NOMBRE") }
-	if in.CategoriaId != nil { s.PK_ID_CATEGORIA = &models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}; cols = append(cols, "PK_ID_CATEGORIA") }
+	if in.Nombre != nil {
+		s.NOMBRE = *in.Nombre
+		cols = append(cols, "NOMBRE")
+	}
+	if in.CategoriaId != nil {
+		s.PK_ID_CATEGORIA = &models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}
+		cols = append(cols, "PK_ID_CATEGORIA")
+	}
 	if _, err := o.Update(&s, cols...); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar subcategoría", Cause: err.Error()}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría actualizada", Data: s}
 	c.ServeJSON()
@@ -163,7 +196,8 @@ func (c *SubcategoriaController) Delete() {
 	if _, err := o.Delete(&models.Subcategoria{PK_ID_SUBCATEGORIA: id}); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría eliminada"}
 	c.ServeJSON()

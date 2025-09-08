@@ -9,9 +9,11 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type categoriaQuerySeter interface{ All(interface{}, ...string) (int64, error) }
+type categoriaQuerySeter interface {
+	All(interface{}, ...string) (int64, error)
+}
 
-type categoriaOrmer interface{
+type categoriaOrmer interface {
 	QueryTable(interface{}) categoriaQuerySeter
 	Insert(interface{}) (int64, error)
 	Read(interface{}, ...string) error
@@ -20,14 +22,24 @@ type categoriaOrmer interface{
 }
 
 type catQSAdapter struct{ qs orm.QuerySeter }
-func (a catQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
+
+func (a catQSAdapter) All(res interface{}, cols ...string) (int64, error) {
+	return a.qs.All(res, cols...)
+}
 
 type catOrmAdapter struct{ o orm.Ormer }
-func (a catOrmAdapter) QueryTable(i interface{}) categoriaQuerySeter { return catQSAdapter{qs: a.o.QueryTable(i)} }
-func (a catOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
+
+func (a catOrmAdapter) QueryTable(i interface{}) categoriaQuerySeter {
+	return catQSAdapter{qs: a.o.QueryTable(i)}
+}
+func (a catOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
 func (a catOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a catOrmAdapter) Update(v interface{}, cols ...string) (int64, error) { return a.o.Update(v, cols...) }
-func (a catOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) { return a.o.Delete(v, cols...) }
+func (a catOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
+	return a.o.Update(v, cols...)
+}
+func (a catOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
+	return a.o.Delete(v, cols...)
+}
 
 var catOrmNew = func() categoriaOrmer { return catOrmAdapter{o: orm.NewOrm()} }
 
@@ -91,7 +103,7 @@ func (c *CategoriaController) GetById() {
 // @Router /categorias [post]
 func (c *CategoriaController) Post() {
 	o := catOrmNew()
-	var in struct{
+	var in struct {
 		Nombre string `json:"nombre"`
 	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" {
@@ -132,14 +144,18 @@ func (c *CategoriaController) Put() {
 		c.ServeJSON()
 		return
 	}
-	var in struct{ Nombre *string `json:"nombre"` }
+	var in struct {
+		Nombre *string `json:"nombre"`
+	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
 		c.ServeJSON()
 		return
 	}
-	if in.Nombre != nil { cat.NOMBRE = *in.Nombre }
+	if in.Nombre != nil {
+		cat.NOMBRE = *in.Nombre
+	}
 	if _, err := o.Update(&cat, "NOMBRE"); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar categoría", Cause: err.Error()}

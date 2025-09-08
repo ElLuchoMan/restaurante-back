@@ -105,7 +105,7 @@ func (c *MetodoPagoController) GetById() {
 		return
 	}
 
-        metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
+	metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
 
 	err = o.Read(&metodo)
 	if err == orm.ErrNoRows {
@@ -204,7 +204,7 @@ func (c *MetodoPagoController) Put() {
 		return
 	}
 
-        metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
+	metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
 
 	if o.Read(&metodo) == nil {
 		var updatedMetodo models.MetodoPago
@@ -219,7 +219,7 @@ func (c *MetodoPagoController) Put() {
 			return
 		}
 
-                updatedMetodo.PK_ID_METODO_PAGO = int64(id)
+		updatedMetodo.PK_ID_METODO_PAGO = int64(id)
 		_, err := o.Update(&updatedMetodo)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -277,7 +277,7 @@ func (c *MetodoPagoController) Delete() {
 		return
 	}
 
-        metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
+	metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
 
 	if _, err := o.Delete(&metodo); err == nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)

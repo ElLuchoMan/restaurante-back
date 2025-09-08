@@ -470,12 +470,24 @@ func (c *TrabajadorController) Put() {
 		return false, false
 	}
 
-	if v, ok := getStr("NOMBRE", "nombre"); ok { trabajador.NOMBRE = v }
-	if v, ok := getStr("APELLIDO", "apellido"); ok { trabajador.APELLIDO = v }
-	if v, ok := getStr("ROL", "rol"); ok { trabajador.ROL = models.RolTrabajador(v) }
-	if v, ok := getFloat("SUELDO", "sueldo"); ok { trabajador.SUELDO = int64(v) }
-	if v, ok := getBool("NUEVO", "nuevo"); ok { trabajador.NUEVO = v }
-	if v, ok := getStr("TELEFONO", "telefono"); ok { trabajador.TELEFONO = &v }
+	if v, ok := getStr("NOMBRE", "nombre"); ok {
+		trabajador.NOMBRE = v
+	}
+	if v, ok := getStr("APELLIDO", "apellido"); ok {
+		trabajador.APELLIDO = v
+	}
+	if v, ok := getStr("ROL", "rol"); ok {
+		trabajador.ROL = models.RolTrabajador(v)
+	}
+	if v, ok := getFloat("SUELDO", "sueldo"); ok {
+		trabajador.SUELDO = int64(v)
+	}
+	if v, ok := getBool("NUEVO", "nuevo"); ok {
+		trabajador.NUEVO = v
+	}
+	if v, ok := getStr("TELEFONO", "telefono"); ok {
+		trabajador.TELEFONO = &v
+	}
 
 	if v, ok := getStr("FECHA_INGRESO", "fechaIngreso"); ok {
 		parsedDate, err := time.Parse("2006-01-02", v)

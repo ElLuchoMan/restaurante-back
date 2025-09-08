@@ -21,18 +21,18 @@ type ProductoController struct {
 
 // puntos de inyección para tests
 var (
-	ormNewProducto      = orm.NewOrm
-	queryProductosAll   = func(o orm.Ormer, onlyActive bool, productos *[]models.Producto) (int64, error) {
+	ormNewProducto    = orm.NewOrm
+	queryProductosAll = func(o orm.Ormer, onlyActive bool, productos *[]models.Producto) (int64, error) {
 		qs := o.QueryTable(new(models.Producto))
 		if onlyActive {
 			qs = qs.Filter("ESTADO_PRODUCTO", models.EstadoProductoDisponible)
 		}
 		return qs.All(productos)
 	}
-	readProductoFn      = func(o orm.Ormer, p *models.Producto) error { return o.Read(p) }
-	insertProductoFn    = func(o orm.Ormer, p *models.Producto) (int64, error) { return o.Insert(p) }
-	insertPrecioHistFn  = func(o orm.Ormer, h *models.PrecioProductoHist) (int64, error) { return o.Insert(h) }
-	updateProductoFn    = func(o orm.Ormer, p *models.Producto, cols ...string) (int64, error) { return o.Update(p, cols...) }
+	readProductoFn     = func(o orm.Ormer, p *models.Producto) error { return o.Read(p) }
+	insertProductoFn   = func(o orm.Ormer, p *models.Producto) (int64, error) { return o.Insert(p) }
+	insertPrecioHistFn = func(o orm.Ormer, h *models.PrecioProductoHist) (int64, error) { return o.Insert(h) }
+	updateProductoFn   = func(o orm.Ormer, p *models.Producto, cols ...string) (int64, error) { return o.Update(p, cols...) }
 )
 
 // @Title GetAll
@@ -162,12 +162,22 @@ func (c *ProductoController) Post() {
 		subcatStr := c.GetString("subcategoriaId")
 
 		producto.NOMBRE = nombre
-		if descripcion != "" { producto.DESCRIPCION = &descripcion }
-		if v, err := strconv.ParseInt(precioStr, 10, 64); err == nil { producto.PRECIO = v }
+		if descripcion != "" {
+			producto.DESCRIPCION = &descripcion
+		}
+		if v, err := strconv.ParseInt(precioStr, 10, 64); err == nil {
+			producto.PRECIO = v
+		}
 		producto.ESTADO_PRODUCTO = models.EstadoProducto(estado)
-		if v, err := strconv.Atoi(cantidadStr); err == nil { producto.CANTIDAD = v }
-		if v, err := strconv.ParseInt(caloriasStr, 10, 64); err == nil { producto.CALORIAS = &v }
-		if v, err := strconv.ParseInt(subcatStr, 10, 64); err == nil { producto.PK_ID_SUBCATEGORIA = &models.Subcategoria{PK_ID_SUBCATEGORIA: v} }
+		if v, err := strconv.Atoi(cantidadStr); err == nil {
+			producto.CANTIDAD = v
+		}
+		if v, err := strconv.ParseInt(caloriasStr, 10, 64); err == nil {
+			producto.CALORIAS = &v
+		}
+		if v, err := strconv.ParseInt(subcatStr, 10, 64); err == nil {
+			producto.PK_ID_SUBCATEGORIA = &models.Subcategoria{PK_ID_SUBCATEGORIA: v}
+		}
 
 		// Archivo de imagen (opcional)
 		file, _, err := c.GetFile("imagen")
@@ -257,13 +267,35 @@ func (c *ProductoController) Put() {
 		contentType := c.Ctx.Input.Header("Content-Type")
 		if strings.HasPrefix(strings.ToLower(contentType), "multipart/form-data") {
 			// Sólo actualizar campos presentes
-			if v := c.GetString("nombre"); v != "" { producto.NOMBRE = v }
-			if v := c.GetString("descripcion"); v != "" { producto.DESCRIPCION = &v }
-			if v := c.GetString("precio"); v != "" { if n, e := strconv.ParseInt(v, 10, 64); e == nil { producto.PRECIO = n } }
-			if v := c.GetString("estadoProducto"); v != "" { producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(v)) }
-			if v := c.GetString("cantidad"); v != "" { if n, e := strconv.Atoi(v); e == nil { producto.CANTIDAD = n } }
-			if v := c.GetString("calorias"); v != "" { if n, e := strconv.ParseInt(v, 10, 64); e == nil { producto.CALORIAS = &n } }
-			if v := c.GetString("subcategoriaId"); v != "" { if n, e := strconv.ParseInt(v, 10, 64); e == nil { producto.PK_ID_SUBCATEGORIA = &models.Subcategoria{PK_ID_SUBCATEGORIA: n} } }
+			if v := c.GetString("nombre"); v != "" {
+				producto.NOMBRE = v
+			}
+			if v := c.GetString("descripcion"); v != "" {
+				producto.DESCRIPCION = &v
+			}
+			if v := c.GetString("precio"); v != "" {
+				if n, e := strconv.ParseInt(v, 10, 64); e == nil {
+					producto.PRECIO = n
+				}
+			}
+			if v := c.GetString("estadoProducto"); v != "" {
+				producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(v))
+			}
+			if v := c.GetString("cantidad"); v != "" {
+				if n, e := strconv.Atoi(v); e == nil {
+					producto.CANTIDAD = n
+				}
+			}
+			if v := c.GetString("calorias"); v != "" {
+				if n, e := strconv.ParseInt(v, 10, 64); e == nil {
+					producto.CALORIAS = &n
+				}
+			}
+			if v := c.GetString("subcategoriaId"); v != "" {
+				if n, e := strconv.ParseInt(v, 10, 64); e == nil {
+					producto.PK_ID_SUBCATEGORIA = &models.Subcategoria{PK_ID_SUBCATEGORIA: n}
+				}
+			}
 
 			// Imagen por archivo
 			if file, _, ferr := c.GetFile("imagen"); ferr == nil && file != nil {
@@ -288,7 +320,9 @@ func (c *ProductoController) Put() {
 			producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(string(input.ESTADO_PRODUCTO)))
 			producto.CANTIDAD = input.CANTIDAD
 			producto.PK_ID_SUBCATEGORIA = input.PK_ID_SUBCATEGORIA
-			if len(input.IMAGEN) > 0 { producto.IMAGEN = input.IMAGEN }
+			if len(input.IMAGEN) > 0 {
+				producto.IMAGEN = input.IMAGEN
+			}
 		}
 
 		if err := validateProducto(&producto); err != nil {

@@ -21,14 +21,20 @@ func TestRestauranteDia_GetAll_Success(t *testing.T) {
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
-	t.Cleanup(func(){ MockQuery = origQ })
+	t.Cleanup(func() { MockQuery = origQ })
 
 	r := httptest.NewRequest(http.MethodGet, "/restaurante_dia?restaurante_id=1&dia=Lunes", nil)
-	w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r)
-	c := &RestauranteDiaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &RestauranteDiaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
 	c.GetAll()
-	if w.Code != http.StatusOK { t.Fatalf("expected 200, got %d. Body: %s", w.Code, w.Body.String()) }
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d. Body: %s", w.Code, w.Body.String())
+	}
 }
 
 func TestRestauranteDia_GetById_Success(t *testing.T) {
@@ -41,14 +47,18 @@ func TestRestauranteDia_GetById_Success(t *testing.T) {
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
-	t.Cleanup(func(){ MockQuery = origQ })
+	t.Cleanup(func() { MockQuery = origQ })
 
 	r := httptest.NewRequest(http.MethodGet, "/restaurante_dia/search?id=1", nil)
-	w := httptest.NewRecorder(); ctx := context.NewContext(); ctx.Reset(w, r)
-	c := &RestauranteDiaController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &RestauranteDiaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
 	c.GetById()
-	if w.Code != http.StatusOK { t.Fatalf("expected 200, got %d. Body: %s", w.Code, w.Body.String()) }
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d. Body: %s", w.Code, w.Body.String())
+	}
 }
-
-

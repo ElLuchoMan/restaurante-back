@@ -24,11 +24,17 @@ type incidenciaOrmer interface {
 	Delete(interface{}, ...string) (int64, error)
 }
 type incidenciaOrmAdapter struct{ o orm.Ormer }
-func (a incidenciaOrmAdapter) QueryTable(i interface{}) orm.QuerySeter { return a.o.QueryTable(i) }
-func (a incidenciaOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
+
+func (a incidenciaOrmAdapter) QueryTable(i interface{}) orm.QuerySeter  { return a.o.QueryTable(i) }
+func (a incidenciaOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
 func (a incidenciaOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a incidenciaOrmAdapter) Update(v interface{}, cols ...string) (int64, error) { return a.o.Update(v, cols...) }
-func (a incidenciaOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) { return a.o.Delete(v, cols...) }
+func (a incidenciaOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
+	return a.o.Update(v, cols...)
+}
+func (a incidenciaOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
+	return a.o.Delete(v, cols...)
+}
+
 var incidenciaOrmNew = func() incidenciaOrmer { return incidenciaOrmAdapter{o: orm.NewOrm()} }
 
 // @Title GetAll

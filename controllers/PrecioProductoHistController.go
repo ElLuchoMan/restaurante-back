@@ -9,10 +9,13 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type pphOrmer interface{ Raw(string, ...interface{}) orm.RawSeter }
+type pphOrmer interface {
+	Raw(string, ...interface{}) orm.RawSeter
+}
+
 var pphOrmNew = func() pphOrmer { return orm.NewOrm() }
 
-type PrecioProductoHistController struct { web.Controller }
+type PrecioProductoHistController struct{ web.Controller }
 
 // @Title GetAll
 // @Summary Listar historial de precios
@@ -47,16 +50,17 @@ WHERE 1=1`
 	}
 	query += " ORDER BY pph.fecha_vigencia ASC"
 
-	var rows []struct{
-		Nombre string `orm:"column(nombre)"`
-		Estado string `orm:"column(estado_producto)"`
-		Precio int64  `orm:"column(precio)"`
+	var rows []struct {
+		Nombre string    `orm:"column(nombre)"`
+		Estado string    `orm:"column(estado_producto)"`
+		Precio int64     `orm:"column(precio)"`
 		Fecha  time.Time `orm:"column(fecha_vigencia)"`
 	}
 	if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener historial de precios", Cause: err.Error()}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 
 	resp := make([]map[string]interface{}, 0, len(rows))
@@ -91,16 +95,17 @@ SELECT pr.nombre, pr.estado_producto, pph.precio, pph.fecha_vigencia
 FROM precio_producto_hist pph
 JOIN producto pr ON pr.pk_id_producto = pph.pk_id_producto
 WHERE pph.pk_id_precio_hist = ?`
-	var row struct{
-		Nombre string `orm:"column(nombre)"`
-		Estado string `orm:"column(estado_producto)"`
-		Precio int64  `orm:"column(precio)"`
+	var row struct {
+		Nombre string    `orm:"column(nombre)"`
+		Estado string    `orm:"column(estado_producto)"`
+		Precio int64     `orm:"column(precio)"`
 		Fecha  time.Time `orm:"column(fecha_vigencia)"`
 	}
 	if err := o.Raw(query, id).QueryRow(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Historial no encontrado"}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	resp := map[string]interface{}{
 		"nombre":         row.Nombre,

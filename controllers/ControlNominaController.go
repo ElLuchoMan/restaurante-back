@@ -9,10 +9,14 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type ctrlNomOrmer interface{ Raw(string, ...interface{}) orm.RawSeter; QueryTable(interface{}) orm.QuerySeter }
+type ctrlNomOrmer interface {
+	Raw(string, ...interface{}) orm.RawSeter
+	QueryTable(interface{}) orm.QuerySeter
+}
+
 var ctrlNomOrmNew = func() ctrlNomOrmer { return orm.NewOrm() }
 
-type ControlNominaController struct { web.Controller }
+type ControlNominaController struct{ web.Controller }
 
 // @Title GetAll
 // @Summary Listar control de nómina
@@ -28,13 +32,16 @@ func (c *ControlNominaController) GetAll() {
 	o := ctrlNomOrmNew()
 	qs := o.QueryTable(new(models.ControlNomina))
 	if f := c.GetString("fecha"); f != "" {
-		if d, err := time.Parse("2006-01-02", f); err == nil { qs = qs.Filter("Fecha", d) }
+		if d, err := time.Parse("2006-01-02", f); err == nil {
+			qs = qs.Filter("Fecha", d)
+		}
 	}
 	var list []models.ControlNomina
 	if _, err := qs.All(&list); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener control de nómina", Cause: err.Error()}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Control de nómina", Data: list}
 	c.ServeJSON()
@@ -56,7 +63,8 @@ func (c *ControlNominaController) GetById() {
 	if err := o.QueryTable(new(models.ControlNomina)).Filter("PK_ID_CONTROL_NOMINA", id).One(&row); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Registro no encontrado"}
-		c.ServeJSON(); return
+		c.ServeJSON()
+		return
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Registro encontrado", Data: row}
 	c.ServeJSON()

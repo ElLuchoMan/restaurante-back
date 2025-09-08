@@ -17,10 +17,12 @@ type NominaController struct {
 
 // puntos de inyección
 var (
-	ormNewNomina       = orm.NewOrm
-	queryAllNominas    = func(o orm.Ormer, out *[]models.Nomina) (int64, error) { return o.QueryTable(new(models.Nomina)).All(out) }
-	readNominaFn       = func(o orm.Ormer, n *models.Nomina) error { return o.Read(n) }
-	updateNominaFn     = func(o orm.Ormer, n *models.Nomina, cols ...string) (int64, error) { return o.Update(n, cols...) }
+	ormNewNomina    = orm.NewOrm
+	queryAllNominas = func(o orm.Ormer, out *[]models.Nomina) (int64, error) {
+		return o.QueryTable(new(models.Nomina)).All(out)
+	}
+	readNominaFn         = func(o orm.Ormer, n *models.Nomina) error { return o.Read(n) }
+	updateNominaFn       = func(o orm.Ormer, n *models.Nomina, cols ...string) (int64, error) { return o.Update(n, cols...) }
 	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) {
 		var existing models.Nomina
 		err := o.Raw(

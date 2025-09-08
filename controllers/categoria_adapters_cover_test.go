@@ -7,43 +7,41 @@ import "testing"
 // cubrir las líneas de reenvío sin tocar la base de datos real.
 
 func TestCatOrmAdapter_Methods_Coverage(t *testing.T) {
-    a := catOrmAdapter{}
+	a := catOrmAdapter{}
 
-    // Insert
-    func() {
-        defer func() { _ = recover() }()
-        _, _ = a.Insert(nil)
-    }()
+	// Insert
+	func() {
+		defer func() { _ = recover() }()
+		_, _ = a.Insert(nil)
+	}()
 
-    // Read
-    func() {
-        defer func() { _ = recover() }()
-        _ = a.Read(nil)
-    }()
+	// Read
+	func() {
+		defer func() { _ = recover() }()
+		_ = a.Read(nil)
+	}()
 
-    // Update
-    func() {
-        defer func() { _ = recover() }()
-        _, _ = a.Update(nil)
-    }()
+	// Update
+	func() {
+		defer func() { _ = recover() }()
+		_, _ = a.Update(nil)
+	}()
 
-    // Delete
-    func() {
-        defer func() { _ = recover() }()
-        _, _ = a.Delete(nil)
-    }()
+	// Delete
+	func() {
+		defer func() { _ = recover() }()
+		_, _ = a.Delete(nil)
+	}()
 
-    // QueryTable
-    func() {
-        defer func() { _ = recover() }()
-        _ = a.QueryTable(nil)
-    }()
+	// QueryTable
+	func() {
+		defer func() { _ = recover() }()
+		_ = a.QueryTable(nil)
+	}()
 }
 
 func TestCatQSAdapter_All_Coverage(t *testing.T) {
-    qs := catQSAdapter{}
-    defer func() { _ = recover() }()
-    _, _ = qs.All(nil)
+	qs := catQSAdapter{}
+	defer func() { _ = recover() }()
+	_, _ = qs.All(nil)
 }
-
-

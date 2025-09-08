@@ -873,7 +873,7 @@ func TestCambiosHorario_Put_IDNegative(t *testing.T) {
 	if w.Code != http.StatusBadRequest && w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 400 or 500, got %d", w.Code)
 	}
-	
+
 	body := w.Body.String()
 	if w.Code == http.StatusBadRequest {
 		if !strings.Contains(body, "ID inválido o ausente") {
@@ -1021,7 +1021,7 @@ func TestCambiosHorario_GetAll_MultipleHorarios_CompleteScenario(t *testing.T) {
 		hc1, _ := time.Parse("15:04:05", "17:00:00")
 		ha2, _ := time.Parse("15:04:05", "10:00:00")
 		hc2, _ := time.Parse("15:04:05", "22:00:00")
-		
+
 		*horarios = []models.CambiosHorario{
 			// Horario normal
 			{
@@ -1070,7 +1070,7 @@ func TestCambiosHorario_GetAll_MultipleHorarios_CompleteScenario(t *testing.T) {
 	if !strings.Contains(body, `"cambioHorarioId":3`) {
 		t.Error("should include horario 3")
 	}
-	
+
 	// Verificar horarios específicos
 	if !strings.Contains(body, `"horaApertura":"08:00:00"`) {
 		t.Error("should include 08:00:00 opening time")
@@ -1210,7 +1210,7 @@ func TestCambiosHorario_ResponseFormat_Consistency(t *testing.T) {
 func TestCambiosHorario_GetByCurrentDate_TimezoneHandling(t *testing.T) {
 	// Test para verificar que el timezone de Bogotá se maneja correctamente
 	originalZone := database.BogotaZone
-	
+
 	// Simular timezone de Bogotá
 	bogotaLocation, _ := time.LoadLocation("America/Bogota")
 	database.BogotaZone = bogotaLocation
@@ -1351,13 +1351,13 @@ func TestCambiosHorario_Put_ResponseFieldConsistency(t *testing.T) {
 	}
 
 	responseBody := w.Body.String()
-	
+
 	// Verificar que el campo en la respuesta sea "fecha" y no "fechaCambioHorario" como en POST
 	// (Este es un detalle del controller actual - en PUT usa "fecha")
 	if !strings.Contains(responseBody, `"fecha":"2024-11-05"`) {
 		t.Error("PUT response should use 'fecha' field")
 	}
-	
+
 	// Verificar consistencia de otros campos
 	if !strings.Contains(responseBody, `"cambioHorarioId":14`) {
 		t.Error("response should include cambioHorarioId")

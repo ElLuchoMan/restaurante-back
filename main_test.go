@@ -46,16 +46,16 @@ func TestAppInitSuccess(t *testing.T) {
 }
 
 func TestAppInitErrorSetsDbReadyFalse(t *testing.T) {
-    origDB := initDBFunc
-    origTZ := initTimezoneFunc
-    initDBFunc = func() error { return fmt.Errorf("db fail") }
-    initTimezoneFunc = func() {}
-    t.Cleanup(func() { initDBFunc = origDB; initTimezoneFunc = origTZ; dbReady = false })
+	origDB := initDBFunc
+	origTZ := initTimezoneFunc
+	initDBFunc = func() error { return fmt.Errorf("db fail") }
+	initTimezoneFunc = func() {}
+	t.Cleanup(func() { initDBFunc = origDB; initTimezoneFunc = origTZ; dbReady = false })
 
-    appInit()
-    if dbReady {
-        t.Fatalf("expected dbReady false when initDB fails")
-    }
+	appInit()
+	if dbReady {
+		t.Fatalf("expected dbReady false when initDB fails")
+	}
 }
 
 func TestMainStartsCronWhenDBReady(t *testing.T) {

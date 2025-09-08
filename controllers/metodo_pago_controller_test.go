@@ -371,25 +371,30 @@ func TestMetodoPagoPutSuccess(t *testing.T) {
 type failUpdateOrmer struct{ *mockMetodoPagoOrmer }
 
 func (f failUpdateOrmer) Read(v interface{}, _ ...string) error { return nil }
-func (f failUpdateOrmer) Update(v interface{}, _ ...string) (int64, error) { return 0, errors.New("db") }
+func (f failUpdateOrmer) Update(v interface{}, _ ...string) (int64, error) {
+	return 0, errors.New("db")
+}
 
 func TestMetodoPagoPutUpdateError(t *testing.T) {
-    original := getOrm
-    getOrm = func() metodoPagoOrmer { return failUpdateOrmer{newMockMetodoPagoOrmer()} }
-    defer func() { getOrm = original }()
+	original := getOrm
+	getOrm = func() metodoPagoOrmer { return failUpdateOrmer{newMockMetodoPagoOrmer()} }
+	defer func() { getOrm = original }()
 
-    body := `{"tipo":"x"}`
-    r := httptest.NewRequest(http.MethodPut, "/metodos_pago?id=1", strings.NewReader(body))
-    w := httptest.NewRecorder()
-    ctx := context.NewContext(); ctx.Reset(w, r)
-    ctx.Input.RequestBody = []byte(body)
-    c := MetodoPagoController{}; c.Ctx = ctx; c.Data = make(map[interface{}]interface{})
+	body := `{"tipo":"x"}`
+	r := httptest.NewRequest(http.MethodPut, "/metodos_pago?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := MetodoPagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
-    c.Put()
+	c.Put()
 
-    if w.Code != http.StatusInternalServerError {
-        t.Fatalf("expected 500, got %d", w.Code)
-    }
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
 }
 
 func TestMetodoPagoPutInvalidJSONWithRecord(t *testing.T) {

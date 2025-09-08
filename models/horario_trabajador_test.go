@@ -45,7 +45,7 @@ func TestHorarioTrabajadorMarshalJSON(t *testing.T) {
 		t.Fatalf("Unmarshal back error: %v", err)
 	}
 	if m["documentoTrabajador"].(float64) != float64(doc) {
-		t.Fatalf("expected documento %d, got %v", doc, m["documentoTrabajador"]) 
+		t.Fatalf("expected documento %d, got %v", doc, m["documentoTrabajador"])
 	}
 	if m["dia"].(string) == "" || m["horaInicio"].(string) == "" || m["horaFin"].(string) == "" {
 		t.Fatalf("expected formatted fields present: %v", m)

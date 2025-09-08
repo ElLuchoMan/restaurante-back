@@ -15,22 +15,36 @@ type RestauranteController struct {
 }
 
 // Puntos de inyección para pruebas (permiten mockear el ORM en tests)
-type restQuerySeter interface{ All(interface{}, ...string) (int64, error) }
-type restOrmer interface{
-    QueryTable(interface{}) restQuerySeter
-    Read(interface{}, ...string) error
-    Insert(interface{}) (int64, error)
-    Update(interface{}, ...string) (int64, error)
-    Delete(interface{}, ...string) (int64, error)
+type restQuerySeter interface {
+	All(interface{}, ...string) (int64, error)
+}
+type restOrmer interface {
+	QueryTable(interface{}) restQuerySeter
+	Read(interface{}, ...string) error
+	Insert(interface{}) (int64, error)
+	Update(interface{}, ...string) (int64, error)
+	Delete(interface{}, ...string) (int64, error)
 }
 type restQSAdapter struct{ qs orm.QuerySeter }
-func (a restQSAdapter) All(res interface{}, cols ...string) (int64, error) { return a.qs.All(res, cols...) }
+
+func (a restQSAdapter) All(res interface{}, cols ...string) (int64, error) {
+	return a.qs.All(res, cols...)
+}
+
 type restOrmAdapter struct{ o orm.Ormer }
-func (a restOrmAdapter) QueryTable(i interface{}) restQuerySeter { return restQSAdapter{qs: a.o.QueryTable(i)} }
+
+func (a restOrmAdapter) QueryTable(i interface{}) restQuerySeter {
+	return restQSAdapter{qs: a.o.QueryTable(i)}
+}
 func (a restOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a restOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
-func (a restOrmAdapter) Update(v interface{}, cols ...string) (int64, error) { return a.o.Update(v, cols...) }
-func (a restOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) { return a.o.Delete(v, cols...) }
+func (a restOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
+func (a restOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
+	return a.o.Update(v, cols...)
+}
+func (a restOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
+	return a.o.Delete(v, cols...)
+}
+
 var restOrmNew = func() restOrmer { return restOrmAdapter{o: orm.NewOrm()} }
 
 // @Title GetAll
