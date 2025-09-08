@@ -1,0 +1,51 @@
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - docs
+    - swagger
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - revive
+    - ineffassign
+  disable:
+    - staticcheck
+    - gosimple
+    - unused
+    - deadcode
+    - typecheck
+    - gocyclo
+  fast: false
+
+issues:
+  exclude-rules:
+    # Relajar en archivos de test para evitar falso-positivos en mocks y helpers
+    - path: ".*_test\\.go"
+      linters:
+        - errcheck
+        - ineffassign
+        - staticcheck
+        - unused
+    # Ignorar errores no críticos que se gestionan por contrato del framework/Biblio
+    - linters: [errcheck]
+      text: "ServeJSON"
+    - linters: [errcheck]
+      text: "Output.JSON"
+    - linters: [errcheck]
+      text: "Close\(\)"
+    - linters: [errcheck]
+      text: "Rollback\(\)"
+    - linters: [errcheck]
+      text: "ParseMultipartForm"
+    - linters: [errcheck]
+      text: "WriteField"
+    - linters: [errcheck]
+      text: "Writer.Close"
+
+errcheck:
+  check-type-assertions: false
+  check-blank: true
+
