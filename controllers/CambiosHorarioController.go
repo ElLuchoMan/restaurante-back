@@ -85,7 +85,8 @@ func (c *CambiosHorarioController) GetAll() {
 			Message: "Error al obtener cambios de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -114,7 +115,8 @@ func (c *CambiosHorarioController) GetAll() {
 		Message: "Cambios de horario obtenidos correctamente",
 		Data:    response,
 	}
-	if err := c.ServeJSON(); err != nil { }
+	if err := c.ServeJSON(); err != nil {
+	}
 }
 
 // @Title GetByCurrentDate
@@ -140,7 +142,8 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 			Code:    http.StatusOK,
 			Message: "No hay cambios de horario para la fecha actual",
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	} else if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -149,7 +152,8 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 			Message: "Error al consultar cambios de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -171,7 +175,8 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 		Message: "Cambio de horario encontrado para la fecha actual",
 		Data:    response,
 	}
-	if err := c.ServeJSON(); err != nil { }
+	if err := c.ServeJSON(); err != nil {
+	}
 }
 
 // @Title Post
@@ -197,7 +202,8 @@ func (c *CambiosHorarioController) Post() {
 			Message: "Error al procesar la solicitud",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -210,7 +216,8 @@ func (c *CambiosHorarioController) Post() {
 				Message: "Formato de fecha inválido para FECHA",
 				Cause:   err.Error(),
 			}
-			if err := c.ServeJSON(); err != nil { }
+			if err := c.ServeJSON(); err != nil {
+			}
 			return
 		}
 		horario.FECHA = parsedDate
@@ -220,7 +227,8 @@ func (c *CambiosHorarioController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo FECHA es obligatorio",
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -232,7 +240,8 @@ func (c *CambiosHorarioController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo ABIERTO es obligatorio",
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -253,7 +262,8 @@ func (c *CambiosHorarioController) Post() {
 					Message: "Formato de hora inválido para HORA_APERTURA",
 					Cause:   err.Error(),
 				}
-				if err := c.ServeJSON(); err != nil { }
+				if err := c.ServeJSON(); err != nil {
+				}
 				return
 			}
 			horario.HORA_APERTURA = &parsedHora
@@ -263,7 +273,8 @@ func (c *CambiosHorarioController) Post() {
 				Code:    http.StatusBadRequest,
 				Message: "El campo HORA_APERTURA es obligatorio cuando ABIERTO es true",
 			}
-			if err := c.ServeJSON(); err != nil { }
+			if err := c.ServeJSON(); err != nil {
+			}
 			return
 		}
 
@@ -276,7 +287,8 @@ func (c *CambiosHorarioController) Post() {
 					Message: "Formato de hora inválido para HORA_CIERRE",
 					Cause:   err.Error(),
 				}
-				if err := c.ServeJSON(); err != nil { }
+				if err := c.ServeJSON(); err != nil {
+				}
 				return
 			}
 			horario.HORA_CIERRE = parsedHora
@@ -286,7 +298,8 @@ func (c *CambiosHorarioController) Post() {
 				Code:    http.StatusBadRequest,
 				Message: "El campo HORA_CIERRE es obligatorio cuando ABIERTO es true",
 			}
-			if err := c.ServeJSON(); err != nil { }
+			if err := c.ServeJSON(); err != nil {
+			}
 			return
 		}
 	}
@@ -298,7 +311,8 @@ func (c *CambiosHorarioController) Post() {
 			Message: "Error al crear el cambio de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -320,7 +334,8 @@ func (c *CambiosHorarioController) Post() {
 		Message: "Cambio de horario creado correctamente",
 		Data:    response,
 	}
-	if err := c.ServeJSON(); err != nil { }
+	if err := c.ServeJSON(); err != nil {
+	}
 }
 
 // @Title Update
@@ -345,7 +360,8 @@ func (c *CambiosHorarioController) Put() {
 			Code:    http.StatusBadRequest,
 			Message: "ID inválido o ausente",
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -357,7 +373,8 @@ func (c *CambiosHorarioController) Put() {
 			Message: "Error al procesar la solicitud",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -369,7 +386,8 @@ func (c *CambiosHorarioController) Put() {
 			Code:    http.StatusNotFound,
 			Message: "Cambio de horario no encontrado",
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	} else if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -378,7 +396,8 @@ func (c *CambiosHorarioController) Put() {
 			Message: "Error al buscar el cambio de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -391,7 +410,8 @@ func (c *CambiosHorarioController) Put() {
 				Message: "Formato de fecha inválido para FECHA",
 				Cause:   err.Error(),
 			}
-			if err := c.ServeJSON(); err != nil { }
+			if err := c.ServeJSON(); err != nil {
+			}
 			return
 		}
 		horario.FECHA = parsedDate
@@ -419,7 +439,8 @@ func (c *CambiosHorarioController) Put() {
 					Message: "Formato de hora inválido para HORA_APERTURA",
 					Cause:   err.Error(),
 				}
-				if err := c.ServeJSON(); err != nil { }
+				if err := c.ServeJSON(); err != nil {
+				}
 				return
 			}
 			horario.HORA_APERTURA = &parsedHora
@@ -434,7 +455,8 @@ func (c *CambiosHorarioController) Put() {
 					Message: "Formato de hora inválido para HORA_CIERRE",
 					Cause:   err.Error(),
 				}
-				if err := c.ServeJSON(); err != nil { }
+				if err := c.ServeJSON(); err != nil {
+				}
 				return
 			}
 			horario.HORA_CIERRE = parsedHora
@@ -448,7 +470,8 @@ func (c *CambiosHorarioController) Put() {
 			Message: "Error al actualizar el cambio de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -470,7 +493,8 @@ func (c *CambiosHorarioController) Put() {
 		Message: "Cambio de horario actualizado correctamente",
 		Data:    response,
 	}
-	if err := c.ServeJSON(); err != nil { }
+	if err := c.ServeJSON(); err != nil {
+	}
 }
 
 // @Title Delete
@@ -493,7 +517,8 @@ func (c *CambiosHorarioController) Delete() {
 			Code:    http.StatusBadRequest,
 			Message: "ID inválido o ausente",
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 		return
 	}
 
@@ -504,7 +529,8 @@ func (c *CambiosHorarioController) Delete() {
 			Message: "Error al eliminar el cambio de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 	} else if num == 0 {
 		// Se mantiene tu semántica: 200 con Code=404
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -512,13 +538,15 @@ func (c *CambiosHorarioController) Delete() {
 			Code:    http.StatusNotFound,
 			Message: "Cambio de horario no encontrado",
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
 			Message: "Cambio de horario eliminado correctamente",
 		}
-		if err := c.ServeJSON(); err != nil { }
+		if err := c.ServeJSON(); err != nil {
+		}
 	}
 }
