@@ -182,7 +182,7 @@ func (c *ProductoController) Post() {
 		// Archivo de imagen (opcional)
 		file, _, err := c.GetFile("imagen")
 		if err == nil && file != nil {
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			if data, rerr := io.ReadAll(file); rerr == nil {
 				producto.IMAGEN = string(data)
 			}
@@ -299,7 +299,7 @@ func (c *ProductoController) Put() {
 
 			// Imagen por archivo
 			if file, _, ferr := c.GetFile("imagen"); ferr == nil && file != nil {
-				defer file.Close()
+				defer func() { _ = file.Close() }()
 				if data, rerr := io.ReadAll(file); rerr == nil {
 					producto.IMAGEN = string(data)
 				}

@@ -396,14 +396,14 @@ func (c *ProductoPedidoController) Update() {
 		if delta > 0 {
 			res, err := tx.Raw("UPDATE producto SET cantidad = cantidad - ? WHERE pk_id_producto = ? AND cantidad >= ?", delta, pid, delta).Exec()
 			if err != nil {
-				tx.Rollback()
+				_ = tx.Rollback()
 				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al descontar inventario", Cause: err.Error()}
 				c.ServeJSON()
 				return
 			}
 			affected, _ := res.RowsAffected()
 			if affected == 0 {
-				tx.Rollback()
+				_ = tx.Rollback()
 				c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos"}
 				c.ServeJSON()
 				return
@@ -411,7 +411,7 @@ func (c *ProductoPedidoController) Update() {
 		} else {
 			inc := -delta
 			if _, err := tx.Raw("UPDATE producto SET cantidad = cantidad + ? WHERE pk_id_producto = ?", inc, pid).Exec(); err != nil {
-				tx.Rollback()
+				_ = tx.Rollback()
 				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al ajustar inventario", Cause: err.Error()}
 				c.ServeJSON()
 				return
@@ -421,7 +421,7 @@ func (c *ProductoPedidoController) Update() {
 
 	// Reemplazar los detalles del pedido (borrado e inserción)
 	if _, err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).Delete(); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}
 		c.ServeJSON()
 		return
@@ -431,14 +431,14 @@ func (c *ProductoPedidoController) Update() {
 	for pid, qty := range nuevos {
 		detalle := models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: pid}, Cantidad: qty}
 		if _, err := tx.Insert(&detalle); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}
 			c.ServeJSON()
 			return
 		}
 		var actualizado models.DetallePedido
 		if err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", *detalle.PKIDPedido).Filter("PKIDProducto", *detalle.PKIDProducto).One(&actualizado); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener el precio del producto", Cause: err.Error()}
 			c.ServeJSON()
 			return
@@ -447,7 +447,7 @@ func (c *ProductoPedidoController) Update() {
 	}
 
 	if err := tx.Commit(); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible confirmar transacción", Cause: err.Error()}
 		c.ServeJSON()
 		return
