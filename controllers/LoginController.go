@@ -64,12 +64,12 @@ func loadJWTSecret() []byte {
 // isTestingProcess intenta detectar si el binario actual está ejecutando tests.
 // Útil para evitar pánicos en inits cuando no hay configuración cargada.
 func isTestingProcess() bool {
-    if len(os.Args) > 0 {
-        if strings.HasSuffix(os.Args[0], ".test") {
-            return true
-        }
-    }
-    return false
+	if len(os.Args) > 0 {
+		if strings.HasSuffix(os.Args[0], ".test") {
+			return true
+		}
+	}
+	return false
 }
 
 // Sencillo rate limiter por IP
