@@ -36,6 +36,10 @@ func TestLoadJWTSecret_ProdPanicsWithoutEnv(t *testing.T) {
 	orig := web.BConfig.RunMode
 	web.BConfig.RunMode = "prod"
 	t.Cleanup(func() { web.BConfig.RunMode = orig })
+	// Simular proceso no-test para que isTestingProcess() sea false
+	origArgs := os.Args
+	os.Args = []string{"restaurante"}
+	t.Cleanup(func() { os.Args = origArgs })
 	os.Unsetenv("JWT_SECRET")
 	defer func() {
 		if r := recover(); r == nil {
