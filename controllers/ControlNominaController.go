@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 	"time"
 
@@ -34,10 +35,13 @@ func (c *ControlNominaController) GetAll() {
 	if f := c.GetString("fecha"); f != "" {
 		if d, err := time.Parse("2006-01-02", f); err == nil {
 			qs = qs.Filter("Fecha", d)
+		} else {
+			logging.LogControllerError(c.Ctx, "control_nomina.getall.bad_fecha", err, map[string]interface{}{"fecha": f})
 		}
 	}
 	var list []models.ControlNomina
 	if _, err := qs.All(&list); err != nil {
+		logging.LogControllerError(c.Ctx, "control_nomina.getall.db_error", err, map[string]interface{}{"fecha": c.GetString("fecha")})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener control de nómina", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -61,6 +65,10 @@ func (c *ControlNominaController) GetById() {
 	id, _ := c.GetInt64("id")
 	row := models.ControlNomina{PK_ID_CONTROL_NOMINA: id}
 	if err := o.QueryTable(new(models.ControlNomina)).Filter("PK_ID_CONTROL_NOMINA", id).One(&row); err != nil {
+		// Solo loggear si es distinto a no encontrado
+		if err != orm.ErrNoRows {
+			logging.LogControllerError(c.Ctx, "control_nomina.getbyid.db_error", err, map[string]interface{}{"id": id})
+		}
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Registro no encontrado"}
 		_ = c.ServeJSON()

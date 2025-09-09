@@ -466,9 +466,7 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
        AND EXTRACT(YEAR FROM n."fecha") = ?
 `
 	// Ejecutar la consulta
-	num, err := o.Raw(sql, mes, anio).QueryRows(&resultados)
-	fmt.Printf("Número de filas recuperadas: %d\n", num)
-	fmt.Printf("Resultados: %+v\n", resultados)
+	_, err := o.Raw(sql, mes, anio).QueryRows(&resultados)
 
 	// Validar resultados
 	if err != nil {

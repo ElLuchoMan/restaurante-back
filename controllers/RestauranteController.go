@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
 
@@ -62,6 +63,7 @@ func (c *RestauranteController) GetAll() {
 
 	_, err := o.QueryTable(new(models.Restaurante)).All(&restaurantes)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "restaurantes.getall.db_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -95,6 +97,7 @@ func (c *RestauranteController) GetById() {
 	id, err := c.GetInt("id")
 
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "restaurantes.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -113,7 +116,16 @@ func (c *RestauranteController) GetById() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Restaurante no encontrado",
-			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	} else if err != nil {
+		logging.LogControllerError(c.Ctx, "restaurantes.getbyid.db_error", err, map[string]interface{}{"id": id})
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusOK,
+			Message: "Restaurante encontrado",
+			Data:    restaurante,
 		}
 		_ = c.ServeJSON()
 		return
@@ -142,8 +154,8 @@ func (c *RestauranteController) Post() {
 	o := restOrmNew()
 	var restaurante models.Restaurante
 
-	// Deserializar el JSON del cuerpo de la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &restaurante); err != nil {
+		logging.LogControllerError(c.Ctx, "restaurantes.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -156,6 +168,7 @@ func (c *RestauranteController) Post() {
 
 	_, err := o.Insert(&restaurante)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "restaurantes.post.insert_error", err, map[string]interface{}{"nombre": restaurante.NOMBRE_RESTAURANTE})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -189,10 +202,10 @@ func (c *RestauranteController) Post() {
 func (c *RestauranteController) Put() {
 	o := restOrmNew()
 
-	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "restaurantes.put.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -208,6 +221,7 @@ func (c *RestauranteController) Put() {
 	if o.Read(&restaurante) == nil {
 		var updatedRestaurante models.Restaurante
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedRestaurante); err != nil {
+			logging.LogControllerError(c.Ctx, "restaurantes.put.bad_json", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
@@ -218,11 +232,11 @@ func (c *RestauranteController) Put() {
 			return
 		}
 
-		// Asignar el ID original al modelo actualizado
 		updatedRestaurante.PK_ID_RESTAURANTE = int64(id)
 
 		_, err := o.Update(&updatedRestaurante)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "restaurantes.put.update_error", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -263,10 +277,10 @@ func (c *RestauranteController) Put() {
 func (c *RestauranteController) Delete() {
 	o := restOrmNew()
 
-	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "restaurantes.delete.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -287,6 +301,7 @@ func (c *RestauranteController) Delete() {
 		}
 		_ = c.ServeJSON()
 	} else {
+		logging.LogControllerError(c.Ctx, "restaurantes.delete.db_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,

@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
 	"time"
@@ -61,6 +62,7 @@ func (c *NominaController) GetAll() {
 
 	_, err := queryAllNominas(o, &nominas)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "nominas.getall.db_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -125,6 +127,7 @@ func (c *NominaController) Post() {
 	var input models.Nomina
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "nominas.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -142,6 +145,7 @@ func (c *NominaController) Post() {
 	// Reglas de negocio
 	// 1) No generar nómina antes del día 20 del mes
 	if input.FECHA.Day() < 20 {
+		logging.LogControllerError(c.Ctx, "nominas.post.validation_error", nil, map[string]interface{}{"fecha": input.FECHA.Format("2006-01-02")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -158,6 +162,7 @@ func (c *NominaController) Post() {
 			"INSERT INTO control_nomina (fecha, estado) VALUES ($1, 'REGENERADA') ON CONFLICT (fecha) DO UPDATE SET estado = 'REGENERADA'",
 			existing.FECHA,
 		).Exec(); err != nil {
+			logging.LogControllerError(c.Ctx, "nominas.post.control_nomina_error", err, map[string]interface{}{"fecha": existing.FECHA})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al marcar nómina como REGENERADA", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -169,6 +174,7 @@ func (c *NominaController) Post() {
 		return
 	}
 	if getErr != nil && getErr != orm.ErrNoRows {
+		logging.LogControllerError(c.Ctx, "nominas.post.validate_month_error", getErr, map[string]interface{}{"fecha": input.FECHA})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al validar nóminas del mes", Cause: getErr.Error()}
 		_ = c.ServeJSON()
@@ -182,6 +188,7 @@ func (c *NominaController) Post() {
 	input.MONTO = 0 // lo calcula el trigger tras el insert
 
 	if _, err := o.Insert(&input); err != nil {
+		logging.LogControllerError(c.Ctx, "nominas.post.insert_error", err, map[string]interface{}{"fecha": input.FECHA})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -196,6 +203,7 @@ func (c *NominaController) Post() {
 	if err := o.QueryTable(new(models.Nomina)).
 		Filter("PK_ID_NOMINA", input.PK_ID_NOMINA).
 		One(&updatedNomina); err != nil {
+		logging.LogControllerError(c.Ctx, "nominas.post.verify_error", err, map[string]interface{}{"id": input.PK_ID_NOMINA})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -235,6 +243,7 @@ func (c *NominaController) Put() {
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "nominas.put.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -271,6 +280,7 @@ func (c *NominaController) Put() {
 
 	// Guardar los cambios
 	if _, err := updateNominaFn(o, &nomina, "ESTADO_NOMINA"); err != nil {
+		logging.LogControllerError(c.Ctx, "nominas.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -308,6 +318,7 @@ func (c *NominaController) Delete() {
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "nominas.delete.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -331,6 +342,7 @@ func (c *NominaController) Delete() {
 
 	nomina.ESTADO_NOMINA = models.EstadoNominaNoPago
 	if _, err := updateNominaFn(o, &nomina, "ESTADO_NOMINA"); err != nil {
+		logging.LogControllerError(c.Ctx, "nominas.delete.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

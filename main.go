@@ -2,12 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"restaurante/database"
 	_ "restaurante/docs"
+	"restaurante/logging"
 	"restaurante/models"
 	_ "restaurante/routers"
 	"strconv"
@@ -43,7 +44,6 @@ func appInit() {
 		dbReady = true
 	}
 	initTimezoneFunc()
-	fmt.Println("Loaded timezone:", database.BogotaZone)
 }
 
 // Funciones variables para facilitar pruebas del cron
@@ -82,7 +82,7 @@ func generarNominaAutomatica() {
 		// Ejecutar la función de nómina cada día a las 00:00
 		now := nowFn().In(database.BogotaZone)
 		if now.Hour() == 0 && now.Minute() == 0 {
-			fmt.Println("Ejecutando generación automática de nómina...")
+			slog.Info("cron.nomina.start")
 
 			nomina := models.Nomina{
 				FECHA:         now,
@@ -90,12 +90,12 @@ func generarNominaAutomatica() {
 				MONTO:         0,
 			}
 			if _, err := cronInsertNom(o, &nomina); err != nil {
-				fmt.Println("Error al crear la nómina:", err)
+				slog.Error("cron.nomina.insert_err", slog.String("error", err.Error()))
 			} else {
 				if _, err := cronRawExec(o, "CALL generar_nomina_automatica(?, ?)", nomina.PK_ID_NOMINA, nomina.FECHA); err != nil {
-					fmt.Println("Error al generar la nómina automática:", err)
+					slog.Error("cron.nomina.exec_err", slog.String("error", err.Error()))
 				} else {
-					fmt.Println("Nómina generada automáticamente con éxito.")
+					slog.Info("cron.nomina.success")
 				}
 			}
 		}
@@ -129,6 +129,16 @@ func setStaticHeaders(ctx *context.Context) {
 // @name Authorization
 // @Security BearerAuth
 func main() {
+	// Logging
+	runMode := web.BConfig.RunMode
+	logging.Setup(runMode)
+	slog.Info("app.start", slog.String("runmode", runMode))
+
+	// Middleware de logging: inicio/fin de request + errores
+	web.InsertFilter("*", web.BeforeRouter, logging.StartTimer)
+	web.InsertFilter("*", web.FinishRouter, logging.LogRequest)
+	web.InsertFilter("*", web.FinishRouter, logging.LogIfError)
+
 	// Healthcheck
 	web.Get("/healthz", func(ctx *context.Context) {
 		ctx.Output.SetStatus(200)
@@ -160,7 +170,6 @@ func main() {
 
 	// Configurar CORS según entorno
 	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS") // Coma-separado
-	runMode := web.BConfig.RunMode
 	corsOpts := &cors.Options{
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Content-Type", "Accept"},

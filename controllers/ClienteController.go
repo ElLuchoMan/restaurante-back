@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 	"strings"
 
@@ -85,12 +86,14 @@ func (c *ClienteController) GetAll() {
 		limit, errL := c.GetInt("limit")
 		offset, errO := c.GetInt("offset")
 		if limitStr != "" && errL != nil {
+			logging.LogControllerError(c.Ctx, "clientes.getall.bad_request", errL, map[string]interface{}{"limit": limitStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'limit' inválido", Cause: errL.Error()}
 			_ = c.ServeJSON()
 			return
 		}
 		if offsetStr != "" && errO != nil {
+			logging.LogControllerError(c.Ctx, "clientes.getall.bad_request", errO, map[string]interface{}{"offset": offsetStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'offset' inválido", Cause: errO.Error()}
 			_ = c.ServeJSON()
@@ -102,6 +105,7 @@ func (c *ClienteController) GetAll() {
 
 		qs := o.QueryTable(new(models.Cliente))
 		if _, err := qs.Limit(limit, offset).All(&clientes); err != nil {
+			logging.LogControllerError(c.Ctx, "clientes.getall.db_error", err, map[string]interface{}{"limit": limit, "offset": offset, "fields": fields})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -113,8 +117,8 @@ func (c *ClienteController) GetAll() {
 		}
 	} else {
 		// Modo por defecto (sin paginado): delegar al helper (útil para tests)
-		_, err := queryAllClientes(o, &clientes)
-		if err != nil {
+		if _, err := queryAllClientes(o, &clientes); err != nil {
+			logging.LogControllerError(c.Ctx, "clientes.getall.db_error", err, map[string]interface{}{"fields": fields})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -177,6 +181,7 @@ func (c *ClienteController) GetById() {
 	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "clientes.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -199,6 +204,7 @@ func (c *ClienteController) GetById() {
 		_ = c.ServeJSON()
 		return
 	} else if err != nil {
+		logging.LogControllerError(c.Ctx, "clientes.getbyid.db_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -237,6 +243,7 @@ func (c *ClienteController) Post() {
 	var cliente models.Cliente
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &cliente); err != nil {
+		logging.LogControllerError(c.Ctx, "clientes.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -250,6 +257,7 @@ func (c *ClienteController) Post() {
 	// Validar y normalizar correo
 	correoTrim := strings.TrimSpace(cliente.CORREO)
 	if correoTrim == "" {
+		logging.LogControllerError(c.Ctx, "clientes.post.validation_error", nil, map[string]interface{}{"missing": "correo"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -263,6 +271,7 @@ func (c *ClienteController) Post() {
 	// Hash de la contraseña antes de insertar
 	hashedPassword, err := bcryptGenerate([]byte(cliente.PASSWORD), bcrypt.DefaultCost)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "clientes.post.hash_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -277,6 +286,7 @@ func (c *ClienteController) Post() {
 	// Inserción en la base de datos
 	if _, err = insertCliente(o, &cliente); err != nil {
 		if isUniqueEmailErr(err) {
+			logging.LogControllerError(c.Ctx, "clientes.post.unique_conflict", err, map[string]interface{}{"correo": cliente.CORREO})
 			c.Ctx.Output.SetStatus(http.StatusConflict)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusConflict,
@@ -286,6 +296,7 @@ func (c *ClienteController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
+		logging.LogControllerError(c.Ctx, "clientes.post.insert_error", err, map[string]interface{}{"correo": cliente.CORREO})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -328,6 +339,7 @@ func (c *ClienteController) Put() {
 	// Obtener el ID del query parameter
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "clientes.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -349,6 +361,7 @@ func (c *ClienteController) Put() {
 			}
 			_ = c.ServeJSON()
 		} else {
+			logging.LogControllerError(c.Ctx, "clientes.put.db_error", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -363,6 +376,7 @@ func (c *ClienteController) Put() {
 	// Decodificar los datos actualizados
 	var updatedCliente models.Cliente
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedCliente); err != nil {
+		logging.LogControllerError(c.Ctx, "clientes.put.bad_json", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -388,6 +402,7 @@ func (c *ClienteController) Put() {
 	if updatedCliente.PASSWORD != "" {
 		hashedPassword, err := bcryptGenerate([]byte(updatedCliente.PASSWORD), bcrypt.DefaultCost)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "clientes.put.hash_error", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -406,6 +421,7 @@ func (c *ClienteController) Put() {
 	// Actualizar en la base de datos
 	if _, err = updateCliente(o, &updatedCliente); err != nil {
 		if isUniqueEmailErr(err) {
+			logging.LogControllerError(c.Ctx, "clientes.put.unique_conflict", err, map[string]interface{}{"id": id, "correo": updatedCliente.CORREO})
 			c.Ctx.Output.SetStatus(http.StatusConflict)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusConflict,
@@ -415,6 +431,7 @@ func (c *ClienteController) Put() {
 			_ = c.ServeJSON()
 			return
 		}
+		logging.LogControllerError(c.Ctx, "clientes.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -455,6 +472,7 @@ func (c *ClienteController) Delete() {
 	// Obtener el ID del query parameter
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "clientes.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,

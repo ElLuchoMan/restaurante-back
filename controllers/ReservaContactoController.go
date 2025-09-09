@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -37,6 +38,7 @@ func (c *ReservaContactoController) GetAll() {
 	}
 	var list []models.ReservaContacto
 	if _, err := qs.All(&list); err != nil {
+		logging.LogControllerError(c.Ctx, "reserva_contacto.getall.db_error", err, map[string]interface{}{"documento_contacto": c.GetString("documento_contacto"), "documento_cliente": c.GetString("documento_cliente")})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener contactos", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -60,6 +62,9 @@ func (c *ReservaContactoController) GetById() {
 	id, _ := c.GetInt64("id")
 	row := models.ReservaContacto{PKIDContacto: id}
 	if err := o.QueryTable(new(models.ReservaContacto)).Filter("PKIDContacto", id).One(&row); err != nil {
+		if err != orm.ErrNoRows {
+			logging.LogControllerError(c.Ctx, "reserva_contacto.getbyid.db_error", err, map[string]interface{}{"id": id})
+		}
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Contacto no encontrado"}
 		_ = c.ServeJSON()

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -53,6 +54,7 @@ WHERE 1=1`
 		Dia    string `orm:"column(dia)"`
 	}
 	if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
+		logging.LogControllerError(c.Ctx, "restaurante_dia.getall.db_error", err, map[string]interface{}{"restaurante_id": c.GetString("restaurante_id"), "dia": c.GetString("dia")})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener días", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -99,6 +101,9 @@ WHERE rd.pk_id_restaurante_dia = ?`
 		Dia    string `orm:"column(dia)"`
 	}
 	if err := o.Raw(query, id).QueryRow(&row); err != nil {
+		if err != orm.ErrNoRows {
+			logging.LogControllerError(c.Ctx, "restaurante_dia.getbyid.db_error", err, map[string]interface{}{"id": id})
+		}
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Registro no encontrado"}
 		_ = c.ServeJSON()

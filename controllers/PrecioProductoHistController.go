@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 	"time"
 
@@ -46,6 +47,8 @@ WHERE 1=1`
 		if d, err := time.Parse("2006-01-02", f); err == nil {
 			query += " AND pph.fecha_vigencia = ?"
 			args = append(args, d)
+		} else {
+			logging.LogControllerError(c.Ctx, "precio_hist.getall.bad_fecha", err, map[string]interface{}{"fecha": f})
 		}
 	}
 	query += " ORDER BY pph.fecha_vigencia ASC"
@@ -57,6 +60,7 @@ WHERE 1=1`
 		Fecha  time.Time `orm:"column(fecha_vigencia)"`
 	}
 	if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
+		logging.LogControllerError(c.Ctx, "precio_hist.getall.db_error", err, map[string]interface{}{"producto_id": c.GetString("producto_id"), "fecha": c.GetString("fecha")})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener historial de precios", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -102,6 +106,9 @@ WHERE pph.pk_id_precio_hist = ?`
 		Fecha  time.Time `orm:"column(fecha_vigencia)"`
 	}
 	if err := o.Raw(query, id).QueryRow(&row); err != nil {
+		if err != orm.ErrNoRows {
+			logging.LogControllerError(c.Ctx, "precio_hist.getbyid.db_error", err, map[string]interface{}{"id": id})
+		}
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Historial no encontrado"}
 		_ = c.ServeJSON()

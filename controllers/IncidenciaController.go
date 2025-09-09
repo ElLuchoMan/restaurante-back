@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
 	"time"
@@ -53,6 +54,7 @@ func (c *IncidenciaController) GetAll() {
 
 	_, err := o.QueryTable(new(models.Incidencia)).All(&incidencias)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "incidencias.getall.db_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -93,6 +95,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 	// Obtener parámetros de la consulta
 	documento, err := c.GetInt64("documento")
 	if err != nil || documento == 0 {
+		logging.LogControllerError(c.Ctx, "incidencias.search.bad_request", err, map[string]interface{}{"documento": c.GetString("documento")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -104,6 +107,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 
 	mes, err := c.GetInt("mes")
 	if err != nil || mes < 1 || mes > 12 {
+		logging.LogControllerError(c.Ctx, "incidencias.search.bad_request", err, map[string]interface{}{"mes": c.GetString("mes")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -115,6 +119,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 
 	anio, err := c.GetInt("anio")
 	if err != nil || anio < 1900 || anio > time.Now().Year() {
+		logging.LogControllerError(c.Ctx, "incidencias.search.bad_request", err, map[string]interface{}{"anio": c.GetString("anio")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -145,6 +150,7 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 		_ = c.ServeJSON()
 		return
 	} else if err != nil {
+		logging.LogControllerError(c.Ctx, "incidencias.search.db_error", err, map[string]interface{}{"documento": documento, "mes": mes, "anio": anio})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -184,6 +190,7 @@ func (c *IncidenciaController) Post() {
 
 	// Decodificar la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "incidencias.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -198,6 +205,7 @@ func (c *IncidenciaController) Post() {
 	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "incidencias.post.bad_fecha", err, map[string]interface{}{"fechaIncidencia": fechaStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
@@ -209,6 +217,7 @@ func (c *IncidenciaController) Post() {
 		}
 		incidencia.FECHA = parsedDate
 	} else {
+		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "fechaIncidencia"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -222,6 +231,7 @@ func (c *IncidenciaController) Post() {
 	if monto, ok := input["monto"].(float64); ok {
 		incidencia.MONTO = int64(monto)
 	} else {
+		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "monto"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -235,6 +245,7 @@ func (c *IncidenciaController) Post() {
 	if resta, ok := input["resta"].(bool); ok {
 		incidencia.RESTA = resta
 	} else {
+		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "resta"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -248,6 +259,7 @@ func (c *IncidenciaController) Post() {
 	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
 		incidencia.MOTIVO = motivo
 	} else {
+		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "motivo"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -262,6 +274,7 @@ func (c *IncidenciaController) Post() {
 		doc := int64(documento)
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
 	} else {
+		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "documentoTrabajador"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -274,6 +287,7 @@ func (c *IncidenciaController) Post() {
 	// Insertar en la base de datos
 	_, err := o.Insert(&incidencia)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "incidencias.post.insert_error", err, map[string]interface{}{"fecha": incidencia.FECHA, "doc": incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -330,6 +344,7 @@ func (c *IncidenciaController) Put() {
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "incidencias.put.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -354,6 +369,7 @@ func (c *IncidenciaController) Put() {
 	// Deserializar los datos actualizados desde el cuerpo de la solicitud
 	var input map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "incidencias.put.bad_json", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -368,6 +384,7 @@ func (c *IncidenciaController) Put() {
 	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "incidencias.put.bad_fecha", err, map[string]interface{}{"id": id, "fechaIncidencia": fechaStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
@@ -380,18 +397,9 @@ func (c *IncidenciaController) Put() {
 		incidencia.FECHA = parsedDate
 	}
 
-	if monto, ok := input["monto"].(float64); ok {
-		incidencia.MONTO = int64(monto)
-	}
-
-	if resta, ok := input["resta"].(bool); ok {
-		incidencia.RESTA = resta
-	}
-
-	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
-		incidencia.MOTIVO = motivo
-	}
-
+	if monto, ok := input["monto"].(float64); ok { incidencia.MONTO = int64(monto) }
+	if resta, ok := input["resta"].(bool); ok { incidencia.RESTA = resta }
+	if motivo, ok := input["motivo"].(string); ok && motivo != "" { incidencia.MOTIVO = motivo }
 	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
 		doc := int64(documento)
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
@@ -399,6 +407,7 @@ func (c *IncidenciaController) Put() {
 
 	// Guardar los cambios en la base de datos
 	if _, err := o.Update(&incidencia); err != nil {
+		logging.LogControllerError(c.Ctx, "incidencias.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -449,6 +458,7 @@ func (c *IncidenciaController) Delete() {
 	o := incidenciaOrmNew()
 	id, err := c.GetInt64("id")
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "incidencias.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -468,6 +478,7 @@ func (c *IncidenciaController) Delete() {
 		_ = c.ServeJSON()
 		return
 	} else if err != nil {
+		logging.LogControllerError(c.Ctx, "incidencias.delete.db_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

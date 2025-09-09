@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"restaurante/database"
+	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
 	"time"
@@ -79,6 +80,7 @@ func (c *TrabajadorController) GetAll() {
 	if fechaIngreso != "" {
 		parsed, err := time.Parse("2006-01-02", fechaIngreso)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "trabajadores.getall.bad_fecha_ingreso", err, map[string]interface{}{"fecha_ingreso": fechaIngreso})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para 'fecha_ingreso', use YYYY-MM-DD", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -93,6 +95,7 @@ func (c *TrabajadorController) GetAll() {
 	// Ejecutar consulta
 	_, err := query.All(&trabajadores)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "trabajadores.getall.db_error", err, map[string]interface{}{"rol": rol, "solo_retirados": soloRetirados, "incluir_retirados": incluirRetirados, "fecha_ingreso": fechaIngreso})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -161,6 +164,7 @@ func (c *TrabajadorController) GetById() {
 	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "trabajadores.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -177,6 +181,16 @@ func (c *TrabajadorController) GetById() {
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Trabajador no encontrado",
+		}
+		_ = c.ServeJSON()
+		return
+	} else if err != nil {
+		logging.LogControllerError(c.Ctx, "trabajadores.getbyid.db_error", err, map[string]interface{}{"id": id})
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al buscar el trabajador",
+			Cause:   err.Error(),
 		}
 		_ = c.ServeJSON()
 		return
@@ -215,6 +229,7 @@ func (c *TrabajadorController) Post() {
 
 	// Decodificar la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -224,7 +239,7 @@ func (c *TrabajadorController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
-	fmt.Println("Este es el input recibido:", input)
+
 	// Crear instancia del modelo Trabajador
 	var trabajador models.Trabajador
 
@@ -232,6 +247,7 @@ func (c *TrabajadorController) Post() {
 	if doc, ok := input["documentoTrabajador"].(float64); ok {
 		trabajador.PK_DOCUMENTO_TRABAJADOR = int64(doc)
 	} else {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.validation_error", nil, map[string]interface{}{"missing": "documentoTrabajador"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -245,6 +261,7 @@ func (c *TrabajadorController) Post() {
 	if nombre, ok := input["nombre"].(string); ok && nombre != "" {
 		trabajador.NOMBRE = nombre
 	} else {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.validation_error", nil, map[string]interface{}{"missing": "nombre"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -258,6 +275,7 @@ func (c *TrabajadorController) Post() {
 	if apellido, ok := input["apellido"].(string); ok && apellido != "" {
 		trabajador.APELLIDO = apellido
 	} else {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.validation_error", nil, map[string]interface{}{"missing": "apellido"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -271,6 +289,7 @@ func (c *TrabajadorController) Post() {
 	if rol, ok := input["rol"].(string); ok && rol != "" {
 		trabajador.ROL = models.RolTrabajador(rol)
 	} else {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.validation_error", nil, map[string]interface{}{"missing": "rol"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -284,6 +303,7 @@ func (c *TrabajadorController) Post() {
 	if fechaIngresoStr, ok := input["fechaIngreso"].(string); ok && fechaIngresoStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaIngresoStr)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "trabajadores.post.bad_fecha_ingreso", err, map[string]interface{}{"fechaIngreso": fechaIngresoStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
@@ -295,6 +315,7 @@ func (c *TrabajadorController) Post() {
 		}
 		trabajador.FECHA_INGRESO = parsedDate
 	} else {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.validation_error", nil, map[string]interface{}{"missing": "fechaIngreso"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -308,6 +329,7 @@ func (c *TrabajadorController) Post() {
 	if sueldo, ok := input["sueldo"].(float64); ok {
 		trabajador.SUELDO = int64(sueldo)
 	} else {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.validation_error", nil, map[string]interface{}{"missing": "sueldo"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -321,6 +343,7 @@ func (c *TrabajadorController) Post() {
 	if password, ok := input["password"].(string); ok && password != "" {
 		hashedPassword, err := hashPassword(password)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "trabajadores.post.hash_error", err, nil)
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -332,6 +355,7 @@ func (c *TrabajadorController) Post() {
 		}
 		trabajador.PASSWORD = hashedPassword
 	} else {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.validation_error", nil, map[string]interface{}{"missing": "password"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -356,6 +380,7 @@ func (c *TrabajadorController) Post() {
 	if fechaNacimientoStr, ok := input["fechaNacimiento"].(string); ok && fechaNacimientoStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaNacimientoStr)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "trabajadores.post.bad_fecha_nacimiento", err, map[string]interface{}{"fechaNacimiento": fechaNacimientoStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
@@ -371,6 +396,7 @@ func (c *TrabajadorController) Post() {
 	// Insertar en la base de datos
 	_, err := o.Insert(&trabajador)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "trabajadores.post.insert_error", err, map[string]interface{}{"documento": trabajador.PK_DOCUMENTO_TRABAJADOR})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -410,6 +436,7 @@ func (c *TrabajadorController) Put() {
 	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "trabajadores.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -434,6 +461,7 @@ func (c *TrabajadorController) Put() {
 	// Decodificar el cuerpo de la solicitud
 	var input map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "trabajadores.put.bad_json", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -492,6 +520,7 @@ func (c *TrabajadorController) Put() {
 	if v, ok := getStr("FECHA_INGRESO", "fechaIngreso"); ok {
 		parsedDate, err := time.Parse("2006-01-02", v)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "trabajadores.put.bad_fecha_ingreso", err, map[string]interface{}{"id": id, "fecha_ingreso": v})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para FECHA_INGRESO", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -502,6 +531,7 @@ func (c *TrabajadorController) Put() {
 	if v, ok := getStr("FECHA_RETIRO", "fechaRetiro"); ok {
 		parsedDate, err := time.Parse("2006-01-02", v)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "trabajadores.put.bad_fecha_retiro", err, map[string]interface{}{"id": id, "fecha_retiro": v})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para FECHA_RETIRO", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -513,6 +543,7 @@ func (c *TrabajadorController) Put() {
 	if v, ok := getStr("FECHA_NACIMIENTO", "fechaNacimiento"); ok {
 		parsedDate, err := time.Parse("2006-01-02", v)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "trabajadores.put.bad_fecha_nacimiento", err, map[string]interface{}{"id": id, "fecha_nacimiento": v})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido para FECHA_NACIMIENTO", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -524,6 +555,7 @@ func (c *TrabajadorController) Put() {
 	if v, ok := getStr("PASSWORD", "password"); ok {
 		hashedPassword, err := hashPassword(v)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "trabajadores.put.hash_error", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al procesar la contraseña", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -542,6 +574,7 @@ func (c *TrabajadorController) Put() {
 
 	// Actualizar en la base de datos
 	if _, err := o.Update(&trabajador); err != nil {
+		logging.LogControllerError(c.Ctx, "trabajadores.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el trabajador", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -575,6 +608,7 @@ func (c *TrabajadorController) Delete() {
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "trabajadores.delete.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -592,6 +626,7 @@ func (c *TrabajadorController) Delete() {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Trabajador no encontrado"}
 		} else {
+			logging.LogControllerError(c.Ctx, "trabajadores.delete.db_read_error", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al buscar el trabajador", Cause: err.Error()}
 		}
@@ -605,6 +640,7 @@ func (c *TrabajadorController) Delete() {
 
 	// Actualizar el registro en la base de datos
 	if _, err := o.Update(&trabajador, "FECHA_RETIRO"); err != nil {
+		logging.LogControllerError(c.Ctx, "trabajadores.delete.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la fecha de retiro del trabajador", Cause: err.Error()}
 		_ = c.ServeJSON()

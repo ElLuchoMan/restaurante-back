@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
 	"strings"
@@ -57,6 +58,7 @@ func (c *DomicilioController) GetAll() {
 	estado := strings.ToUpper(c.GetString("estado"))
 	trabajadorID, errTrab := c.GetInt("trabajador") // ID del domiciliario solicitante
 	if c.GetString("trabajador") != "" && errTrab != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.getall.bad_request", errTrab, map[string]interface{}{"trabajador": c.GetString("trabajador")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'trabajador' inválido", Cause: errTrab.Error()}
 		_ = c.ServeJSON()
@@ -95,6 +97,9 @@ func (c *DomicilioController) GetAll() {
 	var domicilios []models.Domicilio
 	count, err := qs.All(&domicilios)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.getall.db_error", err, map[string]interface{}{
+			"direccion": direccion, "telefono": telefono, "updated_by": updatedBy, "fecha": fecha, "estado": estado, "trabajador": trabajadorID,
+		})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -142,6 +147,7 @@ func (c *DomicilioController) GetById() {
 	o := orm.NewOrm()
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "domicilios.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -179,7 +185,9 @@ FROM pedido p
 JOIN cliente c ON c.pk_documento_cliente = p.pk_documento_cliente
 WHERE p.pk_id_domicilio = ?
 ORDER BY p.pk_id_pedido DESC LIMIT 1;`
-	cliErr := o.Raw(qCliente, id).QueryRow(&cli)
+	if err := o.Raw(qCliente, id).QueryRow(&cli); err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.getbyid.cliente_query_error", err, map[string]interface{}{"id": id})
+	}
 
 	type pedidoRow struct {
 		PedidoID          int64           `orm:"column(pedido_id)"`
@@ -210,17 +218,19 @@ FROM pedido p
 LEFT JOIN pago pa ON pa.pk_id_pago = p.pk_id_pago
 WHERE p.pk_id_domicilio = ?
 ORDER BY p.pk_id_pedido DESC LIMIT 1;`
-	pedErr := o.Raw(qPedido, id).QueryRow(&ped)
+	if err := o.Raw(qPedido, id).QueryRow(&ped); err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.getbyid.pedido_query_error", err, map[string]interface{}{"id": id})
+	}
 
 	resp := map[string]interface{}{"domicilio": domicilio}
-	if cliErr == nil {
+	if cli.Documento != 0 {
 		resp["cliente"] = map[string]interface{}{
 			"documento": cli.Documento,
 			"nombre":    cli.Nombre,
 			"apellido":  cli.Apellido,
 		}
 	}
-	if pedErr == nil {
+	if ped.PedidoID != 0 {
 		var productos []map[string]interface{}
 		if ped.Productos != "" {
 			if err := json.Unmarshal([]byte(ped.Productos), &productos); err != nil {
@@ -272,6 +282,7 @@ func (c *DomicilioController) Post() {
 	var input models.DomicilioCreate
 	var raw map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &raw); err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -295,12 +306,14 @@ func (c *DomicilioController) Post() {
 	// Decodificar al DTO ya sanitizado
 	if bodySan, err := jsonMarshal(raw); err == nil {
 		if err := json.Unmarshal(bodySan, &input); err != nil {
+			logging.LogControllerError(c.Ctx, "domicilios.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
 			_ = c.ServeJSON()
 			return
 		}
 	} else {
+		logging.LogControllerError(c.Ctx, "domicilios.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Solicitud inválida", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -308,6 +321,7 @@ func (c *DomicilioController) Post() {
 	}
 
 	if input.Direccion == "" || input.Telefono == "" {
+		logging.LogControllerError(c.Ctx, "domicilios.post.validation_error", nil, map[string]interface{}{"missing": "direccion/telefono", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Los campos 'direccion' y 'telefono' son obligatorios"}
 		_ = c.ServeJSON()
@@ -316,6 +330,7 @@ func (c *DomicilioController) Post() {
 
 	parsedDate, err := time.Parse("2006-01-02", input.FechaDomicilio)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.post.validation_error", err, map[string]interface{}{"fecha": input.FechaDomicilio, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -338,6 +353,7 @@ func (c *DomicilioController) Post() {
 	}
 	if est != "" {
 		if !isValidEstadoDomicilio(est) {
+			logging.LogControllerError(c.Ctx, "domicilios.post.validation_error", nil, map[string]interface{}{"estado": est})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Campo 'estado' inválido"}
 			_ = c.ServeJSON()
@@ -377,6 +393,7 @@ func (c *DomicilioController) Post() {
 		strings.Join(cols, ","), strings.Join(ph, ","))
 
 	if err := o.Raw(query, vals...).QueryRow(&domicilio.ID); err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.post.insert_error", err, map[string]interface{}{"direccion": domicilio.Direccion, "telefono": domicilio.Telefono, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -421,12 +438,9 @@ func (c *DomicilioController) Put() {
 	o := orm.NewOrm()
 	id, err := strconv.ParseInt(c.GetString("id"), 10, 64)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "domicilios.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
@@ -444,12 +458,9 @@ func (c *DomicilioController) Put() {
 
 	var input map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al procesar la solicitud",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
@@ -473,12 +484,9 @@ func (c *DomicilioController) Put() {
 	colsToUpdate = append(colsToUpdate, "UpdatedAt")
 
 	if _, err := o.Update(&domicilio, colsToUpdate...); err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar el domicilio",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el domicilio", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
@@ -516,6 +524,7 @@ func (c *DomicilioController) Delete() {
 	o := orm.NewOrm()
 	id, err := strconv.ParseInt(c.GetString("id"), 10, 64)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "domicilios.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -534,6 +543,7 @@ func (c *DomicilioController) Delete() {
 			Message: "Domicilio eliminado",
 		}
 	} else {
+		logging.LogControllerError(c.Ctx, "domicilios.delete.delete_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -567,6 +577,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 		trabajadorID, domicilioID,
 	).Exec()
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.asignar.update_error", err, map[string]interface{}{"domicilio_id": domicilioID, "trabajador_id": trabajadorID})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -579,6 +590,7 @@ func (c *DomicilioController) AsignarDomiciliario() {
 
 	affected, err := res.RowsAffected()
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.asignar.rows_affected_error", err, map[string]interface{}{"domicilio_id": domicilioID})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

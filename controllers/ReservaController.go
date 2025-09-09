@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"restaurante/database"
+	"restaurante/logging"
 	"restaurante/models"
 	"time"
 
@@ -65,6 +66,7 @@ func (c *ReservaController) GetAll() {
 
 	_, err := queryAllReservas(o, &reservas)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "reservas.getall.db_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -75,7 +77,6 @@ func (c *ReservaController) GetAll() {
 		return
 	}
 
-	// Ajustar las fechas y horas al formato y zona horaria correcta
 	for i := range reservas {
 		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
 		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
@@ -107,6 +108,7 @@ func (c *ReservaController) GetById() {
 	id, err := c.GetInt64("id")
 
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "reservas.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -158,19 +160,14 @@ func (c *ReservaController) Post() {
 	o := ormNew()
 	var input map[string]interface{}
 
-	// Decodificar la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "reservas.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al decodificar la solicitud",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Validar campos de contacto exclusivos si se proporcionan
 	var contacto models.ReservaContacto
 	if v, ok := input["documentoContacto"].(float64); ok {
 		val := int64(v)
@@ -182,6 +179,7 @@ func (c *ReservaController) Post() {
 	}
 	if contacto.DocumentoContacto != nil || contacto.PKDocumentoCliente != nil {
 		if !contacto.Valid() {
+			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"documentoContacto": contacto.DocumentoContacto, "documentoCliente": contacto.PKDocumentoCliente, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}
 			_ = c.ServeJSON()
@@ -189,81 +187,61 @@ func (c *ReservaController) Post() {
 		}
 	}
 
-	// Validar y procesar los campos requeridos
 	var reserva models.Reserva
 
-	// Procesar FECHA
 	if fechaStr, ok := input["fechaReserva"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", err, map[string]interface{}{"fechaReserva": fechaStr, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido", Cause: err.Error()}
 			_ = c.ServeJSON()
 			return
 		}
 		reserva.FECHA = parsedDate
 	} else {
+		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "fechaReserva", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo FECHA no puede estar vacío",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo FECHA no puede estar vacío"}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Procesar HORA
 	if horaStr, ok := input["horaReserva"].(string); ok && horaStr != "" {
 		parsedHora, err := time.Parse("15:04:05", horaStr)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", err, map[string]interface{}{"horaReserva": horaStr, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de hora inválido",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido", Cause: err.Error()}
 			_ = c.ServeJSON()
 			return
 		}
 		reserva.HORA = parsedHora
 	} else {
+		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "horaReserva", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo HORA no puede estar vacío",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo HORA no puede estar vacío"}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Procesar PERSONAS
 	if personas, ok := input["personas"].(float64); ok {
 		reserva.PERSONAS = int(personas)
 	} else {
+		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "personas", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo PERSONAS debe ser un número mayor a 0",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PERSONAS debe ser un número mayor a 0"}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Procesar ESTADO_RESERVA si existe
 	if estadoStr, ok := input["estadoReserva"].(string); ok {
 		estado := models.EstadoReserva(estadoStr)
 		if estado != "" {
 			if !estadosPermitidos[estado] {
+				logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"estadoReserva": estadoStr, "body": string(c.Ctx.Input.RequestBody)})
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
-				c.Data["json"] = models.ApiResponse{
-					Code:    http.StatusBadRequest,
-					Message: "Estado de reserva inválido",
-					Cause:   "El estado debe ser uno de los siguientes: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA",
-				}
+				c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Estado de reserva inválido", Cause: "El estado debe ser uno de los siguientes: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA"}
 				_ = c.ServeJSON()
 				return
 			}
@@ -271,12 +249,9 @@ func (c *ReservaController) Post() {
 		}
 	}
 
-	// Procesar INDICACIONES si existe
 	if indicaciones, ok := input["indicaciones"].(string); ok {
 		reserva.INDICACIONES = &indicaciones
 	}
-
-	// Procesar CREATED_BY si existe
 	if createdBy, ok := input["createdBy"].(string); ok {
 		reserva.CREATED_BY = &createdBy
 	}
@@ -285,11 +260,9 @@ func (c *ReservaController) Post() {
 		val := int64(contactoID)
 		reserva.PK_ID_CONTACTO = &models.ReservaContacto{PKIDContacto: val}
 	} else {
+		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "contactoId", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo PK_ID_CONTACTO debe ser un número",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_CONTACTO debe ser un número"}
 		_ = c.ServeJSON()
 		return
 	}
@@ -297,39 +270,26 @@ func (c *ReservaController) Post() {
 		val := int64(restauranteID)
 		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
 	} else {
+		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "restauranteId", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo PK_ID_RESTAURANTE debe ser un número",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_RESTAURANTE debe ser un número"}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Establecer valores automáticos
 	reserva.CREATED_AT = time.Now().UTC()
 	reserva.UPDATED_AT = time.Time{}
 
-	// Insertar en la base de datos
-	_, err := insertReserva(o, &reserva)
-	if err != nil {
+	if _, err := insertReserva(o, &reserva); err != nil {
+		logging.LogControllerError(c.Ctx, "reservas.post.insert_error", err, map[string]interface{}{"contactoId": *reserva.PK_ID_CONTACTO, "restauranteId": *reserva.PK_ID_RESTAURANTE, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear la reserva",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear la reserva", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Reserva creada correctamente",
-		Data:    reserva,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Reserva creada correctamente", Data: reserva}
 	_ = c.ServeJSON()
 }
 
@@ -347,46 +307,32 @@ func (c *ReservaController) Post() {
 // @Router /reservas [put]
 func (c *ReservaController) Put() {
 	o := ormNew()
-	// Obtener el ID de la reserva desde los parámetros
 	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
-	}
-	// Buscar la reserva por ID
+	if err != nil || id == 0 { logging.LogControllerError(c.Ctx, "reservas.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}; _ = c.ServeJSON(); return }
 	reserva := models.Reserva{PK_ID_RESERVA: id}
-	if err := readReserva(o, &reserva); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Reserva no encontrada",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-	// Deserializar los datos actualizados desde el cuerpo de la solicitud
+	if err := readReserva(o, &reserva); err != nil { c.Ctx.Output.SetStatus(http.StatusOK); c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Reserva no encontrada"}; _ = c.ServeJSON(); return }
 	var input map[string]interface{}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al decodificar la solicitud",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil { logging.LogControllerError(c.Ctx, "reservas.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}; _ = c.ServeJSON(); return }
+
+	// Validación de documentoContacto/documentoCliente (mutuamente excluyentes)
+	var contacto models.ReservaContacto
+	if v, ok := input["documentoContacto"].(float64); ok {
+		val := int64(v)
+		contacto.DocumentoContacto = &val
 	}
-	// Validaciones y actualización (igual que antes)...
+	if v, ok := input["documentoCliente"].(float64); ok {
+		val := int64(v)
+		contacto.PKDocumentoCliente = &models.Cliente{PK_DOCUMENTO_CLIENTE: val}
+	}
+	if contacto.DocumentoContacto != nil || contacto.PKDocumentoCliente != nil {
+		if !contacto.Valid() { logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "documentoContacto": contacto.DocumentoContacto, "documentoCliente": contacto.PKDocumentoCliente, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}; _ = c.ServeJSON(); return }
+	}
+
 	if v, ok := input["fechaReserva"].(string); ok && v != "" {
 		if parsed, err := time.Parse("2006-01-02", v); err == nil {
 			reserva.FECHA = parsed
 		} else {
+			logging.LogControllerError(c.Ctx, "reservas.put.validation_error", err, map[string]interface{}{"id": id, "fechaReserva": v, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -397,6 +343,7 @@ func (c *ReservaController) Put() {
 		if parsed, err := time.Parse("15:04:05", v); err == nil {
 			reserva.HORA = parsed
 		} else {
+			logging.LogControllerError(c.Ctx, "reservas.put.validation_error", err, map[string]interface{}{"id": id, "horaReserva": v, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -418,36 +365,11 @@ func (c *ReservaController) Put() {
 	if updatedBy, ok := input["updatedBy"].(string); ok {
 		reserva.UPDATED_BY = &updatedBy
 	}
-	if contactoID, ok := input["contactoId"].(float64); ok {
-		val := int64(contactoID)
-		reserva.PK_ID_CONTACTO = &models.ReservaContacto{PKIDContacto: val}
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_CONTACTO debe ser un número"}
-		_ = c.ServeJSON()
-		return
-	}
-	if restauranteID, ok := input["restauranteId"].(float64); ok {
-		val := int64(restauranteID)
-		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
-	} else {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_RESTAURANTE debe ser un número"}
-		_ = c.ServeJSON()
-		return
-	}
-	// Actualizar la fecha de modificación
+	if contactoID, ok := input["contactoId"].(float64); ok { val := int64(contactoID); reserva.PK_ID_CONTACTO = &models.ReservaContacto{PKIDContacto: val} } else { logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "contactoId", "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_CONTACTO debe ser un número"}; _ = c.ServeJSON(); return }
+	if restauranteID, ok := input["restauranteId"].(float64); ok { val := int64(restauranteID); reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val} } else { logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "restauranteId", "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_RESTAURANTE debe ser un número"}; _ = c.ServeJSON(); return }
 	reserva.UPDATED_AT = time.Now().UTC()
-	// Persistir
-	if _, err := updateReserva(o, &reserva); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la reserva", Cause: err.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Reserva actualizada", Data: reserva}
-	_ = c.ServeJSON()
+	if _, err := updateReserva(o, &reserva); err != nil { logging.LogControllerError(c.Ctx, "reservas.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusInternalServerError); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la reserva", Cause: err.Error()}; _ = c.ServeJSON(); return }
+	c.Ctx.Output.SetStatus(http.StatusOK); c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Reserva actualizada", Data: reserva}; _ = c.ServeJSON()
 }
 
 // @Title GetByCliente
@@ -476,6 +398,7 @@ func (c *ReservaController) GetByParameter() {
 		var err error
 		parsedDate, err = time.Parse("2006-01-02", fechaReserva)
 		if err != nil {
+			logging.LogControllerError(c.Ctx, "reservas.parameter.validation_error", err, map[string]interface{}{"fecha": fechaReserva})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
@@ -489,6 +412,7 @@ func (c *ReservaController) GetByParameter() {
 
 	_, err := queryReservasByParam(o, contactoID, parsedDate, useContacto, useFecha, &reservas)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "reservas.parameter.db_error", err, map[string]interface{}{"contactoId": contactoID, "fecha": fechaReserva})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -499,7 +423,6 @@ func (c *ReservaController) GetByParameter() {
 		return
 	}
 
-	// Ajustar fechas y formato de hora antes de responder
 	for i := range reservas {
 		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
 		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
@@ -507,7 +430,6 @@ func (c *ReservaController) GetByParameter() {
 		reservas[i].HORA = reservas[i].HORA.UTC()
 	}
 
-	// Si no hay resultados, devolver 200 con mensaje claro
 	if len(reservas) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -541,9 +463,9 @@ func (c *ReservaController) GetByParameter() {
 // @Router /reservas [delete]
 func (c *ReservaController) Delete() {
 	o := ormNew()
-	// Obtener el ID de la reserva desde los parámetros
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "reservas.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -553,7 +475,6 @@ func (c *ReservaController) Delete() {
 		_ = c.ServeJSON()
 		return
 	}
-	// Buscar la reserva por ID
 	reserva := models.Reserva{PK_ID_RESERVA: id}
 	if err := readReserva(o, &reserva); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -561,12 +482,11 @@ func (c *ReservaController) Delete() {
 		_ = c.ServeJSON()
 		return
 	}
-	// Actualizar el estado a CANCELADA
 	estadoCancelada := models.EstadoReservaCancelada
 	reserva.ESTADO_RESERVA = &estadoCancelada
-	reserva.UPDATED_AT = time.Now() // Actualizar la fecha de modificación
-	// Guardar los cambios en la base de datos
+	reserva.UPDATED_AT = time.Now()
 	if _, err := updateReserva(o, &reserva, "estadoReserva", "updatedAt"); err != nil {
+		logging.LogControllerError(c.Ctx, "reservas.delete.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al cancelar la reserva", Cause: err.Error()}
 		_ = c.ServeJSON()

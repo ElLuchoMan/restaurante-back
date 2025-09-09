@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -66,6 +67,7 @@ func (c *SubcategoriaController) GetAll() {
 	}
 	var subs []models.Subcategoria
 	if _, err := qs.All(&subs); err != nil {
+		logging.LogControllerError(c.Ctx, "subcategorias.getall.db_error", err, map[string]interface{}{"categoria_id": c.GetString("categoria_id")})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener subcategorías", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -89,6 +91,9 @@ func (c *SubcategoriaController) GetById() {
 	id, _ := c.GetInt64("id")
 	s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
 	if err := o.Read(&s); err != nil {
+		if err != orm.ErrNoRows {
+			logging.LogControllerError(c.Ctx, "subcategorias.getbyid.db_error", err, map[string]interface{}{"id": id})
+		}
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
 		_ = c.ServeJSON()
@@ -115,6 +120,7 @@ func (c *SubcategoriaController) Post() {
 		CategoriaId int64  `json:"categoriaId"`
 	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" || in.CategoriaId == 0 {
+		if err != nil { logging.LogControllerError(c.Ctx, "subcategorias.post.bad_json", err, nil) }
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o campos requeridos faltantes"}
 		_ = c.ServeJSON()
@@ -122,6 +128,7 @@ func (c *SubcategoriaController) Post() {
 	}
 	s := models.Subcategoria{NOMBRE: in.Nombre, PK_ID_CATEGORIA: &models.Categoria{PK_ID_CATEGORIA: in.CategoriaId}}
 	if _, err := o.Insert(&s); err != nil {
+		logging.LogControllerError(c.Ctx, "subcategorias.post.insert_error", err, map[string]interface{}{"nombre": in.Nombre, "categoriaId": in.CategoriaId})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear subcategoría", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -157,21 +164,17 @@ func (c *SubcategoriaController) Put() {
 		CategoriaId *int64  `json:"categoriaId"`
 	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
+		logging.LogControllerError(c.Ctx, "subcategorias.put.bad_json", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
 	cols := []string{}
-	if in.Nombre != nil {
-		s.NOMBRE = *in.Nombre
-		cols = append(cols, "NOMBRE")
-	}
-	if in.CategoriaId != nil {
-		s.PK_ID_CATEGORIA = &models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}
-		cols = append(cols, "PK_ID_CATEGORIA")
-	}
+	if in.Nombre != nil { s.NOMBRE = *in.Nombre; cols = append(cols, "NOMBRE") }
+	if in.CategoriaId != nil { s.PK_ID_CATEGORIA = &models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}; cols = append(cols, "PK_ID_CATEGORIA") }
 	if _, err := o.Update(&s, cols...); err != nil {
+		logging.LogControllerError(c.Ctx, "subcategorias.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar subcategoría", Cause: err.Error()}
 		_ = c.ServeJSON()

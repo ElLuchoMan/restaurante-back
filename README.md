@@ -51,8 +51,9 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   - `SKIP_WEB_RUN=1`: no levanta el servidor web (tests).
 
 ## Variables de entorno (DB y ejecución)
-- DB (equivalentes a `conf/app.conf`): `db_host`, `db_port`, `db_user`, `db_pass`, `db_name`.
-- Tests/App: `BEEGO_APP_CONFIG_FILE`, `INTEGRATION`, `SKIP_DB_SEED`, `SKIP_WEB_RUN`, `SKIP_CRON`, `CRON_ONE_SHOT`.
+- DB (equivalentes a `conf/app.conf`): `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_SSLMODE`.
+- App/Test: `BEEGO_APP_CONFIG_FILE`, `INTEGRATION`, `SKIP_DB_SEED`, `SKIP_WEB_RUN`, `SKIP_CRON`, `CRON_ONE_SHOT`, `CORS_ALLOWED_ORIGINS`.
+- Auth: `JWT_SECRET` (obligatorio en prod; en dev/test se genera efímero si está vacío).
 
 ## Enlaces rápidos
 - Script de cobertura: [`tools/cover.ps1`](tools/cover.ps1)
@@ -83,6 +84,21 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
   ```
 
+### Notas para Windows (race/CGO y variables)
+- `-race` requiere CGO habilitado. En Windows, si deseas correr `go test -race` localmente:
+  ```powershell
+  $env:CGO_ENABLED = "1"; go test -race ./...
+  ```
+  Si no necesitas el detector de carreras local, usa el script `tools/cover.ps1` (no activa `-race`). En CI sí se ejecuta con `-race`.
+- Define un `JWT_SECRET` temporal para evitar fallos en tests que cargan el secreto:
+  ```powershell
+  $env:JWT_SECRET = "testsecret123"
+  ```
+- Para evitar levantar servidor o cron durante las pruebas unitarias:
+  ```powershell
+  $env:SKIP_WEB_RUN = "1"; $env:SKIP_CRON = "1"
+  ```
+
 ### Notas de pruebas unitarias (inyecciones y expectativas)
 - Nómina (`controllers/NominaController.go`): se expuso el punto de inyección `findExistingNominaFn` para simular la validación de existencia de nómina mensual en tests. Esto permite alcanzar el flujo de inserción sin depender de la consulta real.
   - Ejemplo en tests:
@@ -92,7 +108,18 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
     t.Cleanup(func(){ findExistingNominaFn = orig })
     ```
 - ProductoPedido: en entorno unitario sin DB, los controladores devuelven HTTP 200 con mensajes de error en el cuerpo cuando falta parámetro, JSON es inválido, no hay stock o hay errores de consulta. Los tests validan esos mensajes (p.ej., "Inventario insuficiente...", "Error al buscar los detalles del pedido").
+- Cron (generación de nómina): los tests validan eventos de slog (`cron.nomina.*`) con un handler en memoria, no por stdout.
 - Confirmación: no se modificaron scripts SQL ni el esquema de la base de datos; sólo se ajustaron tests y puntos de inyección para pruebas.
+
+## Logging
+- Se usa `log/slog` con un helper `logging.LogControllerError` para registrar errores con contexto de negocio y sanitización.
+- Endpoints críticos registran el body recibido ante errores para facilitar diagnóstico:
+  - Domicilios (`POST`, `PUT`)
+  - Pagos (`POST`, `PUT`)
+  - Pedido (`POST`)
+  - ProductoPedido (`POST`, `PUT`)
+  - Reservas (`POST`, `PUT`)
+- Sanitización automática: campos sensibles como `password`, `token` y textos muy largos son filtrados/truncados por el helper antes de emitirse.
 
 ## Formato y Lint
 - Formatea con gofmt:
@@ -136,7 +163,6 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   - BD fija `precio` por trigger según vigencia.
   - Inventario: al crear/actualizar detalles, se descuenta/devolver stock en transacción.
   - Sin stock suficiente: 400 con detalle por `productoId` (`requerido`/`disponible`).
-  - Estados de pedido: INICIADO → EN_PREPARACION → LISTO → TERMINADO/CANCELADO. Los estados EN_PREPARACION y LISTO están disponibles para el flujo de cocina.
 - Domicilios: `delivery=false` exige `pk_id_domicilio = NULL`; asignar domicilio marca `delivery=true` automáticamente.
 - Filtros corregidos: `domicilios` (estado, updated_by, trabajador), `pedidos` (año sin mes), `trabajadores` (fecha ingreso exacta), etc.
 - Nómina (`nominas`):

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"restaurante/logging"
 	"restaurante/models" // Ajusta la ruta según tu proyecto
 	"time"
 
@@ -101,6 +102,9 @@ func (c *PedidoController) GetAll() {
 	var pedidos []models.Pedido
 	_, err := o.Raw(query, params...).QueryRows(&pedidos)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.getall.db_error", err, map[string]interface{}{
+			"fecha": fecha, "desde": desde, "hasta": hasta, "mes": mes, "anio": anio, "cliente": cliente, "metodo_pago": metodoPago, "domicilio": domicilio,
+		})
 		c.Data["json"] = models.ApiResponse{
 			Code:    500,
 			Message: "Error al obtener los pedidos",
@@ -151,6 +155,7 @@ func (c *PedidoController) Post() {
 	}
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = models.ApiResponse{
 			Code:    400,
@@ -163,6 +168,7 @@ func (c *PedidoController) Post() {
 
 	loc, errLoc := time.LoadLocation("America/Bogota")
 	if errLoc != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.post.tz_error", errLoc, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "No se pudo cargar zona horaria", Cause: errLoc.Error()}
 		_ = c.ServeJSON()
@@ -186,14 +192,12 @@ func (c *PedidoController) Post() {
 	if in.PKIDDomicilio != nil && *in.PKIDDomicilio > 0 {
 		pedido.PK_ID_DOMICILIO = &models.Domicilio{ID: *in.PKIDDomicilio}
 	}
-	// RestauranteId es opcional en el contrato actual; si viene, lo asignamos, si no,
-	// dejamos nil para que la inserción pueda fallar en entornos sin DB (los tests
-	// unitarios mockean el driver para simular inserciones).
 	if in.RestauranteId != 0 {
 		pedido.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: in.RestauranteId}
 	}
 
 	if pedido.DELIVERY && pedido.PK_ID_DOMICILIO == nil {
+		logging.LogControllerError(c.Ctx, "pedidos.post.delivery_missing_domicilio", nil, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = models.ApiResponse{
 			Code:    400,
@@ -205,6 +209,7 @@ func (c *PedidoController) Post() {
 
 	o := orm.NewOrm()
 	if _, err := o.Insert(&pedido); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.post.insert_error", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{
 			Code:    500,
@@ -242,26 +247,26 @@ func (c *PedidoController) AssignDomicilio() {
 	domicilioID, _ := c.GetInt64("domicilio_id")
 	o := orm.NewOrm()
 
-	// Validación básica del domicilio_id
 	if domicilioID <= 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_domicilio.bad_request", nil, map[string]interface{}{"pedido_id": pedidoID, "domicilio_id": domicilioID})
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = models.ApiResponse{Code: 400, Message: "El parámetro 'domicilio_id' debe ser un entero positivo"}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Verificar existencia del pedido usando consulta raw compatible con los mocks (QueryRows)
 	var pedidosExist []models.Pedido
-	if _, err := o.Raw("SELECT pk_id_pedido, fecha, hora, delivery, estado_pedido, pk_id_domicilio, pk_id_pago, pk_id_restaurante, updated_at, updated_by FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+	if _, err := o.Raw("SELECT pk_id_pedido FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_domicilio.not_found", err, map[string]interface{}{"pedido_id": pedidoID})
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Actualizamos la FK al domicilio y marcamos delivery=true para cumplir el check de la DB
 	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, PK_ID_DOMICILIO: &models.Domicilio{ID: domicilioID}, DELIVERY: true}
 	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO", "DELIVERY"); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_domicilio.update_error", err, map[string]interface{}{"pedido_id": pedidoID, "domicilio_id": domicilioID})
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar domicilio", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -289,28 +294,28 @@ func (c *PedidoController) AssignPago() {
 	pedidoID, _ := c.GetInt64("pedido_id")
 	pagoID, _ := c.GetInt64("pago_id")
 	o := orm.NewOrm()
-	// Verificar existencia del pedido usando QueryRows para que los mocks devuelvan la fila
+
 	var pedidosExist []models.Pedido
-	if _, err := o.Raw("SELECT pk_id_pedido, fecha, hora, delivery, estado_pedido, pk_id_domicilio, pk_id_pago, pk_id_restaurante, updated_at, updated_by FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+	if _, err := o.Raw("SELECT pk_id_pedido FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.not_found", err, map[string]interface{}{"pedido_id": pedidoID})
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// Actualizamos la FK al pago y marcamos la orden como terminada usando Update (mantenemos ORM Update para consistencia)
 	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, PK_ID_PAGO: &models.Pago{PK_ID_PAGO: pagoID}, ESTADO_PEDIDO: models.EstadoPedidoTerminado}
 	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_error", err, map[string]interface{}{"pedido_id": pedidoID, "pago_id": pagoID})
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar pago", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
 
-	// También cambiamos el estado en la tabla PAGO usando raw update para que los mocks lo capten si es necesario
 	if _, err := o.Raw("UPDATE pago SET estado_pago = ? WHERE pk_id_pago = ?", models.EstadoPagoPagado, pagoID).Exec(); err != nil {
-		// no bloqueamos la respuesta principal; sólo logueamos el error en la causa
-		// se sigue devolviendo 200 al cliente aunque la actualización de pago falle aquí
+		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_pago_error", err, map[string]interface{}{"pago_id": pagoID})
+		// no bloqueamos la respuesta principal; sólo log
 	}
 
 	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Pago asignado correctamente", Data: pedido}
@@ -340,6 +345,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 		estado != models.EstadoPedidoListo &&
 		estado != models.EstadoPedidoTerminado &&
 		estado != models.EstadoPedidoCancelado {
+		logging.LogControllerError(c.Ctx, "pedidos.update_estado.bad_request", nil, map[string]interface{}{"pedido_id": pedidoID, "estado": estado})
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = models.ApiResponse{
 			Code:    400,
@@ -351,9 +357,9 @@ func (c *PedidoController) UpdateEstadoPedido() {
 
 	o := orm.NewOrm()
 
-	// Verificar existencia del pedido mediante QueryRows (compatibilidad con mocks)
 	var pedidosExist []models.Pedido
-	if _, err := o.Raw("SELECT pk_id_pedido, fecha, hora, delivery, estado_pedido, pk_id_domicilio, pk_id_pago, pk_id_restaurante, updated_at, updated_by FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+	if _, err := o.Raw("SELECT pk_id_pedido FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.update_estado.not_found", err, map[string]interface{}{"pedido_id": pedidoID})
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = models.ApiResponse{
 			Code:    404,
@@ -363,8 +369,8 @@ func (c *PedidoController) UpdateEstadoPedido() {
 		return
 	}
 
-	// Actualizamos el estado del pedido con una ejecución raw para que los mocks capturen la operación
 	if _, err := o.Raw("UPDATE pedido SET estado_pedido = ? WHERE pk_id_pedido = ?", estado, pedidoID).Exec(); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.update_estado.update_error", err, map[string]interface{}{"pedido_id": pedidoID, "estado": estado})
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{
 			Code:    500,
@@ -375,7 +381,6 @@ func (c *PedidoController) UpdateEstadoPedido() {
 		return
 	}
 
-	// Construir respuesta con el pedido actualizado (representación mínima)
 	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, ESTADO_PEDIDO: estado}
 	c.Ctx.Output.SetStatus(200)
 	c.Data["json"] = models.ApiResponse{
@@ -402,9 +407,9 @@ func (c *PedidoController) UpdateEstadoPedido() {
 func (c *PedidoController) GetPedidoDetails() {
 	o := orm.NewOrm()
 
-	// Parámetro
 	pedidoID, _ := c.GetInt64("pedido_id")
 	if pedidoID == 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.details.bad_request", nil, nil)
 		c.Data["json"] = models.ApiResponse{
 			Code:    400,
 			Message: "El parámetro 'pedido_id' es obligatorio.",
@@ -413,7 +418,6 @@ func (c *PedidoController) GetPedidoDetails() {
 		return
 	}
 
-	// Consulta para obtener detalles del pedido
 	query := `
 SELECT
     p.pk_id_pedido                                   AS pk_id_pedido,
@@ -445,10 +449,8 @@ WHERE p.pk_id_pedido = ?;
     `
 
 	var details models.PedidoDetails
-
-	// Ejecutar consulta
-	err := o.Raw(query, pedidoID).QueryRow(&details)
-	if err != nil {
+	if err := o.Raw(query, pedidoID).QueryRow(&details); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.details.db_error", err, map[string]interface{}{"pedido_id": pedidoID})
 		c.Data["json"] = models.ApiResponse{
 			Code:    500,
 			Message: "Error al obtener los detalles del pedido",
@@ -458,7 +460,6 @@ WHERE p.pk_id_pedido = ?;
 		return
 	}
 
-	// Respuesta exitosa
 	c.Data["json"] = models.ApiResponse{
 		Code:    200,
 		Message: "Detalles del pedido obtenidos exitosamente",

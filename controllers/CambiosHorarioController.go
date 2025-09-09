@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"restaurante/database"
+	"restaurante/logging"
 	"restaurante/models"
 	"time"
 
@@ -78,16 +79,15 @@ func (c *CambiosHorarioController) GetAll() {
 	o := orm.NewOrm()
 	var horarios []models.CambiosHorario
 
-	_, err := queryAllCambiosHorario(o, &horarios)
-	if err != nil {
+	if _, err := queryAllCambiosHorario(o, &horarios); err != nil {
+		logging.LogControllerError(c.Ctx, "cambios_horario.getall.db_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al obtener cambios de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -116,8 +116,7 @@ func (c *CambiosHorarioController) GetAll() {
 		Message: "Cambios de horario obtenidos correctamente",
 		Data:    response,
 	}
-	if err := c.ServeJSON(); err != nil {
-	}
+	_ = c.ServeJSON()
 }
 
 // @Title GetByCurrentDate
@@ -135,26 +134,19 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 	var cambioHorario models.CambiosHorario
 
 	currentDate := time.Now().In(database.BogotaZone)
+	dateStr := currentDate.Format("2006-01-02")
 
-	err := queryCambioHorarioByDate(o, currentDate.Format("2006-01-02"), &cambioHorario)
-	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "No hay cambios de horario para la fecha actual",
+	if err := queryCambioHorarioByDate(o, dateStr, &cambioHorario); err != nil {
+		if err == orm.ErrNoRows {
+			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "No hay cambios de horario para la fecha actual"}
+			_ = c.ServeJSON()
+			return
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
-		return
-	} else if err != nil {
+		logging.LogControllerError(c.Ctx, "cambios_horario.actual.db_error", err, map[string]interface{}{"date": dateStr})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al consultar cambios de horario",
-			Cause:   err.Error(),
-		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al consultar cambios de horario", Cause: err.Error()}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -171,13 +163,8 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Cambio de horario encontrado para la fecha actual",
-		Data:    response,
-	}
-	if err := c.ServeJSON(); err != nil {
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Cambio de horario encontrado para la fecha actual", Data: response}
+	_ = c.ServeJSON()
 }
 
 // @Title Post
@@ -198,14 +185,14 @@ func (c *CambiosHorarioController) Post() {
 	var horario models.CambiosHorario
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "cambios_horario.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "Error al procesar la solicitud",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -218,8 +205,7 @@ func (c *CambiosHorarioController) Post() {
 				Message: "Formato de fecha inválido para FECHA",
 				Cause:   err.Error(),
 			}
-			if err := c.ServeJSON(); err != nil {
-			}
+			_ = c.ServeJSON()
 			return
 		}
 		horario.FECHA = parsedDate
@@ -229,8 +215,7 @@ func (c *CambiosHorarioController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo FECHA es obligatorio",
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -242,8 +227,7 @@ func (c *CambiosHorarioController) Post() {
 			Code:    http.StatusBadRequest,
 			Message: "El campo ABIERTO es obligatorio",
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -264,8 +248,7 @@ func (c *CambiosHorarioController) Post() {
 					Message: "Formato de hora inválido para HORA_APERTURA",
 					Cause:   err.Error(),
 				}
-				if err := c.ServeJSON(); err != nil {
-				}
+				_ = c.ServeJSON()
 				return
 			}
 			horario.HORA_APERTURA = &parsedHora
@@ -275,8 +258,7 @@ func (c *CambiosHorarioController) Post() {
 				Code:    http.StatusBadRequest,
 				Message: "El campo HORA_APERTURA es obligatorio cuando ABIERTO es true",
 			}
-			if err := c.ServeJSON(); err != nil {
-			}
+			_ = c.ServeJSON()
 			return
 		}
 
@@ -289,8 +271,7 @@ func (c *CambiosHorarioController) Post() {
 					Message: "Formato de hora inválido para HORA_CIERRE",
 					Cause:   err.Error(),
 				}
-				if err := c.ServeJSON(); err != nil {
-				}
+				_ = c.ServeJSON()
 				return
 			}
 			horario.HORA_CIERRE = parsedHora
@@ -300,21 +281,20 @@ func (c *CambiosHorarioController) Post() {
 				Code:    http.StatusBadRequest,
 				Message: "El campo HORA_CIERRE es obligatorio cuando ABIERTO es true",
 			}
-			if err := c.ServeJSON(); err != nil {
-			}
+			_ = c.ServeJSON()
 			return
 		}
 	}
 
 	if _, err := insertCambioHorario(o, &horario); err != nil {
+		logging.LogControllerError(c.Ctx, "cambios_horario.post.db_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al crear el cambio de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -336,8 +316,7 @@ func (c *CambiosHorarioController) Post() {
 		Message: "Cambio de horario creado correctamente",
 		Data:    response,
 	}
-	if err := c.ServeJSON(); err != nil {
-	}
+	_ = c.ServeJSON()
 }
 
 // @Title Update
@@ -358,26 +337,26 @@ func (c *CambiosHorarioController) Put() {
 	o := orm.NewOrm()
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "cambios_horario.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "ID inválido o ausente",
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
 	var input map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "cambios_horario.put.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "Error al procesar la solicitud",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -389,18 +368,17 @@ func (c *CambiosHorarioController) Put() {
 			Code:    http.StatusNotFound,
 			Message: "Cambio de horario no encontrado",
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	} else if err != nil {
+		logging.LogControllerError(c.Ctx, "cambios_horario.put.db_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al buscar el cambio de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -413,8 +391,7 @@ func (c *CambiosHorarioController) Put() {
 				Message: "Formato de fecha inválido para FECHA",
 				Cause:   err.Error(),
 			}
-			if err := c.ServeJSON(); err != nil {
-			}
+			_ = c.ServeJSON()
 			return
 		}
 		horario.FECHA = parsedDate
@@ -442,8 +419,7 @@ func (c *CambiosHorarioController) Put() {
 					Message: "Formato de hora inválido para HORA_APERTURA",
 					Cause:   err.Error(),
 				}
-				if err := c.ServeJSON(); err != nil {
-				}
+				_ = c.ServeJSON()
 				return
 			}
 			horario.HORA_APERTURA = &parsedHora
@@ -458,8 +434,7 @@ func (c *CambiosHorarioController) Put() {
 					Message: "Formato de hora inválido para HORA_CIERRE",
 					Cause:   err.Error(),
 				}
-				if err := c.ServeJSON(); err != nil {
-				}
+				_ = c.ServeJSON()
 				return
 			}
 			horario.HORA_CIERRE = parsedHora
@@ -467,14 +442,14 @@ func (c *CambiosHorarioController) Put() {
 	}
 
 	if _, err := updateCambioHorario(o, &horario); err != nil {
+		logging.LogControllerError(c.Ctx, "cambios_horario.put.db_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al actualizar el cambio de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
@@ -496,8 +471,7 @@ func (c *CambiosHorarioController) Put() {
 		Message: "Cambio de horario actualizado correctamente",
 		Data:    response,
 	}
-	if err := c.ServeJSON(); err != nil {
-	}
+	_ = c.ServeJSON()
 }
 
 // @Title Delete
@@ -516,25 +490,25 @@ func (c *CambiosHorarioController) Delete() {
 	o := orm.NewOrm()
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "cambios_horario.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "ID inválido o ausente",
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 		return
 	}
 
 	if num, err := deleteCambioHorarioByID(o, id); err != nil {
+		logging.LogControllerError(c.Ctx, "cambios_horario.delete.db_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Error al eliminar el cambio de horario",
 			Cause:   err.Error(),
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 	} else if num == 0 {
 		// Se mantiene tu semántica: 200 con Code=404
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -542,15 +516,13 @@ func (c *CambiosHorarioController) Delete() {
 			Code:    http.StatusNotFound,
 			Message: "Cambio de horario no encontrado",
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusOK,
 			Message: "Cambio de horario eliminado correctamente",
 		}
-		if err := c.ServeJSON(); err != nil {
-		}
+		_ = c.ServeJSON()
 	}
 }

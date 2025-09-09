@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
 	"strings"
@@ -57,6 +58,10 @@ func (c *ProductoController) GetAll() {
 	// Ejecutar la consulta con filtros
 	_, err := queryProductosAll(o, onlyActive, &productos)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "productos.getall.db_error", err, map[string]interface{}{
+			"onlyActive":   onlyActive,
+			"includeImage": includeImage,
+		})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -98,6 +103,7 @@ func (c *ProductoController) GetById() {
 	id, err := c.GetInt("id")
 
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "productos.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -190,6 +196,7 @@ func (c *ProductoController) Post() {
 		}
 	} else {
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &producto); err != nil {
+			logging.LogControllerError(c.Ctx, "productos.post.bad_json", err, map[string]interface{}{"contentType": contentType})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -200,6 +207,7 @@ func (c *ProductoController) Post() {
 	producto.ESTADO_PRODUCTO = models.EstadoProducto(strings.ToUpper(string(producto.ESTADO_PRODUCTO)))
 
 	if err := validateProducto(&producto); err != nil {
+		logging.LogControllerError(c.Ctx, "productos.post.validation_error", err, map[string]interface{}{"nombre": producto.NOMBRE, "precio": producto.PRECIO})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()}
 		_ = c.ServeJSON()
@@ -207,6 +215,7 @@ func (c *ProductoController) Post() {
 	}
 
 	if _, err := insertProductoFn(o, &producto); err != nil {
+		logging.LogControllerError(c.Ctx, "productos.post.insert_error", err, map[string]interface{}{"nombre": producto.NOMBRE})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear el producto", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -220,6 +229,7 @@ func (c *ProductoController) Post() {
 
 	hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 	if _, err := insertPrecioHistFn(o, &hist); err != nil {
+		logging.LogControllerError(c.Ctx, "productos.post.hist_insert_error", err, map[string]interface{}{"productoId": producto.PK_ID_PRODUCTO})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -257,6 +267,7 @@ func (c *ProductoController) Put() {
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "productos.put.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente.", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -311,6 +322,7 @@ func (c *ProductoController) Put() {
 		} else {
 			var input models.Producto
 			if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+				logging.LogControllerError(c.Ctx, "productos.put.bad_json", err, map[string]interface{}{"id": id})
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
 				c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
 				_ = c.ServeJSON()
@@ -330,6 +342,7 @@ func (c *ProductoController) Put() {
 		}
 
 		if err := validateProducto(&producto); err != nil {
+			logging.LogControllerError(c.Ctx, "productos.put.validation_error", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()}
 			_ = c.ServeJSON()
@@ -344,6 +357,7 @@ func (c *ProductoController) Put() {
 		}
 
 		if _, err = updateProductoFn(o, &producto); err != nil {
+			logging.LogControllerError(c.Ctx, "productos.put.update_error", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el producto.", Cause: err.Error()}
 			_ = c.ServeJSON()
@@ -358,6 +372,7 @@ func (c *ProductoController) Put() {
 
 			hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
 			if _, err := insertPrecioHistFn(o, &hist); err != nil {
+				logging.LogControllerError(c.Ctx, "productos.put.hist_insert_error", err, map[string]interface{}{"id": id})
 				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al registrar historial de precios", Cause: err.Error()}
 				_ = c.ServeJSON()
@@ -395,6 +410,7 @@ func (c *ProductoController) Delete() {
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "productos.delete.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -428,6 +444,7 @@ func (c *ProductoController) Delete() {
 	// Cambiar el estado del producto a "NO_DISPONIBLE" para el borrado lógico
 	producto.ESTADO_PRODUCTO = models.EstadoProductoNoDisponible
 	if _, err := updateProductoFn(o, producto, "ESTADO_PRODUCTO"); err != nil {
+		logging.LogControllerError(c.Ctx, "productos.delete.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusInternalServerError,

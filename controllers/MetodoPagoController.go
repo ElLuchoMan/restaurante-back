@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
 
@@ -57,25 +58,16 @@ type MetodoPagoController struct {
 func (c *MetodoPagoController) GetAll() {
 	o := getOrm()
 	var metodos []models.MetodoPago
-
 	_, err := o.QueryTable(new(models.MetodoPago)).All(&metodos)
 	if err != nil {
+		logging.LogControllerError(c.Ctx, "metodos_pago.getall.db_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener métodos de pago de la base de datos",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener métodos de pago de la base de datos", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
-
 	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Métodos de pago obtenidos exitosamente",
-		Data:    metodos,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Métodos de pago obtenidos exitosamente", Data: metodos}
 	_ = c.ServeJSON()
 }
 
@@ -93,38 +85,23 @@ func (c *MetodoPagoController) GetAll() {
 func (c *MetodoPagoController) GetById() {
 	o := getOrm()
 	id, err := c.GetInt("id")
-
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "metodos_pago.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
-
 	metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
-
 	err = o.Read(&metodo)
 	if err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Método de pago no encontrado",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Método de pago no encontrado", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
-
 	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Método de pago encontrado",
-		Data:    metodo,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Método de pago encontrado", Data: metodo}
 	_ = c.ServeJSON()
 }
 
@@ -142,36 +119,22 @@ func (c *MetodoPagoController) GetById() {
 func (c *MetodoPagoController) Post() {
 	o := getOrm()
 	var metodo models.MetodoPago
-
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &metodo); err != nil {
+		logging.LogControllerError(c.Ctx, "metodos_pago.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error en la solicitud",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error en la solicitud", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
-
-	_, err := o.Insert(&metodo)
-	if err != nil {
+	if _, err := o.Insert(&metodo); err != nil {
+		logging.LogControllerError(c.Ctx, "metodos_pago.post.insert_error", err, map[string]interface{}{"tipo": metodo.TIPO, "detalle": metodo.DETALLE})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el método de pago",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear el método de pago", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
-
 	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Método de pago creado correctamente",
-		Data:    metodo,
-	}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Método de pago creado correctamente", Data: metodo}
 	_ = c.ServeJSON()
 }
 
@@ -189,62 +152,39 @@ func (c *MetodoPagoController) Post() {
 // @Router /metodos_pago [put]
 func (c *MetodoPagoController) Put() {
 	o := getOrm()
-
-	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "metodos_pago.put.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
-
 	metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
-
 	if o.Read(&metodo) == nil {
 		var updatedMetodo models.MetodoPago
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedMetodo); err != nil {
+			logging.LogControllerError(c.Ctx, "metodos_pago.put.bad_json", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Error en la solicitud",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error en la solicitud", Cause: err.Error()}
 			_ = c.ServeJSON()
 			return
 		}
-
 		updatedMetodo.PK_ID_METODO_PAGO = int64(id)
-		_, err := o.Update(&updatedMetodo)
-		if err != nil {
+		if _, err := o.Update(&updatedMetodo); err != nil {
+			logging.LogControllerError(c.Ctx, "metodos_pago.put.update_error", err, map[string]interface{}{"id": id})
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al actualizar el método de pago",
-				Cause:   err.Error(),
-			}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el método de pago", Cause: err.Error()}
 			_ = c.ServeJSON()
 			return
 		}
-
 		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Método de pago actualizado",
-			Data:    updatedMetodo,
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Método de pago actualizado", Data: updatedMetodo}
 		_ = c.ServeJSON()
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Método de pago no encontrado",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Método de pago no encontrado"}
 		_ = c.ServeJSON()
 	}
 }
@@ -262,37 +202,24 @@ func (c *MetodoPagoController) Put() {
 // @Router /metodos_pago [delete]
 func (c *MetodoPagoController) Delete() {
 	o := getOrm()
-
-	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "metodos_pago.delete.bad_request", err, map[string]interface{}{"id": idStr})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
-
 	metodo := models.MetodoPago{PK_ID_METODO_PAGO: int64(id)}
-
 	if _, err := o.Delete(&metodo); err == nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Método de pago eliminado",
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Método de pago eliminado"}
 		_ = c.ServeJSON()
 	} else {
+		logging.LogControllerError(c.Ctx, "metodos_pago.delete.delete_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Método de pago no encontrado",
-			Cause:   err.Error(),
-		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Método de pago no encontrado", Cause: err.Error()}
 		_ = c.ServeJSON()
 	}
 }

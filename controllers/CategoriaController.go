@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"restaurante/logging"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -59,6 +60,7 @@ func (c *CategoriaController) GetAll() {
 	o := catOrmNew()
 	var categorias []models.Categoria
 	if _, err := o.QueryTable(new(models.Categoria)).All(&categorias); err != nil {
+		logging.LogControllerError(c.Ctx, "categorias.getall.db_error", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener categorías", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -81,6 +83,7 @@ func (c *CategoriaController) GetById() {
 	o := catOrmNew()
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "categorias.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
 		_ = c.ServeJSON()
@@ -109,10 +112,9 @@ func (c *CategoriaController) GetById() {
 // @Router /categorias [post]
 func (c *CategoriaController) Post() {
 	o := catOrmNew()
-	var in struct {
-		Nombre string `json:"nombre"`
-	}
+	var in struct{ Nombre string `json:"nombre"` }
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" {
+		logging.LogControllerError(c.Ctx, "categorias.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o nombre requerido"}
 		_ = c.ServeJSON()
@@ -120,6 +122,7 @@ func (c *CategoriaController) Post() {
 	}
 	cat := models.Categoria{NOMBRE: in.Nombre}
 	if _, err := o.Insert(&cat); err != nil {
+		logging.LogControllerError(c.Ctx, "categorias.post.insert_error", err, map[string]interface{}{"nombre": in.Nombre})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear categoría", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -144,6 +147,7 @@ func (c *CategoriaController) Put() {
 	o := catOrmNew()
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "categorias.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
 		_ = c.ServeJSON()
@@ -156,10 +160,9 @@ func (c *CategoriaController) Put() {
 		_ = c.ServeJSON()
 		return
 	}
-	var in struct {
-		Nombre *string `json:"nombre"`
-	}
+	var in struct{ Nombre *string `json:"nombre"` }
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
+		logging.LogControllerError(c.Ctx, "categorias.put.bad_json", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -169,6 +172,7 @@ func (c *CategoriaController) Put() {
 		cat.NOMBRE = *in.Nombre
 	}
 	if _, err := o.Update(&cat, "NOMBRE"); err != nil {
+		logging.LogControllerError(c.Ctx, "categorias.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar categoría", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -191,6 +195,7 @@ func (c *CategoriaController) Delete() {
 	o := catOrmNew()
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "categorias.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
 		_ = c.ServeJSON()
