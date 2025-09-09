@@ -9,10 +9,19 @@ linters:
   enable:
     - errcheck
     - ineffassign
+    - staticcheck
+    - unused
+    - gosimple
+    - goconst
+    - misspell
+    - gosec
   settings:            # reemplaza a "linters-settings"
     errcheck:
       check-type-assertions: false
       check-blank: false
+    gosec:
+      excludes:
+        - G115 # integer conversion precision loss (ruido en tests)
   exclusions:
     paths:
       - docs

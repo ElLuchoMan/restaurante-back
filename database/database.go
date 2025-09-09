@@ -1,9 +1,11 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"restaurante/models"
@@ -42,33 +44,74 @@ var countMetodoPagoByTipo = func(o orm.Ormer, tipo string) (int64, error) {
 	return countFn(qs)
 }
 
+// GetDefaultSQLDB expone el *sql.DB asociado al alias "default" para health/readiness checks.
+func GetDefaultSQLDB() (*sql.DB, error) {
+	return getDB("default")
+}
+
+func getenvInt(key string) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
 func InitDB() error {
 	quiet := os.Getenv("QUIET_TESTS") == "1"
 
-	// Validar y obtener configuración obligatoria de DB
-	dbHost, err := web.AppConfig.String("db_host")
-	if err != nil {
-		return fmt.Errorf("config db_host: %w", err)
+	// Preferir variables de entorno y caer a app.conf cuando no estén definidas
+	dbHost := os.Getenv("DB_HOST")
+	if dbHost == "" {
+		v, err := web.AppConfig.String("db_host")
+		if err != nil {
+			return fmt.Errorf("config db_host: %w", err)
+		}
+		dbHost = v
 	}
-	dbPort, err := web.AppConfig.String("db_port")
-	if err != nil {
-		return fmt.Errorf("config db_port: %w", err)
+	dbPort := os.Getenv("DB_PORT")
+	if dbPort == "" {
+		v, err := web.AppConfig.String("db_port")
+		if err != nil {
+			return fmt.Errorf("config db_port: %w", err)
+		}
+		dbPort = v
 	}
-	dbUser, err := web.AppConfig.String("db_user")
-	if err != nil {
-		return fmt.Errorf("config db_user: %w", err)
+	dbUser := os.Getenv("DB_USER")
+	if dbUser == "" {
+		v, err := web.AppConfig.String("db_user")
+		if err != nil {
+			return fmt.Errorf("config db_user: %w", err)
+		}
+		dbUser = v
 	}
-	dbPass, err := web.AppConfig.String("db_pass")
-	if err != nil {
-		return fmt.Errorf("config db_pass: %w", err)
+	dbPass := os.Getenv("DB_PASS")
+	if dbPass == "" {
+		v, err := web.AppConfig.String("db_pass")
+		if err != nil {
+			return fmt.Errorf("config db_pass: %w", err)
+		}
+		dbPass = v
 	}
-	dbName, err := web.AppConfig.String("db_name")
-	if err != nil {
-		return fmt.Errorf("config db_name: %w", err)
+	dbName := os.Getenv("DB_NAME")
+	if dbName == "" {
+		v, err := web.AppConfig.String("db_name")
+		if err != nil {
+			return fmt.Errorf("config db_name: %w", err)
+		}
+		dbName = v
+	}
+	sslMode := os.Getenv("DB_SSLMODE")
+	if sslMode == "" {
+		sslMode = "disable"
 	}
 
-	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable TimeZone=UTC",
-		dbUser, dbPass, dbHost, dbPort, dbName)
+	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=%s TimeZone=UTC",
+		dbUser, dbPass, dbHost, dbPort, dbName, sslMode)
 
 	if err := registerDataBase("default", "postgres", connStr); err != nil {
 		return err
@@ -77,6 +120,22 @@ func InitDB() error {
 	if !quiet {
 		fmt.Println("Conexión a la base de datos exitosa!")
 		fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
+	}
+
+	// Configurar pool de conexiones y timeouts si el alias existe
+	if sqlDB, err := GetDefaultSQLDB(); err == nil && sqlDB != nil {
+		if maxOpen := getenvInt("DB_MAX_OPEN"); maxOpen > 0 {
+			sqlDB.SetMaxOpenConns(maxOpen)
+		}
+		if maxIdle := getenvInt("DB_MAX_IDLE"); maxIdle > 0 {
+			sqlDB.SetMaxIdleConns(maxIdle)
+		}
+		if mins := getenvInt("DB_CONN_MAX_LIFETIME_MIN"); mins > 0 {
+			sqlDB.SetConnMaxLifetime(time.Duration(mins) * time.Minute)
+		}
+		if mins := getenvInt("DB_CONN_MAX_IDLE_TIME_MIN"); mins > 0 {
+			sqlDB.SetConnMaxIdleTime(time.Duration(mins) * time.Minute)
+		}
 	}
 
 	// Permitir desactivar el seed en unit tests para evitar depender del alias registrado

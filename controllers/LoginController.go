@@ -1,16 +1,19 @@
 package controllers
 
 import (
+	"crypto/rand"
 	"encoding/json"
-	"fmt"
+	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"restaurante/models"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -32,11 +35,92 @@ type Claims struct {
 	Documento int64  `json:"documento"`
 	Rol       string `json:"rol"`
 	Nombre    string `json:"nombre"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // Llave secreta para firmar el token
-var jwtSecret = []byte(os.Getenv("cocina-de-maria"))
+var jwtSecret []byte
+
+func init() {
+	jwtSecret = loadJWTSecret()
+}
+
+func loadJWTSecret() []byte {
+	if s := os.Getenv("JWT_SECRET"); s != "" {
+		return []byte(s)
+	}
+	// En dev/test permitir secreto efímero para facilitar desarrollo y tests.
+	if web.BConfig.RunMode != "prod" {
+		b := make([]byte, 32)
+		if _, err := rand.Read(b); err == nil {
+			return b
+		}
+		return []byte("dev-insecure-default")
+	}
+	// En prod, el secreto es obligatorio.
+	panic("JWT_SECRET no configurado")
+}
+
+// Sencillo rate limiter por IP
+var (
+	loginRL       = newRateLimiter()
+	loginMaxReq   = getEnvIntDefault("LOGIN_MAX_REQ_PER_MIN", 10)
+	loginWindow   = time.Minute
+	rlMutex       sync.Mutex
+)
+
+type rateEntry struct {
+	count int
+	reset time.Time
+}
+
+type rateLimiter struct {
+	m map[string]*rateEntry
+}
+
+func newRateLimiter() *rateLimiter {
+	return &rateLimiter{m: make(map[string]*rateEntry)}
+}
+
+func getEnvIntDefault(k string, d int) int {
+	v := os.Getenv(k)
+	if v == "" {
+		return d
+	}
+	if n, err := strconv.Atoi(v); err == nil && n > 0 {
+		return n
+	}
+	return d
+}
+
+func clientIP(r *http.Request) string {
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip != "" {
+		parts := strings.Split(ip, ",")
+		return strings.TrimSpace(parts[0])
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
+
+func allowLogin(r *http.Request) bool {
+	rlMutex.Lock()
+	defer rlMutex.Unlock()
+	ip := clientIP(r)
+	entry, ok := loginRL.m[ip]
+	if !ok || time.Now().After(entry.reset) {
+		loginRL.m[ip] = &rateEntry{count: 1, reset: time.Now().Add(loginWindow)}
+		return true
+	}
+	if entry.count >= loginMaxReq {
+		return false
+	}
+	entry.count++
+	return true
+}
 
 // @Title Login
 // @Summary Iniciar sesión para clientes o trabajadores
@@ -48,8 +132,17 @@ var jwtSecret = []byte(os.Getenv("cocina-de-maria"))
 // @Success 200 {object} models.ApiResponse "Inicio de sesión exitoso con token JWT"
 // @Failure 400 {object} models.ApiResponse "Solicitud incorrecta"
 // @Failure 401 {object} models.ApiResponse "Credenciales inválidas"
+// @Failure 429 {object} models.ApiResponse "Demasiadas solicitudes"
 // @Router /login [post]
 func (c *LoginController) Login() {
+	// Rate limit
+	if !allowLogin(c.Ctx.Request) {
+		c.Ctx.Output.SetStatus(http.StatusTooManyRequests)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusTooManyRequests, Message: "Demasiados intentos, intente más tarde"}
+		_ = c.ServeJSON()
+		return
+	}
+
 	var loginRequest models.LoginRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &loginRequest); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -124,8 +217,9 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
 		Documento: documento,
 		Rol:       rol,
 		Nombre:    nombre,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
 
@@ -157,14 +251,12 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
 func ValidateToken(ctx *context.Context) {
 	// 1) Permitir CORS preflight
 	if ctx.Input.Method() == "OPTIONS" {
-		fmt.Println("Solicitud OPTIONS recibida y permitida")
 		ctx.Output.Status = http.StatusOK
 		return
 	}
 
 	// 2) Permitir crear cliente sin token (registro público)
 	if ctx.Input.Method() == "POST" && ctx.Input.URL() == "/restaurante/v1/clientes" {
-		fmt.Println("POST público /restaurante/v1/clientes: sin validación de token")
 		return
 	}
 
@@ -172,7 +264,6 @@ func ValidateToken(ctx *context.Context) {
 	if web.BConfig.RunMode == "dev" {
 		referer := ctx.Input.Header("Referer")
 		if strings.Contains(referer, "/swagger/") {
-			fmt.Println("Bypass de token por Swagger UI en modo dev")
 			return
 		}
 		// Por seguridad adicional, si se pidiera a rutas de swagger (estático)
@@ -184,7 +275,6 @@ func ValidateToken(ctx *context.Context) {
 	// 3) Resto de rutas: exigir token
 	authHeader := ctx.Input.Header("Authorization")
 	if authHeader == "" {
-		fmt.Println("No se proporcionó el token")
 		ctx.Output.SetStatus(http.StatusUnauthorized)
 		if err := ctx.Output.JSON(models.ApiResponse{
 			Code:    http.StatusUnauthorized,
@@ -194,7 +284,6 @@ func ValidateToken(ctx *context.Context) {
 		}
 		return
 	}
-	fmt.Println("Token recibido:", authHeader)
 
 	// Normalizar prefijo Bearer
 	if len(authHeader) < 7 || authHeader[:7] != "Bearer " {
@@ -205,10 +294,9 @@ func ValidateToken(ctx *context.Context) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}))
 
 	if err != nil || !token.Valid {
-		fmt.Println("Token inválido:", err)
 		ctx.Output.SetStatus(http.StatusUnauthorized)
 		if err := ctx.Output.JSON(models.ApiResponse{
 			Code:    http.StatusUnauthorized,
@@ -218,6 +306,4 @@ func ValidateToken(ctx *context.Context) {
 		}
 		return
 	}
-
-	fmt.Println("Token válido. Claims:", claims)
 }

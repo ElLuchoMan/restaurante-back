@@ -54,8 +54,22 @@ jobs:
           SKIP_CRON: "1"
           SKIP_DB_SEED: "1"
         run: |
-          go test -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
+          go test -race -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
           go tool cover -func=coverage.out | tee coverage.txt
+
+      - name: Enforce coverage >= 95%
+        run: |
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","",$3); print $3}')
+          echo "Total coverage: ${pct}%"
+          python3 - <<'PY' "$pct"
+import sys
+pct=float(sys.argv[1])
+th=95.0
+if pct < th:
+    print(f"Coverage {pct}% below threshold {th}%", flush=True)
+    sys.exit(1)
+print("Coverage OK", flush=True)
+PY
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -108,3 +122,43 @@ jobs:
           version: v2.4.0
           args: >
             --timeout=5m
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: detect --source . --no-banner --redact
+
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    needs: [build-test, swagger-verify, lint-golangci, secrets-scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Export secrets to env
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          echo "JWT_SECRET set: $([[ -n \"$JWT_SECRET\" ]] && echo yes || echo no)"
+          for v in DB_HOST DB_PORT DB_USER DB_PASS DB_NAME; do
+            echo "$v set: $([[ -n \"${!v}\" ]] && echo yes || echo no)"
+          done
+          # Aquí iría tu lógica real de despliegue (Docker, SSH, etc.)

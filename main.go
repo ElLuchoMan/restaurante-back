@@ -4,11 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"restaurante/database"
 	_ "restaurante/docs"
 	"restaurante/models"
 	_ "restaurante/routers"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -108,10 +111,10 @@ func generarNominaAutomatica() {
 }
 
 func setStaticHeaders(ctx *context.Context) {
-	// Solo aplicar cache y compresión en archivos estáticos (imagenes, CSS, JS)
-	if ctx.Input.URL() != "" && (ctx.Input.URL() == "/assets/" || ctx.Input.URL() == "/static/") {
+	// Solo aplicar cache a archivos estáticos (imagenes, CSS, JS)
+	url := ctx.Input.URL()
+	if strings.HasPrefix(url, "/assets/") || strings.HasPrefix(url, "/static/") {
 		ctx.Output.Header("Cache-Control", "public, max-age=31536000, immutable")
-		ctx.Output.Header("Content-Encoding", "gzip")
 		ctx.Output.Header("Vary", "Accept-Encoding")
 	}
 }
@@ -126,20 +129,71 @@ func setStaticHeaders(ctx *context.Context) {
 // @name Authorization
 // @Security BearerAuth
 func main() {
-	// Habilitar CORS para todas las rutas
-	web.InsertFilter("*", web.BeforeRouter, cors.Allow(&cors.Options{
-		AllowAllOrigins:  true,
+	// Healthcheck
+	web.Get("/healthz", func(ctx *context.Context) {
+		ctx.Output.SetStatus(200)
+		_ = ctx.Output.Body([]byte("ok"))
+	})
+	web.Get("/readyz", func(ctx *context.Context) {
+		status := 200
+		if sqlDB, err := database.GetDefaultSQLDB(); err == nil && sqlDB != nil {
+			if err := sqlDB.Ping(); err != nil {
+				status = http.StatusServiceUnavailable
+			}
+		}
+		ctx.Output.SetStatus(status)
+		_ = ctx.Output.Body([]byte(http.StatusText(status)))
+	})
+
+	// Limitar tamaño de request y multipart
+	if v := os.Getenv("MAX_BODY_BYTES"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			web.BConfig.MaxMemory = n
+		}
+	}
+	if v := os.Getenv("MULTIPART_MAX_MEMORY_MB"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			web.BConfig.CopyRequestBody = false
+			web.BConfig.MaxMemory = int64(n) * 1024 * 1024
+		}
+	}
+
+	// Configurar CORS según entorno
+	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS") // Coma-separado
+	runMode := web.BConfig.RunMode
+	corsOpts := &cors.Options{
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Content-Type", "Accept"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
-	}))
-	// Aplicar compresión y cacheo SOLO a archivos estáticos
+	}
+	if runMode == "prod" {
+		// En prod, exigir orígenes explícitos; si no hay, dejar vacío (bloquea cross-origin)
+		if strings.TrimSpace(allowedOriginsEnv) == "" {
+			corsOpts.AllowAllOrigins = false
+			corsOpts.AllowOrigins = []string{}
+		} else {
+			parts := strings.Split(allowedOriginsEnv, ",")
+			for i := range parts {
+				parts[i] = strings.TrimSpace(parts[i])
+			}
+			corsOpts.AllowAllOrigins = false
+			corsOpts.AllowOrigins = parts
+		}
+	} else {
+		// En dev/test permitir todos los orígenes por conveniencia
+		corsOpts.AllowAllOrigins = true
+	}
+	web.InsertFilter("*", web.BeforeRouter, cors.Allow(corsOpts))
+
+	// Aplicar cache en estáticos
 	web.InsertFilter("/*", web.BeforeRouter, setStaticHeaders)
 
-	// Habilitar la documentación de Swagger
-	web.BConfig.WebConfig.DirectoryIndex = true
-	web.Handler("/swagger/*", httpSwagger.WrapHandler)
+	// Swagger y listado de directorios sólo fuera de prod
+	if runMode != "prod" {
+		web.BConfig.WebConfig.DirectoryIndex = true
+		web.Handler("/swagger/*", httpSwagger.WrapHandler)
+	}
 
 	// Iniciar el cron job solo si la DB está disponible y no se ha pedido omitirlo
 	if dbReady && os.Getenv("SKIP_CRON") != "1" {

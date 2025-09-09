@@ -14,6 +14,21 @@ func init() {
 			// OJO: aquí NO hay NSBefore(ValidateToken)
 			beego.NSRouter("/", &controllers.ClienteController{}, "options:Options;post:Post"),
 		),
+		// Productos: público para lectura (menú)
+		beego.NSNamespace("/productos",
+			beego.NSRouter("/", &controllers.ProductoController{}, "get:GetAll"),
+			beego.NSRouter("/search", &controllers.ProductoController{}, "get:GetById"),
+		),
+		// Reservas: público GET/POST (crear reservas y consultar)
+		beego.NSNamespace("/reservas",
+			beego.NSRouter("/", &controllers.ReservaController{}, "get:GetAll;post:Post"),
+			beego.NSRouter("/search", &controllers.ReservaController{}, "get:GetById"),
+			beego.NSRouter("/parameter", &controllers.ReservaController{}, "get:GetByParameter"),
+		),
+		// Cambios de horario: público sólo consulta del día actual
+		beego.NSNamespace("/cambios_horario",
+			beego.NSRouter("/actual", &controllers.CambiosHorarioController{}, "get:GetByCurrentDate"),
+		),
 	)
 
 	// ===== Namespace PROTEGIDO (después del público) =====
@@ -65,10 +80,10 @@ func init() {
 			beego.NSRouter("/", &controllers.HorarioTrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		),
 
-		// Productos (público según tu definición actual)
+		// Productos (protegido para escritura)
 		beego.NSNamespace("/productos",
-			beego.NSRouter("/", &controllers.ProductoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-			beego.NSRouter("/search", &controllers.ProductoController{}, "get:GetById"),
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.ProductoController{}, "post:Post;put:Put;delete:Delete"),
 		),
 
 		// Categorías (protegido)
@@ -113,18 +128,16 @@ func init() {
 			beego.NSRouter("/search", &controllers.ReservaContactoController{}, "get:GetById"),
 		),
 
-		// Reservas (público según tu definición actual)
+		// Reservas (protegido para escritura)
 		beego.NSNamespace("/reservas",
-			beego.NSRouter("/", &controllers.ReservaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-			beego.NSRouter("/search", &controllers.ReservaController{}, "get:GetById"),
-			beego.NSRouter("/parameter", &controllers.ReservaController{}, "get:GetByParameter"),
+			beego.NSBefore(controllers.ValidateToken),
+			beego.NSRouter("/", &controllers.ReservaController{}, "put:Put;delete:Delete"),
 		),
 
-		// Métodos de pago (protegido)
-		beego.NSNamespace("/metodos_pago",
+		// Cambios de horario (protegido para gestión)
+		beego.NSNamespace("/cambios_horario",
 			beego.NSBefore(controllers.ValidateToken),
-			beego.NSRouter("/", &controllers.MetodoPagoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-			beego.NSRouter("/search", &controllers.MetodoPagoController{}, "get:GetById"),
+			beego.NSRouter("/", &controllers.CambiosHorarioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		),
 
 		// Pagos (protegido)
@@ -138,19 +151,6 @@ func init() {
 		beego.NSNamespace("/nominas",
 			beego.NSBefore(controllers.ValidateToken),
 			beego.NSRouter("/", &controllers.NominaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-		),
-
-		// Cambios de horario (público según tu definición actual)
-		beego.NSNamespace("/cambios_horario",
-			beego.NSRouter("/", &controllers.CambiosHorarioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-			beego.NSRouter("/actual", &controllers.CambiosHorarioController{}, "get:GetByCurrentDate"),
-		),
-
-		// Incidencias (protegido)
-		beego.NSNamespace("/incidencias",
-			beego.NSBefore(controllers.ValidateToken),
-			beego.NSRouter("/", &controllers.IncidenciaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-			beego.NSRouter("/search", &controllers.IncidenciaController{}, "get:GetByDocumentAndDate"),
 		),
 
 		// Nómina trabajador (protegido)

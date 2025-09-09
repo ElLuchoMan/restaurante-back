@@ -17,7 +17,7 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
 - Go 1.25
 - Beego v2.3.8
 - PostgreSQL (`github.com/lib/pq`) v1.10.9
-- JWT (`github.com/dgrijalva/jwt-go`) v3.2.0
+- JWT (`github.com/golang-jwt/jwt/v5`) v5
 - Swagger UI (`github.com/swaggo/http-swagger`) v1.3.4 / Generador (`github.com/swaggo/swag`) v1.16.6
 - Goconvey v1.8.1 para pruebas
 
@@ -118,8 +118,8 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
 - Autenticación: Bearer Token en cabecera `Authorization`.
 - Base path: `/restaurante/v1`.
 - Rutas principales (ver `routers/router.go` para el detalle):
-  - Público: `POST /clientes` (registro), `POST /login`, `GET/POST/PUT/DELETE /productos`, `GET/POST/PUT/DELETE /reservas`.
-  - Protegido: clientes (GET/PUT/DELETE), pedidos, domicilios, trabajadores, horario_trabajador, métodos de pago, pagos, nóminas, incidencias, nomina_trabajador, producto_pedido, categorías, subcategorías.
+  - Público: `POST /clientes` (registro), `GET /productos`, `GET/POST /reservas`, `GET /cambios_horario/actual`, `POST /login`.
+  - Protegido: clientes (GET/PUT/DELETE), productos (POST/PUT/DELETE), reservas (PUT/DELETE), pedidos, domicilios, trabajadores, horario_trabajador, métodos de pago, pagos, nóminas, incidencias, nomina_trabajador, producto_pedido, categorías, subcategorías.
   - Lectura auxiliar (protegido): `precio_producto_hist`, `control_nomina`, `restaurante_dia`, `reserva_contacto`.
 
 ## Comportamiento y reglas de negocio (clave)

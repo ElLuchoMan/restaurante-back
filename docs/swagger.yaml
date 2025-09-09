@@ -941,6 +941,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Eliminar un cambio de horario
       tags:
       - cambios_horario
@@ -968,6 +970,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Obtener todos los cambios de horario
       tags:
       - cambios_horario
@@ -1003,6 +1007,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo cambio de horario
       tags:
       - cambios_horario
@@ -1047,6 +1053,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un cambio de horario
       tags:
       - cambios_horario
@@ -3165,6 +3173,8 @@ paths:
           description: Error en la base de datos
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Desactivar un producto
       tags:
       - productos
@@ -3260,6 +3270,8 @@ paths:
           description: Error en la solicitud
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Crear un nuevo producto
       tags:
       - productos
@@ -3323,6 +3335,8 @@ paths:
           description: Producto no encontrado
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar un producto
       tags:
       - productos
@@ -3442,6 +3456,8 @@ paths:
           description: Reserva no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Cancelar una reserva
       tags:
       - reservas
@@ -3517,6 +3533,8 @@ paths:
           description: Reserva no encontrada
           schema:
             $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
       summary: Actualizar una reserva
       tags:
       - reservas

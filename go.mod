@@ -5,7 +5,7 @@ go 1.25.0
 require github.com/beego/beego/v2 v2.3.8
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/lib/pq v1.10.9
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/swaggo/http-swagger v1.3.4

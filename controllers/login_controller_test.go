@@ -14,7 +14,7 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/context"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // mockLoginOrmer implements only the Read method of orm.Ormer, allowing tests
@@ -31,9 +31,9 @@ func (m mockLoginOrmer) Read(v interface{}, cols ...string) error {
 }
 
 func TestGenerateJWT(t *testing.T) {
-	os.Setenv("cocina-de-maria", "testsecret")
-	defer os.Unsetenv("cocina-de-maria")
-	jwtSecret = []byte(os.Getenv("cocina-de-maria"))
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 	r := httptest.NewRequest(http.MethodPost, "/login", nil)
 	w := httptest.NewRecorder()
@@ -83,9 +83,9 @@ func TestLoginInvalidJSON(t *testing.T) {
 }
 
 func TestLoginTrabajadorSuccess(t *testing.T) {
-	os.Setenv("cocina-de-maria", "testsecret")
-	defer os.Unsetenv("cocina-de-maria")
-	jwtSecret = []byte(os.Getenv("cocina-de-maria"))
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 	origNewOrm := newOrm
 	defer func() { newOrm = origNewOrm }()
@@ -138,9 +138,9 @@ func TestLoginTrabajadorSuccess(t *testing.T) {
 }
 
 func TestLoginClienteSuccess(t *testing.T) {
-	os.Setenv("cocina-de-maria", "testsecret")
-	defer os.Unsetenv("cocina-de-maria")
-	jwtSecret = []byte(os.Getenv("cocina-de-maria"))
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 	origNewOrm := newOrm
 	defer func() { newOrm = origNewOrm }()
@@ -319,9 +319,9 @@ func TestValidateTokenInvalid(t *testing.T) {
 }
 
 func TestValidateTokenValid(t *testing.T) {
-	os.Setenv("cocina-de-maria", "testsecret")
-	defer os.Unsetenv("cocina-de-maria")
-	jwtSecret = []byte(os.Getenv("cocina-de-maria"))
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 	claims := &Claims{Documento: 1, Rol: "Admin", Nombre: "Tester"}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -344,9 +344,9 @@ func TestValidateTokenValid(t *testing.T) {
 }
 
 func TestValidateTokenWithoutBearerPrefix(t *testing.T) {
-	os.Setenv("cocina-de-maria", "testsecret")
-	defer os.Unsetenv("cocina-de-maria")
-	jwtSecret = []byte(os.Getenv("cocina-de-maria"))
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 	claims := &Claims{Documento: 1, Rol: "Admin", Nombre: "Tester"}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -145,6 +145,7 @@ func (c *ProductoController) GetById() {
 // @Param   imagen         formData file    false "Archivo de imagen"
 // @Success 201 {object} models.ApiResponse{data=models.Producto} "Producto creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Security BearerAuth
 // @Router /productos [post]
 func (c *ProductoController) Post() {
 	o := ormNewProducto()
@@ -248,6 +249,7 @@ func (c *ProductoController) Post() {
 // @Param   imagen         formData file    false "Archivo de imagen"
 // @Success 200 {object} models.ApiResponse{data=models.Producto} "Producto actualizado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
+// @Security BearerAuth
 // @Router /productos [put]
 func (c *ProductoController) Put() {
 	o := ormNewProducto()
@@ -384,6 +386,7 @@ func (c *ProductoController) Put() {
 // @Success 200 {object} models.ApiResponse "Producto desactivado"
 // @Failure 404 {object} models.ApiResponse "Producto no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /productos [delete]
 func (c *ProductoController) Delete() {
 	o := ormNewProducto()

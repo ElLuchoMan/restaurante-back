@@ -72,6 +72,7 @@ var (
 // @Produce json
 // @Success 200 {object} models.ApiResponse{data=[]map[string]interface{}} "Listado de cambios de horario"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /cambios_horario [get]
 func (c *CambiosHorarioController) GetAll() {
 	o := orm.NewOrm()
@@ -189,6 +190,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 // @Success 201 {object} models.ApiResponse{data=map[string]interface{}} "Cambio de horario creado"
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /cambios_horario [post]
 func (c *CambiosHorarioController) Post() {
 	o := orm.NewOrm()
@@ -350,6 +352,7 @@ func (c *CambiosHorarioController) Post() {
 // @Failure 400 {object} models.ApiResponse "Error en la solicitud"
 // @Failure 404 {object} models.ApiResponse "Cambio de horario no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /cambios_horario [put]
 func (c *CambiosHorarioController) Put() {
 	o := orm.NewOrm()
@@ -507,6 +510,7 @@ func (c *CambiosHorarioController) Put() {
 // @Success 200 {object} models.ApiResponse "Cambio de horario eliminado"
 // @Failure 404 {object} models.ApiResponse "Cambio de horario no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /cambios_horario [delete]
 func (c *CambiosHorarioController) Delete() {
 	o := orm.NewOrm()

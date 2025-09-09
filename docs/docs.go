@@ -19,6 +19,11 @@ const docTemplate = `{
     "paths": {
         "/cambios_horario": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Obtiene un listado de todos los cambios de horario registrados en la base de datos",
                 "consumes": [
                     "application/json"
@@ -62,6 +67,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de un cambio de horario existente.",
                 "consumes": [
                     "application/json"
@@ -132,6 +142,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo cambio de horario en la base de datos.",
                 "consumes": [
                     "application/json"
@@ -189,6 +204,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Elimina un cambio de horario de la base de datos.",
                 "consumes": [
                     "application/json"
@@ -3672,6 +3692,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza un producto. Puedes enviar JSON (imagen en Base64) o multipart/form-data con archivo.",
                 "consumes": [
                     "application/json",
@@ -3769,6 +3794,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un nuevo producto. Puedes enviar JSON (imagen en Base64) o multipart/form-data con archivo.",
                 "consumes": [
                     "application/json",
@@ -3859,6 +3889,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Desactiva un producto en la base de datos (borrado lógico).",
                 "consumes": [
                     "application/json"
@@ -4089,6 +4124,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza los datos de una reserva existente.",
                 "consumes": [
                     "application/json"
@@ -4172,6 +4212,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza el estado de una reserva a \"CANCELADA\".",
                 "consumes": [
                     "application/json"
