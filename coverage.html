@@ -57,7 +57,7 @@
 				
 				<option value="file0">restaurante/controllers/CambiosHorarioController.go (100.0%)</option>
 				
-				<option value="file1">restaurante/controllers/CategoriaController.go (83.5%)</option>
+				<option value="file1">restaurante/controllers/CategoriaController.go (93.8%)</option>
 				
 				<option value="file2">restaurante/controllers/ClienteController.go (92.3%)</option>
 				
@@ -766,7 +766,7 @@ type CategoriaController struct {
 // @Success 200 {object} models.ApiResponse{data=[]models.Categoria}
 // @Failure 500 {object} models.ApiResponse
 // @Router /categorias [get]
-func (c *CategoriaController) GetAll() <span class="cov5" title="2">{
+func (c *CategoriaController) GetAll() <span class="cov4" title="2">{
         o := catOrmNew()
         var categorias []models.Categoria
         if _, err := o.QueryTable(new(models.Categoria)).All(&amp;categorias); err != nil </span><span class="cov1" title="1">{
@@ -789,24 +789,24 @@ func (c *CategoriaController) GetAll() <span class="cov5" title="2">{
 // @Success 200 {object} models.ApiResponse{data=models.Categoria}
 // @Failure 404 {object} models.ApiResponse
 // @Router /categorias/search [get]
-func (c *CategoriaController) GetById() <span class="cov5" title="2">{
+func (c *CategoriaController) GetById() <span class="cov10" title="5">{
         o := catOrmNew()
         id, err := c.GetInt64("id")
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 logging.LogControllerError(c.Ctx, "categorias.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov5" title="2">cat := models.Categoria{PK_ID_CATEGORIA: id}
-        if err := o.Read(&amp;cat); err != nil </span><span class="cov1" title="1">{
+        <span class="cov8" title="4">cat := models.Categoria{PK_ID_CATEGORIA: id}
+        if err := o.Read(&amp;cat); err != nil </span><span class="cov4" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov1" title="1">c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría encontrada", Data: cat}
+        <span class="cov4" title="2">c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría encontrada", Data: cat}
         _ = c.ServeJSON()</span>
 }
 
@@ -820,7 +820,7 @@ func (c *CategoriaController) GetById() <span class="cov5" title="2">{
 // @Failure 400 {object} models.ApiResponse
 // @Failure 500 {object} models.ApiResponse
 // @Router /categorias [post]
-func (c *CategoriaController) Post() <span class="cov8" title="3">{
+func (c *CategoriaController) Post() <span class="cov7" title="3">{
         o := catOrmNew()
         var in struct {
                 Nombre string `json:"nombre"`
@@ -832,7 +832,7 @@ func (c *CategoriaController) Post() <span class="cov8" title="3">{
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov5" title="2">cat := models.Categoria{NOMBRE: in.Nombre}
+        <span class="cov4" title="2">cat := models.Categoria{NOMBRE: in.Nombre}
         if _, err := o.Insert(&amp;cat); err != nil </span><span class="cov1" title="1">{
                 logging.LogControllerError(c.Ctx, "categorias.post.insert_error", err, map[string]interface{}{"nombre": in.Nombre})
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -855,7 +855,7 @@ func (c *CategoriaController) Post() <span class="cov8" title="3">{
 // @Success 200 {object} models.ApiResponse{data=models.Categoria}
 // @Failure 404 {object} models.ApiResponse
 // @Router /categorias [put]
-func (c *CategoriaController) Put() <span class="cov10" title="4">{
+func (c *CategoriaController) Put() <span class="cov8" title="4">{
         o := catOrmNew()
         id, err := c.GetInt64("id")
         if err != nil || id == 0 </span><span class="cov0" title="0">{
@@ -865,14 +865,14 @@ func (c *CategoriaController) Put() <span class="cov10" title="4">{
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov10" title="4">cat := models.Categoria{PK_ID_CATEGORIA: id}
+        <span class="cov8" title="4">cat := models.Categoria{PK_ID_CATEGORIA: id}
         if err := o.Read(&amp;cat); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov8" title="3">var in struct {
+        <span class="cov7" title="3">var in struct {
                 Nombre *string `json:"nombre"`
         }
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;in); err != nil </span><span class="cov1" title="1">{
@@ -882,10 +882,10 @@ func (c *CategoriaController) Put() <span class="cov10" title="4">{
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov5" title="2">if in.Nombre != nil </span><span class="cov5" title="2">{
+        <span class="cov4" title="2">if in.Nombre != nil </span><span class="cov4" title="2">{
                 cat.NOMBRE = *in.Nombre
         }</span>
-        <span class="cov5" title="2">if _, err := o.Update(&amp;cat, "NOMBRE"); err != nil </span><span class="cov1" title="1">{
+        <span class="cov4" title="2">if _, err := o.Update(&amp;cat, "NOMBRE"); err != nil </span><span class="cov1" title="1">{
                 logging.LogControllerError(c.Ctx, "categorias.put.update_error", err, map[string]interface{}{"id": id})
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar categoría", Cause: err.Error()}
@@ -905,23 +905,23 @@ func (c *CategoriaController) Put() <span class="cov10" title="4">{
 // @Success 200 {object} models.ApiResponse
 // @Failure 404 {object} models.ApiResponse
 // @Router /categorias [delete]
-func (c *CategoriaController) Delete() <span class="cov5" title="2">{
+func (c *CategoriaController) Delete() <span class="cov10" title="5">{
         o := catOrmNew()
         id, err := c.GetInt64("id")
-        if err != nil || id == 0 </span><span class="cov0" title="0">{
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
                 logging.LogControllerError(c.Ctx, "categorias.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov5" title="2">if _, err := o.Delete(&amp;models.Categoria{PK_ID_CATEGORIA: id}); err != nil </span><span class="cov1" title="1">{
+        <span class="cov8" title="4">if _, err := o.Delete(&amp;models.Categoria{PK_ID_CATEGORIA: id}); err != nil </span><span class="cov4" title="2">{
                 c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov1" title="1">c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría eliminada"}
+        <span class="cov4" title="2">c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría eliminada"}
         _ = c.ServeJSON()</span>
 }
 </pre>

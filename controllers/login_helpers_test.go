@@ -92,14 +92,22 @@ func TestAllowLogin_RateLimitAndReset(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader("{}"))
 	r.RemoteAddr = "198.51.100.10:4444"
-	if !allowLogin(r) { t.Fatal("primera debería permitir") }
-	if !allowLogin(r) { t.Fatal("segunda debería permitir") }
-	if allowLogin(r) { t.Fatal("tercera debería bloquear") }
+	if !allowLogin(r) {
+		t.Fatal("primera debería permitir")
+	}
+	if !allowLogin(r) {
+		t.Fatal("segunda debería permitir")
+	}
+	if allowLogin(r) {
+		t.Fatal("tercera debería bloquear")
+	}
 
 	// Simular ventana expirada
 	ip := clientIP(r)
 	loginRL.m[ip].reset = loginRL.m[ip].reset.Add(-2 * loginWindow)
-	if !allowLogin(r) { t.Fatal("después de reset debería permitir") }
+	if !allowLogin(r) {
+		t.Fatal("después de reset debería permitir")
+	}
 }
 
 func TestGenerateJWT_WritesTokenAndClaims(t *testing.T) {
@@ -126,10 +134,14 @@ func TestGenerateJWT_WritesTokenAndClaims(t *testing.T) {
 	}
 	// Extraer token de la respuesta simple (sin map JSON estricto para mantener el test simple)
 	start := strings.Index(body, "\"token\":\"")
-	if start < 0 { t.Fatalf("no se encontró token en body: %s", body) }
+	if start < 0 {
+		t.Fatalf("no se encontró token en body: %s", body)
+	}
 	start += len("\"token\":\"")
 	end := strings.Index(body[start:], "\"")
-	if end < 0 { t.Fatalf("no se cerró token en body") }
+	if end < 0 {
+		t.Fatalf("no se cerró token en body")
+	}
 	tokenStr := body[start : start+end]
 
 	claims := &Claims{}
