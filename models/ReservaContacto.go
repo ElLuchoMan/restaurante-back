@@ -16,10 +16,7 @@ func (r *ReservaContacto) TableName() string {
 
 // Valid ensures only one of DocumentoContacto or PKDocumentoCliente is set
 func (r *ReservaContacto) Valid() bool {
-	if (r.DocumentoContacto == nil) == (r.PKDocumentoCliente == nil) {
-		return false
-	}
-	return true
+	return (r.DocumentoContacto == nil) != (r.PKDocumentoCliente == nil)
 }
 
 func init() {

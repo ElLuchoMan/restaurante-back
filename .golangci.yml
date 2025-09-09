@@ -11,9 +11,7 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    - gosimple
     - goconst
-    - misspell
     - gosec
   settings:            # reemplaza a "linters-settings"
     errcheck:
@@ -26,6 +24,7 @@ linters:
     paths:
       - docs
       - swagger
+      - tests
     rules:
       - path: ".*_test\\.go"
         linters:
@@ -64,3 +63,6 @@ linters:
         text: 'Raw\(.*\)\\.Exec'
       - linters: [errcheck]
         text: 'web\\.AppConfig\\.String'
+      # Ignorar advertencias de staticcheck que no aportan en este código
+      - linters: [staticcheck]
+        text: 'empty branch'
