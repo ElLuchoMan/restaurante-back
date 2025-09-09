@@ -99,7 +99,7 @@
 				
 				<option value="file21">restaurante/controllers/TrabajadorController.go (98.1%)</option>
 				
-				<option value="file22">restaurante/database/database.go (77.0%)</option>
+				<option value="file22">restaurante/database/database.go (85.1%)</option>
 				
 				<option value="file23">restaurante/docs/docs.go (100.0%)</option>
 				
@@ -6063,18 +6063,18 @@ func (c *ProductoPedidoController) GetAll() <span class="cov4" title="4">{
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [post]
-func (c *ProductoPedidoController) Post() <span class="cov8" title="15">{
+func (c *ProductoPedidoController) Post() <span class="cov8" title="17">{
         var input struct {
                 PedidoId int64                `json:"pedidoId"`
                 Detalles []detallePedidoInput `json:"detalles"`
         }
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov2" title="2">{
                 logging.LogControllerError(c.Ctx, "producto_pedido.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Datos inválidos", Cause: err.Error()}
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov8" title="14">if input.PedidoId == 0 || len(input.Detalles) == 0 </span><span class="cov2" title="2">{
+        <span class="cov8" title="15">if input.PedidoId == 0 || len(input.Detalles) == 0 </span><span class="cov3" title="3">{
                 logging.LogControllerError(c.Ctx, "producto_pedido.post.validation_error", nil, map[string]interface{}{"pedidoId": input.PedidoId, "detalles_len": len(input.Detalles), "body": string(c.Ctx.Input.RequestBody)})
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El pedido y los detalles de los productos son obligatorios"}
                 _ = c.ServeJSON()
@@ -6190,22 +6190,22 @@ func (c *ProductoPedidoController) Post() <span class="cov8" title="15">{
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [put]
-func (c *ProductoPedidoController) Update() <span class="cov9" title="20">{
+func (c *ProductoPedidoController) Update() <span class="cov9" title="23">{
         pedidoID, err := c.GetInt64("pedido_id")
-        if err != nil || pedidoID == 0 </span><span class="cov1" title="1">{
+        if err != nil || pedidoID == 0 </span><span class="cov2" title="2">{
                 logging.LogControllerError(c.Ctx, "producto_pedido.update.bad_request", err, map[string]interface{}{"pedido_id": c.GetString("pedido_id")})
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'pedido_id' es obligatorio y debe ser válido"}
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov8" title="19">var nuevosProductos []detallePedidoInput
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;nuevosProductos); err != nil </span><span class="cov1" title="1">{
+        <span class="cov9" title="21">var nuevosProductos []detallePedidoInput
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;nuevosProductos); err != nil </span><span class="cov2" title="2">{
                 logging.LogControllerError(c.Ctx, "producto_pedido.update.bad_json", err, map[string]interface{}{"pedido_id": pedidoID, "body": string(c.Ctx.Input.RequestBody)})
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Datos inválidos", Cause: err.Error()}
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov8" title="18">if len(nuevosProductos) == 0 </span><span class="cov1" title="1">{
+        <span class="cov8" title="19">if len(nuevosProductos) == 0 </span><span class="cov2" title="2">{
                 logging.LogControllerError(c.Ctx, "producto_pedido.update.validation_error", nil, map[string]interface{}{"pedido_id": pedidoID, "len": 0, "body": string(c.Ctx.Input.RequestBody)})
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "La lista de productos no puede estar vacía"}
                 _ = c.ServeJSON()
@@ -8205,16 +8205,16 @@ func GetDefaultSQLDB() (*sql.DB, error) <span class="cov6" title="3">{
         return getDB("default")
 }</span>
 
-func getenvInt(key string) int <span class="cov0" title="0">{
+func getenvInt(key string) int <span class="cov7" title="4">{
         v := os.Getenv(key)
-        if v == "" </span><span class="cov0" title="0">{
+        if v == "" </span><span class="cov1" title="1">{
                 return 0
         }</span>
-        <span class="cov0" title="0">n, err := strconv.Atoi(v)
-        if err != nil || n &lt; 0 </span><span class="cov0" title="0">{
+        <span class="cov6" title="3">n, err := strconv.Atoi(v)
+        if err != nil || n &lt; 0 </span><span class="cov4" title="2">{
                 return 0
         }</span>
-        <span class="cov0" title="0">return n</span>
+        <span class="cov1" title="1">return n</span>
 }
 
 func InitDB() error <span class="cov7" title="4">{
