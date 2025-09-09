@@ -79,7 +79,7 @@
 				
 				<option value="file11">restaurante/controllers/PagoController.go (100.0%)</option>
 				
-				<option value="file12">restaurante/controllers/PedidoController.go (96.6%)</option>
+				<option value="file12">restaurante/controllers/PedidoController.go (99.4%)</option>
 				
 				<option value="file13">restaurante/controllers/PrecioProductoHistController.go (97.4%)</option>
 				
@@ -4899,6 +4899,9 @@ import (
         "github.com/beego/beego/v2/server/web"
 )
 
+// Permite stubear la carga de timezone en tests
+var loadLocationPedido = time.LoadLocation
+
 type PedidoController struct {
         web.Controller
 }
@@ -5034,7 +5037,7 @@ func (c *PedidoController) GetAll() <span class="cov9" title="5">{
 // @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
 // @Security BearerAuth
 // @Router /pedidos [post]
-func (c *PedidoController) Post() <span class="cov9" title="5">{
+func (c *PedidoController) Post() <span class="cov10" title="6">{
         // Estructura mínima para leer el JSON de entrada sin acoplarse al modelo
         var in struct {
                 Delivery      *bool  `json:"delivery"`
@@ -5055,8 +5058,8 @@ func (c *PedidoController) Post() <span class="cov9" title="5">{
                 return
         }</span>
 
-        <span class="cov7" title="4">loc, errLoc := time.LoadLocation("America/Bogota")
-        if errLoc != nil </span><span class="cov0" title="0">{
+        <span class="cov9" title="5">loc, errLoc := loadLocationPedido("America/Bogota")
+        if errLoc != nil </span><span class="cov1" title="1">{
                 logging.LogControllerError(c.Ctx, "pedidos.post.tz_error", errLoc, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
                 c.Ctx.Output.SetStatus(500)
                 c.Data["json"] = models.ApiResponse{Code: 500, Message: "No se pudo cargar zona horaria", Cause: errLoc.Error()}

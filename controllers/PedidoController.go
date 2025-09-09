@@ -10,6 +10,9 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+// Permite stubear la carga de timezone en tests
+var loadLocationPedido = time.LoadLocation
+
 type PedidoController struct {
 	web.Controller
 }
@@ -166,7 +169,7 @@ func (c *PedidoController) Post() {
 		return
 	}
 
-	loc, errLoc := time.LoadLocation("America/Bogota")
+	loc, errLoc := loadLocationPedido("America/Bogota")
 	if errLoc != nil {
 		logging.LogControllerError(c.Ctx, "pedidos.post.tz_error", errLoc, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(500)
