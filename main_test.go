@@ -161,11 +161,23 @@ func TestGenerarNominaAutomatica_Sleep(t *testing.T) {
 	origOrm := cronNewOrm
 	nowFn = func() time.Time { return time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC) }
 	called := 0
-	sleepFn = func(d time.Duration) { called++; os.Setenv("CRON_ONE_SHOT", "1") }
+	sleepCalled := make(chan struct{})
+	release := make(chan struct{})
+	sleepFn = func(d time.Duration) {
+		called++
+		os.Setenv("CRON_ONE_SHOT", "1")
+		close(sleepCalled)
+		<-release
+	}
 	cronNewOrm = func() orm.Ormer { return nil }
-	t.Cleanup(func() { nowFn = origNow; sleepFn = origSleep; cronNewOrm = origOrm; os.Unsetenv("CRON_ONE_SHOT") })
 	go generarNominaAutomatica()
+	<-sleepCalled
+	nowFn = origNow
+	sleepFn = origSleep
+	cronNewOrm = origOrm
+	close(release)
 	time.Sleep(10 * time.Millisecond)
+	os.Unsetenv("CRON_ONE_SHOT")
 	if called == 0 {
 		t.Fatalf("expected sleep to be called")
 	}

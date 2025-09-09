@@ -95,7 +95,7 @@
 				
 				<option value="file19">restaurante/controllers/RestauranteDiaController.go (100.0%)</option>
 				
-				<option value="file20">restaurante/controllers/SubcategoriaController.go (97.8%)</option>
+				<option value="file20">restaurante/controllers/SubcategoriaController.go (98.9%)</option>
 				
 				<option value="file21">restaurante/controllers/TrabajadorController.go (98.1%)</option>
 				
@@ -7551,20 +7551,20 @@ func (c *SubcategoriaController) GetAll() <span class="cov8" title="3">{
 // @Success 200 {object} models.ApiResponse{data=models.Subcategoria}
 // @Failure 404 {object} models.ApiResponse
 // @Router /subcategorias/search [get]
-func (c *SubcategoriaController) GetById() <span class="cov5" title="2">{
+func (c *SubcategoriaController) GetById() <span class="cov10" title="4">{
         o := subcatOrmNew()
         id, _ := c.GetInt64("id")
         s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
-        if err := o.Read(&amp;s); err != nil </span><span class="cov1" title="1">{
-                if err != orm.ErrNoRows </span><span class="cov0" title="0">{
+        if err := o.Read(&amp;s); err != nil </span><span class="cov5" title="2">{
+                if err != orm.ErrNoRows </span><span class="cov1" title="1">{
                         logging.LogControllerError(c.Ctx, "subcategorias.getbyid.db_error", err, map[string]interface{}{"id": id})
                 }</span>
-                <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusOK)
+                <span class="cov5" title="2">c.Ctx.Output.SetStatus(http.StatusOK)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
                 _ = c.ServeJSON()
                 return</span>
         }
-        <span class="cov1" title="1">c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría encontrada", Data: s}
+        <span class="cov5" title="2">c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría encontrada", Data: s}
         _ = c.ServeJSON()</span>
 }
 
@@ -16242,11 +16242,8 @@ func (r *ReservaContacto) TableName() string <span class="cov1" title="1">{
 
 // Valid ensures only one of DocumentoContacto or PKDocumentoCliente is set
 func (r *ReservaContacto) Valid() bool <span class="cov10" title="4">{
-        if (r.DocumentoContacto == nil) == (r.PKDocumentoCliente == nil) </span><span class="cov5" title="2">{
-                return false
-        }</span>
-        <span class="cov5" title="2">return true</span>
-}
+        return (r.DocumentoContacto == nil) != (r.PKDocumentoCliente == nil)
+}</span>
 
 func init() <span class="cov1" title="1">{
         orm.RegisterModel(new(ReservaContacto))

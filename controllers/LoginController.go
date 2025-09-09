@@ -49,8 +49,8 @@ func loadJWTSecret() []byte {
 	if s := os.Getenv("JWT_SECRET"); s != "" {
 		return []byte(s)
 	}
-	// En dev/test permitir secreto efímero para facilitar desarrollo y tests.
-	if web.BConfig.RunMode != "prod" {
+	// En dev/test o procesos de prueba, permitir secreto efímero para facilitar desarrollo y tests.
+	if isTestingProcess() || web.BConfig.RunMode != "prod" {
 		b := make([]byte, 32)
 		if _, err := rand.Read(b); err == nil {
 			return b
@@ -59,6 +59,17 @@ func loadJWTSecret() []byte {
 	}
 	// En prod, el secreto es obligatorio.
 	panic("JWT_SECRET no configurado")
+}
+
+// isTestingProcess intenta detectar si el binario actual está ejecutando tests.
+// Útil para evitar pánicos en inits cuando no hay configuración cargada.
+func isTestingProcess() bool {
+    if len(os.Args) > 0 {
+        if strings.HasSuffix(os.Args[0], ".test") {
+            return true
+        }
+    }
+    return false
 }
 
 // Sencillo rate limiter por IP
