@@ -2065,6 +2065,10 @@ paths:
           description: Credenciales inválidas
           schema:
             $ref: '#/definitions/models.ApiResponse'
+        "429":
+          description: Demasiadas solicitudes
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
       summary: Iniciar sesión para clientes o trabajadores
       tags:
       - login

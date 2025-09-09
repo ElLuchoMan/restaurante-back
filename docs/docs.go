@@ -1878,6 +1878,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
+                    },
+                    "429": {
+                        "description": "Demasiadas solicitudes",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     }
                 }
             }
