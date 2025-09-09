@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"restaurante/logging"
 	"restaurante/models"
+	"sort"
 	"strings"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -125,6 +126,7 @@ func (c *ProductoPedidoController) Post() {
 		for pid := range nuevos {
 			ids = append(ids, pid)
 		}
+		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 		ph := make([]string, len(ids))
 		args := make([]interface{}, len(ids))
 		for i, id := range ids {
@@ -164,8 +166,23 @@ func (c *ProductoPedidoController) Post() {
 		return
 	}
 
+	// Bloquear la fila del pedido para evitar actualizaciones concurrentes sobre el mismo pedido
+	var lockDummy int
+	if err := tx.Raw("SELECT 1 FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", input.PedidoId).QueryRow(&lockDummy); err != nil {
+		_ = tx.Rollback()
+		logging.LogControllerError(c.Ctx, "producto_pedido.post.lock_pedido_error", err, map[string]interface{}{"pedidoId": input.PedidoId})
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible bloquear el pedido para actualización", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+
 	var detalles []models.DetallePedido
-	for prodID, qty := range nuevos {
+	// Aplicar actualizaciones en orden determinístico para minimizar deadlocks
+	orderedIDs := make([]int64, 0, len(nuevos))
+	for pid := range nuevos { orderedIDs = append(orderedIDs, pid) }
+	sort.Slice(orderedIDs, func(i, j int) bool { return orderedIDs[i] < orderedIDs[j] })
+	for _, prodID := range orderedIDs {
+		qty := nuevos[prodID]
 		res, err := tx.Raw("UPDATE producto SET cantidad = cantidad - ? WHERE pk_id_producto = ? AND cantidad >= ?", qty, prodID, qty).Exec()
 		if err != nil {
 			_ = tx.Rollback()
@@ -339,7 +356,22 @@ func (c *ProductoPedidoController) Update() {
 		_ = c.ServeJSON()
 		return
 	}
-	for pid, delta := range deltas {
+
+	// Bloquear la fila del pedido para evitar actualizaciones concurrentes del mismo pedido
+	var lockDummy2 int
+	if err := tx.Raw("SELECT 1 FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", pedidoID).QueryRow(&lockDummy2); err != nil {
+		_ = tx.Rollback()
+		logging.LogControllerError(c.Ctx, "producto_pedido.update.lock_pedido_error", err, map[string]interface{}{"pedido_id": pedidoID})
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible bloquear el pedido para actualización", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	// Iterar deltas en orden determinístico para minimizar deadlocks
+	deltaIDs := make([]int64, 0, len(deltas))
+	for pid := range deltas { deltaIDs = append(deltaIDs, pid) }
+	sort.Slice(deltaIDs, func(i, j int) bool { return deltaIDs[i] < deltaIDs[j] })
+	for _, pid := range deltaIDs {
+		delta := deltas[pid]
 		if delta == 0 {
 			continue
 		}
@@ -385,7 +417,12 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 	var detalles []models.DetallePedido
-	for pid, qty := range nuevos {
+	// Insertar detalles en orden determinístico
+	newIDs := make([]int64, 0, len(nuevos))
+	for pid := range nuevos { newIDs = append(newIDs, pid) }
+	sort.Slice(newIDs, func(i, j int) bool { return newIDs[i] < newIDs[j] })
+	for _, pid := range newIDs {
+		qty := nuevos[pid]
 		detalle := models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: pid}, Cantidad: qty}
 		if _, err := tx.Insert(&detalle); err != nil {
 			_ = tx.Rollback()
