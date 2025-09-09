@@ -177,7 +177,7 @@ func main() {
 		AllowCredentials: true,
 	}
 	if runMode == "prod" {
-		// En prod, exigir orígenes explícitos; si no hay, dejar vacío (bloquea cross-origin)
+		// En prod, exigir orígenes explícitos; si no hay, bloquear cross-origin
 		if strings.TrimSpace(allowedOriginsEnv) == "" {
 			corsOpts.AllowAllOrigins = false
 			corsOpts.AllowOrigins = []string{}
@@ -190,8 +190,20 @@ func main() {
 			corsOpts.AllowOrigins = parts
 		}
 	} else {
-		// En dev/test permitir todos los orígenes por conveniencia
-		corsOpts.AllowAllOrigins = true
+		// En dev/test: si se define CORS_ALLOWED_ORIGINS, respétalo con credenciales.
+		// Si no se define, permite todos los orígenes pero SIN credenciales para evitar bloqueo del navegador.
+		if strings.TrimSpace(allowedOriginsEnv) == "" {
+			corsOpts.AllowAllOrigins = true
+			corsOpts.AllowCredentials = false
+		} else {
+			parts := strings.Split(allowedOriginsEnv, ",")
+			for i := range parts {
+				parts[i] = strings.TrimSpace(parts[i])
+			}
+			corsOpts.AllowAllOrigins = false
+			corsOpts.AllowOrigins = parts
+			corsOpts.AllowCredentials = true
+		}
 	}
 	web.InsertFilter("*", web.BeforeRouter, cors.Allow(corsOpts))
 

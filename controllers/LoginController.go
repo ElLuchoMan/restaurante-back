@@ -266,8 +266,26 @@ func ValidateToken(ctx *context.Context) {
 		return
 	}
 
+	// Normalizar método y path
+	method := ctx.Input.Method()
+	path := ctx.Input.URL()
+	if strings.HasSuffix(path, "/") && len(path) > 1 {
+		path = strings.TrimRight(path, "/")
+	}
+
+	// Rutas públicas sin token
+	if method == http.MethodGet || method == http.MethodPost {
+		switch path {
+		case "/restaurante/v1/productos", "/restaurante/v1/productos/search",
+			"/restaurante/v1/reservas", "/restaurante/v1/reservas/search",
+			"/restaurante/v1/reservas/parameter",
+			"/restaurante/v1/cambios_horario/actual":
+			return
+		}
+	}
+
 	// 2) Permitir crear cliente sin token (registro público)
-	if ctx.Input.Method() == "POST" && ctx.Input.URL() == "/restaurante/v1/clientes" {
+	if method == "POST" && path == "/restaurante/v1/clientes" {
 		return
 	}
 
@@ -278,7 +296,7 @@ func ValidateToken(ctx *context.Context) {
 			return
 		}
 		// Por seguridad adicional, si se pidiera a rutas de swagger (estático)
-		if strings.HasPrefix(ctx.Input.URL(), "/swagger/") {
+		if strings.HasPrefix(path, "/swagger/") {
 			return
 		}
 	}
