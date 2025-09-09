@@ -1,0 +1,27 @@
+# Colecciones locales y utilidades (no versionar)
+curls.ps1
+postman_collection.json
+
+# Artefactos comunes de Go/Windows
+*.exe
+*.exe~
+*.out
+*.log
+
+# Cobertura y temporales
+coverage*.html
+coverage.out
+logging_cov/
+logging_cov.out
+lastupdate.tmp
+/tmp/
+**/tmp/
+
+# Binarios generados
+restaurante-back.exe*
+swagger.zip
+
+# Entornos/IDE
+.vscode/
+.idea/
+.DS_Store
