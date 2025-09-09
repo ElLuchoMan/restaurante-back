@@ -308,11 +308,28 @@ func (c *ReservaController) Post() {
 func (c *ReservaController) Put() {
 	o := ormNew()
 	id, err := c.GetInt64("id")
-	if err != nil || id == 0 { logging.LogControllerError(c.Ctx, "reservas.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}; _ = c.ServeJSON(); return }
+	if err != nil || id == 0 {
+		logging.LogControllerError(c.Ctx, "reservas.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
 	reserva := models.Reserva{PK_ID_RESERVA: id}
-	if err := readReserva(o, &reserva); err != nil { c.Ctx.Output.SetStatus(http.StatusOK); c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Reserva no encontrada"}; _ = c.ServeJSON(); return }
+	if err := readReserva(o, &reserva); err != nil {
+		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Reserva no encontrada"}
+		_ = c.ServeJSON()
+		return
+	}
 	var input map[string]interface{}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil { logging.LogControllerError(c.Ctx, "reservas.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}; _ = c.ServeJSON(); return }
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+		logging.LogControllerError(c.Ctx, "reservas.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
 
 	// Validación de documentoContacto/documentoCliente (mutuamente excluyentes)
 	var contacto models.ReservaContacto
@@ -325,7 +342,13 @@ func (c *ReservaController) Put() {
 		contacto.PKDocumentoCliente = &models.Cliente{PK_DOCUMENTO_CLIENTE: val}
 	}
 	if contacto.DocumentoContacto != nil || contacto.PKDocumentoCliente != nil {
-		if !contacto.Valid() { logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "documentoContacto": contacto.DocumentoContacto, "documentoCliente": contacto.PKDocumentoCliente, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}; _ = c.ServeJSON(); return }
+		if !contacto.Valid() {
+			logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "documentoContacto": contacto.DocumentoContacto, "documentoCliente": contacto.PKDocumentoCliente, "body": string(c.Ctx.Input.RequestBody)})
+			c.Ctx.Output.SetStatus(http.StatusBadRequest)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}
+			_ = c.ServeJSON()
+			return
+		}
 	}
 
 	if v, ok := input["fechaReserva"].(string); ok && v != "" {
@@ -365,11 +388,37 @@ func (c *ReservaController) Put() {
 	if updatedBy, ok := input["updatedBy"].(string); ok {
 		reserva.UPDATED_BY = &updatedBy
 	}
-	if contactoID, ok := input["contactoId"].(float64); ok { val := int64(contactoID); reserva.PK_ID_CONTACTO = &models.ReservaContacto{PKIDContacto: val} } else { logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "contactoId", "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_CONTACTO debe ser un número"}; _ = c.ServeJSON(); return }
-	if restauranteID, ok := input["restauranteId"].(float64); ok { val := int64(restauranteID); reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val} } else { logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "restauranteId", "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_RESTAURANTE debe ser un número"}; _ = c.ServeJSON(); return }
+	if contactoID, ok := input["contactoId"].(float64); ok {
+		val := int64(contactoID)
+		reserva.PK_ID_CONTACTO = &models.ReservaContacto{PKIDContacto: val}
+	} else {
+		logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "contactoId", "body": string(c.Ctx.Input.RequestBody)})
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_CONTACTO debe ser un número"}
+		_ = c.ServeJSON()
+		return
+	}
+	if restauranteID, ok := input["restauranteId"].(float64); ok {
+		val := int64(restauranteID)
+		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
+	} else {
+		logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "restauranteId", "body": string(c.Ctx.Input.RequestBody)})
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_RESTAURANTE debe ser un número"}
+		_ = c.ServeJSON()
+		return
+	}
 	reserva.UPDATED_AT = time.Now().UTC()
-	if _, err := updateReserva(o, &reserva); err != nil { logging.LogControllerError(c.Ctx, "reservas.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusInternalServerError); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la reserva", Cause: err.Error()}; _ = c.ServeJSON(); return }
-	c.Ctx.Output.SetStatus(http.StatusOK); c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Reserva actualizada", Data: reserva}; _ = c.ServeJSON()
+	if _, err := updateReserva(o, &reserva); err != nil {
+		logging.LogControllerError(c.Ctx, "reservas.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la reserva", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Reserva actualizada", Data: reserva}
+	_ = c.ServeJSON()
 }
 
 // @Title GetByCliente

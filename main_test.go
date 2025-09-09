@@ -221,7 +221,9 @@ func TestGenerarNominaAutomatica_PrintsAndErrors(t *testing.T) {
 	// Caso error procedimiento
 	b = setBufLogger()
 	cronInsertNom = func(o orm.Ormer, n *models.Nomina) (int64, error) { n.PK_ID_NOMINA = 6; return 1, nil }
-	cronRawExec = func(o orm.Ormer, q string, args ...interface{}) (sql.Result, error) { return nil, fmt.Errorf("proc fail") }
+	cronRawExec = func(o orm.Ormer, q string, args ...interface{}) (sql.Result, error) {
+		return nil, fmt.Errorf("proc fail")
+	}
 	generarNominaAutomatica()
 	out3 := b.String()
 	if !contains(out3, "cron.nomina.exec_err") {

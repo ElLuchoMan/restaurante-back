@@ -120,7 +120,9 @@ func (c *SubcategoriaController) Post() {
 		CategoriaId int64  `json:"categoriaId"`
 	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" || in.CategoriaId == 0 {
-		if err != nil { logging.LogControllerError(c.Ctx, "subcategorias.post.bad_json", err, nil) }
+		if err != nil {
+			logging.LogControllerError(c.Ctx, "subcategorias.post.bad_json", err, nil)
+		}
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o campos requeridos faltantes"}
 		_ = c.ServeJSON()
@@ -171,8 +173,14 @@ func (c *SubcategoriaController) Put() {
 		return
 	}
 	cols := []string{}
-	if in.Nombre != nil { s.NOMBRE = *in.Nombre; cols = append(cols, "NOMBRE") }
-	if in.CategoriaId != nil { s.PK_ID_CATEGORIA = &models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}; cols = append(cols, "PK_ID_CATEGORIA") }
+	if in.Nombre != nil {
+		s.NOMBRE = *in.Nombre
+		cols = append(cols, "NOMBRE")
+	}
+	if in.CategoriaId != nil {
+		s.PK_ID_CATEGORIA = &models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}
+		cols = append(cols, "PK_ID_CATEGORIA")
+	}
 	if _, err := o.Update(&s, cols...); err != nil {
 		logging.LogControllerError(c.Ctx, "subcategorias.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)

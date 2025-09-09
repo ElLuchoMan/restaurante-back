@@ -397,9 +397,15 @@ func (c *IncidenciaController) Put() {
 		incidencia.FECHA = parsedDate
 	}
 
-	if monto, ok := input["monto"].(float64); ok { incidencia.MONTO = int64(monto) }
-	if resta, ok := input["resta"].(bool); ok { incidencia.RESTA = resta }
-	if motivo, ok := input["motivo"].(string); ok && motivo != "" { incidencia.MOTIVO = motivo }
+	if monto, ok := input["monto"].(float64); ok {
+		incidencia.MONTO = int64(monto)
+	}
+	if resta, ok := input["resta"].(bool); ok {
+		incidencia.RESTA = resta
+	}
+	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
+		incidencia.MOTIVO = motivo
+	}
 	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
 		doc := int64(documento)
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}

@@ -69,7 +69,7 @@
 				
 				<option value="file6">restaurante/controllers/IncidenciaController.go (100.0%)</option>
 				
-				<option value="file7">restaurante/controllers/LoginController.go (81.1%)</option>
+				<option value="file7">restaurante/controllers/LoginController.go (91.0%)</option>
 				
 				<option value="file8">restaurante/controllers/MetodoPagoController.go (100.0%)</option>
 				
@@ -822,7 +822,9 @@ func (c *CategoriaController) GetById() <span class="cov5" title="2">{
 // @Router /categorias [post]
 func (c *CategoriaController) Post() <span class="cov8" title="3">{
         o := catOrmNew()
-        var in struct{ Nombre string `json:"nombre"` }
+        var in struct {
+                Nombre string `json:"nombre"`
+        }
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;in); err != nil || in.Nombre == "" </span><span class="cov1" title="1">{
                 logging.LogControllerError(c.Ctx, "categorias.post.bad_json", err, nil)
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -870,7 +872,9 @@ func (c *CategoriaController) Put() <span class="cov10" title="4">{
                 _ = c.ServeJSON()
                 return
         }</span>
-        <span class="cov8" title="3">var in struct{ Nombre *string `json:"nombre"` }
+        <span class="cov8" title="3">var in struct {
+                Nombre *string `json:"nombre"`
+        }
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;in); err != nil </span><span class="cov1" title="1">{
                 logging.LogControllerError(c.Ctx, "categorias.put.bad_json", err, map[string]interface{}{"id": id})
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -2855,9 +2859,15 @@ func (c *IncidenciaController) Put() <span class="cov7" title="10">{
                 <span class="cov3" title="3">incidencia.FECHA = parsedDate</span>
         }
 
-        <span class="cov5" title="6">if monto, ok := input["monto"].(float64); ok </span><span class="cov3" title="3">{ incidencia.MONTO = int64(monto) }</span>
-        <span class="cov5" title="6">if resta, ok := input["resta"].(bool); ok </span><span class="cov3" title="3">{ incidencia.RESTA = resta }</span>
-        <span class="cov5" title="6">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov5" title="5">{ incidencia.MOTIVO = motivo }</span>
+        <span class="cov5" title="6">if monto, ok := input["monto"].(float64); ok </span><span class="cov3" title="3">{
+                incidencia.MONTO = int64(monto)
+        }</span>
+        <span class="cov5" title="6">if resta, ok := input["resta"].(bool); ok </span><span class="cov3" title="3">{
+                incidencia.RESTA = resta
+        }</span>
+        <span class="cov5" title="6">if motivo, ok := input["motivo"].(string); ok &amp;&amp; motivo != "" </span><span class="cov5" title="5">{
+                incidencia.MOTIVO = motivo
+        }</span>
         <span class="cov5" title="6">if documento, ok := input["documentoTrabajador"].(float64); ok &amp;&amp; documento != 0 </span><span class="cov4" title="4">{
                 doc := int64(documento)
                 incidencia.PK_DOCUMENTO_TRABAJADOR = &amp;models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
@@ -3003,28 +3013,28 @@ func init() <span class="cov1" title="1">{
         jwtSecret = loadJWTSecret()
 }</span>
 
-func loadJWTSecret() []byte <span class="cov1" title="1">{
-        if s := os.Getenv("JWT_SECRET"); s != "" </span><span class="cov1" title="1">{
+func loadJWTSecret() []byte <span class="cov5" title="4">{
+        if s := os.Getenv("JWT_SECRET"); s != "" </span><span class="cov3" title="2">{
                 return []byte(s)
         }</span>
         // En dev/test permitir secreto efímero para facilitar desarrollo y tests.
-        <span class="cov0" title="0">if web.BConfig.RunMode != "prod" </span><span class="cov0" title="0">{
+        <span class="cov3" title="2">if web.BConfig.RunMode != "prod" </span><span class="cov1" title="1">{
                 b := make([]byte, 32)
-                if _, err := rand.Read(b); err == nil </span><span class="cov0" title="0">{
+                if _, err := rand.Read(b); err == nil </span><span class="cov1" title="1">{
                         return b
                 }</span>
                 <span class="cov0" title="0">return []byte("dev-insecure-default")</span>
         }
         // En prod, el secreto es obligatorio.
-        <span class="cov0" title="0">panic("JWT_SECRET no configurado")</span>
+        <span class="cov1" title="1">panic("JWT_SECRET no configurado")</span>
 }
 
 // Sencillo rate limiter por IP
 var (
-        loginRL       = newRateLimiter()
-        loginMaxReq   = getEnvIntDefault("LOGIN_MAX_REQ_PER_MIN", 10)
-        loginWindow   = time.Minute
-        rlMutex       sync.Mutex
+        loginRL     = newRateLimiter()
+        loginMaxReq = getEnvIntDefault("LOGIN_MAX_REQ_PER_MIN", 10)
+        loginWindow = time.Minute
+        rlMutex     sync.Mutex
 )
 
 type rateEntry struct {
@@ -3036,47 +3046,47 @@ type rateLimiter struct {
         m map[string]*rateEntry
 }
 
-func newRateLimiter() *rateLimiter <span class="cov1" title="1">{
+func newRateLimiter() *rateLimiter <span class="cov3" title="2">{
         return &amp;rateLimiter{m: make(map[string]*rateEntry)}
 }</span>
 
-func getEnvIntDefault(k string, d int) int <span class="cov1" title="1">{
+func getEnvIntDefault(k string, d int) int <span class="cov7" title="6">{
         v := os.Getenv(k)
-        if v == "" </span><span class="cov1" title="1">{
+        if v == "" </span><span class="cov3" title="2">{
                 return d
         }</span>
-        <span class="cov0" title="0">if n, err := strconv.Atoi(v); err == nil &amp;&amp; n &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov5" title="4">if n, err := strconv.Atoi(v); err == nil &amp;&amp; n &gt; 0 </span><span class="cov1" title="1">{
                 return n
         }</span>
-        <span class="cov0" title="0">return d</span>
+        <span class="cov4" title="3">return d</span>
 }
 
-func clientIP(r *http.Request) string <span class="cov8" title="6">{
+func clientIP(r *http.Request) string <span class="cov10" title="13">{
         ip := r.Header.Get("X-Forwarded-For")
-        if ip != "" </span><span class="cov0" title="0">{
+        if ip != "" </span><span class="cov1" title="1">{
                 parts := strings.Split(ip, ",")
                 return strings.TrimSpace(parts[0])
         }</span>
-        <span class="cov8" title="6">host, _, err := net.SplitHostPort(r.RemoteAddr)
-        if err == nil </span><span class="cov8" title="6">{
+        <span class="cov9" title="12">host, _, err := net.SplitHostPort(r.RemoteAddr)
+        if err == nil </span><span class="cov9" title="12">{
                 return host
         }</span>
         <span class="cov0" title="0">return r.RemoteAddr</span>
 }
 
-func allowLogin(r *http.Request) bool <span class="cov8" title="6">{
+func allowLogin(r *http.Request) bool <span class="cov9" title="10">{
         rlMutex.Lock()
         defer rlMutex.Unlock()
         ip := clientIP(r)
         entry, ok := loginRL.m[ip]
-        if !ok || time.Now().After(entry.reset) </span><span class="cov1" title="1">{
+        if !ok || time.Now().After(entry.reset) </span><span class="cov4" title="3">{
                 loginRL.m[ip] = &amp;rateEntry{count: 1, reset: time.Now().Add(loginWindow)}
                 return true
         }</span>
-        <span class="cov7" title="5">if entry.count &gt;= loginMaxReq </span><span class="cov0" title="0">{
+        <span class="cov7" title="7">if entry.count &gt;= loginMaxReq </span><span class="cov1" title="1">{
                 return false
         }</span>
-        <span class="cov7" title="5">entry.count++
+        <span class="cov7" title="6">entry.count++
         return true</span>
 }
 
@@ -3092,7 +3102,7 @@ func allowLogin(r *http.Request) bool <span class="cov8" title="6">{
 // @Failure 401 {object} models.ApiResponse "Credenciales inválidas"
 // @Failure 429 {object} models.ApiResponse "Demasiadas solicitudes"
 // @Router /login [post]
-func (c *LoginController) Login() <span class="cov8" title="6">{
+func (c *LoginController) Login() <span class="cov7" title="6">{
         // Rate limit
         if !allowLogin(c.Ctx.Request) </span><span class="cov0" title="0">{
                 c.Ctx.Output.SetStatus(http.StatusTooManyRequests)
@@ -3101,7 +3111,7 @@ func (c *LoginController) Login() <span class="cov8" title="6">{
                 return
         }</span>
 
-        <span class="cov8" title="6">var loginRequest models.LoginRequest
+        <span class="cov7" title="6">var loginRequest models.LoginRequest
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;loginRequest); err != nil </span><span class="cov1" title="1">{
                 c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{
@@ -3113,13 +3123,13 @@ func (c *LoginController) Login() <span class="cov8" title="6">{
                 return
         }</span>
 
-        <span class="cov7" title="5">o := newOrm()
+        <span class="cov6" title="5">o := newOrm()
 
         // Primero, intenta encontrar al usuario como trabajador
         trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: loginRequest.Documento}
         err := o.Read(&amp;trabajador)
 
-        if err == nil </span><span class="cov4" title="2">{
+        if err == nil </span><span class="cov3" title="2">{
                 // Verificar la contraseña
                 if err := compareHashAndPassword([]byte(trabajador.PASSWORD), []byte(loginRequest.Password)); err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusUnauthorized)
@@ -3137,10 +3147,10 @@ func (c *LoginController) Login() <span class="cov8" title="6">{
         }
 
         // Si no es un trabajador, intenta como cliente
-        <span class="cov5" title="3">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: loginRequest.Documento}
+        <span class="cov4" title="3">cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: loginRequest.Documento}
         err = o.Read(&amp;cliente)
 
-        if err == nil </span><span class="cov4" title="2">{
+        if err == nil </span><span class="cov3" title="2">{
                 // Verificar la contraseña
                 if err := compareHashAndPassword([]byte(cliente.PASSWORD), []byte(loginRequest.Password)); err != nil </span><span class="cov1" title="1">{
                         c.Ctx.Output.SetStatus(http.StatusUnauthorized)
@@ -3167,7 +3177,7 @@ func (c *LoginController) Login() <span class="cov8" title="6">{
 }
 
 // Función para generar y devolver un token JWT
-func generateJWT(c *LoginController, documento int64, rol string, nombre string) <span class="cov5" title="3">{
+func generateJWT(c *LoginController, documento int64, rol string, nombre string) <span class="cov5" title="4">{
         now := time.Now()
         expirationTime := now.Add(24 * time.Hour)
 
@@ -3194,7 +3204,7 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
                 return
         }</span>
 
-        <span class="cov5" title="3">c.Ctx.Output.SetStatus(http.StatusOK)
+        <span class="cov5" title="4">c.Ctx.Output.SetStatus(http.StatusOK)
         c.Data["json"] = models.ApiResponse{
                 Code:    http.StatusOK,
                 Message: "Inicio de sesión exitoso",
@@ -3206,7 +3216,7 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
         _ = c.ServeJSON()</span>
 }
 
-func ValidateToken(ctx *context.Context) <span class="cov10" title="8">{
+func ValidateToken(ctx *context.Context) <span class="cov8" title="8">{
         // 1) Permitir CORS preflight
         if ctx.Input.Method() == "OPTIONS" </span><span class="cov1" title="1">{
                 ctx.Output.Status = http.StatusOK
@@ -3214,12 +3224,12 @@ func ValidateToken(ctx *context.Context) <span class="cov10" title="8">{
         }</span>
 
         // 2) Permitir crear cliente sin token (registro público)
-        <span class="cov9" title="7">if ctx.Input.Method() == "POST" &amp;&amp; ctx.Input.URL() == "/restaurante/v1/clientes" </span><span class="cov1" title="1">{
+        <span class="cov7" title="7">if ctx.Input.Method() == "POST" &amp;&amp; ctx.Input.URL() == "/restaurante/v1/clientes" </span><span class="cov1" title="1">{
                 return
         }</span>
 
         // 2b) En desarrollo, permitir solicitudes iniciadas desde Swagger UI sin token
-        <span class="cov8" title="6">if web.BConfig.RunMode == "dev" </span><span class="cov4" title="2">{
+        <span class="cov7" title="6">if web.BConfig.RunMode == "dev" </span><span class="cov3" title="2">{
                 referer := ctx.Input.Header("Referer")
                 if strings.Contains(referer, "/swagger/") </span><span class="cov1" title="1">{
                         return
@@ -3231,7 +3241,7 @@ func ValidateToken(ctx *context.Context) <span class="cov10" title="8">{
         }
 
         // 3) Resto de rutas: exigir token
-        <span class="cov7" title="4">authHeader := ctx.Input.Header("Authorization")
+        <span class="cov5" title="4">authHeader := ctx.Input.Header("Authorization")
         if authHeader == "" </span><span class="cov1" title="1">{
                 ctx.Output.SetStatus(http.StatusUnauthorized)
                 if err := ctx.Output.JSON(models.ApiResponse{
@@ -3244,17 +3254,17 @@ func ValidateToken(ctx *context.Context) <span class="cov10" title="8">{
         }
 
         // Normalizar prefijo Bearer
-        <span class="cov5" title="3">if len(authHeader) &lt; 7 || authHeader[:7] != "Bearer " </span><span class="cov1" title="1">{
+        <span class="cov4" title="3">if len(authHeader) &lt; 7 || authHeader[:7] != "Bearer " </span><span class="cov1" title="1">{
                 authHeader = "Bearer " + authHeader
         }</span>
-        <span class="cov5" title="3">tokenString := authHeader[len("Bearer "):]
+        <span class="cov4" title="3">tokenString := authHeader[len("Bearer "):]
 
         claims := &amp;Claims{}
-        token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) </span><span class="cov4" title="2">{
+        token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) </span><span class="cov3" title="2">{
                 return jwtSecret, nil
         }</span>, jwt.WithValidMethods([]string{"HS256"}))
 
-        <span class="cov5" title="3">if err != nil || !token.Valid </span><span class="cov1" title="1">{
+        <span class="cov4" title="3">if err != nil || !token.Valid </span><span class="cov1" title="1">{
                 ctx.Output.SetStatus(http.StatusUnauthorized)
                 if err := ctx.Output.JSON(models.ApiResponse{
                         Code:    http.StatusUnauthorized,
@@ -6083,26 +6093,41 @@ func (c *ProductoPedidoController) Post() <span class="cov8" title="17">{
 
         <span class="cov7" title="12">nuevos := make(map[int64]int)
         for _, d := range input.Detalles </span><span class="cov8" title="15">{
-                if d.PKIDProducto == 0 || d.Cantidad &lt;= 0 </span><span class="cov2" title="2">{ continue</span> }
+                if d.PKIDProducto == 0 || d.Cantidad &lt;= 0 </span><span class="cov2" title="2">{
+                        continue</span>
+                }
                 <span class="cov7" title="13">nuevos[d.PKIDProducto] += d.Cantidad</span>
         }
 
         <span class="cov7" title="12">o := productoPedidoBaseOrmNew()
         if len(nuevos) &gt; 0 </span><span class="cov7" title="12">{
                 ids := make([]int64, 0, len(nuevos))
-                for pid := range nuevos </span><span class="cov7" title="12">{ ids = append(ids, pid) }</span>
-                <span class="cov7" title="12">ph := make([]string, len(ids)); args := make([]interface{}, len(ids))
-                for i, id := range ids </span><span class="cov7" title="12">{ ph[i] = "?"; args[i] = id }</span>
+                for pid := range nuevos </span><span class="cov7" title="12">{
+                        ids = append(ids, pid)
+                }</span>
+                <span class="cov7" title="12">ph := make([]string, len(ids))
+                args := make([]interface{}, len(ids))
+                for i, id := range ids </span><span class="cov7" title="12">{
+                        ph[i] = "?"
+                        args[i] = id
+                }</span>
                 <span class="cov7" title="12">query := fmt.Sprintf("SELECT pk_id_producto, cantidad FROM producto WHERE pk_id_producto IN (%s)", strings.Join(ph, ","))
-                var rows []struct { PK int64 `orm:"column(pk_id_producto)"`; Cantidad int `orm:"column(cantidad)"` }
+                var rows []struct {
+                        PK       int64 `orm:"column(pk_id_producto)"`
+                        Cantidad int   `orm:"column(cantidad)"`
+                }
                 if _, err := o.Raw(query, args...).QueryRows(&amp;rows); err != nil </span>{<span class="cov2" title="2">
                         // continuar, comportamiento esperado
                 }</span>
                 <span class="cov7" title="12">avail := make(map[int64]int)
-                for _, r := range rows </span><span class="cov7" title="10">{ avail[r.PK] = r.Cantidad }</span>
+                for _, r := range rows </span><span class="cov7" title="10">{
+                        avail[r.PK] = r.Cantidad
+                }</span>
                 <span class="cov7" title="12">var insuf []map[string]interface{}
                 for pid, req := range nuevos </span><span class="cov7" title="12">{
-                        if avail[pid] &lt; req </span><span class="cov2" title="2">{ insuf = append(insuf, map[string]interface{}{"productoId": pid, "requerido": req, "disponible": avail[pid]}) }</span>
+                        if avail[pid] &lt; req </span><span class="cov2" title="2">{
+                                insuf = append(insuf, map[string]interface{}{"productoId": pid, "requerido": req, "disponible": avail[pid]})
+                        }</span>
                 }
                 <span class="cov7" title="12">if len(insuf) &gt; 0 </span><span class="cov2" title="2">{
                         c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos", Data: insuf}
@@ -6213,7 +6238,12 @@ func (c *ProductoPedidoController) Update() <span class="cov9" title="23">{
         }</span>
 
         <span class="cov8" title="17">nuevos := make(map[int64]int)
-        for _, d := range nuevosProductos </span><span class="cov8" title="18">{ if d.PKIDProducto == 0 || d.Cantidad &lt; 0 </span><span class="cov1" title="1">{ continue</span> }; <span class="cov8" title="17">nuevos[d.PKIDProducto] += d.Cantidad</span> }
+        for _, d := range nuevosProductos </span><span class="cov8" title="18">{
+                if d.PKIDProducto == 0 || d.Cantidad &lt; 0 </span><span class="cov1" title="1">{
+                        continue</span>
+                }
+                <span class="cov8" title="17">nuevos[d.PKIDProducto] += d.Cantidad</span>
+        }
         <span class="cov8" title="17">o := productoPedidoBaseOrmNew()
         var actuales []models.DetallePedido
         if _, err := o.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).All(&amp;actuales); err != nil </span><span class="cov4" title="4">{
@@ -6223,52 +6253,144 @@ func (c *ProductoPedidoController) Update() <span class="cov9" title="23">{
                 return
         }</span>
         <span class="cov7" title="13">actualMap := make(map[int64]int)
-        for _, a := range actuales </span><span class="cov5" title="5">{ if a.PKIDProducto != nil </span><span class="cov5" title="5">{ actualMap[a.PKIDProducto.PK_ID_PRODUCTO] += a.Cantidad }</span> }
+        for _, a := range actuales </span><span class="cov5" title="5">{
+                if a.PKIDProducto != nil </span><span class="cov5" title="5">{
+                        actualMap[a.PKIDProducto.PK_ID_PRODUCTO] += a.Cantidad
+                }</span>
+        }
         <span class="cov7" title="13">deltas := make(map[int64]int)
-        for pid, qty := range nuevos </span><span class="cov7" title="13">{ prev := actualMap[pid]; deltas[pid] = qty - prev; delete(actualMap, pid) }</span>
-        <span class="cov7" title="13">for pid, prev := range actualMap </span><span class="cov1" title="1">{ deltas[pid] = -prev }</span>
+        for pid, qty := range nuevos </span><span class="cov7" title="13">{
+                prev := actualMap[pid]
+                deltas[pid] = qty - prev
+                delete(actualMap, pid)
+        }</span>
+        <span class="cov7" title="13">for pid, prev := range actualMap </span><span class="cov1" title="1">{
+                deltas[pid] = -prev
+        }</span>
         <span class="cov7" title="13">need := make(map[int64]int)
-        for pid, d := range deltas </span><span class="cov8" title="14">{ if d &gt; 0 </span><span class="cov6" title="9">{ need[pid] = d }</span> }
+        for pid, d := range deltas </span><span class="cov8" title="14">{
+                if d &gt; 0 </span><span class="cov6" title="9">{
+                        need[pid] = d
+                }</span>
+        }
         <span class="cov7" title="13">if len(need) &gt; 0 </span><span class="cov6" title="9">{
-                ids := make([]int64, 0, len(need)); for pid := range need </span><span class="cov6" title="9">{ ids = append(ids, pid) }</span>
-                <span class="cov6" title="9">ph := make([]string, len(ids)); args := make([]interface{}, len(ids)); for i, id := range ids </span><span class="cov6" title="9">{ ph[i] = "?"; args[i] = id }</span>
+                ids := make([]int64, 0, len(need))
+                for pid := range need </span><span class="cov6" title="9">{
+                        ids = append(ids, pid)
+                }</span>
+                <span class="cov6" title="9">ph := make([]string, len(ids))
+                args := make([]interface{}, len(ids))
+                for i, id := range ids </span><span class="cov6" title="9">{
+                        ph[i] = "?"
+                        args[i] = id
+                }</span>
                 <span class="cov6" title="9">query := fmt.Sprintf("SELECT pk_id_producto, cantidad FROM producto WHERE pk_id_producto IN (%s)", strings.Join(ph, ","))
-                var rows []struct { PK int64 `orm:"column(pk_id_producto)"`; Cantidad int `orm:"column(cantidad)"` }
+                var rows []struct {
+                        PK       int64 `orm:"column(pk_id_producto)"`
+                        Cantidad int   `orm:"column(cantidad)"`
+                }
                 if _, err := o.Raw(query, args...).QueryRows(&amp;rows); err != nil </span><span class="cov0" title="0">{
                         logging.LogControllerError(c.Ctx, "producto_pedido.update.validar_inventario_error", err, map[string]interface{}{"pedido_id": pedidoID})
                         c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al validar inventario", Cause: err.Error()}
                         _ = c.ServeJSON()
                         return
                 }</span>
-                <span class="cov6" title="9">avail := make(map[int64]int); for _, r := range rows </span><span class="cov6" title="9">{ avail[r.PK] = r.Cantidad }</span>
+                <span class="cov6" title="9">avail := make(map[int64]int)
+                for _, r := range rows </span><span class="cov6" title="9">{
+                        avail[r.PK] = r.Cantidad
+                }</span>
                 <span class="cov6" title="9">var insuf []map[string]interface{}
-                for pid, req := range need </span><span class="cov6" title="9">{ disp := avail[pid]; if disp &lt; req </span><span class="cov1" title="1">{ insuf = append(insuf, map[string]interface{}{"productoId": pid, "requerido": req, "disponible": disp}) }</span> }
-                <span class="cov6" title="9">if len(insuf) &gt; 0 </span><span class="cov1" title="1">{ c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos", Data: insuf}; _ = c.ServeJSON(); return }</span>
+                for pid, req := range need </span><span class="cov6" title="9">{
+                        disp := avail[pid]
+                        if disp &lt; req </span><span class="cov1" title="1">{
+                                insuf = append(insuf, map[string]interface{}{"productoId": pid, "requerido": req, "disponible": disp})
+                        }</span>
+                }
+                <span class="cov6" title="9">if len(insuf) &gt; 0 </span><span class="cov1" title="1">{
+                        c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos", Data: insuf}
+                        _ = c.ServeJSON()
+                        return
+                }</span>
         }
         <span class="cov7" title="12">tx, err := productoPedidoBeginTx(o)
-        if err != nil </span><span class="cov1" title="1">{ logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_begin_error", err, map[string]interface{}{"pedido_id": pedidoID}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible iniciar transacción", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
+        if err != nil </span><span class="cov1" title="1">{
+                logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_begin_error", err, map[string]interface{}{"pedido_id": pedidoID})
+                c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible iniciar transacción", Cause: err.Error()}
+                _ = c.ServeJSON()
+                return
+        }</span>
         <span class="cov7" title="11">for pid, delta := range deltas </span><span class="cov7" title="12">{
-                if delta == 0 </span><span class="cov0" title="0">{ continue</span> }
+                if delta == 0 </span><span class="cov0" title="0">{
+                        continue</span>
+                }
                 <span class="cov7" title="12">if delta &gt; 0 </span><span class="cov6" title="7">{
                         res, err := tx.Raw("UPDATE producto SET cantidad = cantidad - ? WHERE pk_id_producto = ? AND cantidad &gt;= ?", delta, pid, delta).Exec()
-                        if err != nil </span><span class="cov1" title="1">{ _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.stock_update_error", err, map[string]interface{}{"productoId": pid, "delta": delta, "body": string(c.Ctx.Input.RequestBody)}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al descontar inventario", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
-                        <span class="cov5" title="6">affected, err := res.RowsAffected(); if err != nil </span><span class="cov0" title="0">{ _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.rows_affected_error", err, map[string]interface{}{"productoId": pid}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al verificar actualización de inventario", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
-                        <span class="cov5" title="6">if affected == 0 </span><span class="cov1" title="1">{ _ = tx.Rollback(); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos"}; _ = c.ServeJSON(); return }</span>
+                        if err != nil </span><span class="cov1" title="1">{
+                                _ = tx.Rollback()
+                                logging.LogControllerError(c.Ctx, "producto_pedido.update.stock_update_error", err, map[string]interface{}{"productoId": pid, "delta": delta, "body": string(c.Ctx.Input.RequestBody)})
+                                c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al descontar inventario", Cause: err.Error()}
+                                _ = c.ServeJSON()
+                                return
+                        }</span>
+                        <span class="cov5" title="6">affected, err := res.RowsAffected()
+                        if err != nil </span><span class="cov0" title="0">{
+                                _ = tx.Rollback()
+                                logging.LogControllerError(c.Ctx, "producto_pedido.update.rows_affected_error", err, map[string]interface{}{"productoId": pid})
+                                c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al verificar actualización de inventario", Cause: err.Error()}
+                                _ = c.ServeJSON()
+                                return
+                        }</span>
+                        <span class="cov5" title="6">if affected == 0 </span><span class="cov1" title="1">{
+                                _ = tx.Rollback()
+                                c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos"}
+                                _ = c.ServeJSON()
+                                return
+                        }</span>
                 } else<span class="cov5" title="5"> {
                         inc := -delta
-                        if _, err := tx.Raw("UPDATE producto SET cantidad = cantidad + ? WHERE pk_id_producto = ?", inc, pid).Exec(); err != nil </span><span class="cov1" title="1">{ _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.stock_restore_error", err, map[string]interface{}{"productoId": pid, "inc": inc, "body": string(c.Ctx.Input.RequestBody)}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al ajustar inventario", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
+                        if _, err := tx.Raw("UPDATE producto SET cantidad = cantidad + ? WHERE pk_id_producto = ?", inc, pid).Exec(); err != nil </span><span class="cov1" title="1">{
+                                _ = tx.Rollback()
+                                logging.LogControllerError(c.Ctx, "producto_pedido.update.stock_restore_error", err, map[string]interface{}{"productoId": pid, "inc": inc, "body": string(c.Ctx.Input.RequestBody)})
+                                c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al ajustar inventario", Cause: err.Error()}
+                                _ = c.ServeJSON()
+                                return
+                        }</span>
                 }
         }
-        <span class="cov6" title="8">if _, err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).Delete(); err != nil </span><span class="cov6" title="7">{ _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.delete_detalles_error", err, map[string]interface{}{"pedido_id": pedidoID}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
+        <span class="cov6" title="8">if _, err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).Delete(); err != nil </span><span class="cov6" title="7">{
+                _ = tx.Rollback()
+                logging.LogControllerError(c.Ctx, "producto_pedido.update.delete_detalles_error", err, map[string]interface{}{"pedido_id": pedidoID})
+                c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}
+                _ = c.ServeJSON()
+                return
+        }</span>
         <span class="cov1" title="1">var detalles []models.DetallePedido
         for pid, qty := range nuevos </span><span class="cov1" title="1">{
                 detalle := models.DetallePedido{PKIDPedido: &amp;models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &amp;models.Producto{PK_ID_PRODUCTO: pid}, Cantidad: qty}
-                if _, err := tx.Insert(&amp;detalle); err != nil </span><span class="cov1" title="1">{ _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.insert_detalle_error", err, map[string]interface{}{"productoId": pid, "qty": qty, "body": string(c.Ctx.Input.RequestBody)}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
+                if _, err := tx.Insert(&amp;detalle); err != nil </span><span class="cov1" title="1">{
+                        _ = tx.Rollback()
+                        logging.LogControllerError(c.Ctx, "producto_pedido.update.insert_detalle_error", err, map[string]interface{}{"productoId": pid, "qty": qty, "body": string(c.Ctx.Input.RequestBody)})
+                        c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}
+                        _ = c.ServeJSON()
+                        return
+                }</span>
                 <span class="cov0" title="0">var actualizado models.DetallePedido
-                if err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", *detalle.PKIDPedido).Filter("PKIDProducto", *detalle.PKIDProducto).One(&amp;actualizado); err != nil </span><span class="cov0" title="0">{ _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.requery_error", err, map[string]interface{}{"productoId": pid}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener el precio del producto", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
+                if err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", *detalle.PKIDPedido).Filter("PKIDProducto", *detalle.PKIDProducto).One(&amp;actualizado); err != nil </span><span class="cov0" title="0">{
+                        _ = tx.Rollback()
+                        logging.LogControllerError(c.Ctx, "producto_pedido.update.requery_error", err, map[string]interface{}{"productoId": pid})
+                        c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener el precio del producto", Cause: err.Error()}
+                        _ = c.ServeJSON()
+                        return
+                }</span>
                 <span class="cov0" title="0">detalles = append(detalles, actualizado)</span>
         }
-        <span class="cov0" title="0">if err := tx.Commit(); err != nil </span><span class="cov0" title="0">{ _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_commit_error", err, map[string]interface{}{"pedido_id": pedidoID}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible confirmar transacción", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
+        <span class="cov0" title="0">if err := tx.Commit(); err != nil </span><span class="cov0" title="0">{
+                _ = tx.Rollback()
+                logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_commit_error", err, map[string]interface{}{"pedido_id": pedidoID})
+                c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible confirmar transacción", Cause: err.Error()}
+                _ = c.ServeJSON()
+                return
+        }</span>
         <span class="cov0" title="0">response := map[string]interface{}{"pedidoId": pedidoID, "detalles": detalles}
         c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Productos del pedido actualizados exitosamente", Data: response}
         _ = c.ServeJSON()</span>
@@ -6662,11 +6784,28 @@ func (c *ReservaController) Post() <span class="cov10" title="12">{
 func (c *ReservaController) Put() <span class="cov9" title="11">{
         o := ormNew()
         id, err := c.GetInt64("id")
-        if err != nil || id == 0 </span><span class="cov1" title="1">{ logging.LogControllerError(c.Ctx, "reservas.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
+        if err != nil || id == 0 </span><span class="cov1" title="1">{
+                logging.LogControllerError(c.Ctx, "reservas.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+                c.Ctx.Output.SetStatus(http.StatusBadRequest)
+                c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}
+                _ = c.ServeJSON()
+                return
+        }</span>
         <span class="cov9" title="10">reserva := models.Reserva{PK_ID_RESERVA: id}
-        if err := readReserva(o, &amp;reserva); err != nil </span><span class="cov1" title="1">{ c.Ctx.Output.SetStatus(http.StatusOK); c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Reserva no encontrada"}; _ = c.ServeJSON(); return }</span>
+        if err := readReserva(o, &amp;reserva); err != nil </span><span class="cov1" title="1">{
+                c.Ctx.Output.SetStatus(http.StatusOK)
+                c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Reserva no encontrada"}
+                _ = c.ServeJSON()
+                return
+        }</span>
         <span class="cov8" title="9">var input map[string]interface{}
-        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{ logging.LogControllerError(c.Ctx, "reservas.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
+        if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;input); err != nil </span><span class="cov1" title="1">{
+                logging.LogControllerError(c.Ctx, "reservas.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
+                c.Ctx.Output.SetStatus(http.StatusBadRequest)
+                c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
+                _ = c.ServeJSON()
+                return
+        }</span>
 
         // Validación de documentoContacto/documentoCliente (mutuamente excluyentes)
         <span class="cov8" title="8">var contacto models.ReservaContacto
@@ -6679,7 +6818,13 @@ func (c *ReservaController) Put() <span class="cov9" title="11">{
                 contacto.PKDocumentoCliente = &amp;models.Cliente{PK_DOCUMENTO_CLIENTE: val}
         }</span>
         <span class="cov8" title="8">if contacto.DocumentoContacto != nil || contacto.PKDocumentoCliente != nil </span><span class="cov3" title="2">{
-                if !contacto.Valid() </span><span class="cov1" title="1">{ logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "documentoContacto": contacto.DocumentoContacto, "documentoCliente": contacto.PKDocumentoCliente, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}; _ = c.ServeJSON(); return }</span>
+                if !contacto.Valid() </span><span class="cov1" title="1">{
+                        logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "documentoContacto": contacto.DocumentoContacto, "documentoCliente": contacto.PKDocumentoCliente, "body": string(c.Ctx.Input.RequestBody)})
+                        c.Ctx.Output.SetStatus(http.StatusBadRequest)
+                        c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Debe enviar sólo uno de documentoContacto o documentoCliente"}
+                        _ = c.ServeJSON()
+                        return
+                }</span>
         }
 
         <span class="cov8" title="7">if v, ok := input["fechaReserva"].(string); ok &amp;&amp; v != "" </span><span class="cov8" title="7">{
@@ -6719,11 +6864,37 @@ func (c *ReservaController) Put() <span class="cov9" title="11">{
         <span class="cov6" title="5">if updatedBy, ok := input["updatedBy"].(string); ok </span><span class="cov1" title="1">{
                 reserva.UPDATED_BY = &amp;updatedBy
         }</span>
-        <span class="cov6" title="5">if contactoID, ok := input["contactoId"].(float64); ok </span><span class="cov6" title="4">{ val := int64(contactoID); reserva.PK_ID_CONTACTO = &amp;models.ReservaContacto{PKIDContacto: val} }</span> else<span class="cov1" title="1"> { logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "contactoId", "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_CONTACTO debe ser un número"}; _ = c.ServeJSON(); return }</span>
-        <span class="cov6" title="4">if restauranteID, ok := input["restauranteId"].(float64); ok </span><span class="cov4" title="3">{ val := int64(restauranteID); reserva.PK_ID_RESTAURANTE = &amp;models.Restaurante{PK_ID_RESTAURANTE: val} }</span> else<span class="cov1" title="1"> { logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "restauranteId", "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusBadRequest); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_RESTAURANTE debe ser un número"}; _ = c.ServeJSON(); return }</span>
+        <span class="cov6" title="5">if contactoID, ok := input["contactoId"].(float64); ok </span><span class="cov6" title="4">{
+                val := int64(contactoID)
+                reserva.PK_ID_CONTACTO = &amp;models.ReservaContacto{PKIDContacto: val}
+        }</span> else<span class="cov1" title="1"> {
+                logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "contactoId", "body": string(c.Ctx.Input.RequestBody)})
+                c.Ctx.Output.SetStatus(http.StatusBadRequest)
+                c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_CONTACTO debe ser un número"}
+                _ = c.ServeJSON()
+                return
+        }</span>
+        <span class="cov6" title="4">if restauranteID, ok := input["restauranteId"].(float64); ok </span><span class="cov4" title="3">{
+                val := int64(restauranteID)
+                reserva.PK_ID_RESTAURANTE = &amp;models.Restaurante{PK_ID_RESTAURANTE: val}
+        }</span> else<span class="cov1" title="1"> {
+                logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "restauranteId", "body": string(c.Ctx.Input.RequestBody)})
+                c.Ctx.Output.SetStatus(http.StatusBadRequest)
+                c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo PK_ID_RESTAURANTE debe ser un número"}
+                _ = c.ServeJSON()
+                return
+        }</span>
         <span class="cov4" title="3">reserva.UPDATED_AT = time.Now().UTC()
-        if _, err := updateReserva(o, &amp;reserva); err != nil </span><span class="cov1" title="1">{ logging.LogControllerError(c.Ctx, "reservas.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)}); c.Ctx.Output.SetStatus(http.StatusInternalServerError); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la reserva", Cause: err.Error()}; _ = c.ServeJSON(); return }</span>
-        <span class="cov3" title="2">c.Ctx.Output.SetStatus(http.StatusOK); c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Reserva actualizada", Data: reserva}; _ = c.ServeJSON()</span>
+        if _, err := updateReserva(o, &amp;reserva); err != nil </span><span class="cov1" title="1">{
+                logging.LogControllerError(c.Ctx, "reservas.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
+                c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+                c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la reserva", Cause: err.Error()}
+                _ = c.ServeJSON()
+                return
+        }</span>
+        <span class="cov3" title="2">c.Ctx.Output.SetStatus(http.StatusOK)
+        c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Reserva actualizada", Data: reserva}
+        _ = c.ServeJSON()</span>
 }
 
 // @Title GetByCliente
@@ -7411,7 +7582,9 @@ func (c *SubcategoriaController) Post() <span class="cov8" title="3">{
                 CategoriaId int64  `json:"categoriaId"`
         }
         if err := json.Unmarshal(c.Ctx.Input.RequestBody, &amp;in); err != nil || in.Nombre == "" || in.CategoriaId == 0 </span><span class="cov1" title="1">{
-                if err != nil </span><span class="cov1" title="1">{ logging.LogControllerError(c.Ctx, "subcategorias.post.bad_json", err, nil) }</span>
+                if err != nil </span><span class="cov1" title="1">{
+                        logging.LogControllerError(c.Ctx, "subcategorias.post.bad_json", err, nil)
+                }</span>
                 <span class="cov1" title="1">c.Ctx.Output.SetStatus(http.StatusBadRequest)
                 c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o campos requeridos faltantes"}
                 _ = c.ServeJSON()
@@ -7462,8 +7635,14 @@ func (c *SubcategoriaController) Put() <span class="cov10" title="4">{
                 return
         }</span>
         <span class="cov5" title="2">cols := []string{}
-        if in.Nombre != nil </span><span class="cov5" title="2">{ s.NOMBRE = *in.Nombre; cols = append(cols, "NOMBRE") }</span>
-        <span class="cov5" title="2">if in.CategoriaId != nil </span><span class="cov1" title="1">{ s.PK_ID_CATEGORIA = &amp;models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}; cols = append(cols, "PK_ID_CATEGORIA") }</span>
+        if in.Nombre != nil </span><span class="cov5" title="2">{
+                s.NOMBRE = *in.Nombre
+                cols = append(cols, "NOMBRE")
+        }</span>
+        <span class="cov5" title="2">if in.CategoriaId != nil </span><span class="cov1" title="1">{
+                s.PK_ID_CATEGORIA = &amp;models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}
+                cols = append(cols, "PK_ID_CATEGORIA")
+        }</span>
         <span class="cov5" title="2">if _, err := o.Update(&amp;s, cols...); err != nil </span><span class="cov1" title="1">{
                 logging.LogControllerError(c.Ctx, "subcategorias.put.update_error", err, map[string]interface{}{"id": id})
                 c.Ctx.Output.SetStatus(http.StatusInternalServerError)

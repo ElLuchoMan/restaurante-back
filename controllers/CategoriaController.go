@@ -112,7 +112,9 @@ func (c *CategoriaController) GetById() {
 // @Router /categorias [post]
 func (c *CategoriaController) Post() {
 	o := catOrmNew()
-	var in struct{ Nombre string `json:"nombre"` }
+	var in struct {
+		Nombre string `json:"nombre"`
+	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" {
 		logging.LogControllerError(c.Ctx, "categorias.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -160,7 +162,9 @@ func (c *CategoriaController) Put() {
 		_ = c.ServeJSON()
 		return
 	}
-	var in struct{ Nombre *string `json:"nombre"` }
+	var in struct {
+		Nombre *string `json:"nombre"`
+	}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		logging.LogControllerError(c.Ctx, "categorias.put.bad_json", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)

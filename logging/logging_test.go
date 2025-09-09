@@ -17,12 +17,12 @@ import (
 )
 
 func TestLoggerFallback(t *testing.T) {
-    // Forzar ruta de fallback cuando logger es nil
-    logger = nil
-    l := Logger()
-    if l == nil {
-        t.Fatal("Logger fallback retornó nil")
-    }
+	// Forzar ruta de fallback cuando logger es nil
+	logger = nil
+	l := Logger()
+	if l == nil {
+		t.Fatal("Logger fallback retornó nil")
+	}
 }
 
 // memoryHandler es un slog.Handler de prueba que captura registros en memoria.
@@ -172,8 +172,8 @@ func TestLogControllerErrorAndSanitizers(t *testing.T) {
 	slog.SetDefault(logger)
 
 	fields := map[string]interface{}{
-		"password": "abc",
-		"token":    "abc",
+		"password":      "abc",
+		"token":         "abc",
 		"Authorization": "Bearer X",
 		"secret":        "should-hide",
 		"normal":        strings.Repeat("n", 300),
@@ -204,9 +204,9 @@ func TestLogControllerErrorAndSanitizers(t *testing.T) {
 	}
 
 	fs := sanitizeFields(map[string]interface{}{
-		"Password": "x",
-		"myPass":   "y",
-		"TOKEN":    "z",
+		"Password":      "x",
+		"myPass":        "y",
+		"TOKEN":         "z",
 		"authorization": "A",
 		"SecretKey":     "B",
 		"normal":        strings.Repeat("n", 300),
@@ -250,5 +250,3 @@ func TestClientIPBranches(t *testing.T) {
 		_ = got
 	}
 }
-
-

@@ -113,26 +113,41 @@ func (c *ProductoPedidoController) Post() {
 
 	nuevos := make(map[int64]int)
 	for _, d := range input.Detalles {
-		if d.PKIDProducto == 0 || d.Cantidad <= 0 { continue }
+		if d.PKIDProducto == 0 || d.Cantidad <= 0 {
+			continue
+		}
 		nuevos[d.PKIDProducto] += d.Cantidad
 	}
 
 	o := productoPedidoBaseOrmNew()
 	if len(nuevos) > 0 {
 		ids := make([]int64, 0, len(nuevos))
-		for pid := range nuevos { ids = append(ids, pid) }
-		ph := make([]string, len(ids)); args := make([]interface{}, len(ids))
-		for i, id := range ids { ph[i] = "?"; args[i] = id }
+		for pid := range nuevos {
+			ids = append(ids, pid)
+		}
+		ph := make([]string, len(ids))
+		args := make([]interface{}, len(ids))
+		for i, id := range ids {
+			ph[i] = "?"
+			args[i] = id
+		}
 		query := fmt.Sprintf("SELECT pk_id_producto, cantidad FROM producto WHERE pk_id_producto IN (%s)", strings.Join(ph, ","))
-		var rows []struct { PK int64 `orm:"column(pk_id_producto)"`; Cantidad int `orm:"column(cantidad)"` }
+		var rows []struct {
+			PK       int64 `orm:"column(pk_id_producto)"`
+			Cantidad int   `orm:"column(cantidad)"`
+		}
 		if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
 			// continuar, comportamiento esperado
 		}
 		avail := make(map[int64]int)
-		for _, r := range rows { avail[r.PK] = r.Cantidad }
+		for _, r := range rows {
+			avail[r.PK] = r.Cantidad
+		}
 		var insuf []map[string]interface{}
 		for pid, req := range nuevos {
-			if avail[pid] < req { insuf = append(insuf, map[string]interface{}{"productoId": pid, "requerido": req, "disponible": avail[pid]}) }
+			if avail[pid] < req {
+				insuf = append(insuf, map[string]interface{}{"productoId": pid, "requerido": req, "disponible": avail[pid]})
+			}
 		}
 		if len(insuf) > 0 {
 			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos", Data: insuf}
@@ -243,7 +258,12 @@ func (c *ProductoPedidoController) Update() {
 	}
 
 	nuevos := make(map[int64]int)
-	for _, d := range nuevosProductos { if d.PKIDProducto == 0 || d.Cantidad < 0 { continue }; nuevos[d.PKIDProducto] += d.Cantidad }
+	for _, d := range nuevosProductos {
+		if d.PKIDProducto == 0 || d.Cantidad < 0 {
+			continue
+		}
+		nuevos[d.PKIDProducto] += d.Cantidad
+	}
 	o := productoPedidoBaseOrmNew()
 	var actuales []models.DetallePedido
 	if _, err := o.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).All(&actuales); err != nil {
@@ -253,52 +273,144 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 	actualMap := make(map[int64]int)
-	for _, a := range actuales { if a.PKIDProducto != nil { actualMap[a.PKIDProducto.PK_ID_PRODUCTO] += a.Cantidad } }
+	for _, a := range actuales {
+		if a.PKIDProducto != nil {
+			actualMap[a.PKIDProducto.PK_ID_PRODUCTO] += a.Cantidad
+		}
+	}
 	deltas := make(map[int64]int)
-	for pid, qty := range nuevos { prev := actualMap[pid]; deltas[pid] = qty - prev; delete(actualMap, pid) }
-	for pid, prev := range actualMap { deltas[pid] = -prev }
+	for pid, qty := range nuevos {
+		prev := actualMap[pid]
+		deltas[pid] = qty - prev
+		delete(actualMap, pid)
+	}
+	for pid, prev := range actualMap {
+		deltas[pid] = -prev
+	}
 	need := make(map[int64]int)
-	for pid, d := range deltas { if d > 0 { need[pid] = d } }
+	for pid, d := range deltas {
+		if d > 0 {
+			need[pid] = d
+		}
+	}
 	if len(need) > 0 {
-		ids := make([]int64, 0, len(need)); for pid := range need { ids = append(ids, pid) }
-		ph := make([]string, len(ids)); args := make([]interface{}, len(ids)); for i, id := range ids { ph[i] = "?"; args[i] = id }
+		ids := make([]int64, 0, len(need))
+		for pid := range need {
+			ids = append(ids, pid)
+		}
+		ph := make([]string, len(ids))
+		args := make([]interface{}, len(ids))
+		for i, id := range ids {
+			ph[i] = "?"
+			args[i] = id
+		}
 		query := fmt.Sprintf("SELECT pk_id_producto, cantidad FROM producto WHERE pk_id_producto IN (%s)", strings.Join(ph, ","))
-		var rows []struct { PK int64 `orm:"column(pk_id_producto)"`; Cantidad int `orm:"column(cantidad)"` }
+		var rows []struct {
+			PK       int64 `orm:"column(pk_id_producto)"`
+			Cantidad int   `orm:"column(cantidad)"`
+		}
 		if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
 			logging.LogControllerError(c.Ctx, "producto_pedido.update.validar_inventario_error", err, map[string]interface{}{"pedido_id": pedidoID})
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al validar inventario", Cause: err.Error()}
 			_ = c.ServeJSON()
 			return
 		}
-		avail := make(map[int64]int); for _, r := range rows { avail[r.PK] = r.Cantidad }
+		avail := make(map[int64]int)
+		for _, r := range rows {
+			avail[r.PK] = r.Cantidad
+		}
 		var insuf []map[string]interface{}
-		for pid, req := range need { disp := avail[pid]; if disp < req { insuf = append(insuf, map[string]interface{}{"productoId": pid, "requerido": req, "disponible": disp}) } }
-		if len(insuf) > 0 { c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos", Data: insuf}; _ = c.ServeJSON(); return }
-	}
-	tx, err := productoPedidoBeginTx(o)
-	if err != nil { logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_begin_error", err, map[string]interface{}{"pedido_id": pedidoID}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible iniciar transacción", Cause: err.Error()}; _ = c.ServeJSON(); return }
-	for pid, delta := range deltas {
-		if delta == 0 { continue }
-		if delta > 0 {
-			res, err := tx.Raw("UPDATE producto SET cantidad = cantidad - ? WHERE pk_id_producto = ? AND cantidad >= ?", delta, pid, delta).Exec()
-			if err != nil { _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.stock_update_error", err, map[string]interface{}{"productoId": pid, "delta": delta, "body": string(c.Ctx.Input.RequestBody)}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al descontar inventario", Cause: err.Error()}; _ = c.ServeJSON(); return }
-			affected, err := res.RowsAffected(); if err != nil { _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.rows_affected_error", err, map[string]interface{}{"productoId": pid}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al verificar actualización de inventario", Cause: err.Error()}; _ = c.ServeJSON(); return }
-			if affected == 0 { _ = tx.Rollback(); c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos"}; _ = c.ServeJSON(); return }
-		} else {
-			inc := -delta
-			if _, err := tx.Raw("UPDATE producto SET cantidad = cantidad + ? WHERE pk_id_producto = ?", inc, pid).Exec(); err != nil { _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.stock_restore_error", err, map[string]interface{}{"productoId": pid, "inc": inc, "body": string(c.Ctx.Input.RequestBody)}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al ajustar inventario", Cause: err.Error()}; _ = c.ServeJSON(); return }
+		for pid, req := range need {
+			disp := avail[pid]
+			if disp < req {
+				insuf = append(insuf, map[string]interface{}{"productoId": pid, "requerido": req, "disponible": disp})
+			}
+		}
+		if len(insuf) > 0 {
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos", Data: insuf}
+			_ = c.ServeJSON()
+			return
 		}
 	}
-	if _, err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).Delete(); err != nil { _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.delete_detalles_error", err, map[string]interface{}{"pedido_id": pedidoID}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}; _ = c.ServeJSON(); return }
+	tx, err := productoPedidoBeginTx(o)
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_begin_error", err, map[string]interface{}{"pedido_id": pedidoID})
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible iniciar transacción", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	for pid, delta := range deltas {
+		if delta == 0 {
+			continue
+		}
+		if delta > 0 {
+			res, err := tx.Raw("UPDATE producto SET cantidad = cantidad - ? WHERE pk_id_producto = ? AND cantidad >= ?", delta, pid, delta).Exec()
+			if err != nil {
+				_ = tx.Rollback()
+				logging.LogControllerError(c.Ctx, "producto_pedido.update.stock_update_error", err, map[string]interface{}{"productoId": pid, "delta": delta, "body": string(c.Ctx.Input.RequestBody)})
+				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al descontar inventario", Cause: err.Error()}
+				_ = c.ServeJSON()
+				return
+			}
+			affected, err := res.RowsAffected()
+			if err != nil {
+				_ = tx.Rollback()
+				logging.LogControllerError(c.Ctx, "producto_pedido.update.rows_affected_error", err, map[string]interface{}{"productoId": pid})
+				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al verificar actualización de inventario", Cause: err.Error()}
+				_ = c.ServeJSON()
+				return
+			}
+			if affected == 0 {
+				_ = tx.Rollback()
+				c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Inventario insuficiente para uno o más productos"}
+				_ = c.ServeJSON()
+				return
+			}
+		} else {
+			inc := -delta
+			if _, err := tx.Raw("UPDATE producto SET cantidad = cantidad + ? WHERE pk_id_producto = ?", inc, pid).Exec(); err != nil {
+				_ = tx.Rollback()
+				logging.LogControllerError(c.Ctx, "producto_pedido.update.stock_restore_error", err, map[string]interface{}{"productoId": pid, "inc": inc, "body": string(c.Ctx.Input.RequestBody)})
+				c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al ajustar inventario", Cause: err.Error()}
+				_ = c.ServeJSON()
+				return
+			}
+		}
+	}
+	if _, err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).Delete(); err != nil {
+		_ = tx.Rollback()
+		logging.LogControllerError(c.Ctx, "producto_pedido.update.delete_detalles_error", err, map[string]interface{}{"pedido_id": pedidoID})
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
 	var detalles []models.DetallePedido
 	for pid, qty := range nuevos {
 		detalle := models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: pid}, Cantidad: qty}
-		if _, err := tx.Insert(&detalle); err != nil { _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.insert_detalle_error", err, map[string]interface{}{"productoId": pid, "qty": qty, "body": string(c.Ctx.Input.RequestBody)}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}; _ = c.ServeJSON(); return }
+		if _, err := tx.Insert(&detalle); err != nil {
+			_ = tx.Rollback()
+			logging.LogControllerError(c.Ctx, "producto_pedido.update.insert_detalle_error", err, map[string]interface{}{"productoId": pid, "qty": qty, "body": string(c.Ctx.Input.RequestBody)})
+			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}
+			_ = c.ServeJSON()
+			return
+		}
 		var actualizado models.DetallePedido
-		if err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", *detalle.PKIDPedido).Filter("PKIDProducto", *detalle.PKIDProducto).One(&actualizado); err != nil { _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.requery_error", err, map[string]interface{}{"productoId": pid}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener el precio del producto", Cause: err.Error()}; _ = c.ServeJSON(); return }
+		if err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", *detalle.PKIDPedido).Filter("PKIDProducto", *detalle.PKIDProducto).One(&actualizado); err != nil {
+			_ = tx.Rollback()
+			logging.LogControllerError(c.Ctx, "producto_pedido.update.requery_error", err, map[string]interface{}{"productoId": pid})
+			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener el precio del producto", Cause: err.Error()}
+			_ = c.ServeJSON()
+			return
+		}
 		detalles = append(detalles, actualizado)
 	}
-	if err := tx.Commit(); err != nil { _ = tx.Rollback(); logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_commit_error", err, map[string]interface{}{"pedido_id": pedidoID}); c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible confirmar transacción", Cause: err.Error()}; _ = c.ServeJSON(); return }
+	if err := tx.Commit(); err != nil {
+		_ = tx.Rollback()
+		logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_commit_error", err, map[string]interface{}{"pedido_id": pedidoID})
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible confirmar transacción", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
 	response := map[string]interface{}{"pedidoId": pedidoID, "detalles": detalles}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Productos del pedido actualizados exitosamente", Data: response}
 	_ = c.ServeJSON()

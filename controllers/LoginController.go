@@ -63,10 +63,10 @@ func loadJWTSecret() []byte {
 
 // Sencillo rate limiter por IP
 var (
-	loginRL       = newRateLimiter()
-	loginMaxReq   = getEnvIntDefault("LOGIN_MAX_REQ_PER_MIN", 10)
-	loginWindow   = time.Minute
-	rlMutex       sync.Mutex
+	loginRL     = newRateLimiter()
+	loginMaxReq = getEnvIntDefault("LOGIN_MAX_REQ_PER_MIN", 10)
+	loginWindow = time.Minute
+	rlMutex     sync.Mutex
 )
 
 type rateEntry struct {
