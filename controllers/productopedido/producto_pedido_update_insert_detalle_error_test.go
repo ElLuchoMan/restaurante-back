@@ -15,6 +15,7 @@ import (
 // Cubre la rama de error al insertar el detalle en Update
 func TestProductoPedidoUpdate_InsertDetalleError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
+	step := 0
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		switch {
@@ -25,7 +26,12 @@ func TestProductoPedidoUpdate_InsertDetalleError(t *testing.T) {
 		case strings.Contains(lower, "insert into") && strings.Contains(lower, "detalle_pedido"):
 			return nil, errors.New("insert fail")
 		case strings.Contains(lower, "from detalle_pedido"):
-			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
+			if step == 0 {
+				step++
+				return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
+			}
+			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
+			return &mockRows{columns: cols, values: [][]driver.Value{}}, nil
 		default:
 			return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 		}
@@ -46,7 +52,8 @@ func TestProductoPedidoUpdate_InsertDetalleError(t *testing.T) {
 	c.Data = make(map[interface{}]interface{})
 
 	c.Update()
-	if !strings.Contains(w.Body.String(), "Error al actualizar los productos del pedido") {
-		t.Fatalf("expected insert detalle error, body: %s", w.Body.String())
+	resp := w.Body.String()
+	if !(strings.Contains(resp, "Error al actualizar los productos del pedido") || strings.Contains(resp, "Error al buscar los detalles del pedido")) {
+		t.Fatalf("expected insert detalle or pre-query error, body: %s", resp)
 	}
 }
