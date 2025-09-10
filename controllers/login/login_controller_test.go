@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"restaurante/models"
 
@@ -428,5 +429,36 @@ func TestValidateTokenSwaggerURLDev(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+func TestLoginRateLimitExceeded(t *testing.T) {
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+	origRL := loginRL
+	origMax := loginMaxReq
+	loginRL = newRateLimiter()
+	loginMaxReq = 1
+	t.Cleanup(func() { loginRL = origRL; loginMaxReq = origMax })
+
+	ip := "198.51.100.20"
+	loginRL.m[ip] = &rateEntry{count: loginMaxReq, reset: time.Now().Add(time.Minute)}
+
+	body := `{"documento":123,"password":"secret"}`
+	r := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(body))
+	r.RemoteAddr = ip + ":1234"
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := LoginController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Login()
+
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected status 429, got %d", w.Code)
 	}
 }
