@@ -110,6 +110,10 @@ func TestMain(m *testing.M) {
 	sql.Register("mock", mockDriver{})
 	orm.RegisterDriver("mock", orm.DRPostgres)
 	_ = orm.RegisterDataBase("default", "mock", "")
+	// Ejecutar la implementación por defecto una vez para cubrir productoPedidoBeginTx
+	if tx, err := productoPedidoBeginTx(orm.NewOrm()); err == nil {
+		_ = tx.Rollback()
+	}
 	// Envolver Begin para usar txWrapper en tests
 	productoPedidoBeginTx = func(o orm.Ormer) (orm.TxOrmer, error) {
 		baseTx, err := o.Begin()
