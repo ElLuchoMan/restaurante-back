@@ -385,6 +385,12 @@ func TestPagoDeleteInvalidID(t *testing.T) {
 }
 
 func TestPagoDeleteNotFound(t *testing.T) {
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer {
+		return fakeOrmer{delete: func(m interface{}, cols ...string) (int64, error) { return 0, fmt.Errorf("fail") }}
+	}
+	t.Cleanup(func() { pagoNewOrm = orig })
+
 	r := httptest.NewRequest(http.MethodDelete, "/pagos?id=1", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -397,6 +403,9 @@ func TestPagoDeleteNotFound(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Pago no encontrado") {
+		t.Fatalf("unexpected body: %s", w.Body.String())
 	}
 }
 
