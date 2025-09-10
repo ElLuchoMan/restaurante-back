@@ -202,6 +202,17 @@ func TestGetByIdSuccess(t *testing.T) {
 	}
 }
 
+func TestGetByIdDBError(t *testing.T) {
+	original := newTrabajadorOrm
+	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{readErr: errors.New("db")} }
+	defer func() { newTrabajadorOrm = original }()
+	c, w := buildContext(http.MethodGet, "/trabajadores/search?id=1", "")
+	c.GetById()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("%d", w.Code)
+	}
+}
+
 // Post tests
 func TestPostInvalidJSON(t *testing.T) {
 	c, w := buildContext(http.MethodPost, "/trabajadores", "notjson")
