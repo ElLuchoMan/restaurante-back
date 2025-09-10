@@ -3480,7 +3480,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
                                         }
                                     }
                                 }
@@ -3551,7 +3551,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
                                         }
                                     }
                                 }
@@ -3618,7 +3618,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
                                         }
                                     }
                                 }
@@ -5188,15 +5188,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "controllers.ProductoPedidoResponse": {
-            "type": "object",
-            "properties": {
-                "detalles": {},
-                "pedidoId": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.ApiResponse": {
             "type": "object",
             "properties": {
@@ -6486,6 +6477,15 @@ const docTemplate = `{
                 "telefono": {
                     "type": "string",
                     "example": "3012223344"
+                }
+            }
+        },
+        "productopedido.ProductoPedidoResponse": {
+            "type": "object",
+            "properties": {
+                "detalles": {},
+                "pedidoId": {
+                    "type": "integer"
                 }
             }
         }

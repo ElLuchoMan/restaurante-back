@@ -1,11 +1,5 @@
 basePath: /restaurante/v1
 definitions:
-  controllers.ProductoPedidoResponse:
-    properties:
-      detalles: {}
-      pedidoId:
-        type: integer
-    type: object
   models.ApiResponse:
     properties:
       cause:
@@ -907,6 +901,12 @@ definitions:
       telefono:
         example: "3012223344"
         type: string
+    type: object
+  productopedido.ProductoPedidoResponse:
+    properties:
+      detalles: {}
+      pedidoId:
+        type: integer
     type: object
 info:
   contact:
@@ -3053,7 +3053,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/controllers.ProductoPedidoResponse'
+                  $ref: '#/definitions/productopedido.ProductoPedidoResponse'
               type: object
         "404":
           description: No se encontraron productos asociados a este pedido
@@ -3089,7 +3089,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/controllers.ProductoPedidoResponse'
+                  $ref: '#/definitions/productopedido.ProductoPedidoResponse'
               type: object
         "400":
           description: Datos inválidos
@@ -3132,7 +3132,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/controllers.ProductoPedidoResponse'
+                  $ref: '#/definitions/productopedido.ProductoPedidoResponse'
               type: object
         "400":
           description: Datos inválidos

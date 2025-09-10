@@ -97,10 +97,6 @@
             "title": "Trabajador}",
             "type": "object"
         },
-        "models.ApiResponse{data=controllers.ProductoPedidoResponse}": {
-            "title": "ProductoPedidoResponse}",
-            "type": "object"
-        },
         "models.ApiResponse{data=map[string]interface{}}": {
             "title": "ApiResponse{data=map[string]interface{}}",
             "type": "object"
@@ -167,6 +163,10 @@
         },
         "models.ApiResponse{data=models.Trabajador}": {
             "title": "Trabajador}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=productopedido.ProductoPedidoResponse}": {
+            "title": "ProductoPedidoResponse}",
             "type": "object"
         },
         "models.CambiosHorario": {

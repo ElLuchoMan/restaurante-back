@@ -1,2 +1,4 @@
 powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
 bee run -downdoc=true -gendoc=true
+gofmt -w .
+golangci-lint run

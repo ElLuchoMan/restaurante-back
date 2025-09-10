@@ -14,6 +14,10 @@ import (
 
 // TestMain sets up Beego and a dedicated test database before running tests.
 func TestMain(m *testing.M) {
+	// Forzar JWT para evitar pánico en inits cuando corre fuera de integración
+	if os.Getenv("JWT_SECRET") == "" {
+		_ = os.Setenv("JWT_SECRET", "testsecret")
+	}
 	_, file, _, _ := runtime.Caller(0)
 	appPath, _ := filepath.Abs(filepath.Dir(filepath.Join(file, ".."+string(filepath.Separator))))
 	os.Setenv("BEEGO_APP_CONFIG_FILE", filepath.Join(appPath, "conf", "app.test.conf"))

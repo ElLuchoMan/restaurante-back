@@ -11,6 +11,9 @@ $ErrorActionPreference = "Stop"
 # Salida UTF-8 (acentos bien)
 try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false) } catch { }
 
+# Variables de entorno requeridas para que los tests no fallen en init
+if (-not $env:JWT_SECRET) { $env:JWT_SECRET = 'testsecret' }
+
 # Ir a la raíz del repo si el script vive en tools/
 try {
   $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

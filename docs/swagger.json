@@ -3473,7 +3473,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
                                         }
                                     }
                                 }
@@ -3544,7 +3544,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
                                         }
                                     }
                                 }
@@ -3611,7 +3611,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/controllers.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
                                         }
                                     }
                                 }
@@ -5181,15 +5181,6 @@
         }
     },
     "definitions": {
-        "controllers.ProductoPedidoResponse": {
-            "type": "object",
-            "properties": {
-                "detalles": {},
-                "pedidoId": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.ApiResponse": {
             "type": "object",
             "properties": {
@@ -6479,6 +6470,15 @@
                 "telefono": {
                     "type": "string",
                     "example": "3012223344"
+                }
+            }
+        },
+        "productopedido.ProductoPedidoResponse": {
+            "type": "object",
+            "properties": {
+                "detalles": {},
+                "pedidoId": {
+                    "type": "integer"
                 }
             }
         }
