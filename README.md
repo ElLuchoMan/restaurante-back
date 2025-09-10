@@ -12,6 +12,7 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   ```powershell
   powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
   ```
+  - Resultado esperado actual: ~98% total. El archivo `main.go` está en 100%.
 
 ## Tecnologías
 - Go 1.25
@@ -83,6 +84,11 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   ```powershell
   powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
   ```
+  - Variables útiles antes de correr (si falla algún init en tests):
+    ```powershell
+    $env:JWT_SECRET = "testsecret"; $env:QUIET_TESTS = "1"
+    ```
+  - El reporte HTML queda en `coverage.html`.
 
 ### Notas para Windows (race/CGO y variables)
 - `-race` requiere CGO habilitado. En Windows, si deseas correr `go test -race` localmente:
