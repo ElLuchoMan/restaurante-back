@@ -414,6 +414,13 @@ func TestNominaTrabajadorCoverageHack(t *testing.T) {
 }
 
 func TestNominaTrabajadorGetByTrabajadorNoResultados(t *testing.T) {
+	orig := MockQuery
+	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_id_nomina_trabajador"}
+		return &mockRows{columns: cols, values: [][]driver.Value{}}, nil
+	}
+	t.Cleanup(func() { MockQuery = orig })
+
 	r := httptest.NewRequest(http.MethodGet, "/nomina_trabajador/search?documento=1", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
