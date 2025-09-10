@@ -1,6 +1,8 @@
 package login
 
 import (
+	"crypto/rand"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -31,6 +33,27 @@ func TestLoadJWTSecret_DevFallback(t *testing.T) {
 		t.Fatal("se esperaba secreto no vacío en dev/test")
 	}
 }
+
+func TestLoadJWTSecret_RandError(t *testing.T) {
+	origMode := web.BConfig.RunMode
+	web.BConfig.RunMode = "dev"
+	t.Cleanup(func() { web.BConfig.RunMode = origMode })
+
+	os.Unsetenv("JWT_SECRET")
+
+	origReader := rand.Reader
+	rand.Reader = errReader{}
+	t.Cleanup(func() { rand.Reader = origReader })
+
+	b := loadJWTSecret()
+	if string(b) != "dev-insecure-default" {
+		t.Fatalf("esperaba dev-insecure-default, got %s", string(b))
+	}
+}
+
+type errReader struct{}
+
+func (errReader) Read(p []byte) (int, error) { return 0, errors.New("fail") }
 
 func TestLoadJWTSecret_ProdPanicsWithoutEnv(t *testing.T) {
 	orig := web.BConfig.RunMode
@@ -83,6 +106,12 @@ func TestClientIP(t *testing.T) {
 	r2.RemoteAddr = "10.0.0.1:2222"
 	if ip := clientIP(r2); ip != "203.0.113.9" {
 		t.Fatalf("esperaba 203.0.113.9, got %s", ip)
+	}
+
+	r3 := httptest.NewRequest(http.MethodGet, "/", nil)
+	r3.RemoteAddr = "invalid"
+	if ip := clientIP(r3); ip != "invalid" {
+		t.Fatalf("esperaba invalid, got %s", ip)
 	}
 }
 
@@ -176,4 +205,17 @@ func TestGenerateJWT_SignError(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
+}
+
+func TestIsTestingProcess(t *testing.T) {
+	orig := os.Args
+	os.Args = []string{"prog.test"}
+	if !isTestingProcess() {
+		t.Fatal("esperaba true para binario de test")
+	}
+	os.Args = []string{}
+	if isTestingProcess() {
+		t.Fatal("esperaba false cuando os.Args está vacío")
+	}
+	os.Args = orig
 }
