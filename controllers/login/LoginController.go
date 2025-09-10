@@ -3,6 +3,7 @@ package login
 import (
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -221,6 +222,16 @@ func (c *LoginController) Login() {
 
 // Función para generar y devolver un token JWT
 func generateJWT(c *LoginController, documento int64, rol string, nombre string) {
+	if len(jwtSecret) == 0 {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al generar el token",
+			Cause:   fmt.Errorf("secreto JWT no configurado").Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
 	now := time.Now()
 	expirationTime := now.Add(24 * time.Hour)
 
