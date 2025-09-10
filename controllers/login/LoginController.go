@@ -42,6 +42,9 @@ type Claims struct {
 // Llave secreta para firmar el token
 var jwtSecret []byte
 
+// Método de firmado JWT (inyectable en tests)
+var signingMethod jwt.SigningMethod = jwt.SigningMethodHS256
+
 func init() {
 	jwtSecret = loadJWTSecret()
 }
@@ -245,7 +248,7 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(signingMethod, claims)
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)

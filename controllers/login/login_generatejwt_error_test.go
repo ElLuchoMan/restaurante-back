@@ -7,23 +7,22 @@ import (
 	"testing"
 
 	"github.com/beego/beego/v2/server/web/context"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type badSignMethod struct{}
 
 func (badSignMethod) Alg() string                              { return "HS256" }
 func (badSignMethod) Verify(string, []byte, interface{}) error { return nil }
-func (badSignMethod) Sign(string, interface{}) (string, error) { return "", errors.New("sign error") }
+func (badSignMethod) Sign(string, interface{}) ([]byte, error) { return nil, errors.New("sign error") }
 
 func TestGenerateJWT_SigningFailure(t *testing.T) {
 	origSecret := jwtSecret
 	jwtSecret = []byte("secret")
 	t.Cleanup(func() { jwtSecret = origSecret })
 
-	origMethod := jwt.SigningMethodHS256
-	jwt.SigningMethodHS256 = badSignMethod{}
-	t.Cleanup(func() { jwt.SigningMethodHS256 = origMethod })
+	origMethod := signingMethod
+	signingMethod = badSignMethod{}
+	t.Cleanup(func() { signingMethod = origMethod })
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/login", nil)
