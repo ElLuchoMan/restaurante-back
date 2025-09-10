@@ -32,6 +32,26 @@ func TestRestauranteDia_GetAll_DBError(t *testing.T) {
 	}
 }
 
+func TestRestauranteDia_GetById_DBError(t *testing.T) {
+	origQ := MockQuery
+	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
+		return nil, errors.New("db fail")
+	}
+	t.Cleanup(func() { MockQuery = origQ })
+
+	r := httptest.NewRequest(http.MethodGet, "/restaurante_dia/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &RestauranteDiaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetById()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 wrapper with error code, got %d", w.Code)
+	}
+}
+
 func TestRestauranteDia_GetById_NotFound_Explicit(t *testing.T) {
 	origQ := MockQuery
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
