@@ -157,3 +157,23 @@ func TestGenerateJWT_WritesTokenAndClaims(t *testing.T) {
 		t.Fatalf("claims inesperados: %+v", claims)
 	}
 }
+
+func TestGenerateJWT_SignError(t *testing.T) {
+	// Forzar error de firmado dejando el secreto nil
+	orig := jwtSecret
+	jwtSecret = nil
+	t.Cleanup(func() { jwtSecret = orig })
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/login", nil)
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &LoginController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	generateJWT(c, 1, "Cliente", "Nombre")
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+}
