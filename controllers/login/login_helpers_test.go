@@ -219,3 +219,11 @@ func TestIsTestingProcess(t *testing.T) {
 	}
 	os.Args = orig
 }
+func TestIsTestingProcessFlag(t *testing.T) {
+	orig := os.Args
+	os.Args = []string{"cmd", "-test.run=Test"}
+	t.Cleanup(func() { os.Args = orig })
+	if !isTestingProcess() {
+		t.Fatal("esperaba true para flag -test")
+	}
+}
