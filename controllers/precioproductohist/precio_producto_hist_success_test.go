@@ -193,3 +193,45 @@ func TestPPH_GetAll_SuccessWithFecha(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
+
+func TestPPH_GetAll_InvalidFecha(t *testing.T) {
+	orig := MockQuery
+	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"nombre", "estado_producto", "precio", "fecha_vigencia"}
+		vals := [][]driver.Value{{"Cafe", "DISPONIBLE", int64(1000), nil}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	t.Cleanup(func() { MockQuery = orig })
+
+	r := httptest.NewRequest(http.MethodGet, "/precio_producto_hist?fecha=invalid", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := &PrecioProductoHistController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestPPH_GetById_DBError(t *testing.T) {
+	orig := MockQuery
+	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
+		return nil, driver.ErrBadConn
+	}
+	t.Cleanup(func() { MockQuery = orig })
+
+	r := httptest.NewRequest(http.MethodGet, "/precio_producto_hist/search?id=2", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := &PrecioProductoHistController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetById()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
