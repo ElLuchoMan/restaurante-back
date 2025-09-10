@@ -414,3 +414,76 @@ func TestCambiosHorario_Delete_OK(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
+
+func TestCambiosHorario_Post_InvalidHoraApertura(t *testing.T) {
+	body := `{"fechaCambioHorario":"2024-01-01", "abierto": true, "horaApertura":"xx", "horaCierre":"17:00:00"}`
+	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestCambiosHorario_Post_MissingHoraCierre(t *testing.T) {
+	body := `{"fechaCambioHorario":"2024-01-01", "abierto": true, "horaApertura":"08:00:00"}`
+	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestCambiosHorario_Put_InvalidFecha(t *testing.T) {
+	origQ := queryCambioHorarioByID
+	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return nil }
+	defer func() { queryCambioHorarioByID = origQ }()
+
+	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=7", `{"fechaCambioHorario":"2024-13-40"}`)
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestCambiosHorario_Put_UpdateFecha(t *testing.T) {
+	origQ := queryCambioHorarioByID
+	origU := updateCambioHorario
+	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return nil }
+	updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) { return 1, nil }
+	defer func() { queryCambioHorarioByID = origQ; updateCambioHorario = origU }()
+
+	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=8", `{"fechaCambioHorario":"2024-01-05"}`)
+	c.Put()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestCambiosHorario_HookFuncs_NilOrmer(t *testing.T) {
+	if err := queryCambioHorarioByDate(nil, "", &models.CambiosHorario{}); err == nil {
+		t.Fatalf("expected error")
+	}
+	if _, err := queryAllCambiosHorario(nil, &[]models.CambiosHorario{}); err == nil {
+		t.Fatalf("expected error")
+	}
+	if _, err := insertCambioHorario(nil, &models.CambiosHorario{}); err == nil {
+		t.Fatalf("expected error")
+	}
+	if err := queryCambioHorarioByID(nil, 1, &models.CambiosHorario{}); err == nil {
+		t.Fatalf("expected error")
+	}
+	if _, err := updateCambioHorario(nil, &models.CambiosHorario{}); err == nil {
+		t.Fatalf("expected error")
+	}
+	if _, err := deleteCambioHorarioByID(nil, 1); err == nil {
+		t.Fatalf("expected error")
+	}
+
+	o := orm.NewOrm()
+	_, _ = queryAllCambiosHorario(o, &[]models.CambiosHorario{})
+	_, _ = insertCambioHorario(o, &models.CambiosHorario{})
+	_ = queryCambioHorarioByID(o, 1, &models.CambiosHorario{})
+	_, _ = updateCambioHorario(o, &models.CambiosHorario{})
+	_, _ = deleteCambioHorarioByID(o, 1)
+	_ = queryCambioHorarioByDate(o, "2024-01-01", &models.CambiosHorario{})
+}
