@@ -1,29 +1,40 @@
 package login
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/beego/beego/v2/server/web/context"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-func TestGenerateJWTError(t *testing.T) {
-	// Forzar fallo al no tener secreto en prod: simular prod y limpiar secreto
-	os.Unsetenv("JWT_SECRET")
+type badSignMethod struct{}
 
-	r := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader("{}"))
+func (badSignMethod) Alg() string                              { return "HS256" }
+func (badSignMethod) Verify(string, []byte, interface{}) error { return nil }
+func (badSignMethod) Sign(string, interface{}) (string, error) { return "", errors.New("sign error") }
+
+func TestGenerateJWT_SigningFailure(t *testing.T) {
+	origSecret := jwtSecret
+	jwtSecret = []byte("secret")
+	t.Cleanup(func() { jwtSecret = origSecret })
+
+	origMethod := jwt.SigningMethodHS256
+	jwt.SigningMethodHS256 = badSignMethod{}
+	t.Cleanup(func() { jwt.SigningMethodHS256 = origMethod })
+
 	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/login", nil)
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
-	c := LoginController{}
+	c := &LoginController{}
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
 
-	// La generación de token ocurre dentro de Login cuando credenciales son válidas;
-	// aquí solo validamos que no paniquee en ausencia de secreto en modo no prod.
-	// No se puede afirmar fácilmente sin mocks adicionales; este test es placeholder
-	// para mantener cobertura del archivo.
+	generateJWT(c, 1, "Admin", "Nombre")
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
 }
