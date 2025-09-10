@@ -4,11 +4,9 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
-type errConfig struct{ web.AppConfiger }
+type errConfig struct{}
 
 func (e *errConfig) String(key string) (string, error) { return "", errors.New("config missing") }
 
@@ -16,9 +14,9 @@ func TestInitDB_ConfigErrors(t *testing.T) {
 	t.Setenv("SKIP_DB_SEED", "1")
 	t.Setenv("QUIET_TESTS", "1")
 
-	orig := web.AppConfig
-	web.AppConfig = &errConfig{orig}
-	t.Cleanup(func() { web.AppConfig = orig })
+	orig := appConfigString
+	appConfigString = func(key string) (string, error) { return (&errConfig{}).String(key) }
+	t.Cleanup(func() { appConfigString = orig })
 
 	tests := []struct {
 		name string

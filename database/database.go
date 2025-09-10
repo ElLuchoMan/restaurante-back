@@ -27,6 +27,9 @@ var newOrmForSeed = orm.NewOrm
 // getDB allows tests to stub orm.GetDB.
 var getDB = orm.GetDB
 
+// appConfigString allows tests to stub configuration lookups from Beego's AppConfig.
+var appConfigString = func(key string) (string, error) { return web.AppConfig.String(key) }
+
 // Lightweight indirections to allow unit testing seed without a real DB.
 var (
 	queryTableFn = func(o orm.Ormer, model interface{}) orm.QuerySeter { return o.QueryTable(model) }
@@ -67,7 +70,7 @@ func InitDB() error {
 	// Preferir variables de entorno y caer a app.conf cuando no estén definidas
 	dbHost := os.Getenv("DB_HOST")
 	if dbHost == "" {
-		v, err := web.AppConfig.String("db_host")
+		v, err := appConfigString("db_host")
 		if err != nil {
 			return fmt.Errorf("config db_host: %w", err)
 		}
@@ -75,7 +78,7 @@ func InitDB() error {
 	}
 	dbPort := os.Getenv("DB_PORT")
 	if dbPort == "" {
-		v, err := web.AppConfig.String("db_port")
+		v, err := appConfigString("db_port")
 		if err != nil {
 			return fmt.Errorf("config db_port: %w", err)
 		}
@@ -83,7 +86,7 @@ func InitDB() error {
 	}
 	dbUser := os.Getenv("DB_USER")
 	if dbUser == "" {
-		v, err := web.AppConfig.String("db_user")
+		v, err := appConfigString("db_user")
 		if err != nil {
 			return fmt.Errorf("config db_user: %w", err)
 		}
@@ -91,7 +94,7 @@ func InitDB() error {
 	}
 	dbPass := os.Getenv("DB_PASS")
 	if dbPass == "" {
-		v, err := web.AppConfig.String("db_pass")
+		v, err := appConfigString("db_pass")
 		if err != nil {
 			return fmt.Errorf("config db_pass: %w", err)
 		}
@@ -99,7 +102,7 @@ func InitDB() error {
 	}
 	dbName := os.Getenv("DB_NAME")
 	if dbName == "" {
-		v, err := web.AppConfig.String("db_name")
+		v, err := appConfigString("db_name")
 		if err != nil {
 			return fmt.Errorf("config db_name: %w", err)
 		}
