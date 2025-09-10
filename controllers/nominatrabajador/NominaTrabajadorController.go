@@ -365,21 +365,30 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 	// Ejecutar la consulta
 	_, err := o.Raw(sql, params...).QueryRows(&relaciones)
 
-	// Validar si hay resultados
-	if err == orm.ErrNoRows || len(relaciones) == 0 {
+	if err != nil {
+		if err == orm.ErrNoRows {
+			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusNotFound,
+				Message: "No se encontraron relaciones nómina-trabajador para los filtros aplicados.",
+			}
+		} else {
+			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: "Error al buscar las relaciones nómina-trabajador.",
+				Cause:   err.Error(),
+			}
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	if len(relaciones) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "No se encontraron relaciones nómina-trabajador para los filtros aplicados.",
-		}
-		_ = c.ServeJSON()
-		return
-	} else if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al buscar las relaciones nómina-trabajador.",
-			Cause:   err.Error(),
 		}
 		_ = c.ServeJSON()
 		return
