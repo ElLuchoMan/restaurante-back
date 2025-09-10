@@ -201,3 +201,81 @@ func TestAsignarDomiciliarioNotFound(t *testing.T) {
 		t.Fatalf("expected status 404, got %d", w.Code)
 	}
 }
+
+// Invalid trabajador parameter should return bad request
+func TestDomicilioGetAllInvalidTrabajador(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/domicilios?trabajador=abc", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetAll()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+// Simulate failure when updating a domicilio
+func TestDomicilioPutUpdateError(t *testing.T) {
+	origQ := MockQuery
+	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_id_domicilio", "direccion", "telefono", "estado_domicilio", "entregado", "fecha", "observaciones", "created_at", "updated_at", "created_by", "updated_by", "pk_documento_trabajador"}
+		vals := [][]driver.Value{{int64(1), "C", "1", "PENDIENTE", false, time.Now(), nil, time.Now(), time.Now(), nil, nil, nil}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	origE := MockExec
+	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("update fail")
+	}
+	t.Cleanup(func() { MockQuery = origQ; MockExec = origE })
+
+	body := `{"direccion":"n","telefono":"1"}`
+	r := httptest.NewRequest(http.MethodPut, "/domicilios?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Put()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
+// Ensure errors in related queries are logged without affecting response
+func TestDomicilioGetByIdQueryErrors(t *testing.T) {
+	call := 0
+	origQ := MockQuery
+	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
+		call++
+		switch call {
+		case 1:
+			cols := []string{"pk_id_domicilio", "direccion", "telefono", "estado_domicilio", "entregado", "fecha", "observaciones", "created_at", "updated_at", "created_by", "updated_by", "pk_documento_trabajador"}
+			vals := [][]driver.Value{{int64(1), "C", "1", "PENDIENTE", false, time.Now(), nil, time.Now(), time.Now(), nil, nil, nil}}
+			return &mockRows{columns: cols, values: vals}, nil
+		default:
+			return nil, errors.New("db error")
+		}
+	}
+	t.Cleanup(func() { MockQuery = origQ })
+
+	r := httptest.NewRequest(http.MethodGet, "/domicilios/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := beegoCtx.NewContext()
+	ctx.Reset(w, r)
+	c := DomicilioController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetById()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if strings.Contains(body, "\"cliente\"") || strings.Contains(body, "\"pedido\"") {
+		t.Fatalf("unexpected related data: %s", body)
+	}
+}
