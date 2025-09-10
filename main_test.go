@@ -33,20 +33,34 @@ func TestSetStaticHeaders(t *testing.T) {
 }
 
 func TestSetStaticHeaders_StaticPath(t *testing.T) {
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/static/app.js", nil)
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	setStaticHeaders(ctx)
-	if got := w.Header().Get("Vary"); got != "Accept-Encoding" {
-		t.Fatalf("expected Vary header to be set, got %q", got)
-	}
+        w := httptest.NewRecorder()
+        r := httptest.NewRequest("GET", "/static/app.js", nil)
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        setStaticHeaders(ctx)
+        if got := w.Header().Get("Vary"); got != "Accept-Encoding" {
+                t.Fatalf("expected Vary header to be set, got %q", got)
+        }
+}
+
+func TestSetStaticHeaders_NonStaticPath(t *testing.T) {
+        w := httptest.NewRecorder()
+        r := httptest.NewRequest("GET", "/api/data", nil)
+        ctx := context.NewContext()
+        ctx.Reset(w, r)
+        setStaticHeaders(ctx)
+        if got := w.Header().Get("Cache-Control"); got != "" {
+                t.Fatalf("did not expect Cache-Control header, got %q", got)
+        }
+        if got := w.Header().Get("Vary"); got != "" {
+                t.Fatalf("did not expect Vary header, got %q", got)
+        }
 }
 
 func TestSetStaticHeaders_FilterExecutes(t *testing.T) {
-	os.Setenv("SKIP_WEB_RUN", "1")
-	os.Setenv("SKIP_CRON", "1")
-	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+        os.Setenv("SKIP_WEB_RUN", "1")
+        os.Setenv("SKIP_CRON", "1")
+        t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
 	initBeegoApp(t)
 	beego.BConfig.RunMode = "dev"
