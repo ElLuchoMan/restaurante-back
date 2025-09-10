@@ -33,52 +33,52 @@ func TestSetStaticHeaders(t *testing.T) {
 }
 
 func TestSetStaticHeaders_StaticPath(t *testing.T) {
-    w := httptest.NewRecorder()
-    r := httptest.NewRequest("GET", "/static/app.js", nil)
-    ctx := context.NewContext()
-    ctx.Reset(w, r)
-    setStaticHeaders(ctx)
-    if got := w.Header().Get("Vary"); got != "Accept-Encoding" {
-        t.Fatalf("expected Vary header to be set, got %q", got)
-    }
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/static/app.js", nil)
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	setStaticHeaders(ctx)
+	if got := w.Header().Get("Vary"); got != "Accept-Encoding" {
+		t.Fatalf("expected Vary header to be set, got %q", got)
+	}
 }
 
 func TestSetStaticHeaders_FilterExecutes(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
-    initBeegoApp(t)
-    beego.BConfig.RunMode = "dev"
-    main()
+	initBeegoApp(t)
+	beego.BConfig.RunMode = "dev"
+	main()
 
-    // /static path (invocación directa para atribución cobertura)
-    {
-        w := httptest.NewRecorder()
-        r := httptest.NewRequest("GET", "/static/app.js", nil)
-        ctx := context.NewContext()
-        ctx.Reset(w, r)
-        setStaticHeaders(ctx)
-    }
+	// /static path (invocación directa para atribución cobertura)
+	{
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("GET", "/static/app.js", nil)
+		ctx := context.NewContext()
+		ctx.Reset(w, r)
+		setStaticHeaders(ctx)
+	}
 
-    // /static path a través del router
-    r, _ := http.NewRequest("GET", "/static/app.js", nil)
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if got := w.Header().Get("Cache-Control"); got == "" {
-        t.Fatalf("expected Cache-Control for /static")
-    }
-    if got := w.Header().Get("Vary"); got != "Accept-Encoding" {
-        t.Fatalf("expected Vary header for /static, got %q", got)
-    }
+	// /static path a través del router
+	r, _ := http.NewRequest("GET", "/static/app.js", nil)
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if got := w.Header().Get("Cache-Control"); got == "" {
+		t.Fatalf("expected Cache-Control for /static")
+	}
+	if got := w.Header().Get("Vary"); got != "Accept-Encoding" {
+		t.Fatalf("expected Vary header for /static, got %q", got)
+	}
 
-    // /assets path
-    r2, _ := http.NewRequest("GET", "/assets/img.png", nil)
-    w2 := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w2, r2)
-    if got := w2.Header().Get("Cache-Control"); got == "" {
-        t.Fatalf("expected Cache-Control for /assets")
-    }
+	// /assets path
+	r2, _ := http.NewRequest("GET", "/assets/img.png", nil)
+	w2 := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w2, r2)
+	if got := w2.Header().Get("Cache-Control"); got == "" {
+		t.Fatalf("expected Cache-Control for /assets")
+	}
 }
 
 func TestMainNoRun(t *testing.T) {
@@ -314,10 +314,11 @@ func TestDefaultCronHelpers(t *testing.T) {
 
 // Ormer cuyo Raw retorna nil para cubrir rama rs == nil en cronRawExec
 type nilRawOrmer struct{ *orm.DoNothingOrm }
+
 func (nilRawOrmer) Raw(string, ...interface{}) orm.RawSeter { return nil }
 
 func TestCronRawExec_NilRawSeter(t *testing.T) {
-    cronRawExec(nilRawOrmer{}, "q")
+	cronRawExec(nilRawOrmer{}, "q")
 }
 
 type dummyRawSeter struct{}
@@ -361,216 +362,217 @@ func indexOf(s, sub string) int {
 
 // ===== Helpers =====
 func initBeegoApp(t *testing.T) {
-    // Asegurar secreto JWT para evitar pánico en init de controllers
-    os.Setenv("JWT_SECRET", "testsecret")
-    // Directorio raíz del proyecto (este archivo está en la raíz)
-    _, file, _, _ := runtime.Caller(0)
-    apppath, _ := filepath.Abs(filepath.Dir(file))
-    beego.TestBeegoInit(apppath)
+	// Asegurar secreto JWT para evitar pánico en init de controllers
+	os.Setenv("JWT_SECRET", "testsecret")
+	// Directorio raíz del proyecto (este archivo está en la raíz)
+	_, file, _, _ := runtime.Caller(0)
+	apppath, _ := filepath.Abs(filepath.Dir(file))
+	beego.TestBeegoInit(apppath)
 }
 
 // ===== Rutas básicas =====
 func TestHealthzEndpoint(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
-    initBeegoApp(t)
-    main()
+	initBeegoApp(t)
+	main()
 
-    r, _ := http.NewRequest("GET", "/healthz", nil)
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if w.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d", w.Code)
-    }
-    if body := w.Body.String(); body != "ok" {
-        t.Fatalf("expected body ok, got %q", body)
-    }
+	r, _ := http.NewRequest("GET", "/healthz", nil)
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if body := w.Body.String(); body != "ok" {
+		t.Fatalf("expected body ok, got %q", body)
+	}
 }
 
 type fakePinger struct{ err error }
+
 func (f fakePinger) Ping() error { return f.err }
 
 func TestReadyz_OK(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
-    initBeegoApp(t)
-    // Stub pinger OK
-    orig := getSQLPinger
-    getSQLPinger = func() (sqlPinger, error) { return fakePinger{err: nil}, nil }
-    t.Cleanup(func() { getSQLPinger = orig })
-    main()
+	initBeegoApp(t)
+	// Stub pinger OK
+	orig := getSQLPinger
+	getSQLPinger = func() (sqlPinger, error) { return fakePinger{err: nil}, nil }
+	t.Cleanup(func() { getSQLPinger = orig })
+	main()
 
-    r, _ := http.NewRequest("GET", "/readyz", nil)
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if w.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d", w.Code)
-    }
+	r, _ := http.NewRequest("GET", "/readyz", nil)
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
 }
 
 func TestReadyz_Unavailable(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
-    initBeegoApp(t)
-    // Stub pinger error
-    orig := getSQLPinger
-    getSQLPinger = func() (sqlPinger, error) { return fakePinger{err: fmt.Errorf("down")}, nil }
-    t.Cleanup(func() { getSQLPinger = orig })
-    main()
+	initBeegoApp(t)
+	// Stub pinger error
+	orig := getSQLPinger
+	getSQLPinger = func() (sqlPinger, error) { return fakePinger{err: fmt.Errorf("down")}, nil }
+	t.Cleanup(func() { getSQLPinger = orig })
+	main()
 
-    r, _ := http.NewRequest("GET", "/readyz", nil)
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if w.Code != http.StatusServiceUnavailable {
-        t.Fatalf("expected 503, got %d", w.Code)
-    }
+	r, _ := http.NewRequest("GET", "/readyz", nil)
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", w.Code)
+	}
 }
 
 func TestReadyz_GetPingerErrorStill200(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
-    initBeegoApp(t)
-    orig := getSQLPinger
-    getSQLPinger = func() (sqlPinger, error) { return nil, fmt.Errorf("no alias") }
-    t.Cleanup(func() { getSQLPinger = orig })
-    main()
+	initBeegoApp(t)
+	orig := getSQLPinger
+	getSQLPinger = func() (sqlPinger, error) { return nil, fmt.Errorf("no alias") }
+	t.Cleanup(func() { getSQLPinger = orig })
+	main()
 
-    r, _ := http.NewRequest("GET", "/readyz", nil)
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if w.Code != http.StatusOK {
-        t.Fatalf("expected 200 when getSQLPinger fails, got %d", w.Code)
-    }
+	r, _ := http.NewRequest("GET", "/readyz", nil)
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 when getSQLPinger fails, got %d", w.Code)
+	}
 }
 
 // ===== CORS =====
 func TestCORS_DevAllowAll(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    os.Unsetenv("CORS_ALLOWED_ORIGINS")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	os.Unsetenv("CORS_ALLOWED_ORIGINS")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
-    initBeegoApp(t)
-    beego.BConfig.RunMode = "dev"
-    main()
+	initBeegoApp(t)
+	beego.BConfig.RunMode = "dev"
+	main()
 
-    r, _ := http.NewRequest("OPTIONS", "/healthz", nil)
-    r.Header.Set("Origin", "https://foo.example")
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if got := w.Header().Get("Access-Control-Allow-Origin"); got != "*" {
-        t.Fatalf("expected ACAO '*', got %q", got)
-    }
+	r, _ := http.NewRequest("OPTIONS", "/healthz", nil)
+	r.Header.Set("Origin", "https://foo.example")
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Fatalf("expected ACAO '*', got %q", got)
+	}
 }
 
 func TestCORS_DevExplicitOrigins(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    os.Setenv("CORS_ALLOWED_ORIGINS", "https://a.com, https://b.com")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON"); os.Unsetenv("CORS_ALLOWED_ORIGINS") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	os.Setenv("CORS_ALLOWED_ORIGINS", "https://a.com, https://b.com")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON"); os.Unsetenv("CORS_ALLOWED_ORIGINS") })
 
-    initBeegoApp(t)
-    beego.BConfig.RunMode = "dev"
-    main()
+	initBeegoApp(t)
+	beego.BConfig.RunMode = "dev"
+	main()
 
-    r, _ := http.NewRequest("OPTIONS", "/healthz", nil)
-    r.Header.Set("Origin", "https://a.com")
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if got := w.Header().Get("Access-Control-Allow-Origin"); got != "https://a.com" {
-        t.Fatalf("expected ACAO 'https://a.com', got %q", got)
-    }
+	r, _ := http.NewRequest("OPTIONS", "/healthz", nil)
+	r.Header.Set("Origin", "https://a.com")
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "https://a.com" {
+		t.Fatalf("expected ACAO 'https://a.com', got %q", got)
+	}
 }
 
 func TestCORS_ProdNoOrigins(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    os.Unsetenv("CORS_ALLOWED_ORIGINS")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	os.Unsetenv("CORS_ALLOWED_ORIGINS")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
-    initBeegoApp(t)
-    beego.BConfig.RunMode = "prod"
-    main()
+	initBeegoApp(t)
+	beego.BConfig.RunMode = "prod"
+	main()
 
-    r, _ := http.NewRequest("OPTIONS", "/healthz", nil)
-    r.Header.Set("Origin", "https://a.com")
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if w.Code == http.StatusInternalServerError {
-        t.Fatalf("unexpected 500 on CORS preflight in prod")
-    }
+	r, _ := http.NewRequest("OPTIONS", "/healthz", nil)
+	r.Header.Set("Origin", "https://a.com")
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if w.Code == http.StatusInternalServerError {
+		t.Fatalf("unexpected 500 on CORS preflight in prod")
+	}
 }
 
 func TestCORS_ProdExplicitOrigins(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    os.Setenv("CORS_ALLOWED_ORIGINS", "https://a.com, https://b.com")
-    t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON"); os.Unsetenv("CORS_ALLOWED_ORIGINS") })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	os.Setenv("CORS_ALLOWED_ORIGINS", "https://a.com, https://b.com")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON"); os.Unsetenv("CORS_ALLOWED_ORIGINS") })
 
-    initBeegoApp(t)
-    beego.BConfig.RunMode = "prod"
-    main()
+	initBeegoApp(t)
+	beego.BConfig.RunMode = "prod"
+	main()
 
-    r, _ := http.NewRequest("OPTIONS", "/healthz", nil)
-    r.Header.Set("Origin", "https://b.com")
-    w := httptest.NewRecorder()
-    beego.BeeApp.Handlers.ServeHTTP(w, r)
-    if got := w.Header().Get("Access-Control-Allow-Origin"); got != "https://b.com" {
-        t.Fatalf("expected ACAO 'https://b.com', got %q", got)
-    }
+	r, _ := http.NewRequest("OPTIONS", "/healthz", nil)
+	r.Header.Set("Origin", "https://b.com")
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "https://b.com" {
+		t.Fatalf("expected ACAO 'https://b.com', got %q", got)
+	}
 }
 
 // ===== Max body / multipart limits =====
 func TestMaxBodyBytesEnv(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    os.Setenv("MAX_BODY_BYTES", "1048576")
-    t.Cleanup(func() {
-        os.Unsetenv("SKIP_WEB_RUN")
-        os.Unsetenv("SKIP_CRON")
-        os.Unsetenv("MAX_BODY_BYTES")
-    })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	os.Setenv("MAX_BODY_BYTES", "1048576")
+	t.Cleanup(func() {
+		os.Unsetenv("SKIP_WEB_RUN")
+		os.Unsetenv("SKIP_CRON")
+		os.Unsetenv("MAX_BODY_BYTES")
+	})
 
-    orig := beego.BConfig.MaxMemory
-    t.Cleanup(func() { beego.BConfig.MaxMemory = orig })
+	orig := beego.BConfig.MaxMemory
+	t.Cleanup(func() { beego.BConfig.MaxMemory = orig })
 
-    initBeegoApp(t)
-    main()
+	initBeegoApp(t)
+	main()
 
-    if beego.BConfig.MaxMemory != 1048576 {
-        t.Fatalf("expected MaxMemory 1048576, got %d", beego.BConfig.MaxMemory)
-    }
+	if beego.BConfig.MaxMemory != 1048576 {
+		t.Fatalf("expected MaxMemory 1048576, got %d", beego.BConfig.MaxMemory)
+	}
 }
 
 func TestMultipartMaxMemoryEnv(t *testing.T) {
-    os.Setenv("SKIP_WEB_RUN", "1")
-    os.Setenv("SKIP_CRON", "1")
-    os.Setenv("MULTIPART_MAX_MEMORY_MB", "2")
-    t.Cleanup(func() {
-        os.Unsetenv("SKIP_WEB_RUN")
-        os.Unsetenv("SKIP_CRON")
-        os.Unsetenv("MULTIPART_MAX_MEMORY_MB")
-    })
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	os.Setenv("MULTIPART_MAX_MEMORY_MB", "2")
+	t.Cleanup(func() {
+		os.Unsetenv("SKIP_WEB_RUN")
+		os.Unsetenv("SKIP_CRON")
+		os.Unsetenv("MULTIPART_MAX_MEMORY_MB")
+	})
 
-    origMem := beego.BConfig.MaxMemory
-    origCopy := beego.BConfig.CopyRequestBody
-    t.Cleanup(func() { beego.BConfig.MaxMemory = origMem; beego.BConfig.CopyRequestBody = origCopy })
+	origMem := beego.BConfig.MaxMemory
+	origCopy := beego.BConfig.CopyRequestBody
+	t.Cleanup(func() { beego.BConfig.MaxMemory = origMem; beego.BConfig.CopyRequestBody = origCopy })
 
-    initBeegoApp(t)
-    main()
+	initBeegoApp(t)
+	main()
 
-    if beego.BConfig.MaxMemory != int64(2*1024*1024) {
-        t.Fatalf("expected MaxMemory 2MB, got %d", beego.BConfig.MaxMemory)
-    }
-    if beego.BConfig.CopyRequestBody {
-        t.Fatalf("expected CopyRequestBody false")
-    }
+	if beego.BConfig.MaxMemory != int64(2*1024*1024) {
+		t.Fatalf("expected MaxMemory 2MB, got %d", beego.BConfig.MaxMemory)
+	}
+	if beego.BConfig.CopyRequestBody {
+		t.Fatalf("expected CopyRequestBody false")
+	}
 }
