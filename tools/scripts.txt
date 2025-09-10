@@ -1,4 +1,17 @@
-powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
-bee run -downdoc=true -gendoc=true
-gofmt -w .
+# Formatea el código y aplica simplificaciones (-s), sobrescribe en sitio
+gofmt -s -w .
+
+# Ejecuta el linter con la configuración del repositorio
 golangci-lint run
+
+# Corre pruebas unitarias/rápidas en todos los paquetes
+go test ./...
+
+# Ejecuta cobertura completa, genera coverage.html y limpia archivos previos
+powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
+
+# Genera/actualiza la documentación Swagger en docs/ sin levantar el servidor
+swag init -g main.go -o docs
+
+# Levanta la app con hot-reload y genera Swagger (bloquea la terminal)
+bee run -downdoc=true -gendoc=true

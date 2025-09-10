@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -56,7 +57,7 @@ func loadJWTSecret() []byte {
 	// En dev/test o procesos de prueba, permitir secreto efímero para facilitar desarrollo y tests.
 	if isTestingProcess() || web.BConfig.RunMode != "prod" {
 		b := make([]byte, 32)
-		if _, err := rand.Read(b); err == nil {
+		if _, err := io.ReadFull(rand.Reader, b); err == nil {
 			return b
 		}
 		return []byte("dev-insecure-default")
@@ -69,7 +70,14 @@ func loadJWTSecret() []byte {
 // Útil para evitar pánicos en inits cuando no hay configuración cargada.
 func isTestingProcess() bool {
 	if len(os.Args) > 0 {
-		if strings.HasSuffix(os.Args[0], ".test") {
+		exe := strings.ToLower(os.Args[0])
+		if strings.HasSuffix(exe, ".test") || strings.HasSuffix(exe, ".test.exe") {
+			return true
+		}
+	}
+	// También detectar flags del framework de testing de Go
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-test.") {
 			return true
 		}
 	}

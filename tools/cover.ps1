@@ -1,8 +1,9 @@
 # Ejecuta cobertura de todo el repo (Go), reintenta por paquete si es necesario,
-# normaliza nombre del perfil y genera coverage.html + coverage-YYYYMMDD-HHMMSS.html (cache-busting).
+# normaliza nombre del perfil y genera coverage.html.
 
 param(
-  [switch]$Clean
+  [switch]$Clean,
+  [switch]$Race
 )
 
 Set-StrictMode -Version Latest
@@ -13,6 +14,24 @@ try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false) } catc
 
 # Variables de entorno requeridas para que los tests no fallen en init
 if (-not $env:JWT_SECRET) { $env:JWT_SECRET = 'testsecret' }
+if (-not $env:SKIP_WEB_RUN) { $env:SKIP_WEB_RUN = '1' }
+if (-not $env:SKIP_CRON) { $env:SKIP_CRON = '1' }
+
+# Alinear con CI: activar -race si se solicita o si CI=true
+$useRace = $false
+if ($Race) { $useRace = $true }
+elseif ($env:CI -and $env:CI.ToString().ToLower() -eq 'true') { $useRace = $true }
+
+# Validar soporte de -race (requiere CGO)
+if ($useRace) {
+  $cgo = $env:CGO_ENABLED
+  if (-not $cgo -or $cgo -ne '1') {
+    Write-Warning "-race requiere CGO_ENABLED=1; degradando ejecución sin -race"
+    $useRace = $false
+  }
+}
+
+$raceArg = if ($useRace) { '-race' } else { '' }
 
 # Ir a la raíz del repo si el script vive en tools/
 try {
@@ -28,7 +47,7 @@ if ($Clean) {
 }
 
 # 1) Primer intento: perfil directo (todo el módulo)
-& go test -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
+& go test $raceArg -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
 
 # 2) Normalizar nombre si vino como "coverage" sin extensión
 if (!(Test-Path .\coverage.out) -and (Test-Path .\coverage)) {
@@ -49,7 +68,7 @@ if ($needsCombine) {
 
   $first = $true
   foreach ($p in $pkgs) {
-    & go test -count=1 -covermode=atomic -coverpkg=./... -coverprofile=tmp.out $p | Out-Null
+    & go test $raceArg -count=1 -covermode=atomic -coverpkg=./... -coverprofile=tmp.out $p | Out-Null
     if (Test-Path .\tmp.out) {
       if ($first) {
         Move-Item .\tmp.out .\coverage.out
@@ -69,20 +88,23 @@ if (!(Test-Path .\coverage.out)) {
 }
 
 # 4) Generar HTML único (cover.html) y sobrescribir si existe
-$profile = (Resolve-Path .\coverage.out).Path
+$coverageProfile = (Resolve-Path .\coverage.out).Path
 $outHtml = (Join-Path (Resolve-Path .).Path 'coverage.html')
 
 Remove-Item -Force "$outHtml" -ErrorAction SilentlyContinue
 
 # Evitar sintaxis con '=' que a veces falla en PowerShell
-& (Get-Command go).Source tool cover -html "$profile" -o "$outHtml"
+& (Get-Command go).Source tool cover -html "$coverageProfile" -o "$outHtml"
+
 
 # 5) Resumen en consola
 Write-Host "`nResumen por función:"
-& (Get-Command go).Source tool cover -func "$profile"
+& (Get-Command go).Source tool cover -func "$coverageProfile"
 
-# 6) Abrir en navegador el cover.html estable
-$fileUrl = "file:///$outHtml"
-Start-Process "$fileUrl"
+# 6) Abrir en navegador el cover.html estable (evitar en CI)
+if (-not ($env:CI -and $env:CI.ToString().ToLower() -eq 'true')) {
+  $fileUrl = "file:///$outHtml"
+  Start-Process "$fileUrl"
+}
 
 Write-Host "`nOK -> $outHtml"
