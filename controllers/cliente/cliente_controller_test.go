@@ -174,6 +174,38 @@ func TestClienteGetAllLimitOffsetError(t *testing.T) {
 	}
 }
 
+func TestClienteGetAllLimitParseError(t *testing.T) {
+	ormNew = func() orm.Ormer { return nil }
+	t.Cleanup(resetMocks)
+	r := httptest.NewRequest(http.MethodGet, "/clientes?limit=abc", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ClienteController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+	c.GetAll()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestClienteGetAllOffsetParseError(t *testing.T) {
+	ormNew = func() orm.Ormer { return nil }
+	t.Cleanup(resetMocks)
+	r := httptest.NewRequest(http.MethodGet, "/clientes?offset=abc", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ClienteController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+	c.GetAll()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
 func TestClienteGetByIdScenarios(t *testing.T) {
 	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", PASSWORD: "pwd"}}
 	ormNew = func() orm.Ormer { return nil }
