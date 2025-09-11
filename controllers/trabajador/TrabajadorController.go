@@ -22,9 +22,12 @@ type TrabajadorController struct {
 	web.Controller
 }
 
+// generateFromPassword allows tests to stub bcrypt.GenerateFromPassword.
+var generateFromPassword = bcrypt.GenerateFromPassword
+
 // hashPassword allows tests to stub the hash function.
 var hashPassword = func(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := generateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
