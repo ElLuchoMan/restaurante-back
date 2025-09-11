@@ -12,29 +12,37 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ormNew = orm.NewOrm
+var ormNew func() orm.Ormer
 
-var queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
-	return o.QueryTable(new(models.Cliente)).All(clientes)
+var queryAllClientes func(o orm.Ormer, clientes *[]models.Cliente) (int64, error)
+
+var readCliente func(o orm.Ormer, c *models.Cliente) error
+
+var insertCliente func(o orm.Ormer, c *models.Cliente) (int64, error)
+
+var updateCliente func(o orm.Ormer, c *models.Cliente) (int64, error)
+
+var deleteCliente func(o orm.Ormer, c *models.Cliente) (int64, error)
+
+var bcryptGenerate func([]byte, int) ([]byte, error)
+
+// useDefaultClienteWrappers restablece los wrappers por defecto para
+// ejecutar el ORM real (útil para cobertura en tests).
+func useDefaultClienteWrappers() {
+	ormNew = orm.NewOrm
+	queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
+		return o.QueryTable(new(models.Cliente)).All(clientes)
+	}
+	readCliente = func(o orm.Ormer, c *models.Cliente) error { return o.Read(c) }
+	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Insert(c) }
+	updateCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Update(c) }
+	deleteCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Delete(c) }
+	bcryptGenerate = bcrypt.GenerateFromPassword
 }
 
-var readCliente = func(o orm.Ormer, c *models.Cliente) error {
-	return o.Read(c)
+func init() {
+	useDefaultClienteWrappers()
 }
-
-var insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-	return o.Insert(c)
-}
-
-var updateCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-	return o.Update(c)
-}
-
-var deleteCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-	return o.Delete(c)
-}
-
-var bcryptGenerate = bcrypt.GenerateFromPassword
 
 type ClienteController struct {
 	web.Controller

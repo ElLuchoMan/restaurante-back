@@ -108,3 +108,12 @@ if (-not ($env:CI -and $env:CI.ToString().ToLower() -eq 'true')) {
 }
 
 Write-Host "`nOK -> $outHtml"
+
+# 7) Reporte preciso por paquete para controllers/cliente
+try {
+  Write-Host "`nCobertura precisa paquete controllers/cliente:"
+  & go test $raceArg -count=1 -cover -coverpkg=restaurante/controllers/cliente ./controllers/cliente
+}
+catch {
+  Write-Warning "No se pudo ejecutar el reporte preciso para controllers/cliente: $_"
+}

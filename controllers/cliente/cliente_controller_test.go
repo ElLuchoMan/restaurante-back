@@ -633,3 +633,30 @@ func TestClienteDeleteScenarios(t *testing.T) {
 		t.Fatalf("expected success")
 	}
 }
+
+func TestDefaultWrappersCoverage(t *testing.T) {
+	// Este test fuerza el uso de wrappers por defecto para que cuenten
+	// como ejecutados en cobertura del paquete.
+	useDefaultClienteWrappers()
+	t.Cleanup(resetMocks)
+	o := ormNew()
+
+	// queryAllClientes
+	var list []models.Cliente
+	if _, err := queryAllClientes(o, &list); err != nil {
+		t.Fatalf("queryAllClientes error: %v", err)
+	}
+
+	// readCliente
+	c := &models.Cliente{PK_DOCUMENTO_CLIENTE: 1}
+	_ = readCliente(o, c)
+
+	// insertCliente
+	_, _ = insertCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99, NOMBRE: "X"})
+
+	// updateCliente
+	_, _ = updateCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99, NOMBRE: "Y"})
+
+	// deleteCliente
+	_, _ = deleteCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99})
+}

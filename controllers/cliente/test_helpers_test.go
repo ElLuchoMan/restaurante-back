@@ -43,6 +43,8 @@ func (c *mockConn) QueryContext(ctx context.Context, query string, args []driver
 	return &mockRows{}, nil
 }
 
+func (c *mockConn) Ping(ctx context.Context) error { return nil }
+
 func (s *mockStmt) Close() error  { return nil }
 func (s *mockStmt) NumInput() int { return -1 }
 func (s *mockStmt) Exec(args []driver.Value) (driver.Result, error) {
@@ -87,9 +89,7 @@ func (r *mockRows) Next(dest []driver.Value) error {
 		return io.EOF
 	}
 	row := r.values[r.idx]
-	for i, v := range row {
-		dest[i] = v
-	}
+	copy(dest, row)
 	r.idx++
 	return nil
 }
