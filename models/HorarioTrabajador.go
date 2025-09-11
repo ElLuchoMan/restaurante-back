@@ -9,7 +9,7 @@ import (
 
 type HorarioTrabajador struct {
 	PK_DOCUMENTO_TRABAJADOR int64     `orm:"column(PK_DOCUMENTO_TRABAJADOR);pk" json:"documentoTrabajador"`
-	DIA                     string    `orm:"column(DIA);type(text);pk" json:"dia"`
+	DIA                     string    `orm:"column(DIA);type(text)" json:"dia"`
 	HORA_INICIO             time.Time `orm:"column(HORA_INICIO);type(time)" json:"horaInicio"`
 	HORA_FIN                time.Time `orm:"column(HORA_FIN);type(time)" json:"horaFin"`
 }

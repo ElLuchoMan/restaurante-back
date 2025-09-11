@@ -5,7 +5,7 @@ import "github.com/beego/beego/v2/client/orm"
 // ProductoPedidoDetalle representa cada producto asociado a un pedido.
 type ProductoPedidoDetalle struct {
 	PKIDProductoPedido int64   `orm:"column(PK_ID_PRODUCTO_PEDIDO);pk" json:"productoPedidoId"`
-	PKIDProducto       int64   `orm:"column(PK_ID_PRODUCTO);pk" json:"productoId"`
+	PKIDProducto       int64   `orm:"column(PK_ID_PRODUCTO)" json:"productoId"`
 	CANTIDAD           int     `orm:"column(CANTIDAD)" json:"cantidad"`
 	PRECIO             float64 `orm:"column(PRECIO);null" json:"precio,omitempty"`
 }
