@@ -152,6 +152,60 @@ func TestClienteGetAllLimitOffsetSuccess(t *testing.T) {
 	}
 }
 
+func TestClienteGetAllLimitOnlySuccess(t *testing.T) {
+	ormNew = orm.NewOrm
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_cliente", "nombre", "apellido", "correo", "direccion", "telefono", "observaciones", "password"}
+		vals := [][]driver.Value{{int64(1), "Foo", "Bar", "foo@bar.com", "Dir", "123", nil, "pwd"}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	t.Cleanup(func() {
+		MockQuery = nil
+		resetMocks()
+	})
+	r := httptest.NewRequest(http.MethodGet, "/clientes?limit=5", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ClienteController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if strings.Contains(w.Body.String(), "pwd") {
+		t.Fatalf("password should be removed")
+	}
+}
+
+func TestClienteGetAllOffsetOnlySuccess(t *testing.T) {
+	ormNew = orm.NewOrm
+	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+		cols := []string{"pk_documento_cliente", "nombre", "apellido", "correo", "direccion", "telefono", "observaciones", "password"}
+		vals := [][]driver.Value{{int64(1), "Foo", "Bar", "foo@bar.com", "Dir", "123", nil, "pwd"}}
+		return &mockRows{columns: cols, values: vals}, nil
+	}
+	t.Cleanup(func() {
+		MockQuery = nil
+		resetMocks()
+	})
+	r := httptest.NewRequest(http.MethodGet, "/clientes?offset=5", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ClienteController{}
+	c.Ctx = ctx
+	c.Data = map[interface{}]interface{}{}
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if strings.Contains(w.Body.String(), "pwd") {
+		t.Fatalf("password should be removed")
+	}
+}
+
 func TestClienteGetAllLimitOffsetError(t *testing.T) {
 	ormNew = orm.NewOrm
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
