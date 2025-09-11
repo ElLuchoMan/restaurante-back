@@ -432,6 +432,16 @@ type fakePinger struct{ err error }
 
 func (f fakePinger) Ping() error { return f.err }
 
+func TestGetSQLPinger_Default(t *testing.T) {
+	db, err := getSQLPinger()
+	if err == nil {
+		t.Fatalf("expected error when no default DB alias is registered")
+	}
+	if db != nil {
+		t.Fatalf("expected nil DB without default alias")
+	}
+}
+
 func TestReadyz_OK(t *testing.T) {
 	os.Setenv("SKIP_WEB_RUN", "1")
 	os.Setenv("SKIP_CRON", "1")
