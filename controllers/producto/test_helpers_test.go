@@ -3,6 +3,7 @@ package producto
 import (
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"io"
 	"os"
 	"testing"
@@ -25,6 +26,11 @@ type mockRows struct {
 	values  [][]driver.Value
 	idx     int
 }
+
+type execErrDriver struct{}
+type execErrConn struct{}
+type execErrStmt struct{}
+type execErrTx struct{}
 
 func (d mockDriver) Open(name string) (driver.Conn, error) { return &mockConn{}, nil }
 
@@ -57,6 +63,29 @@ func (r *mockRows) Next(dest []driver.Value) error {
 	}
 	r.idx++
 	return nil
+}
+
+func (d execErrDriver) Open(name string) (driver.Conn, error)    { return &execErrConn{}, nil }
+func (c *execErrConn) Prepare(query string) (driver.Stmt, error) { return &execErrStmt{}, nil }
+func (c *execErrConn) Close() error                              { return nil }
+func (c *execErrConn) Begin() (driver.Tx, error)                 { return &execErrTx{}, nil }
+func (s *execErrStmt) Close() error                              { return nil }
+func (s *execErrStmt) NumInput() int                             { return -1 }
+func (s *execErrStmt) Exec(args []driver.Value) (driver.Result, error) {
+	return nil, errors.New("exec fail")
+}
+func (s *execErrStmt) Query(args []driver.Value) (driver.Rows, error) {
+	return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
+}
+func (execErrTx) Commit() error   { return nil }
+func (execErrTx) Rollback() error { return nil }
+
+func newExecErrOrmer(alias string) orm.Ormer {
+	sql.Register(alias, execErrDriver{})
+	orm.RegisterDriver(alias, orm.DRPostgres)
+	_ = orm.RegisterDataBase(alias, alias, "")
+	o, _ := orm.NewOrmUsingDB(alias)
+	return o
 }
 
 func TestMain(m *testing.M) {
