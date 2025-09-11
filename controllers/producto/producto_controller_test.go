@@ -91,8 +91,48 @@ func TestProductoGetAllSuccessFiltersImage(t *testing.T) {
 	}
 }
 
+func TestProductoGetAllDBErrorIncludeImageTrue(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/restaurante/v1/productos?includeImage=true", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Request.ParseMultipartForm(32 << 20)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	saved := queryProductosAll
+	queryProductosAll = func(o orm.Ormer, onlyActive bool, productos *[]models.Producto) (int64, error) {
+		return 0, errors.New("db error")
+	}
+	t.Cleanup(func() { queryProductosAll = saved })
+
+	c.GetAll()
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
 func TestProductoGetByIdInvalidID(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/productos/search", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Request.ParseMultipartForm(32 << 20)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetById()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestProductoGetByIdZeroID(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/productos/search?id=0", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
