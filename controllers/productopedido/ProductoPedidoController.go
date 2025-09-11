@@ -31,12 +31,14 @@ var productoPedidoDeleteDetalles = func(tx orm.TxOrmer, pedidoID int64) error {
 	return err
 }
 
-var productoPedidoRequeryDetalle = func(tx orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
+func productoPedidoRequeryDetalleDefault(tx orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
 	return tx.QueryTable(new(models.DetallePedido)).
 		Filter("PKIDPedido", pedidoID).
 		Filter("PKIDProducto", productoID).
 		One(out)
 }
+
+var productoPedidoRequeryDetalle = productoPedidoRequeryDetalleDefault
 
 type ProductoPedidoController struct {
 	web.Controller
