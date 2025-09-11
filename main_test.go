@@ -374,6 +374,30 @@ func indexOf(s, sub string) int {
 	return -1
 }
 
+func TestStringHelpers(t *testing.T) {
+	if !contains("abc", "abc") {
+		t.Fatalf("expected exact match")
+	}
+	if contains("abc", "xyz") {
+		t.Fatalf("unexpected match for xyz")
+	}
+	if contains("a", "abcd") {
+		t.Fatalf("expected false when sub longer than s")
+	}
+	if !stringContains("abc", "") {
+		t.Fatalf("expected true for empty substring")
+	}
+	if stringContains("ab", "abcd") {
+		t.Fatalf("expected false when sub longer than s in stringContains")
+	}
+	if indexOf("abc", "b") != 1 {
+		t.Fatalf("expected index 1 for 'b'")
+	}
+	if indexOf("abc", "d") != -1 {
+		t.Fatalf("expected -1 when substring not found")
+	}
+}
+
 // ===== Helpers =====
 func initBeegoApp(t *testing.T) {
 	// Asegurar secreto JWT para evitar pánico en init de controllers
