@@ -463,7 +463,9 @@ func TestProductoPostRawExecError(t *testing.T) {
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = body.Bytes()
-	c := ProductoController{Ctx: ctx, Data: make(map[interface{}]interface{})}
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
 	savedInsert := insertProductoFn
 	savedHist := insertPrecioHistFn
@@ -721,7 +723,9 @@ func TestProductoPutRawExecError(t *testing.T) {
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
 	ctx.Input.RequestBody = []byte(body)
-	c := ProductoController{Ctx: ctx, Data: make(map[interface{}]interface{})}
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
 	origRead := readProductoFn
 	origUpdate := updateProductoFn
@@ -1029,7 +1033,9 @@ func TestProductoDeleteReadError(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
-	c := ProductoController{Ctx: ctx, Data: make(map[interface{}]interface{})}
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
 
 	savedRead := readProductoFn
 	readProductoFn = func(o orm.Ormer, p *models.Producto) error { return errors.New("db err") }

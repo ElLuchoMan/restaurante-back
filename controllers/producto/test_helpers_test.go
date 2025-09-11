@@ -28,8 +28,11 @@ type mockRows struct {
 }
 
 type execErrDriver struct{}
+
 type execErrConn struct{}
+
 type execErrStmt struct{}
+
 type execErrTx struct{}
 
 func (d mockDriver) Open(name string) (driver.Conn, error) { return &mockConn{}, nil }
@@ -84,7 +87,7 @@ func newExecErrOrmer(alias string) orm.Ormer {
 	sql.Register(alias, execErrDriver{})
 	orm.RegisterDriver(alias, orm.DRPostgres)
 	_ = orm.RegisterDataBase(alias, alias, "")
-	o, _ := orm.NewOrmUsingDB(alias)
+	o := orm.NewOrmUsingDB(alias)
 	return o
 }
 

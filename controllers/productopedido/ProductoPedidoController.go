@@ -25,6 +25,19 @@ var productoPedidoNewOrm = func() productoPedidoOrmer { return orm.NewOrm() }
 var productoPedidoBaseOrmNew = func() orm.Ormer { return orm.NewOrm() }
 var productoPedidoBeginTx = func(o orm.Ormer) (orm.TxOrmer, error) { return o.Begin() }
 
+// Hooks adicionales para facilitar pruebas del camino feliz en Update
+var productoPedidoDeleteDetalles = func(tx orm.TxOrmer, pedidoID int64) error {
+	_, err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).Delete()
+	return err
+}
+
+var productoPedidoRequeryDetalle = func(tx orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
+	return tx.QueryTable(new(models.DetallePedido)).
+		Filter("PKIDPedido", pedidoID).
+		Filter("PKIDProducto", productoID).
+		One(out)
+}
+
 type ProductoPedidoController struct {
 	web.Controller
 }
@@ -413,7 +426,7 @@ func (c *ProductoPedidoController) Update() {
 			}
 		}
 	}
-	if _, err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).Delete(); err != nil {
+	if err := productoPedidoDeleteDetalles(tx, pedidoID); err != nil {
 		_ = tx.Rollback()
 		logging.LogControllerError(c.Ctx, "producto_pedido.update.delete_detalles_error", err, map[string]interface{}{"pedido_id": pedidoID})
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar los productos del pedido", Cause: err.Error()}
@@ -438,7 +451,7 @@ func (c *ProductoPedidoController) Update() {
 			return
 		}
 		var actualizado models.DetallePedido
-		if err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", *detalle.PKIDPedido).Filter("PKIDProducto", *detalle.PKIDProducto).One(&actualizado); err != nil {
+		if err := productoPedidoRequeryDetalle(tx, detalle.PKIDPedido.PK_ID_PEDIDO, detalle.PKIDProducto.PK_ID_PRODUCTO, &actualizado); err != nil {
 			_ = tx.Rollback()
 			logging.LogControllerError(c.Ctx, "producto_pedido.update.requery_error", err, map[string]interface{}{"productoId": pid})
 			c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener el precio del producto", Cause: err.Error()}
