@@ -38,7 +38,9 @@ func TestProductoPedidoUpdate_DefaultRequery_CoversLines(t *testing.T) {
 		// otras consultas (bloqueo, updates, etc.)
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
-	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) { return mockResult{}, nil }
+	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
+		return mockResult{}, nil
+	}
 	t.Cleanup(func() { MockQuery, MockExec = origQ, origE; productoPedidoRequeryDetalle = origHook })
 
 	body := `[{"productoId":1,"cantidad":2}]`

@@ -37,8 +37,14 @@ func TestProductoPedidoUpdate_RequeryWrapperError_CoversBranch(t *testing.T) {
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
-	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) { return mockResult{}, nil }
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE; productoPedidoRequeryDetalle = origReq; productoPedidoDeleteDetalles = origDel })
+	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
+		return mockResult{}, nil
+	}
+	t.Cleanup(func() {
+		MockQuery, MockExec = origQ, origE
+		productoPedidoRequeryDetalle = origReq
+		productoPedidoDeleteDetalles = origDel
+	})
 
 	body := `[{"productoId":1,"cantidad":2}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))

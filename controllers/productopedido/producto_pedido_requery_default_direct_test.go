@@ -19,4 +19,3 @@ func TestProductoPedido_RequeryDefault_DirectCall(t *testing.T) {
 	var out models.DetallePedido
 	_ = productoPedidoRequeryDetalleDefault(tx, 123, 456, &out)
 }
-

@@ -18,4 +18,3 @@ func TestProductoPedido_RequeryDefault_Cover(t *testing.T) {
 	var out models.DetallePedido
 	_ = productoPedidoRequeryDetalle(tx, 1, 1, &out)
 }
-

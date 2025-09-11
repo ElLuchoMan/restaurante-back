@@ -44,8 +44,14 @@ func TestProductoPedidoUpdate_ZeroDelta_ContinueBranch(t *testing.T) {
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
-	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) { return mockResult{}, nil }
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE; productoPedidoDeleteDetalles = origDel; productoPedidoRequeryDetalle = origReq })
+	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
+		return mockResult{}, nil
+	}
+	t.Cleanup(func() {
+		MockQuery, MockExec = origQ, origE
+		productoPedidoDeleteDetalles = origDel
+		productoPedidoRequeryDetalle = origReq
+	})
 
 	body := `[{"productoId":1,"cantidad":2},{"productoId":2,"cantidad":3}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
@@ -62,4 +68,3 @@ func TestProductoPedidoUpdate_ZeroDelta_ContinueBranch(t *testing.T) {
 		t.Fatalf("expected 200, got %d. Body: %s", w.Code, w.Body.String())
 	}
 }
-

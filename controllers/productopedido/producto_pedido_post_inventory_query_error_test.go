@@ -41,4 +41,3 @@ func TestProductoPedidoPost_InventoryQueryRowsError_Continues(t *testing.T) {
 		t.Fatalf("unexpected status %d. Body: %s", w.Code, w.Body.String())
 	}
 }
-
