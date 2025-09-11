@@ -44,6 +44,12 @@ type fakeResContactoOrm struct{ qs orm.QuerySeter }
 
 func (f fakeResContactoOrm) QueryTable(interface{}) orm.QuerySeter { return f.qs }
 
+func TestResContactoOrmNew_Default(t *testing.T) {
+	if o := resContactoOrmNew(); o == nil {
+		t.Fatal("expected a valid orm instance")
+	}
+}
+
 func TestReservaContacto_GetAll_Success(t *testing.T) {
 	orig := resContactoOrmNew
 	resContactoOrmNew = func() resContactoOrmer {
