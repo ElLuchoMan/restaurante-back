@@ -12,7 +12,7 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   ```powershell
   powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
   ```
-  - Resultado esperado actual: ~98% total. El archivo `main.go` está en 100%.
+  - Resultado esperado actual: ~98% total. El directorio base está en 100%.
 
 ## Tecnologías
 - Go 1.25
