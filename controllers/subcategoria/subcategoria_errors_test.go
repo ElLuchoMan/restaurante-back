@@ -49,7 +49,7 @@ func TestSubcategoriaController_GetAll_AllError(t *testing.T) {
 	}
 }
 
-func TestSubcategoriaController_Post_InsertError(t *testing.T) {
+func TestSubcategoriaController_Post_InsertError_DB(t *testing.T) {
 	orig := subcatOrmNew
 	subcatOrmNew = func() subcatOrmer { return insertErrOrm{} }
 	t.Cleanup(func() { subcatOrmNew = orig })

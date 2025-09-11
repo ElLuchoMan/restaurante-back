@@ -40,6 +40,32 @@ func productoPedidoRequeryDetalleDefault(tx orm.TxOrmer, pedidoID int64, product
 
 var productoPedidoRequeryDetalle = productoPedidoRequeryDetalleDefault
 
+// productoPedidoComputeDeltas calcula deltas y necesidades de stock
+func productoPedidoComputeDeltas(actuales []models.DetallePedido, nuevos map[int64]int) (map[int64]int, map[int64]int) {
+	actualMap := make(map[int64]int)
+	for _, a := range actuales {
+		if a.PKIDProducto != nil {
+			actualMap[a.PKIDProducto.PK_ID_PRODUCTO] += a.Cantidad
+		}
+	}
+	deltas := make(map[int64]int)
+	for pid, qty := range nuevos {
+		prev := actualMap[pid]
+		deltas[pid] = qty - prev
+		delete(actualMap, pid)
+	}
+	for pid, prev := range actualMap {
+		deltas[pid] = -prev
+	}
+	need := make(map[int64]int)
+	for pid, d := range deltas {
+		if d > 0 {
+			need[pid] = d
+		}
+	}
+	return deltas, need
+}
+
 type ProductoPedidoController struct {
 	web.Controller
 }
@@ -306,27 +332,7 @@ func (c *ProductoPedidoController) Update() {
 		_ = c.ServeJSON()
 		return
 	}
-	actualMap := make(map[int64]int)
-	for _, a := range actuales {
-		if a.PKIDProducto != nil {
-			actualMap[a.PKIDProducto.PK_ID_PRODUCTO] += a.Cantidad
-		}
-	}
-	deltas := make(map[int64]int)
-	for pid, qty := range nuevos {
-		prev := actualMap[pid]
-		deltas[pid] = qty - prev
-		delete(actualMap, pid)
-	}
-	for pid, prev := range actualMap {
-		deltas[pid] = -prev
-	}
-	need := make(map[int64]int)
-	for pid, d := range deltas {
-		if d > 0 {
-			need[pid] = d
-		}
-	}
+	deltas, need := productoPedidoComputeDeltas(actuales, nuevos)
 	if len(need) > 0 {
 		ids := make([]int64, 0, len(need))
 		for pid := range need {
@@ -391,9 +397,6 @@ func (c *ProductoPedidoController) Update() {
 	sort.Slice(deltaIDs, func(i, j int) bool { return deltaIDs[i] < deltaIDs[j] })
 	for _, pid := range deltaIDs {
 		delta := deltas[pid]
-		if delta == 0 {
-			continue
-		}
 		if delta > 0 {
 			res, err := tx.Raw("UPDATE producto SET cantidad = cantidad - ? WHERE pk_id_producto = ? AND cantidad >= ?", delta, pid, delta).Exec()
 			if err != nil {
@@ -417,7 +420,7 @@ func (c *ProductoPedidoController) Update() {
 				_ = c.ServeJSON()
 				return
 			}
-		} else {
+		} else if delta < 0 {
 			inc := -delta
 			if _, err := tx.Raw("UPDATE producto SET cantidad = cantidad + ? WHERE pk_id_producto = ?", inc, pid).Exec(); err != nil {
 				_ = tx.Rollback()
