@@ -175,3 +175,53 @@ func TestMockDriver(t *testing.T) {
 		t.Fatalf("callbacks not invoked")
 	}
 }
+
+func TestMockDriverNoCallbacks(t *testing.T) {
+	conn := &mockConn{}
+
+	if err := conn.Ping(context.Background()); err != nil {
+		t.Fatalf("Ping failed: %v", err)
+	}
+
+	res, err := conn.ExecContext(context.Background(), "UPDATE", nil)
+	if err != nil {
+		t.Fatalf("ExecContext failed: %v", err)
+	}
+	if _, err = res.RowsAffected(); err != nil {
+		t.Fatalf("RowsAffected failed: %v", err)
+	}
+	if _, err = res.LastInsertId(); err != nil {
+		t.Fatalf("LastInsertId failed: %v", err)
+	}
+
+	rows, err := conn.QueryContext(context.Background(), "SELECT", nil)
+	if err != nil {
+		t.Fatalf("QueryContext failed: %v", err)
+	}
+	if len(rows.Columns()) != 0 {
+		t.Fatalf("expected no columns")
+	}
+	dest := make([]driver.Value, 1)
+	if err = rows.Next(dest); err != io.EOF {
+		t.Fatalf("expected EOF, got %v", err)
+	}
+	if err = rows.Close(); err != nil {
+		t.Fatalf("rows Close failed: %v", err)
+	}
+
+	stmt, err := conn.Prepare("INSERT")
+	if err != nil {
+		t.Fatalf("Prepare failed: %v", err)
+	}
+	if _, err = stmt.Exec([]driver.Value{1}); err != nil {
+		t.Fatalf("stmt Exec failed: %v", err)
+	}
+	srows, err := stmt.Query([]driver.Value{1})
+	if err != nil {
+		t.Fatalf("stmt Query failed: %v", err)
+	}
+	dest2 := make([]driver.Value, 1)
+	if err = srows.Next(dest2); err != io.EOF {
+		t.Fatalf("expected EOF from stmt rows: %v", err)
+	}
+}
