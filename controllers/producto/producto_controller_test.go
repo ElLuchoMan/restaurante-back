@@ -451,6 +451,32 @@ func TestProductoPostMultipartInvalidNumericFields(t *testing.T) {
 	}
 }
 
+func TestProductoPostRawExecError(t *testing.T) {
+	savedOrm := ormNewProducto
+	ormNewProducto = func() orm.Ormer { return newExecErrOrmer("mockErrExecPost") }
+	t.Cleanup(func() { ormNewProducto = savedOrm })
+
+	body := bytes.NewBufferString(`{"nombre":"A","estadoProducto":"DISPONIBLE","precio":10}`)
+	r := httptest.NewRequest(http.MethodPost, "/productos", body)
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = body.Bytes()
+	c := ProductoController{Ctx: ctx, Data: make(map[interface{}]interface{})}
+
+	savedInsert := insertProductoFn
+	savedHist := insertPrecioHistFn
+	insertProductoFn = func(o orm.Ormer, p *models.Producto) (int64, error) { return 1, nil }
+	insertPrecioHistFn = func(o orm.Ormer, h *models.PrecioProductoHist) (int64, error) { return 1, nil }
+	t.Cleanup(func() { insertProductoFn = savedInsert; insertPrecioHistFn = savedHist })
+
+	c.Post()
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d", w.Code)
+	}
+}
+
 // PUT cases
 func TestProductoPutInvalidID(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPut, "/productos", nil)
@@ -681,6 +707,38 @@ func TestProductoPutPriceChangeHistError_JSON(t *testing.T) {
 	c.Put()
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status 500, got %d", w.Code)
+	}
+}
+
+func TestProductoPutRawExecError(t *testing.T) {
+	savedOrm := ormNewProducto
+	ormNewProducto = func() orm.Ormer { return newExecErrOrmer("mockErrExecPut") }
+	t.Cleanup(func() { ormNewProducto = savedOrm })
+
+	body := `{"nombre":"B","precio":11,"estadoProducto":"DISPONIBLE"}`
+	r := httptest.NewRequest(http.MethodPut, "/productos?id=1", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := ProductoController{Ctx: ctx, Data: make(map[interface{}]interface{})}
+
+	origRead := readProductoFn
+	origUpdate := updateProductoFn
+	origHist := insertPrecioHistFn
+	readProductoFn = func(o orm.Ormer, p *models.Producto) error {
+		p.NOMBRE = "A"
+		p.PRECIO = 10
+		p.ESTADO_PRODUCTO = models.EstadoProductoDisponible
+		return nil
+	}
+	updateProductoFn = func(o orm.Ormer, p *models.Producto, cols ...string) (int64, error) { return 1, nil }
+	insertPrecioHistFn = func(o orm.Ormer, h *models.PrecioProductoHist) (int64, error) { return 1, nil }
+	t.Cleanup(func() { readProductoFn = origRead; updateProductoFn = origUpdate; insertPrecioHistFn = origHist })
+
+	c.Put()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
 	}
 }
 
@@ -963,6 +1021,26 @@ func TestProductoDeleteNotFound(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), "producto no encontrado") && !strings.Contains(strings.ToLower(w.Body.String()), "no encontrado") {
 		t.Fatalf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestProductoDeleteReadError(t *testing.T) {
+	r := httptest.NewRequest(http.MethodDelete, "/productos?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := ProductoController{Ctx: ctx, Data: make(map[interface{}]interface{})}
+
+	savedRead := readProductoFn
+	readProductoFn = func(o orm.Ormer, p *models.Producto) error { return errors.New("db err") }
+	t.Cleanup(func() { readProductoFn = savedRead })
+
+	c.Delete()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(strings.ToLower(w.Body.String()), "error al buscar el producto") {
+		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
 
