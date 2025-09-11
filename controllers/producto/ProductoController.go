@@ -105,10 +105,14 @@ func (c *ProductoController) GetById() {
 	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "productos.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		cause := ""
+		if err != nil {
+			cause = err.Error()
+		}
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
+			Cause:   cause,
 		}
 		_ = c.ServeJSON()
 		return
