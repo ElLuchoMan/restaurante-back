@@ -433,12 +433,38 @@ type fakePinger struct{ err error }
 func (f fakePinger) Ping() error { return f.err }
 
 func TestGetSQLPinger_Default(t *testing.T) {
+	// Forzar escenario sin alias por defecto de forma determinista
+	orig := getSQLPinger
+	getSQLPinger = func() (sqlPinger, error) { return nil, fmt.Errorf("no alias") }
+	t.Cleanup(func() { getSQLPinger = orig })
+
 	db, err := getSQLPinger()
 	if err == nil {
 		t.Fatalf("expected error when no default DB alias is registered")
 	}
 	if db != nil {
 		t.Fatalf("expected nil DB without default alias")
+	}
+}
+
+// Verifica que el valor por defecto de getSQLPinger delega en database.GetDefaultSQLDB.
+func TestGetSQLPinger_DelegatesToDatabase(t *testing.T) {
+	// No stub: usar implementación por defecto
+	db1, err1 := getSQLPinger()
+	db2, err2 := database.GetDefaultSQLDB()
+
+	if (err1 != nil) != (err2 != nil) {
+		t.Fatalf("expected same error presence; getSQLPinger err=%v, database err=%v", err1, err2)
+	}
+	if (db1 != nil) != (db2 != nil) {
+		t.Fatalf("expected same db nilness between getSQLPinger and database.GetDefaultSQLDB")
+	}
+	if db1 != nil && db2 != nil {
+		if sdb, ok := db1.(*sql.DB); !ok {
+			t.Fatalf("expected *sql.DB from getSQLPinger")
+		} else if sdb != db2 {
+			t.Fatalf("expected same *sql.DB pointer from both calls")
+		}
 	}
 }
 
