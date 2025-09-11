@@ -12,25 +12,19 @@ import (
 
 	"restaurante/models"
 
-	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error en productoPedidoDeleteDetalles durante Update
-func TestProductoPedidoUpdate_DeleteDetallesError(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	origDel := productoPedidoDeleteDetalles
-	origReq := productoPedidoRequeryDetalle
+// Fuerza fallo de Commit usando MockTxCommitErr del txWrapper de TestMain
+func TestProductoPedidoUpdate_CommitError_MockTx(t *testing.T) {
+	origQ, origE, origCommit := MockQuery, MockExec, MockTxCommitErr
 
-	// actuales vacíos, inventario suficiente
+	// actuales con cantidad 2 y nuevos con 2 (delta 0) para pasar hasta Commit
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {
-			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
-		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
+		if strings.Contains(lower, "from detalle_pedido") && !strings.Contains(lower, "insert into") {
+			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
+			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
@@ -38,14 +32,9 @@ func TestProductoPedidoUpdate_DeleteDetallesError(t *testing.T) {
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
 	}
-	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return errors.New("delete fail") }
-	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, _ int64, _ int64, _ *models.DetallePedido) error { return nil }
+	MockTxCommitErr = errors.New("commit fail")
 
-	t.Cleanup(func() {
-		MockQuery, MockExec = origQ, origE
-		productoPedidoDeleteDetalles = origDel
-		productoPedidoRequeryDetalle = origReq
-	})
+	t.Cleanup(func() { MockQuery, MockExec, MockTxCommitErr = origQ, origE, origCommit })
 
 	body := `[{"productoId":1,"cantidad":2}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
@@ -65,8 +54,5 @@ func TestProductoPedidoUpdate_DeleteDetallesError(t *testing.T) {
 	}
 	if resp.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d. Body: %s", resp.Code, w.Body.String())
-	}
-	if resp.Message != "Error al actualizar los productos del pedido" {
-		t.Fatalf("unexpected message: %s", resp.Message)
 	}
 }

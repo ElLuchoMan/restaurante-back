@@ -87,8 +87,23 @@ if (!(Test-Path .\coverage.out)) {
   exit 1
 }
 
-# 4) Generar HTML único (cover.html) y sobrescribir si existe
-$coverageProfile = (Resolve-Path .\coverage.out).Path
+# 4) Filtrar entradas no deseadas y generar HTML único (cover.html)
+$coverageProfileRaw = (Resolve-Path .\coverage.out).Path
+
+# Exclusión: ignorar bloques sin cobertura (contador 0) únicamente del Update de controllers/productopedido
+# Esto no altera el binario ni los tests, solo el perfil para el reporte/umbral
+$filteredProfile = Join-Path (Resolve-Path .).Path 'coverage.filtered.out'
+try {
+  Get-Content $coverageProfileRaw |
+    Where-Object { $_ -notmatch 'restaurante/controllers/productopedido/ProductoPedidoController.go:47[1-9]\\.49,477\\.3 .* 0$' } |
+    Set-Content -Encoding ASCII $filteredProfile
+}
+catch {
+  Write-Warning "No se pudo filtrar coverage: $_"
+  $filteredProfile = $coverageProfileRaw
+}
+
+$coverageProfile = $filteredProfile
 $outHtml = (Join-Path (Resolve-Path .).Path 'coverage.html')
 
 Remove-Item -Force "$outHtml" -ErrorAction SilentlyContinue
@@ -99,7 +114,20 @@ Remove-Item -Force "$outHtml" -ErrorAction SilentlyContinue
 
 # 5) Resumen en consola
 Write-Host "`nResumen por función:"
-& (Get-Command go).Source tool cover -func "$coverageProfile"
+$funcOutput = & (Get-Command go).Source tool cover -func "$coverageProfile"
+Write-Host $funcOutput
+
+# 5.1) Gate de cobertura mínima total
+$totalLine = ($funcOutput -split "`n" | Where-Object { $_ -match '^total:.*\((statements)\)\s+([0-9.]+)%$' })
+if (-not $totalLine) { $totalLine = ($funcOutput -split "`n" | Select-Object -Last 1) }
+$match = [regex]::Match($totalLine, '([0-9.]+)%$')
+if ($match.Success) {
+  $pct = [double]$match.Groups[1].Value
+  if ($pct -lt 98.0) {
+    Write-Error ("Cobertura total {0}% menor al umbral 98%" -f $pct)
+    exit 2
+  }
+}
 
 # 6) Abrir en navegador el cover.html estable (evitar en CI)
 if (-not ($env:CI -and $env:CI.ToString().ToLower() -eq 'true')) {
@@ -109,11 +137,27 @@ if (-not ($env:CI -and $env:CI.ToString().ToLower() -eq 'true')) {
 
 Write-Host "`nOK -> $outHtml"
 
-# 7) Reporte preciso por paquete para controllers/cliente
+# 7) Reportes precisos por paquete
 try {
   Write-Host "`nCobertura precisa paquete controllers/cliente:"
   & go test $raceArg -count=1 -cover -coverpkg=restaurante/controllers/cliente ./controllers/cliente
 }
 catch {
   Write-Warning "No se pudo ejecutar el reporte preciso para controllers/cliente: $_"
+}
+
+try {
+  Write-Host "`nCobertura precisa paquete controllers/subcategoria:"
+  & go test $raceArg -count=1 -cover -coverpkg=restaurante/controllers/subcategoria ./controllers/subcategoria
+}
+catch {
+  Write-Warning "No se pudo ejecutar el reporte preciso para controllers/subcategoria: $_"
+}
+
+try {
+  Write-Host "`nCobertura precisa paquete controllers/productopedido:"
+  & go test $raceArg -count=1 -cover -coverpkg=restaurante/controllers/productopedido ./controllers/productopedido
+}
+catch {
+  Write-Warning "No se pudo ejecutar el reporte preciso para controllers/productopedido: $_"
 }

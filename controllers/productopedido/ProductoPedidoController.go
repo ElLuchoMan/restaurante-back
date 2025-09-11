@@ -40,6 +40,18 @@ func productoPedidoRequeryDetalleDefault(tx orm.TxOrmer, pedidoID int64, product
 
 var productoPedidoRequeryDetalle = productoPedidoRequeryDetalleDefault
 
+// Hook para permitir stubear Commit en pruebas
+var productoPedidoCommit = func(tx orm.TxOrmer) error { return tx.Commit() }
+
+// Hook para consultar detalles actuales (se puede stubear en tests)
+func productoPedidoQueryActualesDefault(o orm.Ormer, pedidoID int64) ([]models.DetallePedido, error) {
+	var actuales []models.DetallePedido
+	_, err := o.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).All(&actuales)
+	return actuales, err
+}
+
+var productoPedidoQueryActualesFn = productoPedidoQueryActualesDefault
+
 // productoPedidoComputeDeltas calcula deltas y necesidades de stock
 func productoPedidoComputeDeltas(actuales []models.DetallePedido, nuevos map[int64]int) (map[int64]int, map[int64]int) {
 	actualMap := make(map[int64]int)
@@ -268,7 +280,7 @@ func (c *ProductoPedidoController) Post() {
 		detalles = append(detalles, actualizado)
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := productoPedidoCommit(tx); err != nil {
 		_ = tx.Rollback()
 		logging.LogControllerError(c.Ctx, "producto_pedido.post.tx_commit_error", err, map[string]interface{}{"pedidoId": input.PedidoId})
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible confirmar transacción", Cause: err.Error()}
@@ -325,8 +337,8 @@ func (c *ProductoPedidoController) Update() {
 		nuevos[d.PKIDProducto] += d.Cantidad
 	}
 	o := productoPedidoBaseOrmNew()
-	var actuales []models.DetallePedido
-	if _, err := o.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).All(&actuales); err != nil {
+	actuales, err := productoPedidoQueryActualesFn(o, pedidoID)
+	if err != nil {
 		logging.LogControllerError(c.Ctx, "producto_pedido.update.query_actuales_error", err, map[string]interface{}{"pedido_id": pedidoID, "body": string(c.Ctx.Input.RequestBody)})
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al buscar los detalles del pedido", Cause: err.Error()}
 		_ = c.ServeJSON()
@@ -465,7 +477,7 @@ func (c *ProductoPedidoController) Update() {
 		}
 		detalles = append(detalles, actualizado)
 	}
-	if err := tx.Commit(); err != nil {
+	if err := productoPedidoCommit(tx); err != nil {
 		_ = tx.Rollback()
 		logging.LogControllerError(c.Ctx, "producto_pedido.update.tx_commit_error", err, map[string]interface{}{"pedido_id": pedidoID})
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "No fue posible confirmar transacción", Cause: err.Error()}
