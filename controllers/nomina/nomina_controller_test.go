@@ -568,3 +568,40 @@ func TestNominaDeleteUpdateError(t *testing.T) {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
+func TestFindExistingNominaFnSuccess(t *testing.T) {
+	o := ormNewNomina()
+	fecha := time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC)
+
+	origQuery := MockQuery
+	MockQuery = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Rows, error) {
+		return &mockRows{
+			columns: []string{"pk_id_nomina", "fecha", "monto", "estado_nomina"},
+			values:  [][]driver.Value{{int64(1), fecha, int64(100), string(models.EstadoNominaPago)}},
+		}, nil
+	}
+	t.Cleanup(func() { MockQuery = origQuery })
+
+	existing, err := findExistingNominaFn(o, fecha)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if existing == nil || existing.PK_ID_NOMINA != 1 {
+		t.Fatalf("unexpected result: %#v", existing)
+	}
+}
+
+func TestFindExistingNominaFnError(t *testing.T) {
+	o := ormNewNomina()
+	fecha := time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC)
+
+	origQuery := MockQuery
+	MockQuery = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Rows, error) {
+		return nil, errors.New("query error")
+	}
+	t.Cleanup(func() { MockQuery = origQuery })
+
+	existing, err := findExistingNominaFn(o, fecha)
+	if err == nil || existing != nil {
+		t.Fatalf("expected error finding nomina")
+	}
+}
