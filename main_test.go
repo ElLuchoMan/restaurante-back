@@ -468,6 +468,54 @@ func TestGetSQLPinger_DelegatesToDatabase(t *testing.T) {
 	}
 }
 
+// Cubre la rama en la que dbGetter devuelve nil y error, y getSQLPinger
+// debe retornar interfaz nil y propagar el error.
+func TestGetSQLPinger_NilBranchReturnsNilInterface(t *testing.T) {
+	orig := dbGetter
+	dbGetter = func() (*sql.DB, error) { return nil, fmt.Errorf("no db") }
+	t.Cleanup(func() { dbGetter = orig })
+
+	p, err := getSQLPinger()
+	if err == nil {
+		t.Fatalf("expected error when dbGetter returns nil")
+	}
+	if p != nil {
+		t.Fatalf("expected nil interface when db is nil")
+	}
+}
+
+// Cubre la rama en la que dbGetter devuelve una *sql.DB no nula.
+func TestGetSQLPinger_NonNilBranchReturnsDB(t *testing.T) {
+	orig := dbGetter
+	var opened *sql.DB
+	dbGetter = func() (*sql.DB, error) {
+		var err error
+		// sql.Open no conecta hasta Ping; por lo tanto es seguro para tests.
+		opened, err = sql.Open("postgres", "user=u password=p dbname=x sslmode=disable")
+		if err != nil {
+			return nil, err
+		}
+		return opened, nil
+	}
+	t.Cleanup(func() {
+		dbGetter = orig
+		if opened != nil {
+			_ = opened.Close()
+		}
+	})
+
+	p, err := getSQLPinger()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p == nil {
+		t.Fatalf("expected non-nil pinger")
+	}
+	if _, ok := p.(*sql.DB); !ok {
+		t.Fatalf("expected *sql.DB from getSQLPinger")
+	}
+}
+
 func TestReadyz_OK(t *testing.T) {
 	os.Setenv("SKIP_WEB_RUN", "1")
 	os.Setenv("SKIP_CRON", "1")

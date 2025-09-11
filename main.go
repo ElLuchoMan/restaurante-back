@@ -54,9 +54,11 @@ var (
 	cronInsertNom = ormInsert
 	cronRawExec   = ormRawExec
 	webRun        = web.Run
+	// dbGetter permite stubear la obtención de *sql.DB en pruebas
+	dbGetter = database.GetDefaultSQLDB
 	// getSQLPinger permite stubear el acceso a la DB en /readyz
 	getSQLPinger = func() (sqlPinger, error) {
-		db, err := database.GetDefaultSQLDB()
+		db, err := dbGetter()
 		if db == nil {
 			return nil, err
 		}
