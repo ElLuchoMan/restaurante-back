@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"restaurante/models"
 
@@ -1137,5 +1138,47 @@ func TestProductoGetAllIncludeImageTrue(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), "\"imagen\":\"") {
 		t.Errorf("expected image field present: %s", w.Body.String())
+	}
+}
+func TestQueryProductosAllWrapper(t *testing.T) {
+	o := ormNewProducto()
+	var productos []models.Producto
+	if _, err := queryProductosAll(o, false, &productos); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := queryProductosAll(o, true, &productos); err != nil {
+		t.Fatalf("unexpected error with filter: %v", err)
+	}
+}
+
+func TestOrmWrapperFunctions(t *testing.T) {
+	o := ormNewProducto()
+	// read
+	if err := readProductoFn(o, &models.Producto{PK_ID_PRODUCTO: 1}); err != nil && err != orm.ErrNoRows {
+		t.Fatalf("readProductoFn returned unexpected error: %v", err)
+	}
+	// insert product
+	p := &models.Producto{
+		NOMBRE:             "A",
+		PRECIO:             10,
+		ESTADO_PRODUCTO:    models.EstadoProductoDisponible,
+		CANTIDAD:           1,
+		PK_ID_SUBCATEGORIA: &models.Subcategoria{PK_ID_SUBCATEGORIA: 1},
+	}
+	if _, err := insertProductoFn(o, p); err != nil {
+		t.Fatalf("insertProductoFn returned error: %v", err)
+	}
+	// insert price history
+	h := &models.PrecioProductoHist{
+		PKIDProducto:  p,
+		Precio:        10,
+		FechaVigencia: time.Now(),
+	}
+	if _, err := insertPrecioHistFn(o, h); err != nil {
+		t.Fatalf("insertPrecioHistFn returned error: %v", err)
+	}
+	// update product
+	if _, err := updateProductoFn(o, p, "NOMBRE"); err != nil {
+		t.Fatalf("updateProductoFn returned error: %v", err)
 	}
 }
