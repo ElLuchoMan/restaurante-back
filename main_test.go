@@ -467,6 +467,25 @@ func TestReadyz_GetPingerErrorStill200(t *testing.T) {
 	}
 }
 
+func TestReadyz_NilPingerStill200(t *testing.T) {
+	os.Setenv("SKIP_WEB_RUN", "1")
+	os.Setenv("SKIP_CRON", "1")
+	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
+
+	initBeegoApp(t)
+	orig := getSQLPinger
+	getSQLPinger = func() (sqlPinger, error) { return nil, nil }
+	t.Cleanup(func() { getSQLPinger = orig })
+	main()
+
+	r, _ := http.NewRequest("GET", "/readyz", nil)
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 when getSQLPinger returns nil, got %d", w.Code)
+	}
+}
+
 // ===== CORS =====
 func TestCORS_DevAllowAll(t *testing.T) {
 	os.Setenv("SKIP_WEB_RUN", "1")
