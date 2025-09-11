@@ -44,6 +44,12 @@ type fakeResContactoOrm struct{ qs orm.QuerySeter }
 
 func (f fakeResContactoOrm) QueryTable(interface{}) orm.QuerySeter { return f.qs }
 
+func TestResContactoOrmNew_Default(t *testing.T) {
+	if o := resContactoOrmNew(); o == nil {
+		t.Fatal("expected a valid orm instance")
+	}
+}
+
 func TestReservaContacto_GetAll_Success(t *testing.T) {
 	orig := resContactoOrmNew
 	resContactoOrmNew = func() resContactoOrmer {
@@ -81,6 +87,26 @@ func TestReservaContacto_GetAll_Error(t *testing.T) {
 	c.GetAll()
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
+	}
+}
+
+func TestReservaContacto_GetAll_InvalidParams(t *testing.T) {
+	orig := resContactoOrmNew
+	resContactoOrmNew = func() resContactoOrmer {
+		return fakeResContactoOrm{qs: fakeResContactoQS{data: []models.ReservaContacto{{PKIDContacto: 1}}}}
+	}
+	t.Cleanup(func() { resContactoOrmNew = orig })
+
+	r := httptest.NewRequest(http.MethodGet, "/reserva_contacto?documento_contacto=abc&documento_cliente=xyz", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &ReservaContactoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
 
@@ -132,6 +158,26 @@ func TestReservaContacto_GetById_Success(t *testing.T) {
 	t.Cleanup(func() { resContactoOrmNew = orig })
 
 	r := httptest.NewRequest(http.MethodGet, "/reserva_contacto/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &ReservaContactoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetById()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestReservaContacto_GetById_InvalidID(t *testing.T) {
+	orig := resContactoOrmNew
+	resContactoOrmNew = func() resContactoOrmer {
+		return fakeResContactoOrm{qs: fakeResContactoQS{oneErr: orm.ErrNoRows}}
+	}
+	t.Cleanup(func() { resContactoOrmNew = orig })
+
+	r := httptest.NewRequest(http.MethodGet, "/reserva_contacto/search?id=abc", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
