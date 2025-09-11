@@ -55,7 +55,13 @@ var (
 	cronRawExec   = ormRawExec
 	webRun        = web.Run
 	// getSQLPinger permite stubear el acceso a la DB en /readyz
-	getSQLPinger = func() (sqlPinger, error) { return database.GetDefaultSQLDB() }
+	getSQLPinger = func() (sqlPinger, error) {
+		db, err := database.GetDefaultSQLDB()
+		if db == nil {
+			return nil, err
+		}
+		return db, err
+	}
 )
 
 func ormInsert(o orm.Ormer, n *models.Nomina) (int64, error) {
