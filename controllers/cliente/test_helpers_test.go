@@ -104,3 +104,74 @@ func TestMain(m *testing.M) {
 	_ = orm.RegisterDataBase("default", "mock", "")
 	os.Exit(m.Run())
 }
+
+func TestMockDriver(t *testing.T) {
+	execCalled, queryCalled := false, false
+	MockExec = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Result, error) {
+		execCalled = true
+		return mockResult{}, nil
+	}
+	MockQuery = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Rows, error) {
+		queryCalled = true
+		return &mockRows{columns: []string{"col"}, values: [][]driver.Value{{1}}}, nil
+	}
+	t.Cleanup(func() { MockExec, MockQuery = nil, nil })
+
+	conn := &mockConn{}
+	if _, err := conn.ExecContext(context.Background(), "UPDATE", nil); err != nil {
+		t.Fatalf("ExecContext failed: %v", err)
+	}
+	rows, err := conn.QueryContext(context.Background(), "SELECT", nil)
+	if err != nil {
+		t.Fatalf("QueryContext failed: %v", err)
+	}
+	dest := make([]driver.Value, 1)
+	if err := rows.Next(dest); err != nil {
+		t.Fatalf("Next failed: %v", err)
+	}
+	if dest[0] != 1 {
+		t.Fatalf("unexpected value %v", dest[0])
+	}
+	if len(rows.Columns()) != 1 {
+		t.Fatalf("expected one column")
+	}
+	if err := rows.Close(); err != nil {
+		t.Fatalf("close failed: %v", err)
+	}
+
+	stmt, err := conn.Prepare("INSERT")
+	if err != nil {
+		t.Fatalf("prepare failed: %v", err)
+	}
+	if _, err = stmt.Exec([]driver.Value{1}); err != nil {
+		t.Fatalf("stmt Exec failed: %v", err)
+	}
+	if _, err = stmt.Query([]driver.Value{1}); err != nil {
+		t.Fatalf("stmt Query failed: %v", err)
+	}
+	if err = stmt.Close(); err != nil {
+		t.Fatalf("stmt Close failed: %v", err)
+	}
+
+	tx, err := conn.Begin()
+	if err != nil {
+		t.Fatalf("begin failed: %v", err)
+	}
+	if err = tx.Commit(); err != nil {
+		t.Fatalf("commit failed: %v", err)
+	}
+	if err = tx.Rollback(); err != nil {
+		t.Fatalf("rollback failed: %v", err)
+	}
+
+	res := mockResult{}
+	if id, _ := res.LastInsertId(); id != 1 {
+		t.Fatalf("unexpected id %d", id)
+	}
+	if aff, _ := res.RowsAffected(); aff != 1 {
+		t.Fatalf("unexpected rows %d", aff)
+	}
+	if !execCalled || !queryCalled {
+		t.Fatalf("callbacks not invoked")
+	}
+}
