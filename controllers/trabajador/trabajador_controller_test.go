@@ -104,6 +104,15 @@ func TestHashPassword(t *testing.T) {
 	}
 }
 
+func TestHashPasswordError(t *testing.T) {
+	original := generateFromPassword
+	generateFromPassword = func([]byte, int) ([]byte, error) { return nil, errors.New("fail") }
+	defer func() { generateFromPassword = original }()
+	if _, err := hashPassword("secret"); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
 func TestValidateDates(t *testing.T) {
 	ingreso := time.Now()
 	retiroAntes := ingreso.Add(-time.Hour)
