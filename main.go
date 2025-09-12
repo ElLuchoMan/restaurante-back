@@ -120,9 +120,9 @@ var setStaticHeadersFn = func(ctx *context.Context) {
 
 func setStaticHeaders(ctx *context.Context) { setStaticHeadersFn(ctx) }
 
-// @title Restaurante API
+// @title El fogón de María API
 // @version 2.0.0
-// @description API para gestionar el sistema de un restaurante para "El fogón de María"
+// @description API para gestionar el sistema de "El fogón de María"
 // @contact.email baluisto96@gmail.com
 // @basePath /restaurante/v1
 // @securityDefinitions.apikey BearerAuth
