@@ -294,7 +294,6 @@ func TestReservaGetByIdScenarios(t *testing.T) {
 		return nil
 	}
 	t.Cleanup(resetReservaMocks)
-	// not found
 	r := httptest.NewRequest(http.MethodGet, "/reservas/search?id=2", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -306,7 +305,6 @@ func TestReservaGetByIdScenarios(t *testing.T) {
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Reserva no encontrada") {
 		t.Fatalf("not found failed")
 	}
-	// success
 	r = httptest.NewRequest(http.MethodGet, "/reservas/search?id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -592,7 +590,6 @@ func TestReservaPutScenarios(t *testing.T) {
 	}
 	t.Cleanup(resetReservaMocks)
 
-	// not found
 	r := httptest.NewRequest(http.MethodPut, "/reservas?id=2", strings.NewReader("{}"))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -606,7 +603,6 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("not found failed")
 	}
 
-	// invalid json
 	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", strings.NewReader("{invalid"))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -618,7 +614,6 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 
-	// invalid fecha
 	payload := map[string]interface{}{"fechaReserva": "2024-13-01", "horaReserva": "12:00:00", "personas": 2, "contactoId": 123, "restauranteId": 1}
 	body, _ := json.Marshal(payload)
 	r = httptest.NewRequest(http.MethodPut, "/reservas?id=1", bytes.NewReader(body))
@@ -633,7 +628,6 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 
-	// invalid hora
 	payload["fechaReserva"] = "2024-01-01"
 	payload["horaReserva"] = "99:99:99"
 	body, _ = json.Marshal(payload)
@@ -648,7 +642,6 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 
-	// invalid contacto
 	payload["horaReserva"] = "12:00:00"
 	payload["contactoId"] = "abc"
 	body, _ = json.Marshal(payload)
@@ -663,7 +656,6 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 
-	// invalid restaurante
 	payload["contactoId"] = 123
 	payload["restauranteId"] = "abc"
 	body, _ = json.Marshal(payload)
@@ -678,7 +670,6 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 
-	// update error
 	payload["restauranteId"] = 1
 	body, _ = json.Marshal(payload)
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) { return 0, errors.New("db") }
@@ -693,7 +684,6 @@ func TestReservaPutScenarios(t *testing.T) {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
 
-	// success
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
 		db[r.PK_ID_RESERVA] = *r
 		return 1, nil
@@ -807,7 +797,6 @@ func TestReservaDeleteScenarios(t *testing.T) {
 	}
 	t.Cleanup(resetReservaMocks)
 
-	// not found
 	r := httptest.NewRequest(http.MethodDelete, "/reservas?id=2", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -821,7 +810,6 @@ func TestReservaDeleteScenarios(t *testing.T) {
 		t.Fatalf("not found failed")
 	}
 
-	// update error
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) { return 0, errors.New("db") }
 	r = httptest.NewRequest(http.MethodDelete, "/reservas?id=1", nil)
 	w = httptest.NewRecorder()
@@ -834,7 +822,6 @@ func TestReservaDeleteScenarios(t *testing.T) {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
 
-	// success
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
 		db[r.PK_ID_RESERVA] = *r
 		return 1, nil

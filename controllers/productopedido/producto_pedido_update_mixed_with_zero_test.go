@@ -14,13 +14,11 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Caso mixto con delta 0, positivo y negativo simultáneamente
 func TestProductoPedidoUpdate_Mixed_WithZeroDelta(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 
-	// Evitar fallos en Delete y reconsulta
 	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return nil }
 	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
 		*out = models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID}, Cantidad: 1, Precio: 1000}
@@ -35,18 +33,15 @@ func TestProductoPedidoUpdate_Mixed_WithZeroDelta(t *testing.T) {
 		case strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into"):
 			if step == 0 {
 				step++
-				// actuales: p1=2, p2=1, p3=4
 				cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 				vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}, {int64(2), int64(1), int64(2), int64(1), int64(800)}, {int64(3), int64(1), int64(3), int64(4), int64(500)}}
 				return &mockRows{columns: cols, values: vals}, nil
 			}
-			// reconsultas tras inserts
 			requeryStep++
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(10 + requeryStep), int64(1), int64(2), int64(3), int64(900)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		case strings.Contains(lower, "select pk_id_producto, cantidad from producto"):
-			// need: solo p2= +2
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(2), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
@@ -63,7 +58,6 @@ func TestProductoPedidoUpdate_Mixed_WithZeroDelta(t *testing.T) {
 		productoPedidoRequeryDetalle = origReq
 	})
 
-	// nuevos: p1=2 (delta 0), p2=3 (delta +2), p3=3 (delta -1)
 	body := `[{"productoId":1,"cantidad":2},{"productoId":2,"cantidad":3},{"productoId":3,"cantidad":3}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()

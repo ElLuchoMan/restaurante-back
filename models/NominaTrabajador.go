@@ -51,16 +51,11 @@ func (n *NominaTrabajador) TableUnique() [][]string {
 	}
 }
 
-// UnmarshalJSON permite aceptar tanto claves explícitas como alternativas y
-// números para referencias de FK. Soporta JSON con:
-// - "nominaId" o "pk_id_nomina" (número o objeto Nomina)
-// - "documentoTrabajador" o "pk_documento_trabajador" (número o objeto Trabajador)
 func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
 	type alias struct {
-		SUELDO_BASE       *int64  `json:"sueldoBase,omitempty"`
-		MONTO_INCIDENCIAS *int64  `json:"montoIncidencias,omitempty"`
-		DETALLES          *string `json:"detalles,omitempty"`
-		// posibles nombres entrantes
+		SUELDO_BASE            *int64          `json:"sueldoBase,omitempty"`
+		MONTO_INCIDENCIAS      *int64          `json:"montoIncidencias,omitempty"`
+		DETALLES               *string         `json:"detalles,omitempty"`
 		DocumentoTrabajador    json.RawMessage `json:"documentoTrabajador,omitempty"`
 		DocumentoTrabajadorAlt json.RawMessage `json:"pk_documento_trabajador,omitempty"`
 		NominaID               json.RawMessage `json:"nominaId,omitempty"`
@@ -78,14 +73,11 @@ func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
 	n.MONTO_INCIDENCIAS = a.MONTO_INCIDENCIAS
 	n.DETALLES = a.DETALLES
 
-	// helper para procesar un RawMessage que puede ser número o objeto
 	parseIDToTrabajador := func(raw json.RawMessage) (*Trabajador, error) {
-		// intentar número
 		var idNum int64
 		if err := json.Unmarshal(raw, &idNum); err == nil {
 			return &Trabajador{PK_DOCUMENTO_TRABAJADOR: idNum}, nil
 		}
-		// intentar objeto
 		var t Trabajador
 		if err := json.Unmarshal(raw, &t); err == nil {
 			return &t, nil
@@ -93,7 +85,6 @@ func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
 		return nil, nil
 	}
 
-	// Parse documento trabajador (prefiere el campo principal)
 	chosenTrab := a.DocumentoTrabajador
 	if len(chosenTrab) == 0 {
 		chosenTrab = a.DocumentoTrabajadorAlt
@@ -104,7 +95,6 @@ func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	// Parse nomina id -> Nomina pointer
 	parseIDToNomina := func(raw json.RawMessage) (*Nomina, error) {
 		var idNum int64
 		if err := json.Unmarshal(raw, &idNum); err == nil {

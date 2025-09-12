@@ -2,7 +2,6 @@ package models
 
 import "github.com/beego/beego/v2/client/orm"
 
-// DetallePedido represents a product within un pedido.
 type DetallePedido struct {
 	PK_ID_DETALLE int64     `orm:"column(pk_id_detalle);pk;auto" json:"detalleId"`
 	PKIDPedido    *Pedido   `orm:"column(pk_id_pedido);rel(fk)" json:"pedidoId" swaggertype:"integer"`
@@ -15,7 +14,6 @@ func (d *DetallePedido) TableName() string {
 	return "detalle_pedido"
 }
 
-// TableUnique enforces UNIQUE(pk_id_pedido, pk_id_producto)
 func (d *DetallePedido) TableUnique() [][]string {
 	return [][]string{{"PKIDPedido", "PKIDProducto"}}
 }

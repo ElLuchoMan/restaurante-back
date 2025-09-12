@@ -66,7 +66,6 @@ func TestSetStaticHeaders_FilterExecutes(t *testing.T) {
 	beego.BConfig.RunMode = "dev"
 	main()
 
-	// /static path (invocación directa para atribución cobertura)
 	{
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest("GET", "/static/app.js", nil)
@@ -75,7 +74,6 @@ func TestSetStaticHeaders_FilterExecutes(t *testing.T) {
 		setStaticHeaders(ctx)
 	}
 
-	// /static path a través del router
 	r, _ := http.NewRequest("GET", "/static/app.js", nil)
 	w := httptest.NewRecorder()
 	beego.BeeApp.Handlers.ServeHTTP(w, r)
@@ -86,7 +84,6 @@ func TestSetStaticHeaders_FilterExecutes(t *testing.T) {
 		t.Fatalf("expected Vary header for /static, got %q", got)
 	}
 
-	// /assets path
 	r2, _ := http.NewRequest("GET", "/assets/img.png", nil)
 	w2 := httptest.NewRecorder()
 	beego.BeeApp.Handlers.ServeHTTP(w2, r2)
@@ -173,7 +170,6 @@ func (fakeResult) LastInsertId() (int64, error) { return 1, nil }
 func (fakeResult) RowsAffected() (int64, error) { return 1, nil }
 
 func TestGenerarNominaAutomatica_OneShot(t *testing.T) {
-	// Forzar que sea medianoche
 	origNow := nowFn
 	origSleep := sleepFn
 	origInsert := cronInsertNom
@@ -196,7 +192,6 @@ func TestGenerarNominaAutomatica_OneShot(t *testing.T) {
 	defer os.Unsetenv("CRON_ONE_SHOT")
 
 	go generarNominaAutomatica()
-	// dar un respiro
 	time.Sleep(10 * time.Millisecond)
 }
 
@@ -250,8 +245,6 @@ func TestGenerarNominaAutomatica_Sleep(t *testing.T) {
 	}
 }
 
-// Añadido: cobertura de prints y errores del bloque de nómina automática
-// Nota: se usa stdout capturing; mantener simple para estabilidad.
 func TestGenerarNominaAutomatica_PrintsAndErrors(t *testing.T) {
 	os.Setenv("CRON_ONE_SHOT", "1")
 	defer os.Unsetenv("CRON_ONE_SHOT")
@@ -260,7 +253,6 @@ func TestGenerarNominaAutomatica_PrintsAndErrors(t *testing.T) {
 	nowFn = func() time.Time { return time.Date(2024, 1, 1, 0, 0, 0, 0, database.BogotaZone) }
 	defer func() { nowFn = origNow }()
 
-	// Preparar logger de prueba que escribe a un buffer
 	origLogger := slog.Default()
 	setBufLogger := func() *bytes.Buffer {
 		var b bytes.Buffer
@@ -271,7 +263,6 @@ func TestGenerarNominaAutomatica_PrintsAndErrors(t *testing.T) {
 	restore := func() { slog.SetDefault(origLogger) }
 	defer restore()
 
-	// Caso éxito
 	b := setBufLogger()
 	origI := cronInsertNom
 	origR := cronRawExec
@@ -288,7 +279,6 @@ func TestGenerarNominaAutomatica_PrintsAndErrors(t *testing.T) {
 		t.Fatalf("expected cron success event, got: %s", out)
 	}
 
-	// Caso error insert
 	b = setBufLogger()
 	cronInsertNom = func(o orm.Ormer, n *models.Nomina) (int64, error) { return 0, fmt.Errorf("insert fail") }
 	generarNominaAutomatica()
@@ -297,7 +287,6 @@ func TestGenerarNominaAutomatica_PrintsAndErrors(t *testing.T) {
 		t.Fatalf("expected insert error event, got: %s", out2)
 	}
 
-	// Caso error procedimiento
 	b = setBufLogger()
 	cronInsertNom = func(o orm.Ormer, n *models.Nomina) (int64, error) { n.PK_ID_NOMINA = 6; return 1, nil }
 	cronRawExec = func(o orm.Ormer, q string, args ...interface{}) (sql.Result, error) {
@@ -326,7 +315,6 @@ func TestDefaultCronHelpers(t *testing.T) {
 	cronRawExec(dummyOrmer{}, "q")
 }
 
-// Ormer cuyo Raw retorna nil para cubrir rama rs == nil en cronRawExec
 type nilRawOrmer struct{ *orm.DoNothingOrm }
 
 func (nilRawOrmer) Raw(string, ...interface{}) orm.RawSeter { return nil }
@@ -398,17 +386,13 @@ func TestStringHelpers(t *testing.T) {
 	}
 }
 
-// ===== Helpers =====
 func initBeegoApp(t *testing.T) {
-	// Asegurar secreto JWT para evitar pánico en init de controllers
 	os.Setenv("JWT_SECRET", "testsecret")
-	// Directorio raíz del proyecto (este archivo está en la raíz)
 	_, file, _, _ := runtime.Caller(0)
 	apppath, _ := filepath.Abs(filepath.Dir(file))
 	beego.TestBeegoInit(apppath)
 }
 
-// ===== Rutas básicas =====
 func TestHealthzEndpoint(t *testing.T) {
 	os.Setenv("SKIP_WEB_RUN", "1")
 	os.Setenv("SKIP_CRON", "1")
@@ -433,7 +417,6 @@ type fakePinger struct{ err error }
 func (f fakePinger) Ping() error { return f.err }
 
 func TestGetSQLPinger_Default(t *testing.T) {
-	// Forzar escenario sin alias por defecto de forma determinista
 	orig := getSQLPinger
 	getSQLPinger = func() (sqlPinger, error) { return nil, fmt.Errorf("no alias") }
 	t.Cleanup(func() { getSQLPinger = orig })
@@ -447,9 +430,7 @@ func TestGetSQLPinger_Default(t *testing.T) {
 	}
 }
 
-// Verifica que el valor por defecto de getSQLPinger delega en database.GetDefaultSQLDB.
 func TestGetSQLPinger_DelegatesToDatabase(t *testing.T) {
-	// No stub: usar implementación por defecto
 	db1, err1 := getSQLPinger()
 	db2, err2 := database.GetDefaultSQLDB()
 
@@ -468,8 +449,6 @@ func TestGetSQLPinger_DelegatesToDatabase(t *testing.T) {
 	}
 }
 
-// Cubre la rama en la que dbGetter devuelve nil y error, y getSQLPinger
-// debe retornar interfaz nil y propagar el error.
 func TestGetSQLPinger_NilBranchReturnsNilInterface(t *testing.T) {
 	orig := dbGetter
 	dbGetter = func() (*sql.DB, error) { return nil, fmt.Errorf("no db") }
@@ -484,13 +463,11 @@ func TestGetSQLPinger_NilBranchReturnsNilInterface(t *testing.T) {
 	}
 }
 
-// Cubre la rama en la que dbGetter devuelve una *sql.DB no nula.
 func TestGetSQLPinger_NonNilBranchReturnsDB(t *testing.T) {
 	orig := dbGetter
 	var opened *sql.DB
 	dbGetter = func() (*sql.DB, error) {
 		var err error
-		// sql.Open no conecta hasta Ping; por lo tanto es seguro para tests.
 		opened, err = sql.Open("postgres", "user=u password=p dbname=x sslmode=disable")
 		if err != nil {
 			return nil, err
@@ -522,7 +499,6 @@ func TestReadyz_OK(t *testing.T) {
 	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
 	initBeegoApp(t)
-	// Stub pinger OK
 	orig := getSQLPinger
 	getSQLPinger = func() (sqlPinger, error) { return fakePinger{err: nil}, nil }
 	t.Cleanup(func() { getSQLPinger = orig })
@@ -542,7 +518,6 @@ func TestReadyz_Unavailable(t *testing.T) {
 	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
 
 	initBeegoApp(t)
-	// Stub pinger error
 	orig := getSQLPinger
 	getSQLPinger = func() (sqlPinger, error) { return fakePinger{err: fmt.Errorf("down")}, nil }
 	t.Cleanup(func() { getSQLPinger = orig })
@@ -594,7 +569,6 @@ func TestReadyz_NilPingerStill200(t *testing.T) {
 	}
 }
 
-// ===== CORS =====
 func TestCORS_DevAllowAll(t *testing.T) {
 	os.Setenv("SKIP_WEB_RUN", "1")
 	os.Setenv("SKIP_CRON", "1")
@@ -671,7 +645,6 @@ func TestCORS_ProdExplicitOrigins(t *testing.T) {
 	}
 }
 
-// ===== Max body / multipart limits =====
 func TestMaxBodyBytesEnv(t *testing.T) {
 	os.Setenv("SKIP_WEB_RUN", "1")
 	os.Setenv("SKIP_CRON", "1")

@@ -12,14 +12,12 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error al ejecutar el descuento de inventario durante Update
 func TestProductoPedidoUpdate_StockUpdateExecError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		switch {
 		case strings.Contains(lower, "detalle_pedido"):
-			// sin detalles actuales para generar delta positivo
 			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 		case strings.Contains(lower, "select pk_id_producto, cantidad from producto"):
 			cols := []string{"pk_id_producto", "cantidad"}
@@ -57,7 +55,6 @@ func TestProductoPedidoUpdate_StockUpdateExecError(t *testing.T) {
 	}
 }
 
-// Cubre la rama de error al restaurar inventario cuando el delta es negativo
 func TestProductoPedidoUpdate_StockRestoreExecError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {

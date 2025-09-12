@@ -16,7 +16,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error al insertar el detalle en Update validando el mensaje
 func TestProductoPedidoUpdate_InsertDetalleError_Message(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles

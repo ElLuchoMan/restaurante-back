@@ -15,7 +15,6 @@ type RestauranteController struct {
 	web.Controller
 }
 
-// Puntos de inyección para pruebas (permiten mockear el ORM en tests)
 type restQuerySeter interface {
 	All(interface{}, ...string) (int64, error)
 }

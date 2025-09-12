@@ -36,7 +36,6 @@ func TestProductoPedidoPost_CommitError(t *testing.T) {
 	}
 	t.Cleanup(func() { MockQuery, MockExec = origQ, origE; MockTxCommitErr = nil })
 
-	// Forzar error de Commit
 	MockTxCommitErr = errors.New("commit fail")
 
 	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":2}]}`

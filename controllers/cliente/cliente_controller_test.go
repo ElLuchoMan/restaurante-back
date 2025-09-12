@@ -276,7 +276,6 @@ func TestClienteGetByIdScenarios(t *testing.T) {
 		return nil
 	}
 	t.Cleanup(resetMocks)
-	// invalid id
 	r := httptest.NewRequest(http.MethodGet, "/clientes/search", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -288,7 +287,6 @@ func TestClienteGetByIdScenarios(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	// not found
 	r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=2", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -299,7 +297,6 @@ func TestClienteGetByIdScenarios(t *testing.T) {
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
 		t.Fatalf("not found case failed")
 	}
-	// db error
 	readErr = errors.New("db error")
 	r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=1", nil)
 	w = httptest.NewRecorder()
@@ -311,7 +308,6 @@ func TestClienteGetByIdScenarios(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
-	// success
 	readErr = nil
 	r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=1", nil)
 	w = httptest.NewRecorder()
@@ -339,7 +335,6 @@ func TestClientePostScenarios(t *testing.T) {
 		return 1, nil
 	}
 	t.Cleanup(resetMocks)
-	// invalid json
 	r := httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader("notjson"))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -352,7 +347,6 @@ func TestClientePostScenarios(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	// missing correo
 	bodyNoCorreo := `{"documentoCliente":1,"nombre":"Foo","apellido":"B","direccion":"C","telefono":"1","password":"pass"}`
 	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(bodyNoCorreo))
 	w = httptest.NewRecorder()
@@ -365,7 +359,6 @@ func TestClientePostScenarios(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	// db error
 	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return 0, errors.New("db error") }
 	body := `{"documentoCliente":1,"nombre":"Foo","apellido":"B","direccion":"C","telefono":"1","password":"pass","correo":" TeSt@Email.com "}`
 	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
@@ -379,7 +372,6 @@ func TestClientePostScenarios(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
-	// unique error
 	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return 0, errors.New("unique correo") }
 	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
 	w = httptest.NewRecorder()
@@ -392,7 +384,6 @@ func TestClientePostScenarios(t *testing.T) {
 	if w.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d", w.Code)
 	}
-	// hash error
 	bcryptGenerate = func([]byte, int) ([]byte, error) { return nil, errors.New("hash") }
 	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
 	w = httptest.NewRecorder()
@@ -406,7 +397,6 @@ func TestClientePostScenarios(t *testing.T) {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
 	bcryptGenerate = bcrypt.GenerateFromPassword
-	// success
 	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
 		db[c.PK_DOCUMENTO_CLIENTE] = *c
 		return 1, nil
@@ -457,7 +447,6 @@ func TestClientePutScenarios(t *testing.T) {
 		return 1, nil
 	}
 	t.Cleanup(resetMocks)
-	// invalid id
 	r := httptest.NewRequest(http.MethodPut, "/clientes", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -469,7 +458,6 @@ func TestClientePutScenarios(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	// read error
 	readCliente = func(o orm.Ormer, c *models.Cliente) error { return errors.New("db") }
 	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"Foo"}`))
 	w = httptest.NewRecorder()
@@ -490,7 +478,6 @@ func TestClientePutScenarios(t *testing.T) {
 		*c = cli
 		return nil
 	}
-	// not found
 	r = httptest.NewRequest(http.MethodPut, "/clientes?id=3", strings.NewReader(`{"nombre":"Foo"}`))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -502,7 +489,6 @@ func TestClientePutScenarios(t *testing.T) {
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
 		t.Fatalf("not found failed")
 	}
-	// decode error
 	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader("notjson"))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -514,7 +500,6 @@ func TestClientePutScenarios(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	// unique error
 	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"correo":"a@a.com"}`))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -526,7 +511,6 @@ func TestClientePutScenarios(t *testing.T) {
 	if w.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d", w.Code)
 	}
-	// update error
 	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"fail"}`))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -538,7 +522,6 @@ func TestClientePutScenarios(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
-	// hash error
 	bcryptGenerate = func([]byte, int) ([]byte, error) { return nil, errors.New("hash") }
 	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"password":"n"}`))
 	w = httptest.NewRecorder()
@@ -552,7 +535,6 @@ func TestClientePutScenarios(t *testing.T) {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
 	bcryptGenerate = bcrypt.GenerateFromPassword
-	// success with password
 	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"New","password":"newpass"}`))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -570,7 +552,6 @@ func TestClientePutScenarios(t *testing.T) {
 	if db[1].PASSWORD == "newpass" {
 		t.Fatalf("password should be hashed")
 	}
-	// success without password
 	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"Other"}`))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -598,7 +579,6 @@ func TestClienteDeleteScenarios(t *testing.T) {
 		return 0, errors.New("not found")
 	}
 	t.Cleanup(resetMocks)
-	// invalid id
 	r := httptest.NewRequest(http.MethodDelete, "/clientes", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -610,7 +590,6 @@ func TestClienteDeleteScenarios(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	// not found
 	r = httptest.NewRequest(http.MethodDelete, "/clientes?id=2", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -621,7 +600,6 @@ func TestClienteDeleteScenarios(t *testing.T) {
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
 		t.Fatalf("expected not found response")
 	}
-	// success
 	r = httptest.NewRequest(http.MethodDelete, "/clientes?id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -635,28 +613,21 @@ func TestClienteDeleteScenarios(t *testing.T) {
 }
 
 func TestDefaultWrappersCoverage(t *testing.T) {
-	// Este test fuerza el uso de wrappers por defecto para que cuenten
-	// como ejecutados en cobertura del paquete.
 	useDefaultClienteWrappers()
 	t.Cleanup(resetMocks)
 	o := ormNew()
 
-	// queryAllClientes
 	var list []models.Cliente
 	if _, err := queryAllClientes(o, &list); err != nil {
 		t.Fatalf("queryAllClientes error: %v", err)
 	}
 
-	// readCliente
 	c := &models.Cliente{PK_DOCUMENTO_CLIENTE: 1}
 	_ = readCliente(o, c)
 
-	// insertCliente
 	_, _ = insertCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99, NOMBRE: "X"})
 
-	// updateCliente
 	_, _ = updateCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99, NOMBRE: "Y"})
 
-	// deleteCliente
 	_, _ = deleteCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99})
 }

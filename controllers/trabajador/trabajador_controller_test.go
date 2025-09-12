@@ -14,8 +14,6 @@ import (
 	"restaurante/models"
 )
 
-// mock implementations
-
 type mockQuery struct {
 	orm.QuerySeter
 	trabajadores []models.Trabajador
@@ -81,7 +79,6 @@ func (m *mockOrm) Update(model interface{}, cols ...string) (int64, error) {
 	return 1, nil
 }
 
-// utility to build controller
 func buildContext(method, url, body string) (*TrabajadorController, *httptest.ResponseRecorder) {
 	r := httptest.NewRequest(method, url, strings.NewReader(body))
 	w := httptest.NewRecorder()
@@ -125,7 +122,6 @@ func TestValidateDates(t *testing.T) {
 	}
 }
 
-// GetAll tests
 func TestGetAllError(t *testing.T) {
 	database.BogotaZone = time.UTC
 	original := newTrabajadorOrm
@@ -178,7 +174,6 @@ func TestGetAllInvalidDate(t *testing.T) {
 	}
 }
 
-// GetById tests
 func TestGetByIdInvalid(t *testing.T) {
 	c, w := buildContext(http.MethodGet, "/trabajadores/search", "")
 	c.GetById()
@@ -222,7 +217,6 @@ func TestGetByIdDBError(t *testing.T) {
 	}
 }
 
-// Post tests
 func TestPostInvalidJSON(t *testing.T) {
 	c, w := buildContext(http.MethodPost, "/trabajadores", "notjson")
 	c.Post()
@@ -305,7 +299,6 @@ func TestPostSuccess(t *testing.T) {
 	}
 }
 
-// Put tests
 func TestPutInvalidID(t *testing.T) {
 	c, w := buildContext(http.MethodPut, "/trabajadores", "{}")
 	c.Put()
@@ -429,7 +422,6 @@ func TestPutTelefonoUpdated(t *testing.T) {
 	}
 }
 
-// Delete tests
 func TestDeleteInvalidID(t *testing.T) {
 	c, w := buildContext(http.MethodDelete, "/trabajadores", "")
 	c.Delete()

@@ -15,7 +15,6 @@ type NominaTrabajadorController struct {
 	web.Controller
 }
 
-// Interfaces y adaptadores para inyectar el ORM en tests
 type ntQuerySeter interface {
 	Filter(string, ...interface{}) ntQuerySeter
 	All(interface{}, ...string) (int64, error)
@@ -39,12 +38,10 @@ func (a ntQSAdapter) All(res interface{}, cols ...string) (int64, error) {
 }
 func (a ntQSAdapter) One(res interface{}, cols ...string) error { return a.qs.One(res, cols...) }
 
-//go:noinline
 func (a ntQSAdapter) OrderBy(expr ...string) ntQuerySeter {
 	return ntQSAdapter{qs: a.qs.OrderBy(expr...)}
 }
 
-//go:noinline
 func (a ntQSAdapter) Exist() bool { return a.qs.Exist() }
 
 type ntOrmAdapter struct{ o orm.Ormer }
@@ -53,7 +50,6 @@ func (a ntOrmAdapter) QueryTable(i interface{}) ntQuerySeter {
 	return ntQSAdapter{qs: a.o.QueryTable(i)}
 }
 
-//go:noinline
 func (a ntOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
 
 var nomtraOrmNew = func() ntOrmer { return ntOrmAdapter{o: orm.NewOrm()} }
@@ -72,7 +68,6 @@ func (c *NominaTrabajadorController) GetAll() {
 	o := nomtraOrmNew()
 	var relaciones []models.NominaTrabajador
 
-	// Obtener las relaciones desde la base de datos
 	_, err := o.QueryTable(new(models.NominaTrabajador)).All(&relaciones)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -85,7 +80,6 @@ func (c *NominaTrabajadorController) GetAll() {
 		return
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -112,7 +106,6 @@ func (c *NominaTrabajadorController) Post() {
 	var input models.NominaTrabajadorRequest
 	var nominaTrabajador models.NominaTrabajador
 
-	// Decodificar la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -124,7 +117,6 @@ func (c *NominaTrabajadorController) Post() {
 		return
 	}
 
-	// Validar documento del trabajador
 	if input.PK_DOCUMENTO_TRABAJADOR == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -136,12 +128,10 @@ func (c *NominaTrabajadorController) Post() {
 	}
 	nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR}
 
-	// Calcular el rango de fechas
 	now := time.Now()
 	startDate := time.Date(now.Year(), now.Month()-1, 20, 0, 0, 0, 0, now.Location())
 	endDate := time.Date(now.Year(), now.Month(), 20, 23, 59, 59, 999, now.Location())
 
-	// Consultar incidencias
 	var incidencias []models.Incidencia
 	_, err := o.QueryTable(new(models.Incidencia)).
 		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
@@ -160,7 +150,6 @@ func (c *NominaTrabajadorController) Post() {
 		return
 	}
 
-	// Calcular el monto de incidencias
 	var montoIncidencias int64
 	for _, incidencia := range incidencias {
 		if incidencia.RESTA {
@@ -171,7 +160,6 @@ func (c *NominaTrabajadorController) Post() {
 	}
 	nominaTrabajador.MONTO_INCIDENCIAS = &montoIncidencias
 
-	// Consultar el sueldo del trabajador
 	var trabajador models.Trabajador
 	err = o.QueryTable(new(models.Trabajador)).
 		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
@@ -188,8 +176,6 @@ func (c *NominaTrabajadorController) Post() {
 	}
 	nominaTrabajador.SUELDO_BASE = trabajador.SUELDO
 
-	// Registrar en la base de datos
-	// Asignar la nómina correspondiente (usar la nómina más reciente si no se especifica)
 	var ultimaNomina models.Nomina
 	err = o.QueryTable(new(models.Nomina)).OrderBy("-fecha").One(&ultimaNomina)
 	if err != nil {
@@ -204,17 +190,14 @@ func (c *NominaTrabajadorController) Post() {
 	}
 	nominaTrabajador.PK_ID_NOMINA = &ultimaNomina
 
-	// Generar descripción dinámica con mes y año reales de la nómina
 	descripcion := fmt.Sprintf("Nómina del mes de %s de %d más incidencias si aplica", obtenerMesEnEspañol(ultimaNomina.FECHA.Month()), ultimaNomina.FECHA.Year())
 	nominaTrabajador.DETALLES = &descripcion
 
-	// Verificar si ya existe la relación (mismo trabajador y misma nómina)
 	exists := o.QueryTable(new(models.NominaTrabajador)).
 		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
 		Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
 		Exist()
 	if exists {
-		// Idempotente: devolver 200 con la relación existente
 		var existente models.NominaTrabajador
 		if err := o.QueryTable(new(models.NominaTrabajador)).
 			Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
@@ -243,7 +226,6 @@ func (c *NominaTrabajadorController) Post() {
 		return
 	}
 
-	// Preparar la respuesta
 	response := models.NominaTrabajadorResponse{
 		SUELDO_BASE:             trabajador.SUELDO,
 		MONTO_INCIDENCIAS:       montoIncidencias,
@@ -251,7 +233,6 @@ func (c *NominaTrabajadorController) Post() {
 		PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR,
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
@@ -324,7 +305,6 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 		return
 	}
 
-	// Validar el documento del trabajador
 	if documento == 0 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -335,7 +315,6 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 		return
 	}
 
-	// Base de la consulta
 	var relaciones []models.NominaTrabajador
 	sql := `
        SELECT nt.* FROM "nomina_trabajador" nt
@@ -344,25 +323,21 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
    `
 	params := []interface{}{documento}
 
-	// Filtrar por nómina actual
 	if actual {
 		sql += ` AND n."fecha" = (SELECT MAX("fecha") FROM "nomina")`
 	}
 
-	// Filtrar por nóminas pagas o no pagas
 	if pagas {
 		sql += ` AND n."estado_nomina" = 'PAGO'`
 	} else if noPagas {
 		sql += ` AND n."estado_nomina" = 'NO_PAGO'`
 	}
 
-	// Filtrar por mes y año
 	if mes > 0 && anio > 0 {
 		sql += ` AND EXTRACT(MONTH FROM n."fecha") = ? AND EXTRACT(YEAR FROM n."fecha") = ?`
 		params = append(params, mes, anio)
 	}
 
-	// Ejecutar la consulta
 	_, err := o.Raw(sql, params...).QueryRows(&relaciones)
 
 	if err != nil {
@@ -394,7 +369,6 @@ func (c *NominaTrabajadorController) GetByTrabajador() {
 		return
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -446,7 +420,6 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 		return
 	}
 
-	// Validar parámetros
 	if mes < 1 || mes > 12 || anio < 1 {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -457,7 +430,6 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 		return
 	}
 
-	// Consulta SQL
 	var resultados []models.NominaTrabajadorDetalle
 	sql := `
        SELECT
@@ -474,10 +446,8 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
        WHERE EXTRACT(MONTH FROM n."fecha") = ?
        AND EXTRACT(YEAR FROM n."fecha") = ?
 `
-	// Ejecutar la consulta
 	_, err := o.Raw(sql, mes, anio).QueryRows(&resultados)
 
-	// Validar resultados
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -499,7 +469,6 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
 		return
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,

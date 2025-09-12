@@ -19,7 +19,6 @@ func TestProductoPedidoUpdate_Happy_SingleProduct(t *testing.T) {
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 
-	// Evitar errores en delete y reconsulta
 	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return nil }
 	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
 		*out = models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID}, Cantidad: 2, Precio: 1500}
@@ -30,12 +29,10 @@ func TestProductoPedidoUpdate_Happy_SingleProduct(t *testing.T) {
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {
-			// actuales vacío -> delta positivo
 			if step == 0 {
 				step++
 				return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 			}
-			// reconsulta después de insert
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(201), int64(1), int64(1), int64(2), int64(1500)}}
 			return &mockRows{columns: cols, values: vals}, nil

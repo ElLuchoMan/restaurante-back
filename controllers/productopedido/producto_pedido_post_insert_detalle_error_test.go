@@ -12,7 +12,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error al insertar el detalle en Post
 func TestProductoPedidoPost_InsertDetalleError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {

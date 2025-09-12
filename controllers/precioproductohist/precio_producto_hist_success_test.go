@@ -111,7 +111,6 @@ func TestPPH_GetAll_Success(t *testing.T) {
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"nombre", "estado_producto", "precio", "fecha_vigencia"}
 		vals := [][]driver.Value{{"Cafe", "DISPONIBLE", int64(1000), nil}}
-		// fecha_vigencia como time.Time puede ir nil; beego ignora si no mapea
 		return &mockRows{columns: cols, values: vals}, nil
 	}
 	t.Cleanup(func() { MockQuery = orig })
@@ -153,7 +152,6 @@ func TestPPH_GetById_Success(t *testing.T) {
 
 func TestPPH_GetAll_Error(t *testing.T) {
 	orig := MockQuery
-	// Forzar error genérico
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		return nil, driver.ErrBadConn
 	}

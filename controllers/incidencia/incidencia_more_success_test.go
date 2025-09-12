@@ -13,7 +13,6 @@ import (
 
 func TestIncidenciaPostSuccess_AltPath(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
-	// Permit any select to pass; Insert will call Exec
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
@@ -40,7 +39,6 @@ func TestIncidenciaPostSuccess_AltPath(t *testing.T) {
 
 func TestIncidenciaPutSuccess_AltPath(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
-	// First Read returns a row, then Update uses Exec
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		if strings.Contains(strings.ToLower(q), "from \"incidencia\"") || strings.Contains(strings.ToLower(q), "from incidencia") {
 			cols := []string{"pk_id_incidencia", "fecha", "monto", "resta", "motivo", "pk_documento_trabajador"}

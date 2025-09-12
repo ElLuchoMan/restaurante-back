@@ -65,7 +65,6 @@ func TestNominaTrabajadorGetAllSuccess(t *testing.T) {
 	}
 }
 
-// Mocks para NominaTrabajadorController
 type ntMockQS struct {
 	all   func(interface{}, ...string) (int64, error)
 	one   func(interface{}, ...string) error
@@ -392,23 +391,14 @@ func TestNominaTrabajadorGetByTrabajadorSuccessPagasActualMesAnio(t *testing.T) 
 }
 
 func TestNominaTrabajadorCoverageHack(t *testing.T) {
-	//line restaurante/controllers/NominaTrabajadorController.go:327
 	if true {
-		//line restaurante/controllers/NominaTrabajadorController.go:328
 		_ = 0
-		//line restaurante/controllers/NominaTrabajadorController.go:329
 		_ = 0
-		//line restaurante/controllers/NominaTrabajadorController.go:330
 		_ = 0
-		//line restaurante/controllers/NominaTrabajadorController.go:331
 		_ = 0
-		//line restaurante/controllers/NominaTrabajadorController.go:332
 		_ = 0
-		//line restaurante/controllers/NominaTrabajadorController.go:333
 		_ = 0
-		//line restaurante/controllers/NominaTrabajadorController.go:334
 		_ = 0
-		//line restaurante/controllers/NominaTrabajadorController.go:335
 		_ = 0
 	}
 }

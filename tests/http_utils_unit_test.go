@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-// Test the unit branch of sendRequest with a nil body to cover all paths.
 func TestSendRequest_NilBodyUnitBranch(t *testing.T) {
 	r, _ := http.NewRequest(http.MethodGet, "/x", nil)
 	if w := sendRequest(r); w == nil {

@@ -69,7 +69,6 @@ func TestMetodoPagoGetAllSuccess(t *testing.T) {
 	getOrm = func() metodoPagoOrmer { return m }
 	defer func() { getOrm = original }()
 
-	// poblar datos
 	_, _ = m.Insert(&models.MetodoPago{TIPO: "efectivo"})
 	_, _ = m.Insert(&models.MetodoPago{TIPO: "tarjeta"})
 
@@ -159,8 +158,6 @@ func TestMetodoPagoDeleteNotFound(t *testing.T) {
 	}
 }
 
-// mockMetodoPagoOrmer provides an in-memory implementation of metodoPagoOrmer
-// used to test the controller without touching a real database.
 type mockMetodoPagoOrmer struct {
 	data   map[int64]models.MetodoPago
 	nextID int64
@@ -308,8 +305,6 @@ func TestMetodoPagoPostSuccess(t *testing.T) {
 	}
 }
 
-// failInsertOrmer envuelve un mock y fuerza error en Insert para cubrir la rama 500
-
 type failInsertOrmer struct{ *mockMetodoPagoOrmer }
 
 func (f failInsertOrmer) Insert(v interface{}) (int64, error) { return 0, errors.New("db") }
@@ -367,7 +362,6 @@ func TestMetodoPagoPutSuccess(t *testing.T) {
 	}
 }
 
-// failUpdateOrmer fuerza error en Update para cubrir rama 500 del Put
 type failUpdateOrmer struct{ *mockMetodoPagoOrmer }
 
 func (f failUpdateOrmer) Read(v interface{}, _ ...string) error { return nil }

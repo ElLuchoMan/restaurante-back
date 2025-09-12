@@ -15,7 +15,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error en RowsAffected durante Update con validación de mensaje
 func TestProductoPedidoUpdate_RowsAffectedError_Message(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
@@ -67,5 +66,4 @@ func TestProductoPedidoUpdate_RowsAffectedError_Message(t *testing.T) {
 	if resp.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d. Body: %s", resp.Code, w.Body.String())
 	}
-	// Mensaje puede variar según el punto exacto del fallo; comprobamos solo el código
 }

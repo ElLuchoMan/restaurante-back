@@ -17,7 +17,6 @@ func (d mockDriver) Open(name string) (driver.Conn, error) {
 }
 
 var (
-	// MockExec and MockQuery allow tests to override database behaviour.
 	MockExec  func(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error)
 	MockQuery func(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error)
 )

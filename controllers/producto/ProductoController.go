@@ -20,7 +20,6 @@ type ProductoController struct {
 	web.Controller
 }
 
-// puntos de inyección para tests
 var (
 	ormNewProducto    = orm.NewOrm
 	queryProductosAll = func(o orm.Ormer, onlyActive bool, productos *[]models.Producto) (int64, error) {
@@ -51,11 +50,9 @@ func (c *ProductoController) GetAll() {
 	o := ormNewProducto()
 	var productos []models.Producto
 
-	// Obtener valores de los parámetros
 	includeImage, _ := c.GetBool("includeImage", false)
 	onlyActive, _ := c.GetBool("onlyActive", false)
 
-	// Ejecutar la consulta con filtros
 	_, err := queryProductosAll(o, onlyActive, &productos)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "productos.getall.db_error", err, map[string]interface{}{
@@ -72,7 +69,6 @@ func (c *ProductoController) GetAll() {
 		return
 	}
 
-	// Manejar imágenes según el parámetro includeImage
 	for i := range productos {
 		if !includeImage {
 			productos[i].IMAGEN = ""
@@ -163,7 +159,6 @@ func (c *ProductoController) Post() {
 
 	contentType := c.Ctx.Input.Header("Content-Type")
 	if strings.HasPrefix(strings.ToLower(contentType), "multipart/form-data") {
-		// Leer campos desde form-data
 		nombre := c.GetString("nombre")
 		descripcion := c.GetString("descripcion")
 		precioStr := c.GetString("precio")
@@ -190,7 +185,6 @@ func (c *ProductoController) Post() {
 			producto.PK_ID_SUBCATEGORIA = &models.Subcategoria{PK_ID_SUBCATEGORIA: v}
 		}
 
-		// Archivo de imagen (opcional)
 		file, _, err := c.GetFile("imagen")
 		if err == nil && file != nil {
 			defer func() { _ = file.Close() }()
@@ -226,9 +220,7 @@ func (c *ProductoController) Post() {
 		return
 	}
 
-	// Alinear la secuencia del historial de precios con el máximo actual
 	if _, err := o.Raw("SELECT setval(pg_get_serial_sequence('precio_producto_hist','pk_id_precio_hist'), COALESCE((SELECT MAX(pk_id_precio_hist) FROM precio_producto_hist),0))").Exec(); err != nil {
-		// si falla no bloqueamos creación del producto
 	}
 
 	hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
@@ -285,7 +277,6 @@ func (c *ProductoController) Put() {
 
 		contentType := c.Ctx.Input.Header("Content-Type")
 		if strings.HasPrefix(strings.ToLower(contentType), "multipart/form-data") {
-			// Sólo actualizar campos presentes
 			if v := c.GetString("nombre"); v != "" {
 				producto.NOMBRE = v
 			}
@@ -316,7 +307,6 @@ func (c *ProductoController) Put() {
 				}
 			}
 
-			// Imagen por archivo
 			if file, _, ferr := c.GetFile("imagen"); ferr == nil && file != nil {
 				defer func() { _ = file.Close() }()
 				if data, rerr := io.ReadAll(file); rerr == nil {
@@ -369,9 +359,7 @@ func (c *ProductoController) Put() {
 		}
 
 		if producto.PRECIO != original.PRECIO {
-			// Alinear la secuencia antes de insertar un nuevo historial
 			if _, err := o.Raw("SELECT setval(pg_get_serial_sequence('precio_producto_hist','pk_id_precio_hist'), COALESCE((SELECT MAX(pk_id_precio_hist) FROM precio_producto_hist),0))").Exec(); err != nil {
-				// continuar aunque falle
 			}
 
 			hist := models.PrecioProductoHist{PKIDProducto: &producto, Precio: producto.PRECIO, FechaVigencia: time.Now()}
@@ -410,7 +398,6 @@ func (c *ProductoController) Put() {
 func (c *ProductoController) Delete() {
 	o := ormNewProducto()
 
-	// Obtener el ID del query parameter
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
@@ -425,7 +412,6 @@ func (c *ProductoController) Delete() {
 		return
 	}
 
-	// Buscar el producto
 	producto, err := getProductoByID(int64(id), o)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -445,7 +431,6 @@ func (c *ProductoController) Delete() {
 		_ = c.ServeJSON()
 		return
 	}
-	// Cambiar el estado del producto a "NO_DISPONIBLE" para el borrado lógico
 	producto.ESTADO_PRODUCTO = models.EstadoProductoNoDisponible
 	if _, err := updateProductoFn(o, producto, "ESTADO_PRODUCTO"); err != nil {
 		logging.LogControllerError(c.Ctx, "productos.delete.update_error", err, map[string]interface{}{"id": id})

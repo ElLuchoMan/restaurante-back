@@ -9,7 +9,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Ormer que retorna not found al borrar
 type nfSubOrm struct{}
 
 func (nfSubOrm) QueryTable(interface{}) subcatQuerySeter      { return subQS{} }

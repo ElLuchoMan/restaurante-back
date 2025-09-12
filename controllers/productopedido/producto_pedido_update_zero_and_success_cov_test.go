@@ -14,13 +14,10 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre: delta==0 (continue), sort de deltaIDs y newIDs con >=2 elementos,
-// reconsulta de detalles, commit exitoso y respuesta final 200.
 func TestProductoPedidoUpdate_ZeroDelta_And_SuccessMultipleCov(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
-	// evitar problemas del ORM mock en Delete y en reconsulta
 	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return nil }
 	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
 		*out = models.DetallePedido{
@@ -34,27 +31,22 @@ func TestProductoPedidoUpdate_ZeroDelta_And_SuccessMultipleCov(t *testing.T) {
 	phase := 0
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
-		// Consulta de detalles actuales (cubre QueryTable.All)
 		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {
 			if phase == 0 {
-				// actuales: p1=1, p2=2 -> con nuevos p1=3 (delta+2), p2=2 (delta 0)
 				phase = 1
 				cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 				vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(1), int64(1000)}, {int64(2), int64(1), int64(2), int64(2), int64(500)}}
 				return &mockRows{columns: cols, values: vals}, nil
 			}
 		}
-		// Validación de inventario: solo p1 está en need
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(1), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
-		// Bloqueo FOR UPDATE y otras consultas auxiliares
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
-		// UPDATE/DELETE/INSERT/COMMIT/BEGIN -> ok
 		return mockResult{}, nil
 	}
 	t.Cleanup(func() {

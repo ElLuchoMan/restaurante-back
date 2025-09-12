@@ -18,14 +18,11 @@ type productoPedidoOrmer interface {
 	Insert(interface{}) (int64, error)
 }
 
-// productoPedidoNewOrm allows tests to stub orm.NewOrm.
 var productoPedidoNewOrm = func() productoPedidoOrmer { return orm.NewOrm() }
 
-// Hooks para pruebas (permite stubear Begin y el Ormer base en tests)
 var productoPedidoBaseOrmNew = func() orm.Ormer { return orm.NewOrm() }
 var productoPedidoBeginTx = func(o orm.Ormer) (orm.TxOrmer, error) { return o.Begin() }
 
-// Hooks adicionales para facilitar pruebas del camino feliz en Update
 var productoPedidoDeleteDetalles = func(tx orm.TxOrmer, pedidoID int64) error {
 	_, err := tx.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).Delete()
 	return err
@@ -40,10 +37,8 @@ func productoPedidoRequeryDetalleDefault(tx orm.TxOrmer, pedidoID int64, product
 
 var productoPedidoRequeryDetalle = productoPedidoRequeryDetalleDefault
 
-// Hook para permitir stubear Commit en pruebas
 var productoPedidoCommit = func(tx orm.TxOrmer) error { return tx.Commit() }
 
-// Hook para consultar detalles actuales (se puede stubear en tests)
 func productoPedidoQueryActualesDefault(o orm.Ormer, pedidoID int64) ([]models.DetallePedido, error) {
 	var actuales []models.DetallePedido
 	_, err := o.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).All(&actuales)
@@ -52,7 +47,6 @@ func productoPedidoQueryActualesDefault(o orm.Ormer, pedidoID int64) ([]models.D
 
 var productoPedidoQueryActualesFn = productoPedidoQueryActualesDefault
 
-// productoPedidoComputeDeltas calcula deltas y necesidades de stock
 func productoPedidoComputeDeltas(actuales []models.DetallePedido, nuevos map[int64]int) (map[int64]int, map[int64]int) {
 	actualMap := make(map[int64]int)
 	for _, a := range actuales {
@@ -82,13 +76,11 @@ type ProductoPedidoController struct {
 	web.Controller
 }
 
-// Estructura para mapear las respuestas en camelCase
 type ProductoPedidoResponse struct {
 	PedidoID int64       `json:"pedidoId"`
 	Detalles interface{} `json:"detalles"`
 }
 
-// detallePedidoInput represents the payload for DetallePedido without precio.
 type detallePedidoInput struct {
 	PKIDProducto int64 `json:"productoId"`
 	Cantidad     int   `json:"cantidad"`
@@ -192,7 +184,6 @@ func (c *ProductoPedidoController) Post() {
 			Cantidad int   `orm:"column(cantidad)"`
 		}
 		if _, err := o.Raw(query, args...).QueryRows(&rows); err != nil {
-			// continuar, comportamiento esperado
 		}
 		avail := make(map[int64]int)
 		for _, r := range rows {
@@ -219,7 +210,6 @@ func (c *ProductoPedidoController) Post() {
 		return
 	}
 
-	// Bloquear la fila del pedido para evitar actualizaciones concurrentes sobre el mismo pedido
 	var lockDummy int
 	if err := tx.Raw("SELECT 1 FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", input.PedidoId).QueryRow(&lockDummy); err != nil {
 		_ = tx.Rollback()
@@ -230,7 +220,6 @@ func (c *ProductoPedidoController) Post() {
 	}
 
 	var detalles []models.DetallePedido
-	// Aplicar actualizaciones en orden determinístico para minimizar deadlocks
 	orderedIDs := make([]int64, 0, len(nuevos))
 	for pid := range nuevos {
 		orderedIDs = append(orderedIDs, pid)
@@ -392,7 +381,6 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 
-	// Bloquear la fila del pedido para evitar actualizaciones concurrentes del mismo pedido
 	var lockDummy2 int
 	if err := tx.Raw("SELECT 1 FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", pedidoID).QueryRow(&lockDummy2); err != nil {
 		_ = tx.Rollback()
@@ -401,7 +389,6 @@ func (c *ProductoPedidoController) Update() {
 		_ = c.ServeJSON()
 		return
 	}
-	// Iterar deltas en orden determinístico para minimizar deadlocks
 	deltaIDs := make([]int64, 0, len(deltas))
 	for pid := range deltas {
 		deltaIDs = append(deltaIDs, pid)
@@ -451,7 +438,6 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 	var detalles []models.DetallePedido
-	// Insertar detalles en orden determinístico
 	newIDs := make([]int64, 0, len(nuevos))
 	for pid := range nuevos {
 		newIDs = append(newIDs, pid)

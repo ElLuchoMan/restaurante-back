@@ -12,13 +12,11 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error al validar inventario en Update
 func TestProductoPedidoUpdate_InventoryQueryError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") {
-			// consulta inicial sin registros -> delta positivo
 			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 		}
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {

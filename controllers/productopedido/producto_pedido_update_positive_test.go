@@ -17,28 +17,23 @@ func TestProductoPedidoUpdate_PositiveDelta_Success(t *testing.T) {
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "insert into") && strings.Contains(lower, "detalle_pedido") {
-			// retorno del INSERT ... RETURNING pk_id_detalle
 			return &mockRows{columns: []string{"pk_id_detalle"}, values: [][]driver.Value{{int64(1)}}}, nil
 		}
 		if strings.Contains(lower, "delete") && strings.Contains(lower, "detalle_pedido") {
-			// eliminación previa de detalles
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(0), int64(0), int64(0), int64(0), int64(0)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
 		if strings.Contains(lower, "detalle_pedido") {
 			if step == 0 {
-				// consulta inicial de detalles: sin registros para que delta sea positivo
 				step++
 				return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 			}
-			// reconsulta después del insert para obtener el precio definitivo
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			// stock suficiente
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(1), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil

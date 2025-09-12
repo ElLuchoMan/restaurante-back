@@ -21,12 +21,10 @@ func init() {
 	orm.RegisterModel(new(ControlNomina))
 }
 
-// ValidEstado indica si el estado actual está permitido
 func (c *ControlNomina) ValidEstado() bool {
 	return c.Estado.IsValid()
 }
 
-// Insert validates Estado before inserting
 type simpleOrmer interface {
 	Insert(interface{}) (int64, error)
 	Update(interface{}, ...string) (int64, error)
@@ -39,7 +37,6 @@ func (c *ControlNomina) Insert(o simpleOrmer) (int64, error) {
 	return o.Insert(c)
 }
 
-// Update validates Estado before updating
 func (c *ControlNomina) Update(o simpleOrmer, cols ...string) (int64, error) {
 	if !c.ValidEstado() {
 		return 0, fmt.Errorf("estado inválido: %s", c.Estado)

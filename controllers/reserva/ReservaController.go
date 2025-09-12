@@ -16,10 +16,8 @@ type ReservaController struct {
 	web.Controller
 }
 
-// Hook para crear Ormer en este paquete (permite stub en tests)
 var ormNew = func() orm.Ormer { return orm.NewOrm() }
 
-// Estados permitidos para la reserva
 var estadosPermitidos = map[models.EstadoReserva]bool{
 	models.EstadoReservaPendiente:  true,
 	models.EstadoReservaConfirmada: true,
@@ -334,7 +332,6 @@ func (c *ReservaController) Put() {
 		return
 	}
 
-	// Validación de documentoContacto/documentoCliente (mutuamente excluyentes)
 	var contacto models.ReservaContacto
 	if v, ok := input["documentoContacto"].(float64); ok {
 		val := int64(v)

@@ -16,13 +16,11 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error en productoPedidoRequeryDetalle durante Update
 func TestProductoPedidoUpdate_RequeryHookError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 
-	// configuraciones para pasar hasta la reconsulta
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {
@@ -68,5 +66,4 @@ func TestProductoPedidoUpdate_RequeryHookError(t *testing.T) {
 	if resp.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d. Body: %s", resp.Code, w.Body.String())
 	}
-	// Mensaje puede variar si falla una etapa previa; validamos solo el código
 }

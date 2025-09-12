@@ -13,7 +13,6 @@ import (
 )
 
 func init() {
-	// Evitar pánico por JWT en init de controllers
 	os.Setenv("JWT_SECRET", "testsecret")
 	_, file, _, _ := runtime.Caller(0)
 	apppath, _ := filepath.Abs(filepath.Dir(filepath.Join(file, ".."+string(filepath.Separator))))

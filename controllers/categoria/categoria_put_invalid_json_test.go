@@ -12,9 +12,7 @@ import (
 )
 
 func TestCategoriaController_Put_InvalidJSON(t *testing.T) {
-	// Mock ormer to avoid hitting real database and ensure Read succeeds
 	m := newCatMockOrm()
-	// Insert a dummy category with ID=1 so that Read returns nil error
 	_, _ = m.Insert(&models.Categoria{NOMBRE: "test"})
 	orig := catOrmNew
 	catOrmNew = func() categoriaOrmer { return m }

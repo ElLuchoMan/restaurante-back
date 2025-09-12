@@ -15,3 +15,7 @@ swag init -g main.go -o docs
 
 # Levanta la app con hot-reload y genera Swagger (bloquea la terminal)
 bee run -downdoc=true -gendoc=true
+
+# Limpia comentarios no-Swagger preservando build tags
+# go run tools/comment_cleaner.go -root .
+go run -tags tools tools/comment_cleaner.go -root .

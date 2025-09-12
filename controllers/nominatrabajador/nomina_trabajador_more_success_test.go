@@ -13,7 +13,6 @@ import (
 func TestNominaTrabajadorGetByTrabajadorSuccess(t *testing.T) {
 	orig := MockQuery
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		// Devolver una fila que mapee a NominaTrabajador
 		cols := []string{
 			"pk_id_nomina_trabajador",
 			"sueldo_base",

@@ -28,7 +28,6 @@ type ormer interface {
 
 var pagoNewOrm = func() ormer { return orm.NewOrm() }
 
-// Estados permitidos para los pagos
 var estadosPagoPermitidos = map[string]bool{
 	"PAGADO":    true,
 	"PENDIENTE": true,
@@ -68,14 +67,12 @@ func (c *PagoController) GetAll() {
 		return
 	}
 
-	// Ajustar fechas y hora al formato correcto
 	for i := range pagos {
 		pagos[i].UPDATED_AT = pagos[i].UPDATED_AT.UTC()
 		pagos[i].FECHA = pagos[i].FECHA.UTC()
 		pagos[i].HORA = pagos[i].HORA.UTC()
 	}
 
-	// Leer parámetros de la URL
 	fecha := c.GetString("fecha")
 	dia, _ := c.GetInt("dia")
 	mes, _ := c.GetInt("mes")
@@ -83,7 +80,6 @@ func (c *PagoController) GetAll() {
 	estado := strings.ToUpper(c.GetString("estado"))
 	metodo_pago, _ := c.GetInt("metodo_pago")
 
-	// Filtrar los pagos según los parámetros proporcionados
 	var filteredPagos []models.Pago
 	for _, pago := range pagos {
 		if fecha != "" && pago.FECHA.Format("2006-01-02") != fecha {
@@ -108,7 +104,6 @@ func (c *PagoController) GetAll() {
 		filteredPagos = append(filteredPagos, pago)
 	}
 
-	// Si no hay resultados
 	if len(filteredPagos) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -119,7 +114,6 @@ func (c *PagoController) GetAll() {
 		return
 	}
 
-	// Respuesta con los pagos filtrados
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -169,7 +163,6 @@ func (c *PagoController) GetById() {
 		return
 	}
 
-	// Ajustar fechas y hora
 	pago.FECHA = pago.FECHA.In(database.BogotaZone)
 	pago.UPDATED_AT = pago.UPDATED_AT.In(database.BogotaZone)
 	pago.HORA = pago.HORA.In(database.BogotaZone)
@@ -197,14 +190,13 @@ func (c *PagoController) GetById() {
 func (c *PagoController) Post() {
 	o := pagoNewOrm()
 
-	// Estructura de entrada *según swagger*
 	type pagoIn struct {
 		EstadoPago   string `json:"estadoPago"`
-		FechaPago    string `json:"fechaPago"`    // YYYY-MM-DD
-		HoraPago     string `json:"horaPago"`     // HH:mm:ss
-		MetodoPagoId int64  `json:"metodoPagoId"` // entero
-		Monto        int64  `json:"monto"`        // entero
-		UpdatedAt    string `json:"updatedAt"`    // ignorado al insertar
+		FechaPago    string `json:"fechaPago"`
+		HoraPago     string `json:"horaPago"`
+		MetodoPagoId int64  `json:"metodoPagoId"`
+		Monto        int64  `json:"monto"`
+		UpdatedAt    string `json:"updatedAt"`
 		UpdatedBy    string `json:"updatedBy"`
 	}
 
@@ -221,7 +213,6 @@ func (c *PagoController) Post() {
 		return
 	}
 
-	// Validaciones y parseo
 	if in.FechaPago == "" {
 		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", nil, map[string]interface{}{"missing": "fechaPago", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -290,7 +281,6 @@ func (c *PagoController) Post() {
 		return
 	}
 
-	// Mapear a tu entidad de BD
 	var updatedBy *string
 	if in.UpdatedBy != "" {
 		updatedBy = &in.UpdatedBy
@@ -305,7 +295,6 @@ func (c *PagoController) Post() {
 		UPDATED_BY:        updatedBy,
 	}
 
-	// Insertar
 	if _, err := o.Insert(&pago); err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.post.insert_error", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)

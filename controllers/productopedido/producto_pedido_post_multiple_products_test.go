@@ -11,7 +11,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre ramas de sort y múltiples inserciones en Post
 func TestProductoPedidoPost_MultipleProducts(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	insertStep := 0

@@ -3,14 +3,13 @@ package pedido
 import (
 	"encoding/json"
 	"restaurante/logging"
-	"restaurante/models" // Ajusta la ruta según tu proyecto
+	"restaurante/models"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 )
 
-// Permite stubear la carga de timezone en tests
 var loadLocationPedido = time.LoadLocation
 
 type PedidoController struct {
@@ -39,7 +38,6 @@ type PedidoController struct {
 func (c *PedidoController) GetAll() {
 	o := orm.NewOrm()
 
-	// Construcción de la consulta SQL
 	query := `
        SELECT p.*
        FROM pedido p
@@ -48,7 +46,6 @@ func (c *PedidoController) GetAll() {
        WHERE 1 = 1
    `
 
-	// Parámetros de filtro
 	params := []interface{}{}
 	fecha := c.GetString("fecha")
 	desde := c.GetString("desde")
@@ -59,7 +56,6 @@ func (c *PedidoController) GetAll() {
 	metodoPago := c.GetString("metodo_pago")
 	domicilio, errDomicilio := c.GetBool("domicilio")
 
-	// Agregar filtros según los parámetros proporcionados
 	if fecha != "" {
 		query += ` AND p.fecha = ?`
 		params = append(params, fecha)
@@ -78,7 +74,6 @@ func (c *PedidoController) GetAll() {
 			params = append(params, anio)
 		}
 	} else if anio > 0 {
-		// Permitir filtrar por año sin exigir mes
 		query += ` AND EXTRACT(YEAR FROM p.fecha) = ?`
 		params = append(params, anio)
 	}
@@ -101,7 +96,6 @@ func (c *PedidoController) GetAll() {
 		}
 	}
 
-	// Ejecutar la consulta y obtener los resultados
 	var pedidos []models.Pedido
 	_, err := o.Raw(query, params...).QueryRows(&pedidos)
 	if err != nil {
@@ -117,7 +111,6 @@ func (c *PedidoController) GetAll() {
 		return
 	}
 
-	// Validar si no se encontraron resultados
 	if len(pedidos) == 0 {
 		c.Data["json"] = models.ApiResponse{
 			Code:    404,
@@ -127,7 +120,6 @@ func (c *PedidoController) GetAll() {
 		return
 	}
 
-	// Responder con los pedidos obtenidos
 	c.Data["json"] = models.ApiResponse{
 		Code:    200,
 		Message: "Pedidos obtenidos exitosamente",
@@ -149,12 +141,10 @@ func (c *PedidoController) GetAll() {
 // @Security BearerAuth
 // @Router /pedidos [post]
 func (c *PedidoController) Post() {
-	// Estructura mínima para leer el JSON de entrada sin acoplarse al modelo
 	var in struct {
 		Delivery      *bool  `json:"delivery"`
 		PKIDDomicilio *int64 `json:"pk_id_domicilio"`
 		RestauranteId int64  `json:"restauranteId"`
-		// Ignoramos 'pagoId', 'estadoPedido', etc. por contrato actual
 	}
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
@@ -179,19 +169,16 @@ func (c *PedidoController) Post() {
 	}
 	now := time.Now().In(loc)
 
-	// Construimos el pedido conforme a las reglas
 	var pedido models.Pedido
 	pedido.FECHA = now
 	pedido.HORA = now
 	pedido.ESTADO_PEDIDO = models.EstadoPedidoIniciado
 
-	// Si el cliente mandó delivery en el body, lo respetamos; si no, false
 	if in.Delivery != nil {
 		pedido.DELIVERY = *in.Delivery
 	} else {
 		pedido.DELIVERY = false
 	}
-	// Sólo asignar domicilio si es un ID válido (> 0)
 	if in.PKIDDomicilio != nil && *in.PKIDDomicilio > 0 {
 		pedido.PK_ID_DOMICILIO = &models.Domicilio{ID: *in.PKIDDomicilio}
 	}
@@ -318,7 +305,6 @@ func (c *PedidoController) AssignPago() {
 
 	if _, err := o.Raw("UPDATE pago SET estado_pago = ? WHERE pk_id_pago = ?", models.EstadoPagoPagado, pagoID).Exec(); err != nil {
 		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_pago_error", err, map[string]interface{}{"pago_id": pagoID})
-		// no bloqueamos la respuesta principal; sólo log
 	}
 
 	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Pago asignado correctamente", Data: pedido}
@@ -328,7 +314,6 @@ func (c *PedidoController) AssignPago() {
 // @Title UpdateEstadoPedido
 // @Summary Actualizar el estado de un pedido
 // @Description Actualiza el estado de un pedido existente.
-// Estados permitidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO.
 // @Tags pedido
 // @Accept json
 // @Produce json

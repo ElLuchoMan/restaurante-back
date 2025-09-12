@@ -15,11 +15,9 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Fuerza fallo de Commit usando MockTxCommitErr del txWrapper de TestMain
 func TestProductoPedidoUpdate_CommitError_MockTx(t *testing.T) {
 	origQ, origE, origCommit := MockQuery, MockExec, MockTxCommitErr
 
-	// actuales con cantidad 2 y nuevos con 2 (delta 0) para pasar hasta Commit
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "from detalle_pedido") && !strings.Contains(lower, "insert into") {

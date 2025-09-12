@@ -12,11 +12,9 @@ import (
 
 func TestDomicilioAsignarDomiciliarioSuccess(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
-	// UPDATE devuelve filas afectadas
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
 	}
-	// SELECT COUNT(1) no se usa cuando affected==1, pero dejamos un fallback
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"count"}
 		vals := [][]driver.Value{{int64(1)}}

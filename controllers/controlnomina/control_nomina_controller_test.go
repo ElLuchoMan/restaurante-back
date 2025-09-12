@@ -19,7 +19,6 @@ func TestControlNomina_GetAll_NoFilter(t *testing.T) {
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
 	c.GetAll()
-	// Status puede ser 200 o 500 dependiendo de la DB mock; validamos que no paniquee
 	if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
 		t.Fatalf("unexpected status: %d", w.Code)
 	}
@@ -28,7 +27,6 @@ func TestControlNomina_GetAll_NoFilter(t *testing.T) {
 func TestControlNomina_GetById_Success(t *testing.T) {
 	origQ := MockQuery
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		// Devolver una fila válida
 		cols := []string{"pk_id_control_nomina", "fecha", "estado"}
 		vals := [][]driver.Value{{int64(1), "2024-01-01", "GENERADA"}}
 		return &mockRows{columns: cols, values: vals}, nil

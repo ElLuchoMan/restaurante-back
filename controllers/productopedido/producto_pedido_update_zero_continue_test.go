@@ -18,7 +18,6 @@ func TestProductoPedidoUpdate_ZeroDelta_ContinueBranch(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
-	// Evitar fallos en Delete y reconsulta One
 	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return nil }
 	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
 		*out = models.DetallePedido{
@@ -29,7 +28,6 @@ func TestProductoPedidoUpdate_ZeroDelta_ContinueBranch(t *testing.T) {
 		}
 		return nil
 	}
-	// actuales: p1=2, p2=2; nuevos: p1=2 (delta 0), p2=3 (delta +1)
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {

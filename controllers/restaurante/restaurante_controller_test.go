@@ -34,7 +34,6 @@ func TestRestauranteGetAllWithoutDB(t *testing.T) {
 	}
 }
 
-// Mocks para RestauranteController
 type restFakeQS struct{ err error }
 
 func (f restFakeQS) All(res interface{}, _ ...string) (int64, error) { return 0, f.err }

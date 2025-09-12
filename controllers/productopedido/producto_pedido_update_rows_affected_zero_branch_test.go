@@ -20,7 +20,6 @@ type zeroResult struct{}
 func (zeroResult) LastInsertId() (int64, error) { return 0, nil }
 func (zeroResult) RowsAffected() (int64, error) { return 0, nil }
 
-// Cubre la rama where RowsAffected == 0 tras actualizar inventario
 func TestProductoPedidoUpdate_RowsAffectedZero(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
@@ -30,7 +29,6 @@ func TestProductoPedidoUpdate_RowsAffectedZero(t *testing.T) {
 		lower := strings.ToLower(q)
 		switch {
 		case strings.Contains(lower, "detalle_pedido"):
-			// consulta inicial vacía para delta positivo
 			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 		case strings.Contains(lower, "select pk_id_producto, cantidad from producto"):
 			cols := []string{"pk_id_producto", "cantidad"}
@@ -74,5 +72,4 @@ func TestProductoPedidoUpdate_RowsAffectedZero(t *testing.T) {
 	if resp.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d. Body: %s", resp.Code, w.Body.String())
 	}
-	// Mensaje exacto no es crítico para esta validación
 }

@@ -8,11 +8,9 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
-// spyOrmer intercepta QueryTable/Read/Insert/Update, pero delega el resto al Ormer embebido
 type spyOrmer struct {
 	orm.Ormer
-	lastQS *spyQS
-	// señales para asserts
+	lastQS       *spyQS
 	readCalled   bool
 	insertCalled int
 	updateCalled bool
@@ -27,7 +25,6 @@ func (s *spyOrmer) QueryTable(table interface{}) orm.QuerySeter {
 
 func (s *spyOrmer) Read(md interface{}, cols ...string) error {
 	s.readCalled = true
-	// simular lectura exitosa: si es Producto, completar un par de campos
 	if p, ok := md.(*models.Producto); ok {
 		p.NOMBRE = "Spy"
 		p.PRECIO = 100
@@ -38,12 +35,10 @@ func (s *spyOrmer) Read(md interface{}, cols ...string) error {
 
 func (s *spyOrmer) Insert(md interface{}) (int64, error) {
 	s.insertCalled++
-	// simular PK autoincremental
 	switch v := md.(type) {
 	case *models.Producto:
 		v.PK_ID_PRODUCTO = 1
 	case *models.PrecioProductoHist:
-		// nada extra
 	}
 	return 1, nil
 }
@@ -54,7 +49,6 @@ func (s *spyOrmer) Update(md interface{}, cols ...string) (int64, error) {
 	return 1, nil
 }
 
-// spyQS es un QuerySeter minimal que captura Filter y materializa en All sin tocar DB
 type spyQS struct {
 	orm.QuerySeter
 	filterField  string
@@ -68,7 +62,6 @@ func (q *spyQS) Filter(field string, values ...interface{}) orm.QuerySeter {
 }
 
 func (q *spyQS) All(container interface{}, cols ...string) (int64, error) {
-	// poblar slice de productos con base en si se aplicó el filtro
 	if out, ok := container.(*[]models.Producto); ok {
 		if q.filterField == "ESTADO_PRODUCTO" && len(q.filterValues) == 1 && q.filterValues[0] == models.EstadoProductoDisponible {
 			*out = []models.Producto{{NOMBRE: "Activo", ESTADO_PRODUCTO: models.EstadoProductoDisponible}}
@@ -81,7 +74,7 @@ func (q *spyQS) All(container interface{}, cols ...string) (int64, error) {
 }
 
 func Test_queryProductosAll_DefaultBody_OnlyActiveTrue(t *testing.T) {
-	base := orm.NewOrm() // no se usará porque el spy intercepta QueryTable
+	base := orm.NewOrm()
 	o := &spyOrmer{Ormer: base}
 	var productos []models.Producto
 

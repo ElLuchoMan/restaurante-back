@@ -12,7 +12,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error al reconsultar detalle en Update
 func TestProductoPedidoUpdate_RequeryError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	step := 0

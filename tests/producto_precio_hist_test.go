@@ -23,14 +23,12 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 		t.Fatalf("orm not available: %v", err)
 	}
 
-	// Ensure required subcategory exists
 	var sub models.Subcategoria
 	if err := o.QueryTable(new(models.Subcategoria)).Filter("PK_ID_SUBCATEGORIA", 1).One(&sub); err != nil {
 		t.Fatalf("subcategoria not found: %v", err)
 	}
 
 	name := "HistTest" + strconv.FormatInt(time.Now().UnixNano(), 10)
-	// Cleanup product and history even if the test fails
 	defer func() {
 		var p models.Producto
 		if err := o.QueryTable(new(models.Producto)).Filter("NOMBRE", name).One(&p); err == nil {
@@ -39,7 +37,6 @@ func TestProductoPriceHistoryLifecycle(t *testing.T) {
 		}
 	}()
 
-	// Create product via controller including description and calories
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.WriteField("NOMBRE", name)

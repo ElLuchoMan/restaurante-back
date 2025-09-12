@@ -11,7 +11,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre ordenamiento y múltiples productos en Update
 func TestProductoPedidoUpdate_MultipleProducts(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	step := 0

@@ -230,7 +230,6 @@ func TestIncidenciaPostInsertError(t *testing.T) {
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
 
-	// Forzar error de inserción
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
 		return nil, errors.New("db")
 	}
@@ -320,7 +319,6 @@ func TestIncidenciaPutNotFound(t *testing.T) {
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
 
-	// Forzar que Read devuelva orm.ErrNoRows
 	orig := incidenciaOrmNew
 	incidenciaOrmNew = func() incidenciaOrmer { return fakeIncidOrmReadNotFound{} }
 	t.Cleanup(func() { incidenciaOrmNew = orig })
@@ -331,7 +329,6 @@ func TestIncidenciaPutNotFound(t *testing.T) {
 	}
 }
 
-// fakeIncidOrmReadNotFound devuelve orm.ErrNoRows en Read para simular no encontrado
 type fakeIncidOrmReadNotFound struct{}
 
 func (fakeIncidOrmReadNotFound) QueryTable(interface{}) orm.QuerySeter        { return nil }

@@ -24,11 +24,9 @@ func TestSubQSAdapter_All_Filter_Coverage(t *testing.T) {
 }
 
 func TestSubAdapters_WithBeegoMock(t *testing.T) {
-	// Usa el driver mock registrado en controller_test_utils_test.go
 	o := orm.NewOrm()
 	a := subOrmAdapter{o: o}
 	qs := a.QueryTable(new(models.Subcategoria))
 	var out []models.Subcategoria
-	// No nos importa el resultado; sólo ejecutar las líneas instrumentadas
 	_, _ = qs.All(&out)
 }

@@ -11,7 +11,6 @@ import (
 	beegoCtx "github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre ramas opcionales: observaciones, createdBy, estadoDomicilio y sanitización de trabajadorAsignado vacío
 func TestDomicilioPost_OptionalFields_And_Sanitization(t *testing.T) {
 	origQ := MockQuery
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {

@@ -11,7 +11,6 @@ import (
 )
 
 func TestNtQSAdapter_OrderBy_Exist_WithRealOrm(t *testing.T) {
-	// Mock Exist() underlying query to return at least one row
 	origQ := MockQuery
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil

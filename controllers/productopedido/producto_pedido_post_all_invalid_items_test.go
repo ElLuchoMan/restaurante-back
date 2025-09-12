@@ -11,12 +11,8 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Ensure that Post handles requests where all items are filtered out
-// (e.g., invalid product IDs or non-positive quantities) without failing
-// and skips the inventory validation block.
 func TestProductoPedidoPost_AllInvalidItems(t *testing.T) {
 	origQ := MockQuery
-	// Only the row lock is expected; return a dummy row for any query.
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}

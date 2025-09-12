@@ -11,8 +11,6 @@ import (
 	"restaurante/models"
 )
 
-// stub implementations to exercise adapter wrappers
-
 type stubQS struct{ orm.QuerySeter }
 
 func (stubQS) All(res interface{}, cols ...string) (int64, error) {
@@ -50,8 +48,6 @@ func TestCatOrmAdapterAndQSAdapter(t *testing.T) {
 		t.Fatalf("delete: err=%v", err)
 	}
 }
-
-// Minimal mock driver to allow calling catOrmNew without hitting a real DB
 
 type dummyDriver struct{}
 

@@ -10,7 +10,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Fake ormer to simulate Read OK and Update returning zero affected rows (no-op)
 type fakeIncidOrmNoChange struct{}
 
 func (fakeIncidOrmNoChange) QueryTable(interface{}) orm.QuerySeter            { return nil }

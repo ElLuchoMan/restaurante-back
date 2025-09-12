@@ -99,7 +99,6 @@ func TestProductoPedidoGetAllNotFound(t *testing.T) {
 	productoPedidoNewOrm = func() productoPedidoOrmer {
 		return fakeOrmerPP{query: func(i interface{}) orm.QuerySeter {
 			return fakeQueryPP{all: func(res interface{}, cols ...string) (int64, error) {
-				// devolver slice vacío sin error para disparar 404
 				return 0, nil
 			}}
 		}}
@@ -302,7 +301,6 @@ func TestProductoPedidoUpdate_DeleteError(t *testing.T) {
 	productoPedidoNewOrm = func() productoPedidoOrmer {
 		return fakeOrmerPP{
 			query: func(i interface{}) orm.QuerySeter {
-				// primeros All de actuales ok, pero Delete falla
 				return fakeQueryPP{
 					all: func(res interface{}, cols ...string) (int64, error) { return 0, nil },
 					del: func() (int64, error) { return 0, errors.New("del") },
@@ -446,7 +444,6 @@ func TestProductoPedidoPostSuccess(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
-	// En entorno sin DB, se espera validación de inventario insuficiente
 	if !strings.Contains(w.Body.String(), "Inventario insuficiente") {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
@@ -500,7 +497,6 @@ func TestProductoPedidoUpdateSuccess(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
-	// En entorno sin DB, se espera error al buscar detalles previos del pedido
 	if !strings.Contains(w.Body.String(), "Error al buscar los detalles del pedido") {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
@@ -511,18 +507,15 @@ func TestProductoPedidoUpdateEndToEndSuccess(t *testing.T) {
 	call := 0
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
-		// actuales: primera consulta devuelve 0
 		if strings.Contains(lower, "detalle_pedido") && call == 0 {
 			call++
 			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 		}
-		// validación stock
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(1), int64(5)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
-		// reconsulta one
 		if strings.Contains(lower, "detalle_pedido") {
 			cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(2000)}}
@@ -557,16 +550,13 @@ func TestProductoPedidoUpdate_InsufficientInventory_Validation(t *testing.T) {
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") {
-			// devolver 0 filas para actuales -> evita escaneo a struct completo
 			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 		}
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			// stock disponible menor al requerido
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(1), int64(1)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
-		// para evitar efectos colaterales en reconsultas (no debería llegar)
 		call++
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(call)}}}, nil
 	}
@@ -597,11 +587,9 @@ func TestProductoPedidoUpdate_PositiveDelta_NoStockRowsAffected(t *testing.T) {
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") {
-			// actuales vacío
 			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 		}
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			// suficiente stock para pasar a Exec
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(1), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
@@ -611,7 +599,7 @@ func TestProductoPedidoUpdate_PositiveDelta_NoStockRowsAffected(t *testing.T) {
 	}
 	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
 		if strings.Contains(strings.ToLower(q), "update producto set cantidad = cantidad -") {
-			return zeroRowsResult{}, nil // fuerza affected==0
+			return zeroRowsResult{}, nil
 		}
 		return mockResult{}, nil
 	}
@@ -709,7 +697,6 @@ func TestProductoPedidoPostEndToEndSuccess(t *testing.T) {
 
 func TestProductoPedidoPost_ConsolidatesDuplicates(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
-	// stock suficiente para total consolidado=5
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		if strings.Contains(strings.ToLower(q), "select pk_id_producto, cantidad from producto") {
 			cols := []string{"pk_id_producto", "cantidad"}
@@ -718,7 +705,6 @@ func TestProductoPedidoPost_ConsolidatesDuplicates(t *testing.T) {
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
-	// No configurar MockExec para que Begin pueda fallar; aceptamos 200/500
 	MockExec = nil
 	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
 
@@ -739,7 +725,6 @@ func TestProductoPedidoPost_ConsolidatesDuplicates(t *testing.T) {
 
 func TestProductoPedidoPost_MixedValidInvalidItems(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
-	// stock suficiente para el válido
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		if strings.Contains(strings.ToLower(q), "select pk_id_producto, cantidad from producto") {
 			cols := []string{"pk_id_producto", "cantidad"}
@@ -748,7 +733,6 @@ func TestProductoPedidoPost_MixedValidInvalidItems(t *testing.T) {
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
-	// permitimos que falle Begin para entorno sin DB
 	MockExec = nil
 	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
 
@@ -767,9 +751,6 @@ func TestProductoPedidoPost_MixedValidInvalidItems(t *testing.T) {
 	}
 }
 
-// Test para delta cero removido por inestabilidad en el entorno de mock
-
-// Nuevos tests centrados en ramas de descuento de inventario en Post
 type zeroRowsResult struct{}
 
 func (zeroRowsResult) LastInsertId() (int64, error) { return 0, nil }
@@ -781,7 +762,7 @@ func TestProductoPedidoPost_UpdateStockExecError(t *testing.T) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
 			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}} // suficiente stock
+			vals := [][]driver.Value{{int64(1), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
@@ -819,14 +800,14 @@ func TestProductoPedidoPost_UpdateStockNoRowsAffected(t *testing.T) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
 			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}} // stock suficiente
+			vals := [][]driver.Value{{int64(1), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
 	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
 		if strings.Contains(strings.ToLower(q), "update producto set cantidad = cantidad -") {
-			return zeroRowsResult{}, nil // 0 afectadas -> insuficiente
+			return zeroRowsResult{}, nil
 		}
 		return mockResult{}, nil
 	}
@@ -896,7 +877,6 @@ func TestProductoPedidoPost_InsertError(t *testing.T) {
 
 func TestProductoPedidoUpdate_FilterInvalidItem(t *testing.T) {
 	origQ := MockQuery
-	// Provocar error en búsqueda para terminar luego de consolidar nuevos
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		return nil, errors.New("db error")
 	}
@@ -919,7 +899,6 @@ func TestProductoPedidoUpdate_FilterInvalidItem(t *testing.T) {
 
 func TestProductoPedidoUpdate_BeginTxError(t *testing.T) {
 	origQ, origBegin := MockQuery, productoPedidoBeginTx
-	// actuales vacíos y stock suficiente para llegar a Begin()
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") {
@@ -991,7 +970,6 @@ func TestProductoPedidoUpdate_ReconsultaOneError(t *testing.T) {
 
 func TestProductoPedidoUpdate_DeleteExecError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
-	// actuales vacío y stock suficiente
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") {
@@ -1037,17 +1015,14 @@ func TestProductoPedidoUpdate_NegativeDelta_AdjustInventoryExecError(t *testing.
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") {
-			// actuales: cantidad previa alta para delta negativo
 			if call == 0 {
 				call++
 				cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 				vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(3), int64(1000)}}
 				return &mockRows{columns: cols, values: vals}, nil
 			}
-			// reconsultas no deberían alcanzarse
 			return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 		}
-		// validación stock no se usa para delta negativo, pero devolver algo neutro
 		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(1), int64(10)}}
@@ -1064,7 +1039,7 @@ func TestProductoPedidoUpdate_NegativeDelta_AdjustInventoryExecError(t *testing.
 	}
 	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
 
-	body := `[{"productoId":1,"cantidad":1}]` // actuales 3 -> delta -2
+	body := `[{"productoId":1,"cantidad":1}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -1081,7 +1056,3 @@ func TestProductoPedidoUpdate_NegativeDelta_AdjustInventoryExecError(t *testing.
 		t.Fatalf("expected adjust inventory error, body: %s", w.Body.String())
 	}
 }
-
-// omitido: caso de inventario insuficiente en Update, por fragilidad del escaneo ORM en este entorno
-
-// Nota: se omite un test adicional complejo para Update con delta negativo, ya cubierto por otros caminos.

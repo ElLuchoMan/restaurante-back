@@ -13,7 +13,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Mocks para CategoriaController
 type catQS struct{ list []models.Categoria }
 
 func (m catQS) All(res interface{}, _ ...string) (int64, error) {
@@ -70,7 +69,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 	catOrmNew = func() categoriaOrmer { return m }
 	defer func() { catOrmNew = orig }()
 
-	// GetAll
 	r := httptest.NewRequest(http.MethodGet, "/categorias", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -83,7 +81,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("GetAll status %d", w.Code)
 	}
 
-	// GetById not found
 	r = httptest.NewRequest(http.MethodGet, "/categorias/search?id=99", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -98,7 +95,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("expected 404, got %d", resp.Code)
 	}
 
-	// Post invalid
 	r = httptest.NewRequest(http.MethodPost, "/categorias", strings.NewReader("bad"))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -112,7 +108,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("post bad %d", w.Code)
 	}
 
-	// Post ok
 	body := `{"nombre":"Postres"}`
 	r = httptest.NewRequest(http.MethodPost, "/categorias", strings.NewReader(body))
 	w = httptest.NewRecorder()
@@ -127,7 +122,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("post ok %d", w.Code)
 	}
 
-	// Put not found
 	r = httptest.NewRequest(http.MethodPut, "/categorias?id=99", strings.NewReader(`{"nombre":"Snacks"}`))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -141,7 +135,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("put nf %d", w.Code)
 	}
 
-	// Put ok
 	cat := models.Categoria{NOMBRE: "Cafe"}
 	m.Insert(&cat)
 	r = httptest.NewRequest(http.MethodPut, "/categorias?id=1", strings.NewReader(`{"nombre":"Café"}`))
@@ -157,7 +150,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("put ok %d", w.Code)
 	}
 
-	// GetById ok
 	r = httptest.NewRequest(http.MethodGet, "/categorias/search?id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -171,7 +163,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("get id ok %d", resp.Code)
 	}
 
-	// Delete ok
 	r = httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -185,7 +176,6 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 	}
 }
 
-// Tipos de prueba para forzar errores en CategoriaController
 type badQSCat struct{}
 
 func (badQSCat) All(res interface{}, _ ...string) (int64, error) { return 0, orm.ErrNoRows }
@@ -201,7 +191,6 @@ func TestCategoriaController_AllError_InsertError_DeleteNotFound(t *testing.T) {
 	catOrmNew = func() categoriaOrmer { return badOrmCat{newCatMockOrm()} }
 	defer func() { catOrmNew = orig }()
 
-	// GetAll -> error
 	r := httptest.NewRequest(http.MethodGet, "/categorias", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -214,7 +203,6 @@ func TestCategoriaController_AllError_InsertError_DeleteNotFound(t *testing.T) {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
 
-	// Post -> insert error
 	r = httptest.NewRequest(http.MethodPost, "/categorias", strings.NewReader(`{"nombre":"X"}`))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -228,7 +216,6 @@ func TestCategoriaController_AllError_InsertError_DeleteNotFound(t *testing.T) {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
 
-	// Delete -> not found
 	r = httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -242,7 +229,6 @@ func TestCategoriaController_AllError_InsertError_DeleteNotFound(t *testing.T) {
 	}
 }
 
-// Ormer que falla en Update para probar la rama 500 en Put
 type updErrOrm struct{ *catMockOrm }
 
 func (m updErrOrm) QueryTable(_ interface{}) categoriaQuerySeter     { return m.catMockOrm.qs }
@@ -252,7 +238,6 @@ func (m updErrOrm) Update(v interface{}, _ ...string) (int64, error) { return 0,
 func (m updErrOrm) Delete(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrNoRows }
 
 func TestCategoriaController_PutUpdateError(t *testing.T) {
-	// Mock que lee ok y falla al actualizar
 
 	orig := catOrmNew
 	catOrmNew = func() categoriaOrmer { return updErrOrm{newCatMockOrm()} }

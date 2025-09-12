@@ -43,7 +43,6 @@ func TestNominaTrabajadorUnmarshalJSON_ObjectIDs(t *testing.T) {
 
 func TestNominaTrabajadorUnmarshalJSON_InvalidValues_Ignored(t *testing.T) {
 	var n NominaTrabajador
-	// Valores inválidos en IDs (strings), y seteo de campos opcionales
 	payload := []byte(`{"documentoTrabajador":"oops","pk_id_nomina":"bad","sueldoBase":2000,"montoIncidencias":50,"detalles":"texto"}`)
 	if err := json.Unmarshal(payload, &n); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -121,7 +120,6 @@ func TestNominaTrabajadorUnmarshalJSON_MainNullPointersZeroValue(t *testing.T) {
 	if err := json.Unmarshal(payload, &n); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// La implementación actual intenta unmarshaling 'null' en struct y deja punteros a cero valor
 	if n.PK_DOCUMENTO_TRABAJADOR == nil || n.PK_ID_NOMINA == nil {
 		t.Fatalf("expected zero-valued pointers when main fields are null; got trabajador=%+v nomina=%+v", n.PK_DOCUMENTO_TRABAJADOR, n.PK_ID_NOMINA)
 	}
@@ -143,7 +141,6 @@ func TestNominaTrabajadorUnmarshalJSON_NoIDsProvided(t *testing.T) {
 
 func TestNominaTrabajadorUnmarshalJSON_NonNumberNonObject(t *testing.T) {
 	var n NominaTrabajador
-	// Forzar que los helpers devuelvan nil (no número y no objeto)
 	payload := []byte(`{"documentoTrabajador":"notNumberOrObject","nominaId":"alsoBad"}`)
 	if err := json.Unmarshal(payload, &n); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -162,7 +159,6 @@ func TestNominaTrabajadorTableName(t *testing.T) {
 
 func TestNominaTrabajadorUnmarshalJSON_InvalidTypeArray(t *testing.T) {
 	var n NominaTrabajador
-	// JSON sintácticamente válido pero del tipo incorrecto para el alias (se espera objeto)
 	payload := []byte(`[]`)
 	if err := json.Unmarshal(payload, &n); err == nil {
 		t.Fatalf("expected error for invalid JSON type (array), got nil")

@@ -17,7 +17,6 @@ type HorarioTrabajadorController struct {
 }
 
 func isValidDia(dia string) bool {
-	// Normalizar a Title Case que usa la DB
 	db := diaToDB(dia)
 	switch models.DiaSemana(db) {
 	case models.DiaLunes, models.DiaMartes, models.DiaMiercoles,
@@ -28,8 +27,6 @@ func isValidDia(dia string) bool {
 	}
 }
 
-// diaToDB convierte una representación de día (cualquier casing) al formato
-// que espera la base de datos, p. ej. "LUNES" -> "Lunes", "lunes" -> "Lunes".
 func diaToDB(d string) string {
 	if d == "" {
 		return ""

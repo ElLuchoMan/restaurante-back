@@ -11,7 +11,6 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
-// Hooks que los tests usan para interceptar consultas del ORM
 var (
 	MockExec  func(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error)
 	MockQuery func(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error)
@@ -94,7 +93,6 @@ func (r *mockRows) Next(dest []driver.Value) error {
 	return nil
 }
 
-// Registrar un alias "default" con driver mock para que orm.NewOrm funcione sin DB real
 func TestMain(m *testing.M) {
 	if os.Getenv("JWT_SECRET") == "" {
 		_ = os.Setenv("JWT_SECRET", "testsecret")

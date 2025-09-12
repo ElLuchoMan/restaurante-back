@@ -20,12 +20,10 @@ import (
 
 var dbReady bool
 
-// sqlPinger permite testear /readyz sin una *sql.DB real
 type sqlPinger interface {
 	Ping() error
 }
 
-// Funciones variables para testear init sin efectos secundarios complejos
 var (
 	initDBFunc       = database.InitDB
 	initTimezoneFunc = database.InitTimezone
@@ -36,7 +34,6 @@ func init() {
 }
 
 func appInit() {
-	// Inicializar la base de datos y la zona horaria
 	if err := initDBFunc(); err != nil {
 		log.Println("Error al conectar a la base de datos:", err)
 		dbReady = false
@@ -46,7 +43,6 @@ func appInit() {
 	initTimezoneFunc()
 }
 
-// Funciones variables para facilitar pruebas del cron
 var (
 	nowFn         = time.Now
 	sleepFn       = time.Sleep
@@ -54,10 +50,8 @@ var (
 	cronInsertNom = ormInsert
 	cronRawExec   = ormRawExec
 	webRun        = web.Run
-	// dbGetter permite stubear la obtención de *sql.DB en pruebas
-	dbGetter = database.GetDefaultSQLDB
-	// getSQLPinger permite stubear el acceso a la DB en /readyz
-	getSQLPinger = func() (sqlPinger, error) {
+	dbGetter      = database.GetDefaultSQLDB
+	getSQLPinger  = func() (sqlPinger, error) {
 		db, err := dbGetter()
 		if db == nil {
 			return nil, err
@@ -84,12 +78,10 @@ func ormRawExec(o orm.Ormer, query string, args ...interface{}) (sql.Result, err
 	return rs.Exec()
 }
 
-// Función para ejecutar la generación automática de nómina
 func generarNominaAutomatica() {
-	o := cronNewOrm() // Usar la conexión existente
+	o := cronNewOrm()
 
 	for {
-		// Ejecutar la función de nómina cada día a las 00:00
 		now := nowFn().In(database.BogotaZone)
 		if now.Hour() == 0 && now.Minute() == 0 {
 			slog.Info("cron.nomina.start")
@@ -110,19 +102,15 @@ func generarNominaAutomatica() {
 			}
 		}
 
-		// Modo de una sola iteración para pruebas
 		if os.Getenv("CRON_ONE_SHOT") == "1" {
 			return
 		}
 
-		// Esperar 1 minuto antes de verificar de nuevo
 		sleepFn(1 * time.Minute)
 	}
 }
 
-// Implementación real (reasignable en tests) para permitir aislar cobertura
 var setStaticHeadersFn = func(ctx *context.Context) {
-	// Solo aplicar cache a archivos estáticos (imagenes, CSS, JS)
 	url := ctx.Input.URL()
 	if strings.HasPrefix(url, "/assets/") || strings.HasPrefix(url, "/static/") {
 		ctx.Output.Header("Cache-Control", "public, max-age=31536000, immutable")

@@ -8,7 +8,6 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
-// Cubre el cuerpo por defecto de productoPedidoRequeryDetalle
 func TestProductoPedido_RequeryDefault_Cover(t *testing.T) {
 	tx, err := productoPedidoBeginTx(orm.NewOrm())
 	if err != nil {

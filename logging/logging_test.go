@@ -17,7 +17,6 @@ import (
 )
 
 func TestLoggerFallback(t *testing.T) {
-	// Forzar ruta de fallback cuando logger es nil
 	logger = nil
 	l := Logger()
 	if l == nil {
@@ -25,7 +24,6 @@ func TestLoggerFallback(t *testing.T) {
 	}
 }
 
-// memoryHandler es un slog.Handler de prueba que captura registros en memoria.
 type memoryHandler struct {
 	mu      sync.Mutex
 	records []logRecord
@@ -73,7 +71,6 @@ func newBeegoCtx(method, target string, status int, hdr http.Header) *beectx.Con
 			req.Header.Add(k, v)
 		}
 	}
-	// RemoteAddr por defecto si no se envía X-Forwarded-For
 	if req.RemoteAddr == "" {
 		req.RemoteAddr = "10.0.0.1:1234"
 	}
@@ -85,7 +82,6 @@ func newBeegoCtx(method, target string, status int, hdr http.Header) *beectx.Con
 }
 
 func TestSetupAndLogger(t *testing.T) {
-	// Caso 1: formato texto explícito y nivel debug
 	t.Setenv("LOG_LEVEL", "debug")
 	t.Setenv("LOG_FORMAT", "text")
 	Setup("dev")
@@ -94,7 +90,6 @@ func TestSetupAndLogger(t *testing.T) {
 	}
 	Logger().Info("msg_text")
 
-	// Caso 2: formato por defecto en prod (json) y nivel warn
 	t.Setenv("LOG_LEVEL", "warn")
 	t.Setenv("LOG_FORMAT", "")
 	Setup("prod")
@@ -103,19 +98,16 @@ func TestSetupAndLogger(t *testing.T) {
 	}
 	Logger().Warn("msg_json")
 
-	// Caso 3: nivel error explícito
 	t.Setenv("LOG_LEVEL", "error")
 	t.Setenv("LOG_FORMAT", "json")
 	Setup("prod")
 	Logger().Error("msg_error")
 
-	// Caso 4: nivel por defecto (info)
 	t.Setenv("LOG_LEVEL", "")
 	t.Setenv("LOG_FORMAT", "text")
 	Setup("dev")
 	Logger().Info("msg_info")
 
-	// Caso 5: formato por defecto en dev (text) cuando LOG_FORMAT está vacío
 	t.Setenv("LOG_LEVEL", "info")
 	t.Setenv("LOG_FORMAT", "")
 	Setup("dev")
@@ -131,11 +123,9 @@ func TestStartTimerAndLogRequest(t *testing.T) {
 		"X-Forwarded-For": []string{"1.2.3.4, 5.6.7.8"},
 	})
 	StartTimer(ctx)
-	// Asegurar una duración > 0
 	time.Sleep(1 * time.Millisecond)
 	LogRequest(ctx)
 
-	// Sin startTime
 	ctx2 := newBeegoCtx(http.MethodPost, "/other", 201, nil)
 	LogRequest(ctx2)
 
@@ -149,14 +139,12 @@ func TestLogIfError(t *testing.T) {
 	logger = slog.New(mem)
 	slog.SetDefault(logger)
 
-	// status <400: early return
 	ctx := newBeegoCtx(http.MethodGet, "/ok", 200, nil)
 	LogIfError(ctx)
 	if len(mem.records) != 0 {
 		t.Fatalf("no se esperaba registro para status<400, got=%d", len(mem.records))
 	}
 
-	// status >=400: se registra error con query sanitizada
 	ctxErr := newBeegoCtx(http.MethodGet, "/fail?password=123&token=abc&q="+strings.Repeat("x", 200), 500, http.Header{
 		"X-Forwarded-For": []string{"9.9.9.9"},
 	})
@@ -188,7 +176,6 @@ func TestLogControllerErrorAndSanitizers(t *testing.T) {
 		t.Fatalf("se esperaba 1 registro, got=%d", len(mem.records))
 	}
 
-	// Validar sanitizadores directamente
 	v := url.Values{
 		"password":     []string{"topsecret"},
 		"access_token": []string{"abc"},
@@ -243,10 +230,6 @@ func TestClientIPBranches(t *testing.T) {
 	}
 	ctxNoXFF := newBeegoCtx(http.MethodGet, "/", 200, nil)
 	if got := clientIP(ctxNoXFF); got == "" || strings.Contains(got, ":") == false {
-		// beego.Input.IP devuelve sin puerto; sin embargo, para propósitos de cobertura
-		// sólo verificamos que no sea vacío.
-		// Si incluye puerto, el contains(:) sería true; ajustamos a no string vacía.
-		// Para robustez, aceptamos cualquier no vacío.
 		_ = got
 	}
 }

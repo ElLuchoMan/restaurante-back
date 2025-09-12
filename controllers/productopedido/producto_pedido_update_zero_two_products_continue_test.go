@@ -14,13 +14,11 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre delta==0 para múltiples productos, forzando que el bucle ejecute continue dos veces
 func TestProductoPedidoUpdate_ZeroTwoProducts_ContinueTwice(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 
-	// Evitar fallos en Delete y reconsulta One
 	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return nil }
 	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
 		*out = models.DetallePedido{
@@ -32,7 +30,6 @@ func TestProductoPedidoUpdate_ZeroTwoProducts_ContinueTwice(t *testing.T) {
 		return nil
 	}
 
-	// actuales: p1=2, p2=3; nuevos iguales -> deltas p1=0, p2=0
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {
@@ -40,7 +37,6 @@ func TestProductoPedidoUpdate_ZeroTwoProducts_ContinueTwice(t *testing.T) {
 			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}, {int64(2), int64(1), int64(2), int64(3), int64(500)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
-		// otras consultas (bloqueo, etc.)
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {

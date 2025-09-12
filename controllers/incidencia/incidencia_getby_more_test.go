@@ -41,7 +41,6 @@ func TestIncidenciaGetByDocumentAndDateSuccess(t *testing.T) {
 }
 
 func TestIncidenciaGetByDocumentAndDateDBError(t *testing.T) {
-	// Aceptar respuesta 200 con mensaje de no resultados o de error, según entorno de mock
 	r := httptest.NewRequest(http.MethodGet, "/incidencias/search?documento=1&mes=2&anio=2024", nil)
 	w := httptest.NewRecorder()
 	ctx := beegoCtx.NewContext()

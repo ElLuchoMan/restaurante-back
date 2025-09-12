@@ -15,14 +15,12 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre específicamente el camino feliz hasta Commit() y fuerza fallo en Commit para cubrir líneas 468-474
 func TestProductoPedidoUpdate_CommitError_Cover(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 	origBegin := productoPedidoBeginTx
 
-	// actuales: un detalle (producto 1, cantidad 2) -> armamos nuevos con misma cantidad para delta 0
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "from detalle_pedido") && !strings.Contains(lower, "insert into") {
@@ -30,7 +28,6 @@ func TestProductoPedidoUpdate_CommitError_Cover(t *testing.T) {
 			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
-		// SELECT 1 ... FOR UPDATE y otras consultas inocuas
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
@@ -41,7 +38,6 @@ func TestProductoPedidoUpdate_CommitError_Cover(t *testing.T) {
 		*out = models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID}, Cantidad: 2, Precio: 1000}
 		return nil
 	}
-	// Forzar fallo en Commit sin afectar el resto del flujo
 	productoPedidoBeginTx = func(o orm.Ormer) (orm.TxOrmer, error) {
 		baseTx, err := o.Begin()
 		if err != nil {
@@ -57,7 +53,6 @@ func TestProductoPedidoUpdate_CommitError_Cover(t *testing.T) {
 		productoPedidoBeginTx = origBegin
 	})
 
-	// nuevos iguales a actuales (delta 0) -> no UPDATE stock; sí Delete+Insert+Requery -> Commit
 	body := `[{"productoId":1,"cantidad":2}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()

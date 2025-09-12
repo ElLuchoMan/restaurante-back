@@ -32,7 +32,6 @@ type LoginController struct {
 	web.Controller
 }
 
-// Estructura para los claims del JWT
 type Claims struct {
 	Documento int64  `json:"documento"`
 	Rol       string `json:"rol"`
@@ -40,10 +39,8 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// Llave secreta para firmar el token
 var jwtSecret []byte
 
-// Método de firmado JWT (inyectable en tests)
 var signingMethod jwt.SigningMethod = jwt.SigningMethodHS256
 
 func init() {
@@ -54,7 +51,6 @@ func loadJWTSecret() []byte {
 	if s := os.Getenv("JWT_SECRET"); s != "" {
 		return []byte(s)
 	}
-	// En dev/test o procesos de prueba, permitir secreto efímero para facilitar desarrollo y tests.
 	if isTestingProcess() || web.BConfig.RunMode != "prod" {
 		b := make([]byte, 32)
 		if _, err := io.ReadFull(rand.Reader, b); err == nil {
@@ -62,12 +58,9 @@ func loadJWTSecret() []byte {
 		}
 		return []byte("dev-insecure-default")
 	}
-	// En prod, el secreto es obligatorio.
 	panic("JWT_SECRET no configurado")
 }
 
-// isTestingProcess intenta detectar si el binario actual está ejecutando tests.
-// Útil para evitar pánicos en inits cuando no hay configuración cargada.
 func isTestingProcess() bool {
 	if len(os.Args) > 0 {
 		exe := strings.ToLower(os.Args[0])
@@ -75,7 +68,6 @@ func isTestingProcess() bool {
 			return true
 		}
 	}
-	// También detectar flags del framework de testing de Go
 	for _, arg := range os.Args {
 		if strings.HasPrefix(arg, "-test.") {
 			return true
@@ -84,7 +76,6 @@ func isTestingProcess() bool {
 	return false
 }
 
-// Sencillo rate limiter por IP
 var (
 	loginRL     = newRateLimiter()
 	loginMaxReq = getEnvIntDefault("LOGIN_MAX_REQ_PER_MIN", 10)
@@ -158,7 +149,6 @@ func allowLogin(r *http.Request) bool {
 // @Failure 429 {object} models.ApiResponse "Demasiadas solicitudes"
 // @Router /login [post]
 func (c *LoginController) Login() {
-	// Rate limit
 	if !allowLogin(c.Ctx.Request) {
 		c.Ctx.Output.SetStatus(http.StatusTooManyRequests)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusTooManyRequests, Message: "Demasiados intentos, intente más tarde"}
@@ -180,12 +170,10 @@ func (c *LoginController) Login() {
 
 	o := newOrm()
 
-	// Primero, intenta encontrar al usuario como trabajador
 	trabajador := models.Trabajador{PK_DOCUMENTO_TRABAJADOR: loginRequest.Documento}
 	err := o.Read(&trabajador)
 
 	if err == nil {
-		// Verificar la contraseña
 		if err := compareHashAndPassword([]byte(trabajador.PASSWORD), []byte(loginRequest.Password)); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusUnauthorized)
 			c.Data["json"] = models.ApiResponse{
@@ -196,17 +184,14 @@ func (c *LoginController) Login() {
 			return
 		}
 		nombre := trabajador.NOMBRE + " " + trabajador.APELLIDO
-		// Generar JWT con el rol específico del trabajador (admin, mesero, mensajero, etc.)
 		generateJWT(c, trabajador.PK_DOCUMENTO_TRABAJADOR, string(trabajador.ROL), nombre)
 		return
 	}
 
-	// Si no es un trabajador, intenta como cliente
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: loginRequest.Documento}
 	err = o.Read(&cliente)
 
 	if err == nil {
-		// Verificar la contraseña
 		if err := compareHashAndPassword([]byte(cliente.PASSWORD), []byte(loginRequest.Password)); err != nil {
 			c.Ctx.Output.SetStatus(http.StatusUnauthorized)
 			c.Data["json"] = models.ApiResponse{
@@ -217,12 +202,10 @@ func (c *LoginController) Login() {
 			return
 		}
 		nombre := cliente.NOMBRE + " " + cliente.APELLIDO
-		// Generar JWT con rol de "Cliente"
 		generateJWT(c, cliente.PK_DOCUMENTO_CLIENTE, "Cliente", nombre)
 		return
 	}
 
-	// Si no se encontró ni como trabajador ni como cliente
 	c.Ctx.Output.SetStatus(http.StatusUnauthorized)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusUnauthorized,
@@ -231,7 +214,6 @@ func (c *LoginController) Login() {
 	_ = c.ServeJSON()
 }
 
-// Función para generar y devolver un token JWT
 func generateJWT(c *LoginController, documento int64, rol string, nombre string) {
 	if len(jwtSecret) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -282,20 +264,17 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
 }
 
 func ValidateToken(ctx *context.Context) {
-	// 1) Permitir CORS preflight
 	if ctx.Input.Method() == "OPTIONS" {
 		ctx.Output.Status = http.StatusOK
 		return
 	}
 
-	// Normalizar método y path
 	method := ctx.Input.Method()
 	path := ctx.Input.URL()
 	if strings.HasSuffix(path, "/") && len(path) > 1 {
 		path = strings.TrimRight(path, "/")
 	}
 
-	// Rutas públicas sin token
 	if method == http.MethodGet || method == http.MethodPost {
 		switch path {
 		case "/restaurante/v1/productos", "/restaurante/v1/productos/search",
@@ -306,24 +285,20 @@ func ValidateToken(ctx *context.Context) {
 		}
 	}
 
-	// 2) Permitir crear cliente sin token (registro público)
 	if method == "POST" && path == "/restaurante/v1/clientes" {
 		return
 	}
 
-	// 2b) En desarrollo, permitir solicitudes iniciadas desde Swagger UI sin token
 	if web.BConfig.RunMode == "dev" {
 		referer := ctx.Input.Header("Referer")
 		if strings.Contains(referer, "/swagger/") {
 			return
 		}
-		// Por seguridad adicional, si se pidiera a rutas de swagger (estático)
 		if strings.HasPrefix(path, "/swagger/") {
 			return
 		}
 	}
 
-	// 3) Resto de rutas: exigir token
 	authHeader := ctx.Input.Header("Authorization")
 	if authHeader == "" {
 		ctx.Output.SetStatus(http.StatusUnauthorized)
@@ -331,12 +306,10 @@ func ValidateToken(ctx *context.Context) {
 			Code:    http.StatusUnauthorized,
 			Message: "Token no proporcionado",
 		}, false, false); err != nil {
-			// no hay otro canal aquí; simplemente no propagamos
 		}
 		return
 	}
 
-	// Normalizar prefijo Bearer
 	if len(authHeader) < 7 || authHeader[:7] != "Bearer " {
 		authHeader = "Bearer " + authHeader
 	}
@@ -353,7 +326,6 @@ func ValidateToken(ctx *context.Context) {
 			Code:    http.StatusUnauthorized,
 			Message: "Token inválido",
 		}, false, false); err != nil {
-			// noop si falla escribir la respuesta
 		}
 		return
 	}

@@ -2,9 +2,6 @@ package nominatrabajador
 
 import "testing"
 
-// Estos tests fuerzan la ejecución de las funciones adaptadoras
-// de NominaTrabajadorController para cubrir OrderBy, Exist e Insert.
-
 func TestNtQSAdapter_OrderBy_Exist_Coverage(t *testing.T) {
 	a := ntQSAdapter{}
 	func() { defer func() { _ = recover() }(); _ = a.OrderBy("-fecha") }()

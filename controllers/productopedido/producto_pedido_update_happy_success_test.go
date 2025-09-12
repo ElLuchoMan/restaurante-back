@@ -14,7 +14,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Camino feliz completo: stock suficiente, sin errores, commit OK y respuesta 200
 func TestProductoPedidoUpdate_HappyPath_Success(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
@@ -25,12 +24,10 @@ func TestProductoPedidoUpdate_HappyPath_Success(t *testing.T) {
 		lower := strings.ToLower(q)
 		switch {
 		case strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into"):
-			// actuales: vacío -> deltas positivos
 			if step == 0 {
 				step++
 				return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 			}
-			// reconsultas después de inserts
 			requeryStep++
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			if requeryStep == 1 {
@@ -40,7 +37,6 @@ func TestProductoPedidoUpdate_HappyPath_Success(t *testing.T) {
 			vals := [][]driver.Value{{int64(102), int64(1), int64(2), int64(3), int64(800)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		case strings.Contains(lower, "select pk_id_producto, cantidad from producto"):
-			// stock suficiente para p1 y p2
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(1), int64(10)}, {int64(2), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
@@ -51,7 +47,6 @@ func TestProductoPedidoUpdate_HappyPath_Success(t *testing.T) {
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
 	}
-	// Evitar fallos por Delete y reconsulta One
 	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return nil }
 	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
 		*out = models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID}, Cantidad: 1, Precio: 1000}

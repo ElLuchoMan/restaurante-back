@@ -13,7 +13,6 @@ import (
 	beegoCtx "github.com/beego/beego/v2/server/web/context"
 )
 
-// Cover trabajadorAsignado sanitization cases (nil, zero, positive)
 func TestDomicilioPostTrabajadorVariations(t *testing.T) {
 	cases := []struct{ name, body string }{
 		{"Nil", `{"direccion":"c","telefono":"1","fechaDomicilio":"2024-01-01","trabajadorAsignado":null}`},
@@ -55,7 +54,6 @@ func TestDomicilioPostTrabajadorVariations(t *testing.T) {
 	}
 }
 
-// Trigger error when unmarshalling into struct after sanitization
 func TestDomicilioPostUnmarshalError(t *testing.T) {
 	body := `{"direccion":"c","telefono":123,"fechaDomicilio":"2024-01-01"}`
 	r := httptest.NewRequest(http.MethodPost, "/domicilios", strings.NewReader(body))
@@ -72,7 +70,6 @@ func TestDomicilioPostUnmarshalError(t *testing.T) {
 	}
 }
 
-// Force marshal error to hit else branch
 func TestDomicilioPostMarshalError(t *testing.T) {
 	origMarshal := jsonMarshal
 	jsonMarshal = func(interface{}) ([]byte, error) { return nil, errors.New("marshal") }
@@ -93,7 +90,6 @@ func TestDomicilioPostMarshalError(t *testing.T) {
 	}
 }
 
-// Ensure updatedBy is processed in Put
 func TestDomicilioPutWithUpdatedBy(t *testing.T) {
 	call := 0
 	origQ := MockQuery
@@ -136,7 +132,6 @@ func TestDomicilioPutWithUpdatedBy(t *testing.T) {
 	}
 }
 
-// Test GetById subtotal fallback branch
 func TestDomicilioGetByIdSubtotalFallback(t *testing.T) {
 	call := 0
 	origQ := MockQuery
@@ -175,7 +170,6 @@ func TestDomicilioGetByIdSubtotalFallback(t *testing.T) {
 	}
 }
 
-// Cover branch where domicilio not found when assigning domiciliario
 func TestAsignarDomiciliarioNotFound(t *testing.T) {
 	origE := MockExec
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
@@ -202,7 +196,6 @@ func TestAsignarDomiciliarioNotFound(t *testing.T) {
 	}
 }
 
-// Invalid trabajador parameter should return bad request
 func TestDomicilioGetAllInvalidTrabajador(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/domicilios?trabajador=abc", nil)
 	w := httptest.NewRecorder()
@@ -217,7 +210,6 @@ func TestDomicilioGetAllInvalidTrabajador(t *testing.T) {
 	}
 }
 
-// Simulate failure when updating a domicilio
 func TestDomicilioPutUpdateError(t *testing.T) {
 	origQ := MockQuery
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
@@ -246,7 +238,6 @@ func TestDomicilioPutUpdateError(t *testing.T) {
 	}
 }
 
-// Ensure errors in related queries are logged without affecting response
 func TestDomicilioGetByIdQueryErrors(t *testing.T) {
 	call := 0
 	origQ := MockQuery

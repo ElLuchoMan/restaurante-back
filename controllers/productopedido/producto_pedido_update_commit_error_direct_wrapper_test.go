@@ -19,14 +19,12 @@ type commitFailTx struct{ orm.TxOrmer }
 
 func (t commitFailTx) Commit() error { return errors.New("commit fail") }
 
-// Fuerza fallo de commit stubeando productoPedidoBeginTx directamente
 func TestProductoPedidoUpdate_CommitError_DirectWrapper(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origBegin := productoPedidoBeginTx
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 
-	// Mock queries para pasar todo hasta commit
 	step := 0
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
@@ -50,7 +48,6 @@ func TestProductoPedidoUpdate_CommitError_DirectWrapper(t *testing.T) {
 		return mockResult{}, nil
 	}
 
-	// Evitar fallas por Delete y reconsulta One para alcanzar Commit
 	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return nil }
 	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, pedidoID int64, productoID int64, out *models.DetallePedido) error {
 		*out = models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID}, Cantidad: 2, Precio: 1000}

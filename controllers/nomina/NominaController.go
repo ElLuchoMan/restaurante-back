@@ -16,7 +16,6 @@ type NominaController struct {
 	web.Controller
 }
 
-// puntos de inyección
 var (
 	ormNewNomina    = orm.NewOrm
 	queryAllNominas = func(o orm.Ormer, out *[]models.Nomina) (int64, error) {
@@ -37,7 +36,6 @@ var (
 	}
 )
 
-// Estados permitidos para la nómina
 var estadosNominaPermitidos = map[models.EstadoNomina]bool{
 	models.EstadoNominaPago:   true,
 	models.EstadoNominaNoPago: true,
@@ -142,8 +140,6 @@ func (c *NominaController) Post() {
 		input.FECHA = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	}
 
-	// Reglas de negocio
-	// 1) No generar nómina antes del día 20 del mes
 	if input.FECHA.Day() < 20 {
 		logging.LogControllerError(c.Ctx, "nominas.post.validation_error", nil, map[string]interface{}{"fecha": input.FECHA.Format("2006-01-02")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -154,10 +150,8 @@ func (c *NominaController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
-	// 2) Si ya existe una nómina del mes, marcar control_nomina como REGENERADA y retornar la existente
 	existing, getErr := findExistingNominaFn(o, input.FECHA)
 	if getErr == nil && existing != nil && existing.PK_ID_NOMINA != 0 {
-		// Upsert en control_nomina
 		if _, err := o.Raw(
 			"INSERT INTO control_nomina (fecha, estado) VALUES ($1, 'REGENERADA') ON CONFLICT (fecha) DO UPDATE SET estado = 'REGENERADA'",
 			existing.FECHA,
@@ -185,7 +179,7 @@ func (c *NominaController) Post() {
 		input.ESTADO_NOMINA = models.EstadoNominaNoPago
 	}
 
-	input.MONTO = 0 // lo calcula el trigger tras el insert
+	input.MONTO = 0
 
 	if _, err := o.Insert(&input); err != nil {
 		logging.LogControllerError(c.Ctx, "nominas.post.insert_error", err, map[string]interface{}{"fecha": input.FECHA})
@@ -239,7 +233,6 @@ func (c *NominaController) Post() {
 func (c *NominaController) Put() {
 	o := ormNewNomina()
 
-	// Obtener el ID
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
@@ -254,7 +247,6 @@ func (c *NominaController) Put() {
 		return
 	}
 
-	// Buscar la nómina
 	nomina := models.Nomina{PK_ID_NOMINA: int64(id)}
 	if err := readNominaFn(o, &nomina); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -266,7 +258,6 @@ func (c *NominaController) Put() {
 		return
 	}
 
-	// Cambiar el estado a "PAGO" si no lo está ya
 	if nomina.ESTADO_NOMINA == models.EstadoNominaPago {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -278,7 +269,6 @@ func (c *NominaController) Put() {
 	}
 	nomina.ESTADO_NOMINA = models.EstadoNominaPago
 
-	// Guardar los cambios
 	if _, err := updateNominaFn(o, &nomina, "ESTADO_NOMINA"); err != nil {
 		logging.LogControllerError(c.Ctx, "nominas.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -291,7 +281,6 @@ func (c *NominaController) Put() {
 		return
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,

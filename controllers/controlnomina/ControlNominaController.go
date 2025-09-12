@@ -65,7 +65,6 @@ func (c *ControlNominaController) GetById() {
 	id, _ := c.GetInt64("id")
 	row := models.ControlNomina{PK_ID_CONTROL_NOMINA: id}
 	if err := o.QueryTable(new(models.ControlNomina)).Filter("PK_ID_CONTROL_NOMINA", id).One(&row); err != nil {
-		// Solo loggear si es distinto a no encontrado
 		if err != orm.ErrNoRows {
 			logging.LogControllerError(c.Ctx, "control_nomina.getbyid.db_error", err, map[string]interface{}{"id": id})
 		}

@@ -12,7 +12,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Orm wrapper que falla en Update pero delega el resto a subMockOrm
 type updFailOrm struct{ base *subMockOrm }
 
 func (u updFailOrm) QueryTable(i interface{}) subcatQuerySeter           { return u.base.QueryTable(i) }
@@ -23,10 +22,8 @@ func (u updFailOrm) Delete(v interface{}, cols ...string) (int64, error) {
 	return u.base.Delete(v, cols...)
 }
 
-// Cubre la rama de error en Update dentro de Put de SubcategoriaController
 func TestSubcategoriaController_Put_UpdateFails(t *testing.T) {
 	s := newSubMockOrm()
-	// Insertar uno para que Read sea OK
 	s.Insert(&models.Subcategoria{NOMBRE: "X"})
 
 	orig := subcatOrmNew

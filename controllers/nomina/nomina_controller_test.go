@@ -384,7 +384,6 @@ func TestEstadosNominaPermitidos(t *testing.T) {
 	}
 }
 
-// Nuevos tests con inyección
 func TestNominaGetAllWithFilters(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/nominas?fecha=2024-01-01&mes=1&anio=2024", nil)
 	w := httptest.NewRecorder()

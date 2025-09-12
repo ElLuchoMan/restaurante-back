@@ -11,7 +11,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama donde se elimina un producto existente que no aparece en la lista nueva
 func TestProductoPedidoUpdate_RemoveProduct_Success(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	step := 0
@@ -20,12 +19,10 @@ func TestProductoPedidoUpdate_RemoveProduct_Success(t *testing.T) {
 		if strings.Contains(lower, "detalle_pedido") {
 			if step == 0 {
 				step++
-				// detalles actuales: producto 1 cantidad 1 y producto 2 cantidad 2
 				cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 				vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(1), int64(1000)}, {int64(2), int64(1), int64(2), int64(2), int64(500)}}
 				return &mockRows{columns: cols, values: vals}, nil
 			}
-			// reconsulta tras inserción del único producto restante
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(1), int64(1000)}}
 			return &mockRows{columns: cols, values: vals}, nil
@@ -37,7 +34,7 @@ func TestProductoPedidoUpdate_RemoveProduct_Success(t *testing.T) {
 	}
 	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
 
-	body := `[{"productoId":1,"cantidad":1}]` // producto 2 es removido
+	body := `[{"productoId":1,"cantidad":1}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()

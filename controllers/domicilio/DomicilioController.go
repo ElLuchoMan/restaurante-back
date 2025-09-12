@@ -15,7 +15,6 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-// jsonMarshal is a variable to allow mocking json.Marshal in tests.
 var jsonMarshal = json.Marshal
 
 type DomicilioController struct {
@@ -50,13 +49,12 @@ func (c *DomicilioController) GetAll() {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(models.Domicilio))
 
-	// Leer parámetros de la URL
 	direccion := c.GetString("direccion")
 	telefono := c.GetString("telefono")
 	updatedBy := c.GetString("updated_by")
 	fecha := c.GetString("fecha")
 	estado := strings.ToUpper(c.GetString("estado"))
-	trabajadorID, errTrab := c.GetInt("trabajador") // ID del domiciliario solicitante
+	trabajadorID, errTrab := c.GetInt("trabajador")
 	if c.GetString("trabajador") != "" && errTrab != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.getall.bad_request", errTrab, map[string]interface{}{"trabajador": c.GetString("trabajador")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -65,7 +63,6 @@ func (c *DomicilioController) GetAll() {
 		return
 	}
 
-	// Aplicar filtros opcionales SOLO si se proporcionan (usar nombres de campos del struct)
 	if direccion != "" {
 		qs = qs.Filter("Direccion__icontains", direccion)
 	}
@@ -84,7 +81,6 @@ func (c *DomicilioController) GetAll() {
 		qs = qs.Filter("Estado", models.EstadoDomicilio(estado))
 	}
 
-	// Aplicar condición para que los domiciliarios solo vean pedidos que pueden tomar
 	if trabajadorID != 0 {
 		cond := orm.NewCondition().
 			Or("Trabajador__isnull", true).
@@ -93,7 +89,6 @@ func (c *DomicilioController) GetAll() {
 		qs = qs.Filter("Entregado", false).SetCond(cond)
 	}
 
-	// Ejecutar consulta
 	var domicilios []models.Domicilio
 	count, err := qs.All(&domicilios)
 	if err != nil {
@@ -110,7 +105,6 @@ func (c *DomicilioController) GetAll() {
 		return
 	}
 
-	// Si no hay domicilios, retornar mensaje informativo
 	if count == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -121,7 +115,6 @@ func (c *DomicilioController) GetAll() {
 		return
 	}
 
-	// Responder con los domicilios filtrados
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -170,7 +163,6 @@ func (c *DomicilioController) GetById() {
 		return
 	}
 
-	// ---- Datos relacionados: cliente y pedido ----
 	type clienteRow struct {
 		Documento int64  `orm:"column(documento)"`
 		Nombre    string `orm:"column(nombre)"`
@@ -194,7 +186,7 @@ ORDER BY p.pk_id_pedido DESC LIMIT 1;`
 		PagoID            sql.NullInt64   `orm:"column(pago_id)"`
 		PagoMonto         sql.NullFloat64 `orm:"column(pago_monto)"`
 		SubtotalProductos sql.NullFloat64 `orm:"column(subtotal_productos)"`
-		Productos         string          `orm:"column(productos)"` // JSON
+		Productos         string          `orm:"column(productos)"`
 	}
 	var ped pedidoRow
 	qPedido := `
@@ -288,7 +280,6 @@ func (c *DomicilioController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
-	// Normalizar trabajadorAsignado: 0, "", null => no asignado
 	if v, ok := raw["trabajadorAsignado"]; ok {
 		switch vv := v.(type) {
 		case nil:
@@ -303,7 +294,6 @@ func (c *DomicilioController) Post() {
 			}
 		}
 	}
-	// Decodificar al DTO ya sanitizado
 	if bodySan, err := jsonMarshal(raw); err == nil {
 		if err := json.Unmarshal(bodySan, &input); err != nil {
 			logging.LogControllerError(c.Ctx, "domicilios.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
@@ -344,7 +334,6 @@ func (c *DomicilioController) Post() {
 	if input.CreatedBy != nil {
 		domicilio.CreatedBy = input.CreatedBy
 	}
-	// compat: aceptar "estado" o "estadoDomicilio"
 	est := string(input.Estado)
 	if est == "" {
 		if v, ok := raw["estado"].(string); ok {
@@ -465,7 +454,6 @@ func (c *DomicilioController) Put() {
 		return
 	}
 
-	// Construir lista de columnas a actualizar para evitar tocar columnas protegidas (p. ej., "Entregado")
 	var colsToUpdate []string
 	if direccion, ok := input["direccion"].(string); ok {
 		domicilio.Direccion = direccion
@@ -479,7 +467,6 @@ func (c *DomicilioController) Put() {
 		domicilio.UpdatedBy = &updatedBy
 		colsToUpdate = append(colsToUpdate, "UpdatedBy")
 	}
-	// Siempre actualizamos la marca de tiempo de modificación
 	domicilio.UpdatedAt = time.Now().UTC()
 	colsToUpdate = append(colsToUpdate, "UpdatedAt")
 

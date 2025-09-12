@@ -14,7 +14,6 @@ import (
 func TestDomicilioGetAll_WithMultipleFilters(t *testing.T) {
 	origQ := MockQuery
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		// Devolver 1 fila válida tras aplicar filtros
 		cols := []string{"pk_id_domicilio", "direccion", "telefono", "estado_domicilio", "entregado", "fecha", "observaciones", "created_at", "updated_at", "created_by", "updated_by", "pk_documento_trabajador"}
 		vals := [][]driver.Value{{int64(1), "Calle X", "321", "PENDIENTE", false, time.Now(), nil, time.Now(), time.Now(), nil, nil, nil}}
 		return &mockRows{columns: cols, values: vals}, nil

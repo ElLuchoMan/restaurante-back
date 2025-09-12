@@ -12,7 +12,6 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
-// SeedTestData inserta registros básicos para las pruebas.
 func SeedTestData() {
 	o := orm.NewOrm()
 
@@ -57,7 +56,6 @@ func SeedTestData() {
 		log.Println("seed detalle_pedido:", err)
 	}
 
-	// Crear tiempos con año válido (1) para evitar error de rango en PostgreSQL
 	inicio := time.Date(1, 1, 1, 8, 0, 0, 0, time.UTC)
 	fin := time.Date(1, 1, 1, 16, 0, 0, 0, time.UTC)
 	if _, err := o.Raw(

@@ -1,6 +1,5 @@
 package models
 
-// EstadoDomicilio represents the estado_domicilio_enum values.
 type EstadoDomicilio = string
 
 const (
@@ -9,7 +8,6 @@ const (
 	EstadoDomicilioEntregado EstadoDomicilio = "ENTREGADO"
 )
 
-// EstadoNomina represents the estado_nomina_enum values.
 type EstadoNomina = string
 
 const (
@@ -17,7 +15,6 @@ const (
 	EstadoNominaNoPago EstadoNomina = "NO_PAGO"
 )
 
-// EstadoPago represents the estado_pago_enum values.
 type EstadoPago = string
 
 const (
@@ -26,8 +23,6 @@ const (
 	EstadoPagoNoPago    EstadoPago = "NO_PAGO"
 )
 
-// EstadoPedido represents the estado_pedido_enum values.
-// Valores válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO.
 type EstadoPedido = string
 
 const (
@@ -38,7 +33,6 @@ const (
 	EstadoPedidoCancelado     EstadoPedido = "CANCELADO"
 )
 
-// EstadoProducto represents the estado_producto_enum values.
 type EstadoProducto = string
 
 const (
@@ -46,7 +40,6 @@ const (
 	EstadoProductoNoDisponible EstadoProducto = "NO_DISPONIBLE"
 )
 
-// EstadoReserva represents the estado_reserva_enum values.
 type EstadoReserva = string
 
 const (
@@ -56,7 +49,6 @@ const (
 	EstadoReservaCumplida   EstadoReserva = "CUMPLIDA"
 )
 
-// DiaSemana represents the dia_semana_enum values.
 type DiaSemana = string
 
 const (
@@ -69,7 +61,6 @@ const (
 	DiaDomingo   DiaSemana = "Domingo"
 )
 
-// RolTrabajador represents valid roles for trabajador. Values are case-sensitive.
 type RolTrabajador string
 
 const (
@@ -80,7 +71,6 @@ const (
 	RolOficiosVarios RolTrabajador = "Oficios_varios"
 )
 
-// IsValid reports whether the role is permitted for trabajador
 func (r RolTrabajador) IsValid() bool {
 	switch r {
 	case RolAdministrador, RolMesero, RolCocinero, RolDomiciliario, RolOficiosVarios:
@@ -89,7 +79,6 @@ func (r RolTrabajador) IsValid() bool {
 	return false
 }
 
-// EstadoControlNomina represents valid values for control_nomina.estado
 type EstadoControlNomina string
 
 const (
@@ -98,7 +87,6 @@ const (
 	EstadoControlNominaReGenerada EstadoControlNomina = "REGENERADA"
 )
 
-// IsValid reports whether the estado is permitted for control_nomina
 func (e EstadoControlNomina) IsValid() bool {
 	switch e {
 	case EstadoControlNominaNoGenerada, EstadoControlNominaGenerada, EstadoControlNominaReGenerada:

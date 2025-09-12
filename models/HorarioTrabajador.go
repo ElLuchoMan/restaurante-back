@@ -19,12 +19,10 @@ func (h *HorarioTrabajador) TableName() string {
 	return "horario_trabajador"
 }
 
-// TableUnique enforces UNIQUE(pk_documento_trabajador, dia)
 func (h *HorarioTrabajador) TableUnique() [][]string {
 	return [][]string{{"PK_DOCUMENTO_TRABAJADOR", "DIA"}}
 }
 
-// ValidHours checks that HORA_FIN > HORA_INICIO
 func (h *HorarioTrabajador) ValidHours() bool {
 	return h.HORA_FIN.After(h.HORA_INICIO)
 }

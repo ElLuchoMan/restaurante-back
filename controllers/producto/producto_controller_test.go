@@ -25,11 +25,11 @@ func TestValidateProducto(t *testing.T) {
 	}
 
 	tests := []models.Producto{
-		{PRECIO: 10, ESTADO_PRODUCTO: "DISPONIBLE"},                                      // missing name
-		{NOMBRE: "B", PRECIO: 0, ESTADO_PRODUCTO: "DISPONIBLE"},                          // zero price
-		{NOMBRE: "B", PRECIO: -5, ESTADO_PRODUCTO: "DISPONIBLE"},                         // negative price
-		{NOMBRE: "B", PRECIO: 10, CALORIAS: int64Ptr(-1), ESTADO_PRODUCTO: "DISPONIBLE"}, // negative calories
-		{NOMBRE: "B", PRECIO: 10, ESTADO_PRODUCTO: "OTRO"},                               // invalid estado
+		{PRECIO: 10, ESTADO_PRODUCTO: "DISPONIBLE"},
+		{NOMBRE: "B", PRECIO: 0, ESTADO_PRODUCTO: "DISPONIBLE"},
+		{NOMBRE: "B", PRECIO: -5, ESTADO_PRODUCTO: "DISPONIBLE"},
+		{NOMBRE: "B", PRECIO: 10, CALORIAS: int64Ptr(-1), ESTADO_PRODUCTO: "DISPONIBLE"},
+		{NOMBRE: "B", PRECIO: 10, ESTADO_PRODUCTO: "OTRO"},
 	}
 
 	for _, p := range tests {
@@ -519,7 +519,6 @@ func TestProductoPostRawExecError(t *testing.T) {
 	}
 }
 
-// PUT cases
 func TestProductoPutInvalidID(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPut, "/productos", nil)
 	w := httptest.NewRecorder()
@@ -975,7 +974,6 @@ func TestProductoPutMultipartInvalidNumeric(t *testing.T) {
 	}
 }
 
-// DELETE cases
 func TestProductoDeleteAlreadyDisabled(t *testing.T) {
 	r := httptest.NewRequest(http.MethodDelete, "/productos?id=1", nil)
 	w := httptest.NewRecorder()

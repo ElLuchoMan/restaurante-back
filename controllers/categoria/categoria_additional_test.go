@@ -13,8 +13,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// fake implementations
-
 type fakeCatQS struct{ orm.QuerySeter }
 
 func (f fakeCatQS) All(res interface{}, cols ...string) (int64, error) { return 0, nil }

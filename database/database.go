@@ -15,22 +15,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// registerDataBase allows tests to stub orm.RegisterDataBase.
 var registerDataBase = orm.RegisterDataBase
 
-// loadLocation allows tests to stub time.LoadLocation.
 var loadLocation = time.LoadLocation
 
-// newOrmForSeed allows tests to stub orm.NewOrm when seeding.
 var newOrmForSeed = orm.NewOrm
 
-// getDB allows tests to stub orm.GetDB.
 var getDB = orm.GetDB
 
-// appConfigString allows tests to stub configuration lookups from Beego's AppConfig.
 var appConfigString = func(key string) (string, error) { return web.AppConfig.String(key) }
 
-// Lightweight indirections to allow unit testing seed without a real DB.
 var (
 	queryTableFn = func(o orm.Ormer, model interface{}) orm.QuerySeter { return o.QueryTable(model) }
 	filterFn     = func(qs orm.QuerySeter, expr string, args ...interface{}) orm.QuerySeter {
@@ -40,14 +34,12 @@ var (
 	insertFn = func(o orm.Ormer, model interface{}) (int64, error) { return o.Insert(model) }
 )
 
-// countMetodoPagoByTipo encapsula la consulta usada por el seed para poder ser stubbeada en tests.
 var countMetodoPagoByTipo = func(o orm.Ormer, tipo string) (int64, error) {
 	qs := queryTableFn(o, new(models.MetodoPago))
 	qs = filterFn(qs, "TIPO", tipo)
 	return countFn(qs)
 }
 
-// GetDefaultSQLDB expone el *sql.DB asociado al alias "default" para health/readiness checks.
 func GetDefaultSQLDB() (*sql.DB, error) {
 	return getDB("default")
 }
@@ -67,7 +59,6 @@ func getenvInt(key string) int {
 func InitDB() error {
 	quiet := os.Getenv("QUIET_TESTS") == "1"
 
-	// Preferir variables de entorno y caer a app.conf cuando no estén definidas
 	dbHost := os.Getenv("DB_HOST")
 	if dbHost == "" {
 		v, err := appConfigString("db_host")
@@ -125,7 +116,6 @@ func InitDB() error {
 		fmt.Println("Conectando a PostgreSQL en:", dbHost, "Puerto:", dbPort, "Base de datos:", dbName)
 	}
 
-	// Configurar pool de conexiones y timeouts si el alias existe
 	if sqlDB, err := GetDefaultSQLDB(); err == nil && sqlDB != nil {
 		if maxOpen := getenvInt("DB_MAX_OPEN"); maxOpen > 0 {
 			sqlDB.SetMaxOpenConns(maxOpen)
@@ -141,12 +131,10 @@ func InitDB() error {
 		}
 	}
 
-	// Permitir desactivar el seed en unit tests para evitar depender del alias registrado
 	if os.Getenv("SKIP_DB_SEED") == "1" {
 		return nil
 	}
 
-	// Ejecutar seed solo si el alias realmente existe en el ORM
 	if _, err := getDB("default"); err == nil {
 		if err := seedMetodoPago(); err != nil {
 			if !quiet {

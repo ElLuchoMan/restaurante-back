@@ -12,13 +12,11 @@ import (
 )
 
 func TestIncidenciaPostSuccess(t *testing.T) {
-	// Mock insert para que no falle
 	origE := MockExec
 	origQ := MockQuery
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
 	}
-	// Algunas bases devuelven el ID con RETURNING -> cubrir Query también
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_incidencia"}
 		vals := [][]driver.Value{{int64(1)}}
@@ -43,7 +41,6 @@ func TestIncidenciaPostSuccess(t *testing.T) {
 }
 
 func TestIncidenciaPutSuccess(t *testing.T) {
-	// Mock update ok (ORM Update -> Exec)
 	origE := MockExec
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
 		return mockResult{}, nil
@@ -67,7 +64,6 @@ func TestIncidenciaPutSuccess(t *testing.T) {
 }
 
 func TestIncidenciaGetAllSuccess(t *testing.T) {
-	// Basta con que la consulta no falle y devuelva 0 filas
 	orig := MockQuery
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		return &mockRows{columns: []string{"pk_id_incidencia"}, values: [][]driver.Value{}}, nil

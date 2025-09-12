@@ -15,14 +15,12 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error en tx.Commit durante Update validando el mensaje
 func TestProductoPedidoUpdate_CommitError_Message(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 	origBegin := productoPedidoBeginTx
 
-	// consultas necesarias para pasar hasta commit
 	step := 0
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
@@ -84,5 +82,4 @@ func TestProductoPedidoUpdate_CommitError_Message(t *testing.T) {
 	if resp.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d. Body: %s", resp.Code, w.Body.String())
 	}
-	// No validamos el texto exacto del mensaje para evitar falsos negativos por rutas previas
 }

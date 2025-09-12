@@ -51,7 +51,6 @@ func TestHorarioTrabajadorMarshalJSON(t *testing.T) {
 		t.Fatalf("expected formatted fields present: %v", m)
 	}
 
-	// Sin trabajador (nil pointer path)
 	h.PK_DOCUMENTO_TRABAJADOR = nil
 	b, err = json.Marshal(h)
 	if err != nil {

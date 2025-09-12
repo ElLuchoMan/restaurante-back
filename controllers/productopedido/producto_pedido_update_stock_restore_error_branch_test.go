@@ -16,7 +16,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error al restaurar inventario cuando delta < 0
 func TestProductoPedidoUpdate_StockRestoreError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
@@ -25,7 +24,6 @@ func TestProductoPedidoUpdate_StockRestoreError(t *testing.T) {
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") {
-			// existentes con cantidad 3 para delta negativo
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(3), int64(1000)}}
 			return &mockRows{columns: cols, values: vals}, nil
@@ -47,7 +45,7 @@ func TestProductoPedidoUpdate_StockRestoreError(t *testing.T) {
 		productoPedidoRequeryDetalle = origReq
 	})
 
-	body := `[{"productoId":1,"cantidad":1}]` // antes 3 -> delta -2
+	body := `[{"productoId":1,"cantidad":1}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()

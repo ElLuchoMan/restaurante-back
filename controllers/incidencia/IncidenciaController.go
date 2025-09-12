@@ -16,7 +16,6 @@ type IncidenciaController struct {
 	web.Controller
 }
 
-// Hooks de ORM para pruebas
 type incidenciaOrmer interface {
 	QueryTable(interface{}) orm.QuerySeter
 	Insert(interface{}) (int64, error)
@@ -92,7 +91,6 @@ func (c *IncidenciaController) GetAll() {
 func (c *IncidenciaController) GetByDocumentAndDate() {
 	o := incidenciaOrmNew()
 
-	// Obtener parámetros de la consulta
 	documento, err := c.GetInt64("documento")
 	if err != nil || documento == 0 {
 		logging.LogControllerError(c.Ctx, "incidencias.search.bad_request", err, map[string]interface{}{"documento": c.GetString("documento")})
@@ -129,11 +127,9 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 		return
 	}
 
-	// Calcular rango de fechas
 	fechaInicio := time.Date(anio, time.Month(mes), 1, 0, 0, 0, 0, time.UTC)
-	fechaFin := fechaInicio.AddDate(0, 1, 0).Add(-time.Second) // Fin del mes
+	fechaFin := fechaInicio.AddDate(0, 1, 0).Add(-time.Second)
 
-	// Filtrar las incidencias
 	var incidencias []models.Incidencia
 	_, err = o.QueryTable(new(models.Incidencia)).
 		Filter("PK_DOCUMENTO_TRABAJADOR", documento).
@@ -161,7 +157,6 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 		return
 	}
 
-	// Responder con las incidencias encontradas
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -188,7 +183,6 @@ func (c *IncidenciaController) Post() {
 	var input map[string]interface{}
 	var incidencia models.Incidencia
 
-	// Decodificar la solicitud
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		logging.LogControllerError(c.Ctx, "incidencias.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -201,7 +195,6 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Validar y procesar fechaIncidencia
 	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
@@ -227,7 +220,6 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Validar y procesar monto
 	if monto, ok := input["monto"].(float64); ok {
 		incidencia.MONTO = int64(monto)
 	} else {
@@ -241,7 +233,6 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Validar y procesar resta
 	if resta, ok := input["resta"].(bool); ok {
 		incidencia.RESTA = resta
 	} else {
@@ -255,7 +246,6 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Validar y procesar motivo
 	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
 		incidencia.MOTIVO = motivo
 	} else {
@@ -269,7 +259,6 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Procesar documentoTrabajador (obligatorio)
 	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
 		doc := int64(documento)
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
@@ -284,7 +273,6 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Insertar en la base de datos
 	_, err := o.Insert(&incidencia)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "incidencias.post.insert_error", err, map[string]interface{}{"fecha": incidencia.FECHA, "doc": incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR})
@@ -298,7 +286,6 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
 		"incidenciaId":    incidencia.PK_ID_INCIDENCIA,
 		"fechaIncidencia": incidencia.FECHA.Format("2006-01-02"),
@@ -313,7 +300,6 @@ func (c *IncidenciaController) Post() {
 		}(),
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
@@ -340,7 +326,6 @@ func (c *IncidenciaController) Post() {
 func (c *IncidenciaController) Put() {
 	o := incidenciaOrmNew()
 
-	// Obtener el ID de la incidencia desde los parámetros
 	idStr := c.GetString("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id == 0 {
@@ -354,7 +339,6 @@ func (c *IncidenciaController) Put() {
 		return
 	}
 
-	// Buscar la incidencia por ID
 	incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
 	if err := o.Read(&incidencia); err == orm.ErrNoRows {
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -366,7 +350,6 @@ func (c *IncidenciaController) Put() {
 		return
 	}
 
-	// Deserializar los datos actualizados desde el cuerpo de la solicitud
 	var input map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		logging.LogControllerError(c.Ctx, "incidencias.put.bad_json", err, map[string]interface{}{"id": id})
@@ -380,7 +363,6 @@ func (c *IncidenciaController) Put() {
 		return
 	}
 
-	// Validar y actualizar los campos
 	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
@@ -411,7 +393,6 @@ func (c *IncidenciaController) Put() {
 		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
 	}
 
-	// Guardar los cambios en la base de datos
 	if _, err := o.Update(&incidencia); err != nil {
 		logging.LogControllerError(c.Ctx, "incidencias.put.update_error", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -424,7 +405,6 @@ func (c *IncidenciaController) Put() {
 		return
 	}
 
-	// Preparar la respuesta con el formato deseado
 	response := map[string]interface{}{
 		"incidenciaId":    incidencia.PK_ID_INCIDENCIA,
 		"fechaIncidencia": incidencia.FECHA.Format("2006-01-02"),
@@ -439,7 +419,6 @@ func (c *IncidenciaController) Put() {
 		}(),
 	}
 
-	// Responder con éxito
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,

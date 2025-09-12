@@ -56,7 +56,6 @@ func TestRestauranteDia_GetById_NotFound_Explicit(t *testing.T) {
 	origQ := MockQuery
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		if strings.Contains(strings.ToLower(q), "from restaurante_dia") {
-			// Simula ErrNoRows devolviendo un Rows sin datos
 			cols := []string{"restaurante_id", "nombre_restaurante", "hora_apertura", "dia"}
 			return &mockRows{columns: cols, values: [][]driver.Value{}}, nil
 		}

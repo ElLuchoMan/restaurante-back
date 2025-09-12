@@ -16,13 +16,11 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama de error en productoPedidoDeleteDetalles durante Update
 func TestProductoPedidoUpdate_DeleteDetallesError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 
-	// actuales vacíos, inventario suficiente
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {

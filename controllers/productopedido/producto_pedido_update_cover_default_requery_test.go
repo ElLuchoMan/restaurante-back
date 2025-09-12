@@ -11,7 +11,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la implementación por defecto de productoPedidoRequeryDetalle al ejecutar Update
 func TestProductoPedidoUpdate_DefaultRequery_CoversLines(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origHook := productoPedidoRequeryDetalle
@@ -22,10 +21,8 @@ func TestProductoPedidoUpdate_DefaultRequery_CoversLines(t *testing.T) {
 		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {
 			if call == 0 {
 				call++
-				// consulta inicial de actuales: 0 filas (delta positivo)
 				return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
 			}
-			// reconsulta One por defecto tras insert
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(2), int64(1000)}}
 			return &mockRows{columns: cols, values: vals}, nil
@@ -35,7 +32,6 @@ func TestProductoPedidoUpdate_DefaultRequery_CoversLines(t *testing.T) {
 			vals := [][]driver.Value{{int64(1), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
 		}
-		// otras consultas (bloqueo, updates, etc.)
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}
 	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {

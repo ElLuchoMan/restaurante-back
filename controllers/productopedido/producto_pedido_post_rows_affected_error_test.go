@@ -17,7 +17,6 @@ type errorResult struct{}
 func (errorResult) LastInsertId() (int64, error) { return 0, nil }
 func (errorResult) RowsAffected() (int64, error) { return 0, errors.New("rows affected fail") }
 
-// Cubre la rama de error en RowsAffected durante Post
 func TestProductoPedidoPost_RowsAffectedError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {

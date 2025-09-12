@@ -16,14 +16,12 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre específicamente el bloque de error en Commit usando el hook productoPedidoCommit
 func TestProductoPedidoUpdate_CommitError_Hook(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
 	origReq := productoPedidoRequeryDetalle
 	origCommit := productoPedidoCommit
 
-	// actuales: producto 1 cantidad 2; nuevos: igual -> delta 0
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "from detalle_pedido") && !strings.Contains(lower, "insert into") {

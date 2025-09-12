@@ -17,7 +17,6 @@ type CambiosHorarioController struct {
 	web.Controller
 }
 
-// Hook existente en tu versión (lo mantenemos igual: recibe string)
 var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
 	if o == nil {
 		return errors.New("nil ormer")
@@ -25,13 +24,6 @@ var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.Cambios
 	return o.QueryTable(new(models.CambiosHorario)).Filter("FECHA", date).One(ch)
 }
 
-/*
-Hooks extra para poder mockear en tests SIN tocar Postgres.
-En producción, el default sigue usando Beego ORM.
-OJO: en filtros de Beego usa el nombre del **campo del struct**. En tu código original
-filtras con "cambioHorarioId". Si ese es el campo del struct (no la columna), se respeta tal cual.
-Si tu struct realmente se llama PK_ID_CAMBIO_HORARIO, cámbialo también aquí y en los tests.
-*/
 var (
 	queryAllCambiosHorario = func(o orm.Ormer, horarios *[]models.CambiosHorario) (int64, error) {
 		if o == nil {
@@ -362,7 +354,6 @@ func (c *CambiosHorarioController) Put() {
 
 	var horario models.CambiosHorario
 	if err := queryCambioHorarioByID(o, id, &horario); err == orm.ErrNoRows {
-		// Se mantiene tu semántica original: 200 con Code=404 en el body
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
@@ -510,7 +501,6 @@ func (c *CambiosHorarioController) Delete() {
 		}
 		_ = c.ServeJSON()
 	} else if num == 0 {
-		// Se mantiene tu semántica: 200 con Code=404
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,

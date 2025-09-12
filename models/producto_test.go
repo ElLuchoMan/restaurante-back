@@ -9,7 +9,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// TestProductoImagenFieldType ensures IMAGEN column is declared as bytea.
 func TestProductoImagenFieldType(t *testing.T) {
 	typ := reflect.TypeOf(Producto{})
 	field, ok := typ.FieldByName("IMAGEN")
@@ -88,6 +87,5 @@ func TestProductoMarshalJSON_SubcategoriaNil(t *testing.T) {
 		t.Fatalf("Marshal: %v", err)
 	}
 	if strings.Contains(string(data), "\"subcategoriaId\":0") {
-		// Es aceptable. El objetivo es ejercer la ruta sin pánico.
 	}
 }

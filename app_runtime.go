@@ -15,18 +15,13 @@ import (
 )
 
 func setupAndRun() {
-	// Logging
 	runMode := web.BConfig.RunMode
 	logging.Setup(runMode)
-	// start log once
-	// slog.Info("app.start", slog.String("runmode", runMode))
 
-	// Middleware de logging: inicio/fin de request + errores
 	web.InsertFilter("*", web.BeforeRouter, logging.StartTimer)
 	web.InsertFilter("*", web.FinishRouter, logging.LogRequest)
 	web.InsertFilter("*", web.FinishRouter, logging.LogIfError)
 
-	// Healthcheck
 	web.Get("/healthz", func(ctx *context.Context) {
 		ctx.Output.SetStatus(200)
 		_ = ctx.Output.Body([]byte("ok"))
@@ -42,7 +37,6 @@ func setupAndRun() {
 		_ = ctx.Output.Body([]byte(http.StatusText(status)))
 	})
 
-	// Limitar tamaño de request y multipart
 	if v := os.Getenv("MAX_BODY_BYTES"); v != "" {
 		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
 			web.BConfig.MaxMemory = n
@@ -55,8 +49,7 @@ func setupAndRun() {
 		}
 	}
 
-	// Configurar CORS según entorno
-	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS") // Coma-separado
+	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
 	corsOpts := &cors.Options{
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Content-Type", "Accept"},
@@ -64,7 +57,6 @@ func setupAndRun() {
 		AllowCredentials: true,
 	}
 	if runMode == "prod" {
-		// En prod, exigir orígenes explícitos; si no hay, bloquear cross-origin
 		if strings.TrimSpace(allowedOriginsEnv) == "" {
 			corsOpts.AllowAllOrigins = false
 			corsOpts.AllowOrigins = []string{}
@@ -77,8 +69,6 @@ func setupAndRun() {
 			corsOpts.AllowOrigins = parts
 		}
 	} else {
-		// En dev/test: si se define CORS_ALLOWED_ORIGINS, respétalo con credenciales.
-		// Si no se define, permite todos los orígenes pero SIN credenciales para evitar bloqueo del navegador.
 		if strings.TrimSpace(allowedOriginsEnv) == "" {
 			corsOpts.AllowAllOrigins = true
 			corsOpts.AllowCredentials = false
@@ -94,21 +84,14 @@ func setupAndRun() {
 	}
 	web.InsertFilter("*", web.BeforeRouter, cors.Allow(corsOpts))
 
-	// Aplicar cache en estáticos
-	web.InsertFilter("/*", web.BeforeRouter, setStaticHeaders)
+	web.InsertFilter("*", web.BeforeRouter, setStaticHeaders)
 
-	// Swagger y listado de directorios sólo fuera de prod
-	if runMode != "prod" {
-		web.BConfig.WebConfig.DirectoryIndex = true
-		web.Handler("/swagger/*", httpSwagger.WrapHandler)
-	}
+	web.Handler("/swagger/*", httpSwagger.WrapHandler)
 
-	// Iniciar el cron job solo si la DB está disponible y no se ha pedido omitirlo
-	if dbReady && os.Getenv("SKIP_CRON") != "1" {
+	if os.Getenv("SKIP_CRON") != "1" && dbReady {
 		go generarNominaAutomatica()
 	}
 
-	// Iniciar el servidor salvo que se pida omitir (para tests/unit)
 	if os.Getenv("SKIP_WEB_RUN") != "1" {
 		webRun()
 	}

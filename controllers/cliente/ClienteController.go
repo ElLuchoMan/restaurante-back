@@ -26,8 +26,6 @@ var deleteCliente func(o orm.Ormer, c *models.Cliente) (int64, error)
 
 var bcryptGenerate func([]byte, int) ([]byte, error)
 
-// useDefaultClienteWrappers restablece los wrappers por defecto para
-// ejecutar el ORM real (útil para cobertura en tests).
 func useDefaultClienteWrappers() {
 	ormNew = orm.NewOrm
 	queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
@@ -56,7 +54,6 @@ func isUniqueEmailErr(err error) bool {
 	if err == nil {
 		return false
 	}
-	// Detecta violaciones de unicidad por nombre de índice o mensaje
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "uq_cliente_correo") ||
 		(strings.Contains(msg, "unique") && strings.Contains(msg, "correo"))
@@ -80,17 +77,12 @@ func (c *ClienteController) GetAll() {
 	o := ormNew()
 	var clientes []models.Cliente
 
-	// Obtener el valor del parámetro fields
 	fields := c.GetString("fields")
 
-	// Si se especificó `limit` o `offset` en la query, aplícalos.
-	// Si no se especifican, usamos el helper `queryAllClientes` para mantener
-	// la capacidad de mock en tests.
 	limitStr := c.GetString("limit")
 	offsetStr := c.GetString("offset")
 
 	if limitStr != "" || offsetStr != "" {
-		// Parsear valores controlando errores
 		limit, errL := c.GetInt("limit")
 		offset, errO := c.GetInt("offset")
 		if limitStr != "" && errL != nil {
@@ -129,7 +121,6 @@ func (c *ClienteController) GetAll() {
 		}
 	}
 
-	// Si fields == nombre_completo_telefono => mapear a respuesta reducida
 	if fields == "nombre_completo_telefono" {
 		var reduced []map[string]interface{}
 		for _, cli := range clientes {
@@ -145,7 +136,6 @@ func (c *ClienteController) GetAll() {
 		return
 	}
 
-	// Ocultar password en respuesta completa
 	for i := range clientes {
 		clientes[i].PASSWORD = ""
 	}
@@ -204,7 +194,6 @@ func (c *ClienteController) GetById() {
 		return
 	}
 
-	// Excluir la contraseña de la respuesta
 	cliente.PASSWORD = ""
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -243,7 +232,6 @@ func (c *ClienteController) Post() {
 		return
 	}
 
-	// Validar y normalizar correo
 	correoTrim := strings.TrimSpace(cliente.CORREO)
 	if correoTrim == "" {
 		logging.LogControllerError(c.Ctx, "clientes.post.validation_error", nil, map[string]interface{}{"missing": "correo"})
@@ -257,7 +245,6 @@ func (c *ClienteController) Post() {
 	}
 	cliente.CORREO = normalizeEmail(correoTrim)
 
-	// Hash de la contraseña antes de insertar
 	hashedPassword, err := bcryptGenerate([]byte(cliente.PASSWORD), bcrypt.DefaultCost)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "clientes.post.hash_error", err, nil)
@@ -272,7 +259,6 @@ func (c *ClienteController) Post() {
 	}
 	cliente.PASSWORD = string(hashedPassword)
 
-	// Inserción en la base de datos
 	if _, err = insertCliente(o, &cliente); err != nil {
 		if isUniqueEmailErr(err) {
 			logging.LogControllerError(c.Ctx, "clientes.post.unique_conflict", err, map[string]interface{}{"correo": cliente.CORREO})
@@ -296,7 +282,6 @@ func (c *ClienteController) Post() {
 		return
 	}
 
-	// Excluir la contraseña de la respuesta
 	cliente.PASSWORD = ""
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
@@ -325,7 +310,6 @@ func (c *ClienteController) Post() {
 func (c *ClienteController) Put() {
 	o := ormNew()
 
-	// Obtener el ID del query parameter
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "clientes.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
@@ -339,7 +323,6 @@ func (c *ClienteController) Put() {
 		return
 	}
 
-	// Verificar si el cliente existe
 	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: id}
 	if err := readCliente(o, &cliente); err != nil {
 		if err == orm.ErrNoRows {
@@ -362,7 +345,6 @@ func (c *ClienteController) Put() {
 		return
 	}
 
-	// Decodificar los datos actualizados
 	var updatedCliente models.Cliente
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &updatedCliente); err != nil {
 		logging.LogControllerError(c.Ctx, "clientes.put.bad_json", err, map[string]interface{}{"id": id})
@@ -376,18 +358,15 @@ func (c *ClienteController) Put() {
 		return
 	}
 
-	// Mantener el ID original
 	updatedCliente.PK_DOCUMENTO_CLIENTE = cliente.PK_DOCUMENTO_CLIENTE
 
-	// Normalizar/Conservar correo
 	correoTrim := strings.TrimSpace(updatedCliente.CORREO)
 	if correoTrim == "" {
-		updatedCliente.CORREO = cliente.CORREO // no sobreescribir con vacío
+		updatedCliente.CORREO = cliente.CORREO
 	} else {
 		updatedCliente.CORREO = normalizeEmail(correoTrim)
 	}
 
-	// Si se proporciona una nueva contraseña, hashéala; de lo contrario conserva la actual
 	if updatedCliente.PASSWORD != "" {
 		hashedPassword, err := bcryptGenerate([]byte(updatedCliente.PASSWORD), bcrypt.DefaultCost)
 		if err != nil {
@@ -403,11 +382,9 @@ func (c *ClienteController) Put() {
 		}
 		updatedCliente.PASSWORD = string(hashedPassword)
 	} else {
-		// Mantener la contraseña existente
 		updatedCliente.PASSWORD = cliente.PASSWORD
 	}
 
-	// Actualizar en la base de datos
 	if _, err = updateCliente(o, &updatedCliente); err != nil {
 		if isUniqueEmailErr(err) {
 			logging.LogControllerError(c.Ctx, "clientes.put.unique_conflict", err, map[string]interface{}{"id": id, "correo": updatedCliente.CORREO})
@@ -431,7 +408,6 @@ func (c *ClienteController) Put() {
 		return
 	}
 
-	// Excluir la contraseña de la respuesta
 	updatedCliente.PASSWORD = ""
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -458,7 +434,6 @@ func (c *ClienteController) Put() {
 func (c *ClienteController) Delete() {
 	o := ormNew()
 
-	// Obtener el ID del query parameter
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "clientes.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})

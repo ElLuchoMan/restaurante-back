@@ -11,7 +11,6 @@ import (
 	beegoCtx "github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre la rama en GetById donde productos contiene JSON inválido y se ignora
 func TestDomicilioGetById_InvalidProductosJSON(t *testing.T) {
 	call := 0
 	origQ := MockQuery
@@ -28,7 +27,6 @@ func TestDomicilioGetById_InvalidProductosJSON(t *testing.T) {
 			return &mockRows{columns: cols, values: vals}, nil
 		case 3:
 			cols := []string{"pedido_id", "pago_id", "pago_monto", "subtotal_productos", "productos"}
-			// productos inválido: no es JSON válido
 			vals := [][]driver.Value{{int64(5), nil, float64(20), nil, "["}}
 			return &mockRows{columns: cols, values: vals}, nil
 		default:
@@ -50,5 +48,4 @@ func TestDomicilioGetById_InvalidProductosJSON(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
-	// No validación estricta del body; con ejecutar la ruta ya cubrimos las líneas
 }

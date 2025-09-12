@@ -16,7 +16,6 @@ func TestDomicilioPostSuccess(t *testing.T) {
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "insert into domicilio") {
-			// RETURNING id
 			cols := []string{"pk_id_domicilio"}
 			vals := [][]driver.Value{{int64(1)}}
 			return &mockRows{columns: cols, values: vals}, nil

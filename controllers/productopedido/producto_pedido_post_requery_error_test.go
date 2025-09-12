@@ -12,7 +12,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre error en la reconsulta del precio después de insertar el detalle
 func TestProductoPedidoPost_RequeryError(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {

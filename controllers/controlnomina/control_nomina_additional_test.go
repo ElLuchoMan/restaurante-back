@@ -13,7 +13,6 @@ import (
 
 func TestControlNomina_GetAll_Success_EmptyList(t *testing.T) {
 	orig := MockQuery
-	// Devolver 0 filas sin error
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		return &mockRows{columns: []string{"pk_id_control_nomina", "fecha", "estado"}, values: [][]driver.Value{}}, nil
 	}

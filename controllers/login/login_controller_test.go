@@ -18,10 +18,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// mockLoginOrmer implements only the Read method of orm.Ormer, allowing tests
-// to customize the behaviour while satisfying the interface. Other methods are
-// promoted from the embedded orm.Ormer and will panic if used since the field
-// is nil, but our tests only rely on Read.
 type mockLoginOrmer struct {
 	orm.Ormer
 	ReadFunc func(interface{}, ...string) error

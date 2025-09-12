@@ -9,7 +9,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// TestProtectedEndpointWithoutToken ensures that endpoints protected by the token middleware return 401 when no token is provided.
 func TestProtectedEndpointWithoutToken(t *testing.T) {
 	if os.Getenv("INTEGRATION") != "1" {
 		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
@@ -22,7 +21,6 @@ func TestProtectedEndpointWithoutToken(t *testing.T) {
 	})
 }
 
-// TestOptionsBypassesToken verifies that OPTIONS requests bypass token validation to allow CORS preflight.
 func TestOptionsBypassesToken(t *testing.T) {
 	if os.Getenv("INTEGRATION") != "1" {
 		t.Skip("Skipping integration test: set INTEGRATION=1 to run")
@@ -36,7 +34,6 @@ func TestOptionsBypassesToken(t *testing.T) {
 	})
 }
 
-// TestPublicPostWithoutToken confirms that public POST endpoints can be accessed without a token and return a validation error instead.
 func TestPublicPostWithoutToken(t *testing.T) {
 	if os.Getenv("INTEGRATION") != "1" {
 		t.Skip("Skipping integration test: set INTEGRATION=1 to run")

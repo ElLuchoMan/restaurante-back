@@ -1,0 +1,1070 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "basePath": "/restaurante/v1",
+    "paths": null,
+    "definitions": {
+        "map[string]interface{}": {
+            "title": "map[string]interface{}",
+            "type": "object"
+        },
+        "models.ApiResponse": {
+            "title": "ApiResponse",
+            "type": "object",
+            "properties": {
+                "cause": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "data": {
+                    "$ref": "#/definitions/models.any"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ApiResponse{data=[]map[string]interface{}}": {
+            "title": "ApiResponse{data=[]map[string]interface{}}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Categoria}": {
+            "title": "Categoria}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Cliente}": {
+            "title": "Cliente}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.ControlNomina}": {
+            "title": "ControlNomina}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Domicilio}": {
+            "title": "Domicilio}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.HorarioTrabajador}": {
+            "title": "HorarioTrabajador}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Incidencia}": {
+            "title": "Incidencia}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.MetodoPago}": {
+            "title": "MetodoPago}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.NominaTrabajador}": {
+            "title": "NominaTrabajador}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Nomina}": {
+            "title": "Nomina}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Pago}": {
+            "title": "Pago}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Pedido}": {
+            "title": "Pedido}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Producto}": {
+            "title": "Producto}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.ReservaContacto}": {
+            "title": "ReservaContacto}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Restaurante}": {
+            "title": "Restaurante}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Subcategoria}": {
+            "title": "Subcategoria}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=[]models.Trabajador}": {
+            "title": "Trabajador}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=map[string]interface{}}": {
+            "title": "ApiResponse{data=map[string]interface{}}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Categoria}": {
+            "title": "Categoria}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Cliente}": {
+            "title": "Cliente}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.ControlNomina}": {
+            "title": "ControlNomina}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Domicilio}": {
+            "title": "Domicilio}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.HorarioTrabajador}": {
+            "title": "HorarioTrabajador}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.MetodoPago}": {
+            "title": "MetodoPago}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.NominaTrabajadorResponse}": {
+            "title": "NominaTrabajadorResponse}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Nomina}": {
+            "title": "Nomina}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Pago}": {
+            "title": "Pago}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.PedidoDetails}": {
+            "title": "PedidoDetails}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Pedido}": {
+            "title": "Pedido}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Producto}": {
+            "title": "Producto}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.ReservaContacto}": {
+            "title": "ReservaContacto}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Restaurante}": {
+            "title": "Restaurante}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Subcategoria}": {
+            "title": "Subcategoria}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=models.Trabajador}": {
+            "title": "Trabajador}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=productopedido.ProductoPedidoResponse}": {
+            "title": "ProductoPedidoResponse}",
+            "type": "object"
+        },
+        "models.CambiosHorario": {
+            "title": "CambiosHorario",
+            "type": "object",
+            "properties": {
+                "abierto": {
+                    "type": "boolean"
+                },
+                "cambioHorarioId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "fechaCambioHorario": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "horaCierre": {
+                    "type": "string",
+                    "format": "datetime"
+                }
+            }
+        },
+        "models.CambiosHorarioCreateRequest": {
+            "title": "CambiosHorarioCreateRequest",
+            "type": "object",
+            "properties": {
+                "abierto": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "fechaCambioHorario": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "example": "08:00:00"
+                },
+                "horaCierre": {
+                    "type": "string",
+                    "example": "18:00:00"
+                }
+            }
+        },
+        "models.CambiosHorarioUpdateRequest": {
+            "title": "CambiosHorarioUpdateRequest",
+            "type": "object",
+            "properties": {
+                "abierto": {
+                    "type": "boolean"
+                },
+                "fechaCambioHorario": {
+                    "type": "string",
+                    "example": "2025-02-01"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "example": "09:00:00"
+                },
+                "horaCierre": {
+                    "type": "string",
+                    "example": "17:00:00"
+                }
+            }
+        },
+        "models.CategoriaCreateRequest": {
+            "title": "CategoriaCreateRequest",
+            "type": "object",
+            "properties": {
+                "nombre": {
+                    "type": "string",
+                    "example": "Bebidas"
+                }
+            }
+        },
+        "models.CategoriaUpdateRequest": {
+            "title": "CategoriaUpdateRequest",
+            "type": "object",
+            "properties": {
+                "nombre": {
+                    "type": "string",
+                    "example": "Bebidas frías"
+                }
+            }
+        },
+        "models.Cliente": {
+            "title": "Cliente",
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string"
+                },
+                "correo": {
+                    "type": "string"
+                },
+                "direccion": {
+                    "type": "string"
+                },
+                "documentoCliente": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "observaciones": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ClienteCreateRequest": {
+            "title": "ClienteCreateRequest",
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Pérez"
+                },
+                "correo": {
+                    "type": "string",
+                    "example": "juan.perez@example.com"
+                },
+                "direccion": {
+                    "type": "string",
+                    "example": "Calle 123 #45-67"
+                },
+                "documentoCliente": {
+                    "type": "integer",
+                    "example": 1234567890,
+                    "format": "int64"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Juan"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "example": "Cliente frecuente"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "MiPassSegura!"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001234567"
+                }
+            }
+        },
+        "models.ClienteUpdateRequest": {
+            "title": "ClienteUpdateRequest",
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Pérez"
+                },
+                "correo": {
+                    "type": "string",
+                    "example": "juan.perez@example.com"
+                },
+                "direccion": {
+                    "type": "string",
+                    "example": "Carrera 10 #20-30"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Juan"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "example": "Prefiere contacto por WhatsApp"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "NuevaPass!"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3009876543"
+                }
+            }
+        },
+        "models.DomicilioCreate": {
+            "title": "DomicilioCreate",
+            "type": "object",
+            "properties": {
+                "createdBy": {
+                    "type": "string",
+                    "example": "admin@example.com"
+                },
+                "direccion": {
+                    "type": "string",
+                    "example": "Calle 123 #45-67"
+                },
+                "estadoDomicilio": {
+                    "$ref": "#/definitions/models.EstadoDomicilio"
+                },
+                "fechaDomicilio": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "example": "Dejar en portería"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001234567"
+                },
+                "trabajadorAsignado": {
+                    "type": "integer",
+                    "example": 0,
+                    "format": "int64"
+                }
+            }
+        },
+        "models.DomicilioUpdateRequest": {
+            "title": "DomicilioUpdateRequest",
+            "type": "object",
+            "properties": {
+                "direccion": {
+                    "type": "string",
+                    "example": "Calle 45 #12-34"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001112233"
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
+        "models.EstadoDomicilio": {
+            "title": "EstadoDomicilio",
+            "type": "string",
+            "enum": [
+                "EstadoDomicilioPendiente = \"PENDIENTE\"",
+                "EstadoDomicilioEnCamino = \"EN_CAMINO\"",
+                "EstadoDomicilioEntregado = \"ENTREGADO\""
+            ],
+            "example": "PENDIENTE"
+        },
+        "models.EstadoReserva": {
+            "title": "EstadoReserva",
+            "type": "string",
+            "enum": [
+                "EstadoReservaPendiente = \"PENDIENTE\"",
+                "EstadoReservaConfirmada = \"CONFIRMADA\"",
+                "EstadoReservaCancelada = \"CANCELADA\"",
+                "EstadoReservaCumplida = \"CUMPLIDA\""
+            ],
+            "example": "PENDIENTE"
+        },
+        "models.HorarioTrabajadorCreateRequest": {
+            "title": "HorarioTrabajadorCreateRequest",
+            "type": "object",
+            "properties": {
+                "dia": {
+                    "type": "string",
+                    "example": "Lunes"
+                },
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000,
+                    "format": "int64"
+                },
+                "horaFin": {
+                    "type": "string",
+                    "example": "12:00:00"
+                },
+                "horaInicio": {
+                    "type": "string",
+                    "example": "08:00:00"
+                }
+            }
+        },
+        "models.HorarioTrabajadorUpdateRequest": {
+            "title": "HorarioTrabajadorUpdateRequest",
+            "type": "object",
+            "properties": {
+                "horaFin": {
+                    "type": "string",
+                    "example": "12:00:00"
+                },
+                "horaInicio": {
+                    "type": "string",
+                    "example": "08:00:00"
+                }
+            }
+        },
+        "models.IncidenciaCreateRequest": {
+            "title": "IncidenciaCreateRequest",
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000,
+                    "format": "int64"
+                },
+                "fechaIncidencia": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 50000,
+                    "format": "int64"
+                },
+                "motivo": {
+                    "type": "string",
+                    "example": "Descuento por retraso"
+                },
+                "resta": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "models.IncidenciaUpdateRequest": {
+            "title": "IncidenciaUpdateRequest",
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000,
+                    "format": "int64"
+                },
+                "fechaIncidencia": {
+                    "type": "string",
+                    "example": "2025-02-01"
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 60000,
+                    "format": "int64"
+                },
+                "motivo": {
+                    "type": "string",
+                    "example": "Bonificación"
+                },
+                "resta": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "models.LoginRequest": {
+            "title": "LoginRequest",
+            "type": "object",
+            "properties": {
+                "documento": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.MetodoPagoCreateRequest": {
+            "title": "MetodoPagoCreateRequest",
+            "type": "object",
+            "properties": {
+                "detalle": {
+                    "type": "string",
+                    "example": "Cuenta 3001234567"
+                },
+                "tipo": {
+                    "type": "string",
+                    "example": "NEQUI"
+                }
+            }
+        },
+        "models.MetodoPagoUpdateRequest": {
+            "title": "MetodoPagoUpdateRequest",
+            "type": "object",
+            "properties": {
+                "detalle": {
+                    "type": "string",
+                    "example": "Cuenta 3007654321"
+                },
+                "tipo": {
+                    "type": "string",
+                    "example": "DAVIPLATA"
+                }
+            }
+        },
+        "models.NominaCreateRequest": {
+            "title": "NominaCreateRequest",
+            "type": "object",
+            "properties": {
+                "estadoNomina": {
+                    "type": "string",
+                    "example": "NO_PAGO"
+                },
+                "fecha": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                }
+            }
+        },
+        "models.NominaTrabajadorRequest": {
+            "title": "NominaTrabajadorRequest",
+            "type": "object",
+            "properties": {
+                "detalles": {
+                    "type": "string",
+                    "example": "Pago correspondiente al mes de enero"
+                },
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 1015466494,
+                    "format": "int64"
+                }
+            }
+        },
+        "models.PagoCreateRequest": {
+            "title": "PagoCreateRequest",
+            "type": "object",
+            "properties": {
+                "estadoPago": {
+                    "type": "string",
+                    "example": "PAGADO"
+                },
+                "fechaPago": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaPago": {
+                    "type": "string",
+                    "example": "14:30:00"
+                },
+                "metodoPagoId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 50000,
+                    "format": "int64"
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
+        "models.PagoUpdateRequest": {
+            "title": "PagoUpdateRequest",
+            "type": "object",
+            "properties": {
+                "estadoPago": {
+                    "type": "string",
+                    "example": "PENDIENTE"
+                },
+                "fecha": {
+                    "type": "string",
+                    "example": "2025-02-01"
+                },
+                "hora": {
+                    "type": "string",
+                    "example": "15:00:00"
+                },
+                "metodoPagoId": {
+                    "type": "integer",
+                    "example": 2,
+                    "format": "int64"
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 60000,
+                    "format": "int64"
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
+        "models.PedidoCreateRequest": {
+            "title": "PedidoCreateRequest",
+            "type": "object",
+            "properties": {
+                "delivery": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "pk_id_domicilio": {
+                    "type": "integer",
+                    "example": 0,
+                    "format": "int64"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                }
+            }
+        },
+        "models.ProductoPedidoCreateRequest": {
+            "title": "ProductoPedidoCreateRequest",
+            "type": "object",
+            "properties": {
+                "detalles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoPedidoItemInput"
+                    }
+                },
+                "pedidoId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                }
+            }
+        },
+        "models.ProductoPedidoItemInput": {
+            "title": "ProductoPedidoItemInput",
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer",
+                    "example": 2,
+                    "format": "int64"
+                },
+                "productoId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                }
+            }
+        },
+        "models.ProductoPedidoUpdateRequest": {
+            "title": "ProductoPedidoUpdateRequest",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/models.ProductoPedidoItemInput"
+            }
+        },
+        "models.Reserva": {
+            "title": "Reserva",
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "$ref": "#/definitions/models.ReservaContacto"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "createdBy": {
+                    "type": "string"
+                },
+                "estadoReserva": {
+                    "$ref": "#/definitions/models.EstadoReserva"
+                },
+                "fechaReserva": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "horaReserva": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "indicaciones": {
+                    "type": "string"
+                },
+                "personas": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "reservaId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "restauranteId": {
+                    "$ref": "#/definitions/models.Restaurante"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "updatedBy": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ReservaContacto": {
+            "title": "ReservaContacto",
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "documentoCliente": {
+                    "$ref": "#/definitions/models.Cliente"
+                },
+                "documentoContacto": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ReservaCreateRequest": {
+            "title": "ReservaCreateRequest",
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                },
+                "createdBy": {
+                    "type": "string",
+                    "example": "admin@example.com"
+                },
+                "estadoReserva": {
+                    "type": "string",
+                    "example": "PENDIENTE"
+                },
+                "fechaReserva": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaReserva": {
+                    "type": "string",
+                    "example": "18:30:00"
+                },
+                "indicaciones": {
+                    "type": "string",
+                    "example": "Mesa cerca a la ventana"
+                },
+                "personas": {
+                    "type": "integer",
+                    "example": 4,
+                    "format": "int64"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                }
+            }
+        },
+        "models.ReservaUpdateRequest": {
+            "title": "ReservaUpdateRequest",
+            "type": "object",
+            "properties": {
+                "contactoId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                },
+                "estadoReserva": {
+                    "type": "string",
+                    "example": "CONFIRMADA"
+                },
+                "fechaReserva": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaReserva": {
+                    "type": "string",
+                    "example": "19:00:00"
+                },
+                "indicaciones": {
+                    "type": "string",
+                    "example": "Mesa al fondo"
+                },
+                "personas": {
+                    "type": "integer",
+                    "example": 5,
+                    "format": "int64"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
+        "models.Restaurante": {
+            "title": "Restaurante",
+            "type": "object",
+            "properties": {
+                "cambioHorarioId": {
+                    "$ref": "#/definitions/models.CambiosHorario"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "nombreRestaurante": {
+                    "type": "string"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "models.RestauranteCreateRequest": {
+            "title": "RestauranteCreateRequest",
+            "type": "object",
+            "properties": {
+                "cambioHorarioId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "example": "08:00:00"
+                },
+                "nombreRestaurante": {
+                    "type": "string",
+                    "example": "El Fogón de María"
+                }
+            }
+        },
+        "models.RestauranteUpdateRequest": {
+            "title": "RestauranteUpdateRequest",
+            "type": "object",
+            "properties": {
+                "cambioHorarioId": {
+                    "type": "integer",
+                    "example": 2,
+                    "format": "int64"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "example": "09:00:00"
+                },
+                "nombreRestaurante": {
+                    "type": "string",
+                    "example": "El Fogón Centro"
+                }
+            }
+        },
+        "models.SubcategoriaCreateRequest": {
+            "title": "SubcategoriaCreateRequest",
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Gaseosas"
+                }
+            }
+        },
+        "models.SubcategoriaUpdateRequest": {
+            "title": "SubcategoriaUpdateRequest",
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Gaseosas zero"
+                }
+            }
+        },
+        "models.TrabajadorCreateRequest": {
+            "title": "TrabajadorCreateRequest",
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Gómez"
+                },
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000,
+                    "format": "int64"
+                },
+                "fechaIngreso": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "fechaNacimiento": {
+                    "type": "string",
+                    "example": "1990-05-20"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "María"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "Secreta123"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1,
+                    "format": "int64"
+                },
+                "rol": {
+                    "type": "string",
+                    "example": "Mesero"
+                },
+                "sueldo": {
+                    "type": "integer",
+                    "example": 2000000,
+                    "format": "int64"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3012223344"
+                }
+            }
+        },
+        "models.TrabajadorUpdateRequest": {
+            "title": "TrabajadorUpdateRequest",
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Gómez"
+                },
+                "fechaIngreso": {
+                    "type": "string",
+                    "example": "2025-02-01"
+                },
+                "fechaNacimiento": {
+                    "type": "string",
+                    "example": "1990-05-20"
+                },
+                "fechaRetiro": {
+                    "type": "string",
+                    "example": "2025-12-31"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "María"
+                },
+                "nuevo": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "password": {
+                    "type": "string",
+                    "example": "NuevaSecreta!"
+                },
+                "rol": {
+                    "type": "string",
+                    "example": "Cocinero"
+                },
+                "sueldo": {
+                    "type": "integer",
+                    "example": 2200000,
+                    "format": "int64"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3012223344"
+                }
+            }
+        },
+        "models.any": {
+            "title": "any",
+            "type": "object"
+        },
+        "nil": {
+            "title": "nil",
+            "type": "object"
+        }
+    }
+}

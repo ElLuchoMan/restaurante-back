@@ -15,7 +15,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre el camino de éxito de Update pasando por Commit() y la respuesta final (200)
 func TestProductoPedidoUpdate_Happy_Commit_Success_Cover(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origDel := productoPedidoDeleteDetalles
@@ -23,7 +22,6 @@ func TestProductoPedidoUpdate_Happy_Commit_Success_Cover(t *testing.T) {
 	origCommit := productoPedidoCommit
 	origQueryAct := productoPedidoQueryActualesFn
 
-	// Evitar tocar DB para "actuales": devolver un detalle existente que iguala el input (delta 0)
 	productoPedidoQueryActualesFn = func(_ orm.Ormer, _ int64) ([]models.DetallePedido, error) {
 		return []models.DetallePedido{{
 			PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: 1},
@@ -33,7 +31,6 @@ func TestProductoPedidoUpdate_Happy_Commit_Success_Cover(t *testing.T) {
 		}}, nil
 	}
 
-	// Mock de consultas Raw: permitir SELECT ... FOR UPDATE y otras no críticas
 	MockQuery = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
 		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
 	}

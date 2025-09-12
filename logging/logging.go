@@ -12,9 +12,6 @@ import (
 
 var logger *slog.Logger
 
-// Setup configura el logger global según variables de entorno.
-// LOG_LEVEL: debug|info|warn|error (default: info)
-// LOG_FORMAT: json|text (default: json en prod, text en dev)
 func Setup(runMode string) {
 	level := new(slog.LevelVar)
 	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
@@ -47,10 +44,8 @@ func Setup(runMode string) {
 	slog.SetDefault(logger)
 }
 
-// Logger retorna el logger global configurado.
 func Logger() *slog.Logger {
 	if logger == nil {
-		// Fallback seguro para tests/unidades donde Setup aún no corre
 		h := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
 		logger = slog.New(h)
 		slog.SetDefault(logger)
@@ -58,12 +53,10 @@ func Logger() *slog.Logger {
 	return logger
 }
 
-// StartTimer guarda el tiempo de inicio en el contexto de la request.
 func StartTimer(ctx *context.Context) {
 	ctx.Input.SetData("_startTime", time.Now())
 }
 
-// LogRequest registra método, path, status, duración e IP del cliente.
 func LogRequest(ctx *context.Context) {
 	start, _ := ctx.Input.GetData("_startTime").(time.Time)
 	if start.IsZero() {
@@ -83,7 +76,6 @@ func LogRequest(ctx *context.Context) {
 	)
 }
 
-// LogIfError registra automáticamente errores HTTP (status >= 400) con parámetros de query.
 func LogIfError(ctx *context.Context) {
 	status := ctx.ResponseWriter.Status
 	if status < 400 {
@@ -102,8 +94,6 @@ func LogIfError(ctx *context.Context) {
 	)
 }
 
-// LogControllerError permite registrar un error puntual con campos de negocio.
-// Se sanitizan claves sensibles y se truncan valores largos.
 func LogControllerError(ctx *context.Context, message string, err error, fields map[string]interface{}) {
 	sanitized := sanitizeFields(fields)
 	method := ctx.Input.Method()

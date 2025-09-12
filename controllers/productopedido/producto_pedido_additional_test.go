@@ -23,7 +23,6 @@ func TestProductoPedido_Post_BadJSON(t *testing.T) {
 	c.Data = make(map[interface{}]interface{})
 
 	c.Post()
-	// Puede devolver 400 directo o 200 con ApiResponse{Code:400}
 	if w.Code == http.StatusBadRequest {
 		return
 	}

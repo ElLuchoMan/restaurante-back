@@ -13,7 +13,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Mocks para SubcategoriaController
 type subQS struct{ list []models.Subcategoria }
 
 func (m subQS) All(res interface{}, _ ...string) (int64, error) {
@@ -71,7 +70,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 	subcatOrmNew = func() subcatOrmer { return m }
 	defer func() { subcatOrmNew = orig }()
 
-	// GetAll
 	r := httptest.NewRequest(http.MethodGet, "/subcategorias", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -84,7 +82,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("getAll %d", w.Code)
 	}
 
-	// GetAll with categoria filter
 	r = httptest.NewRequest(http.MethodGet, "/subcategorias?categoria_id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -97,7 +94,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("getAll filter %d", w.Code)
 	}
 
-	// GetById not found
 	r = httptest.NewRequest(http.MethodGet, "/subcategorias/search?id=5", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -112,7 +108,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("expected 404, got %d", resp.Code)
 	}
 
-	// Post invalid
 	r = httptest.NewRequest(http.MethodPost, "/subcategorias", strings.NewReader("bad"))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -126,7 +121,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("post bad %d", w.Code)
 	}
 
-	// Post ok
 	body := `{"nombre":"Jugos","categoriaId":1}`
 	r = httptest.NewRequest(http.MethodPost, "/subcategorias", strings.NewReader(body))
 	w = httptest.NewRecorder()
@@ -141,7 +135,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("post ok %d", w.Code)
 	}
 
-	// Put not found
 	r = httptest.NewRequest(http.MethodPut, "/subcategorias?id=9", strings.NewReader(`{"nombre":"Refrescos"}`))
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -155,7 +148,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("put nf %d", w.Code)
 	}
 
-	// Put ok updating nombre and categoria
 	sub := models.Subcategoria{NOMBRE: "Sodas"}
 	m.Insert(&sub)
 	body = `{"nombre":"Sodas light","categoriaId":2}`
@@ -172,7 +164,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("put ok %d", w.Code)
 	}
 
-	// GetById ok
 	r = httptest.NewRequest(http.MethodGet, "/subcategorias/search?id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -186,7 +177,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 		t.Fatalf("get id ok %d", resp.Code)
 	}
 
-	// Delete ok
 	r = httptest.NewRequest(http.MethodDelete, "/subcategorias?id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()
@@ -200,7 +190,6 @@ func TestSubcategoriaController_FullCoverage(t *testing.T) {
 	}
 }
 
-// Tipos de prueba para error en GetAll de SubcategoriaController
 type badQSSub struct{}
 
 func (badQSSub) All(res interface{}, _ ...string) (int64, error)    { return 0, orm.ErrNoRows }
@@ -232,7 +221,6 @@ func TestSubcategoriaController_AllError(t *testing.T) {
 	}
 }
 
-// Orm que falla en Insert para cubrir error en Post
 type insertFailOrm struct{}
 
 func (insertFailOrm) QueryTable(interface{}) subcatQuerySeter      { return nil }

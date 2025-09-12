@@ -23,7 +23,6 @@ func TestLoadJWTSecret_FromEnv(t *testing.T) {
 }
 
 func TestLoadJWTSecret_DevFallback(t *testing.T) {
-	// Asegurar modo no prod
 	orig := web.BConfig.RunMode
 	web.BConfig.RunMode = "dev"
 	t.Cleanup(func() { web.BConfig.RunMode = orig })
@@ -59,7 +58,6 @@ func TestLoadJWTSecret_ProdPanicsWithoutEnv(t *testing.T) {
 	orig := web.BConfig.RunMode
 	web.BConfig.RunMode = "prod"
 	t.Cleanup(func() { web.BConfig.RunMode = orig })
-	// Simular proceso no-test para que isTestingProcess() sea false
 	origArgs := os.Args
 	os.Args = []string{"restaurante"}
 	t.Cleanup(func() { os.Args = origArgs })
@@ -116,7 +114,6 @@ func TestClientIP(t *testing.T) {
 }
 
 func TestAllowLogin_RateLimitAndReset(t *testing.T) {
-	// Aislar estado global
 	origRL := loginRL
 	origMax := loginMaxReq
 	loginRL = newRateLimiter()
@@ -135,7 +132,6 @@ func TestAllowLogin_RateLimitAndReset(t *testing.T) {
 		t.Fatal("tercera debería bloquear")
 	}
 
-	// Simular ventana expirada
 	ip := clientIP(r)
 	loginRL.m[ip].reset = loginRL.m[ip].reset.Add(-2 * loginWindow)
 	if !allowLogin(r) {
@@ -144,7 +140,6 @@ func TestAllowLogin_RateLimitAndReset(t *testing.T) {
 }
 
 func TestGenerateJWT_WritesTokenAndClaims(t *testing.T) {
-	// Forzar secreto conocido para validar token
 	orig := jwtSecret
 	jwtSecret = []byte("testsecret123")
 	t.Cleanup(func() { jwtSecret = orig })
@@ -165,7 +160,6 @@ func TestGenerateJWT_WritesTokenAndClaims(t *testing.T) {
 	if !strings.Contains(body, "\"token\"") || !strings.Contains(body, "Juan Perez") {
 		t.Fatalf("respuesta no contiene token/nombre: %s", body)
 	}
-	// Extraer token de la respuesta simple (sin map JSON estricto para mantener el test simple)
 	start := strings.Index(body, "\"token\":\"")
 	if start < 0 {
 		t.Fatalf("no se encontró token en body: %s", body)
@@ -188,7 +182,6 @@ func TestGenerateJWT_WritesTokenAndClaims(t *testing.T) {
 }
 
 func TestGenerateJWT_SignError(t *testing.T) {
-	// Forzar error de firmado dejando el secreto nil
 	orig := jwtSecret
 	jwtSecret = nil
 	t.Cleanup(func() { jwtSecret = orig })

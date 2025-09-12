@@ -19,12 +19,10 @@ func TestProductoPedidoUpdate_RequeryWrapperError_CoversBranch(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	origReq := productoPedidoRequeryDetalle
 	origDel := productoPedidoDeleteDetalles
-	// Forzar error directo del hook de reconsulta y evitar fallo en Delete
 	productoPedidoRequeryDetalle = func(_ orm.TxOrmer, _ int64, _ int64, _ *models.DetallePedido) error {
 		return errors.New("requery hook error")
 	}
 	productoPedidoDeleteDetalles = func(_ orm.TxOrmer, _ int64) error { return nil }
-	// actuales vacíos -> delta positivo; inventario suficiente para pasar a inserción
 	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
 		lower := strings.ToLower(q)
 		if strings.Contains(lower, "detalle_pedido") && !strings.Contains(lower, "insert into") {

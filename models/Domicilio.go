@@ -6,7 +6,6 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
-// Estructura usada para las peticiones de creación
 type DomicilioCreate struct {
 	Direccion      string          `json:"direccion" example:"Calle 123 #45-67"`
 	Telefono       string          `json:"telefono" example:"3001234567"`
@@ -17,7 +16,6 @@ type DomicilioCreate struct {
 	Estado         EstadoDomicilio `json:"estadoDomicilio,omitempty" example:"PENDIENTE"`
 }
 
-// Modelo principal mapeado a la tabla domicilio
 type Domicilio struct {
 	ID         int64           `orm:"column(pk_id_domicilio);pk;auto" json:"domicilioId"`
 	Direccion  string          `orm:"column(direccion);type(text)" json:"direccion"`

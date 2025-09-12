@@ -9,7 +9,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// fake ormer to force Delete not found path
 type fakeIncidOrmNotFound struct{}
 
 func (fakeIncidOrmNotFound) QueryTable(interface{}) orm.QuerySeter        { return nil }

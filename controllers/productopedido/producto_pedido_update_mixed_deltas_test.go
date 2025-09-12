@@ -11,7 +11,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Cubre un caso mixto: delta positivo y negativo dentro de la misma llamada a Update
 func TestProductoPedidoUpdate_MixedDeltas_Success(t *testing.T) {
 	origQ, origE := MockQuery, MockExec
 	step := 0
@@ -20,27 +19,22 @@ func TestProductoPedidoUpdate_MixedDeltas_Success(t *testing.T) {
 		lower := strings.ToLower(q)
 		switch {
 		case strings.Contains(lower, "detalle_pedido"):
-			// Primera consulta: actuales -> producto 1:1, producto 2:2
 			if step == 0 {
 				step++
 				cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 				vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(1), int64(1000)}, {int64(2), int64(1), int64(2), int64(2), int64(500)}}
 				return &mockRows{columns: cols, values: vals}, nil
 			}
-			// Reconsulta tras insertar nuevos detalles
 			requeryStep++
 			cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
 			if requeryStep == 1 {
 				vals := [][]driver.Value{{int64(3), int64(1), int64(1), int64(3), int64(1000)}}
 				return &mockRows{columns: cols, values: vals}, nil
 			}
-			// Solo insertamos productoId=1 en nuevos; si hubiera otro, podría añadirse aquí
 			return &mockRows{columns: cols, values: [][]driver.Value{}}, nil
 		case strings.Contains(lower, "insert into") && strings.Contains(lower, "detalle_pedido"):
-			// Simular retorno del id insertado
 			return &mockRows{columns: []string{"pk_id_detalle"}, values: [][]driver.Value{{int64(3)}}}, nil
 		case strings.Contains(lower, "select pk_id_producto, cantidad from producto"):
-			// Stock suficiente para productoId=1
 			cols := []string{"pk_id_producto", "cantidad"}
 			vals := [][]driver.Value{{int64(1), int64(10)}}
 			return &mockRows{columns: cols, values: vals}, nil
@@ -53,7 +47,6 @@ func TestProductoPedidoUpdate_MixedDeltas_Success(t *testing.T) {
 	}
 	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
 
-	// Nuevos solo para producto 1 con cantidad 3 -> delta p1:+2, p2:-2
 	body := `[{"productoId":1,"cantidad":3}]`
 	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
 	w := httptest.NewRecorder()

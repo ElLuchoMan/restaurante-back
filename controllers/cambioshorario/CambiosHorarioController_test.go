@@ -19,7 +19,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Driver/mock mínimo para inicializar orm.NewOrm() sin DB real
 type mockDriver struct{}
 
 type mockConn struct{}
@@ -54,11 +53,8 @@ func (r *mockRows) Close() error                   { return nil }
 func (r *mockRows) Next(dest []driver.Value) error { return io.EOF }
 
 func TestMain(m *testing.M) {
-	// Evitar pánico por JWT en inits de otros paquetes
 	_ = os.Setenv("JWT_SECRET", "testsecret")
-	// Inicializar timezone para pruebas
 	database.InitTimezone()
-	// Registrar driver y base por defecto para que orm.NewOrm() no falle
 	sql.Register("mock", mockDriver{})
 	orm.RegisterDriver("mock", orm.DRPostgres)
 	_ = orm.RegisterDataBase("default", "mock", "")
@@ -78,9 +74,6 @@ func setupCtx(method, url string, body string) (*CambiosHorarioController, *http
 	c.Data = make(map[interface{}]interface{})
 	return c, w
 }
-
-// Copia íntegra de los tests existentes adaptados al nuevo paquete
-// (contenido idéntico al archivo original en controllers/ con package actualizado)
 
 func TestCambiosHorario_GetAll_DBError(t *testing.T) {
 	orig := queryAllCambiosHorario
@@ -184,7 +177,6 @@ func TestCambiosHorario_Post_BadJSON(t *testing.T) {
 }
 
 func TestCambiosHorario_Post_MissingFields(t *testing.T) {
-	// Falta fechaCambioHorario
 	body := `{"abierto": true, "horaApertura":"08:00:00", "horaCierre":"17:00:00"}`
 	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
 	c.Post()
@@ -192,7 +184,6 @@ func TestCambiosHorario_Post_MissingFields(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 
-	// Falta horaApertura cuando abierto = true
 	body = `{"fechaCambioHorario":"2024-01-01", "abierto": true, "horaCierre":"17:00:00"}`
 	c, w = setupCtx(http.MethodPost, "/cambios_horario", body)
 	c.Post()

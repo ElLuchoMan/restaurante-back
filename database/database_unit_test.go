@@ -13,7 +13,6 @@ import (
 	"restaurante/models"
 )
 
-// Test mínimo para que el paquete database tenga cobertura sin tocar la DB real.
 func TestDatabasePackageLoads(t *testing.T) {
 	to := time.Now()
 	if to.IsZero() {
@@ -21,7 +20,6 @@ func TestDatabasePackageLoads(t *testing.T) {
 	}
 }
 
-// Verifica que InitTimezone cargue correctamente la zona horaria de Bogotá.
 func TestInitTimezone(t *testing.T) {
 	BogotaZone = nil
 	InitTimezone()
@@ -33,7 +31,6 @@ func TestInitTimezone(t *testing.T) {
 	}
 }
 
-// Verifica que InitTimezone use la zona UTC-5 cuando no encuentra los datos de zona horaria.
 func TestInitTimezoneFallback(t *testing.T) {
 	BogotaZone = nil
 	orig := loadLocation
@@ -49,11 +46,10 @@ func TestInitTimezoneFallback(t *testing.T) {
 	}
 }
 
-// InitDB debe fallar cuando los datos de conexión son inválidos.
 func TestInitDBReturnsError(t *testing.T) {
 	t.Setenv("PGCONNECT_TIMEOUT", "1")
 	_ = web.AppConfig.Set("db_host", "127.0.0.1")
-	_ = web.AppConfig.Set("db_port", "1") // puerto inválido para forzar error
+	_ = web.AppConfig.Set("db_port", "1")
 	_ = web.AppConfig.Set("db_user", "postgres")
 	_ = web.AppConfig.Set("db_pass", "bad")
 	_ = web.AppConfig.Set("db_name", "test")
@@ -63,7 +59,6 @@ func TestInitDBReturnsError(t *testing.T) {
 	}
 }
 
-// Verifica que InitDB registre la base de datos correctamente cuando la función de registro no falla.
 func TestInitDBSuccess(t *testing.T) {
 	_ = web.AppConfig.Set("db_host", "localhost")
 	_ = web.AppConfig.Set("db_port", "5432")
@@ -99,7 +94,6 @@ func TestInitDBSuccess(t *testing.T) {
 	}
 }
 
-// InitDB debe retornar temprano cuando SKIP_DB_SEED está activo.
 func TestInitDBSkipSeed(t *testing.T) {
 	t.Setenv("SKIP_DB_SEED", "1")
 	_ = web.AppConfig.Set("db_host", "localhost")
@@ -117,7 +111,6 @@ func TestInitDBSkipSeed(t *testing.T) {
 	}
 }
 
-// Verifica que cuando el seed falla, el flujo continúa sin propagar el error.
 func TestInitDBSeedError(t *testing.T) {
 	t.Setenv("SKIP_DB_SEED", "0")
 	_ = web.AppConfig.Set("db_host", "localhost")
@@ -146,7 +139,6 @@ func TestInitDBSeedError(t *testing.T) {
 	}
 }
 
-// Asegura que las funciones de indirection se ejecuten correctamente.
 func TestIndirectionHelpers(t *testing.T) {
 	o := &simpleOrm{}
 	if _, err := countMetodoPagoByTipo(o, "tipo"); err != nil {

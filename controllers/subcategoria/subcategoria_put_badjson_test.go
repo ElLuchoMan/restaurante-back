@@ -10,7 +10,6 @@ import (
 	"restaurante/models"
 )
 
-// Cubre la rama de JSON inválido en el método Put
 func TestSubcategoriaController_Put_BadJSON(t *testing.T) {
 	m := newSubMockOrm()
 	m.Insert(&models.Subcategoria{NOMBRE: "X"})

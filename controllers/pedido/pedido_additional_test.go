@@ -39,8 +39,6 @@ func TestPedidoPost_TimezoneError(t *testing.T) {
 	}
 }
 
-// Test error updating the pago status during AssignPago. The controller should still
-// return 200 but the error path is exercised for coverage.
 func TestPedidoAssignPagoUpdatePagoError(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
@@ -76,8 +74,6 @@ func TestPedidoAssignPagoUpdatePagoError(t *testing.T) {
 	}
 }
 
-// Invalid boolean value for the domicilio parameter should skip domicile filtering
-// and still return a not-found message with HTTP 200 (legacy behavior).
 func TestPedidoGetAllInvalidDomicilio(t *testing.T) {
 	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
