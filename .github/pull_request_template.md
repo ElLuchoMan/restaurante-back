@@ -1,15 +1,20 @@
 ## Título del cambio
-_Por ejemplo: Actualización de dependencias_
+
+Describe brevemente el objetivo del cambio.
 
 ## Descripción del cambio
-_Por ejemplo: Actualización de go a la versión 1.xx_
+
+Contexto, motivación, alcance y consideraciones. Incluye capturas o ejemplos si aplica.
 
 ## Type
+
 - [ ] Feature
 - [ ] Fix
 
 ## Checklist
+
 - [ ] Test unitarios
 - [ ] Gofmt
 - [ ] Golangci-lint
-- [ ] Actualización de Readme (Si aplica)
+
+<!-- Marca las casillas correspondientes antes de enviar el PR. -->

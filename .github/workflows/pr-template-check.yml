@@ -26,9 +26,9 @@ jobs:
               errors.push("Reemplaza los textos de ejemplo en la plantilla.");
             }
 
-            const typeChecked = /- \[[xX]\]\s*(Feature|Fix)/.test(body);
-            if (!typeChecked) {
-              errors.push("Marca al menos un Type: Feature o Fix.");
+            const typePresent = /- \[(?: |x|X)\]\s*(Feature|Fix)/.test(body);
+            if (!typePresent) {
+              errors.push("Incluye la sección Type con Feature o Fix.");
             }
 
             const requiredSections = [
@@ -48,7 +48,7 @@ jobs:
               "Gofmt",
               "Golangci-lint",
             ];
-            const missingChecklist = requiredChecklistItems.filter(item => !new RegExp(`- \\[[xX]\\]\\s*${item}`).test(body));
+            const missingChecklist = requiredChecklistItems.filter(item => !new RegExp(`- \\[(?: |x|X)\\]\\s*${item}`).test(body));
             if (missingChecklist.length > 0) {
               errors.push(`Debes marcar: ${missingChecklist.join(", ")}.`);
             }
