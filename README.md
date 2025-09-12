@@ -12,7 +12,7 @@ API REST en Go para gestionar operaciones de "El fogón de María": clientes, pe
   ```powershell
   powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
   ```
-  - Resultado esperado actual: ~98% total. El directorio base está en 100%.
+  - Resultado esperado actual: ≈99.9% total. El directorio base está en 100%.
 
 ## Tecnologías
 - Go 1.25
@@ -50,6 +50,19 @@ API REST en Go para gestionar operaciones de "El fogón de María": clientes, pe
   - `SKIP_CRON=1`: desactiva el cron.
   - `CRON_ONE_SHOT=1`: ejecuta una sola iteración del cron.
   - `SKIP_WEB_RUN=1`: no levanta el servidor web (tests).
+
+- `appname` en `conf/*.conf`: `el_fogon_de_maria`.
+
+### CORS
+- Define `CORS_ALLOWED_ORIGINS` con la lista de orígenes permitidos (separados por coma). Ejemplos:
+  - Producción:
+    ```
+    CORS_ALLOWED_ORIGINS="https://lacocinademaria.netlify.app,https://elfogondemaria.netlify.app"
+    ```
+  - Staging/Desarrollo (incluyendo local):
+    ```
+    CORS_ALLOWED_ORIGINS="https://lacocinademaria.netlify.app,https://elfogondemaria.netlify.app,http://localhost:4200"
+    ```
 
 ## Variables de entorno (DB y ejecución)
 - DB (equivalentes a `conf/app.conf`): `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_SSLMODE`.
@@ -155,6 +168,17 @@ Qué hace:
 - `golangci-lint run --fix` intenta corregir y luego falla si quedan issues.
 - Hooks utilitarios: `trailing-whitespace`, `end-of-file-fixer`, `check-merge-conflict`.
 
+#### Detección de secretos con GitGuardian (ggshield)
+- Añadido hook `ggshield-secret` para prevenir filtraciones de secretos.
+- Instalación local:
+  ```bash
+  pip install ggshield  # o pipx/poetry
+  ggshield auth login   # sigue las instrucciones para enlazar tu cuenta/ciudador
+  ```
+- Uso:
+  - Automático en `pre-commit`.
+  - Manual: `ggshield secret scan repo .` o `ggshield secret scan pre-commit`
+
 ## Swagger
 - UI en `/swagger/`.
 - Regenerar docs:
@@ -163,6 +187,11 @@ Qué hace:
   swag init -g main.go -o docs
   ```
 - Bypass de token en dev: las solicitudes iniciadas desde Swagger UI están permitidas sin token (solo modo `dev`).
+ - En producción: `swagger = false` en `conf/app.prod.conf`. La ruta `/swagger/*` existe, pero se recomienda restringir acceso desde el reverse proxy si no deseas exponerla públicamente.
+
+## Probes de salud
+- `GET /healthz`: indica disponibilidad básica.
+- `GET /readyz`: verifica la conexión a base de datos antes de reportar listo.
 
 ## Autenticación y rutas
 - Autenticación: Bearer Token en cabecera `Authorization`.
@@ -219,10 +248,11 @@ Qué hace:
 ## Despliegue
 Compilación y ejecución:
 ```powershell
-go build -o restaurante-back
-./restaurante-back
+# Build optimizado
+go build -trimpath -ldflags "-s -w" -o restaurante-back.exe .
+./restaurante-back.exe
 ```
-En Windows el binario será `restaurante-back.exe`.
+En Linux/macOS, cambia el nombre del binario si lo deseas.
 
 ## Cómo contribuir (PRs)
 1. Rama desde `develop`.

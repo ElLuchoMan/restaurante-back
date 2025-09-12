@@ -23,3 +23,10 @@ repos:
         language: system
         pass_filenames: false
         types: [go]
+
+      # Detección de secretos con ggshield (GitGuardian) - usando instalación local
+      - id: ggshield
+        name: ggshield secret scan pre-commit
+        entry: ggshield secret scan pre-commit
+        language: system
+        pass_filenames: false

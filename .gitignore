@@ -23,6 +23,7 @@ lastupdate.tmp
 # Binarios generados
 restaurante-back.exe*
 swagger.zip
+swagger/**/*.json
 
 # Entornos/IDE
 .vscode/
