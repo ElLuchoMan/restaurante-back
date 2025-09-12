@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API para gestionar el sistema de un restaurante para \"El fogón de María\"",
-        "title": "Restaurante API",
+        "description": "API para gestionar el sistema de \"El fogón de María\"",
+        "title": "El fogón de María API",
         "contact": {
             "email": "baluisto96@gmail.com"
         },

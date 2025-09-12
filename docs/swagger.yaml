@@ -911,8 +911,8 @@ definitions:
 info:
   contact:
     email: baluisto96@gmail.com
-  description: API para gestionar el sistema de un restaurante para "El fogón de María"
-  title: Restaurante API
+  description: API para gestionar el sistema de "El fogón de María"
+  title: El fogón de María API
   version: 2.0.0
 paths:
   /cambios_horario:

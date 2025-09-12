@@ -1,7 +1,7 @@
-# Restaurante - Backend (Beego v2 + PostgreSQL)
+# El fogón de María - Backend (Beego v2 + PostgreSQL)
 
 ## Descripción
-API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, pagos, productos, reservas, nómina y más. Basada en Beego v2 con documentación Swagger.
+API REST en Go para gestionar operaciones de "El fogón de María": clientes, pedidos, pagos, productos, reservas, nómina y más. Basada en Beego v2 con documentación Swagger.
 
 ## Inicio rápido
 - Levantar en desarrollo (con Swagger auto-generado):
