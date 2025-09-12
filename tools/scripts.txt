@@ -19,3 +19,6 @@ bee run -downdoc=true -gendoc=true
 # Limpia comentarios no-Swagger preservando build tags
 # go run tools/comment_cleaner.go -root .
 go run -tags tools tools/comment_cleaner.go -root .
+
+# Instala hooks de git locales (pre-commit)
+git config core.hooksPath .githooks

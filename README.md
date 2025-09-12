@@ -138,6 +138,23 @@ API REST en Go para gestionar operaciones de un restaurante: clientes, pedidos, 
   ```
 - Recomendado: pre-commit con gofmt + golangci-lint.
 
+### Pre-commit (formato y linter automáticos)
+
+Usamos hooks de [`pre-commit`](https://pre-commit.com) con [`pre-commit-hooks`](https://github.com/pre-commit/pre-commit-hooks) y `golangci-lint`.
+
+Instalación rápida:
+
+```bash
+pip install pre-commit  # o brew/choco
+pre-commit install      # instala los hooks declarados en .pre-commit-config.yaml
+pre-commit run --all-files  # opcional, validar todo el repo
+```
+
+Qué hace:
+- `gofmt -s -w .` aplica formato.
+- `golangci-lint run --fix` intenta corregir y luego falla si quedan issues.
+- Hooks utilitarios: `trailing-whitespace`, `end-of-file-fixer`, `check-merge-conflict`.
+
 ## Swagger
 - UI en `/swagger/`.
 - Regenerar docs:
