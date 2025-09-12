@@ -11,6 +11,9 @@ postman_collection.json
 # Cobertura y temporales
 coverage*.html
 coverage.out
+coverage
+coverage.filtered.out
+coverage.html
 logging_cov/
 logging_cov.out
 lastupdate.tmp
