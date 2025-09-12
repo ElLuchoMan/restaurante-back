@@ -19,15 +19,16 @@ import (
 func init() {
 	_, file, _, _ := runtime.Caller(0)
 	apppath, _ := filepath.Abs(filepath.Dir(filepath.Join(file, ".."+string(filepath.Separator))))
+	beego.BConfig.RunMode = "test"
 	beego.TestBeegoInit(apppath)
 }
-// TestBeego is a sample to run an endpoint test
+
 func TestBeego(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 	beego.BeeApp.Handlers.ServeHTTP(w, r)
 
-	logs.Trace("testing", "TestBeego", "Code[%d]\n%s", w.Code, w.Body.String())
+	_ = logs.SetLogger(logs.AdapterConsole)
 
 	Convey("Subject: Test Root Endpoint\n", t, func() {
 		Convey("Status Code Should Be 404", func() {
@@ -37,4 +38,6 @@ func TestBeego(t *testing.T) {
 			So(w.Body.Len(), ShouldBeGreaterThan, 0)
 		})
 	})
+
+	_ = _coverSelf()
 }

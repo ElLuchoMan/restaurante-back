@@ -1,44 +1,121 @@
 package models
 
-import "github.com/beego/beego/v2/client/orm"
+import (
+	"encoding/json"
+
+	"github.com/beego/beego/v2/client/orm"
+)
 
 type NominaTrabajador struct {
-	PK_ID_NOMINA_TRABAJADOR int64   `orm:"column(PK_ID_NOMINA_TRABAJADOR);pk;auto" json:"PK_ID_NOMINA_TRABAJADOR"`
-	SUELDO_BASE             int64   `orm:"column(SUELDO_BASE)" json:"SUELDO_BASE"`
-	MONTO_INCIDENCIAS       *int64  `orm:"column(MONTO_INCIDENCIAS);null" json:"MONTO_INCIDENCIAS,omitempty"`
-	TOTAL                   *int64  `orm:"column(TOTAL);null" json:"TOTAL,omitempty"`
-	DETALLES                *string `orm:"column(DETALLES);type(text);null" json:"DETALLES,omitempty"`
-	PK_DOCUMENTO_TRABAJADOR int64   `orm:"column(PK_DOCUMENTO_TRABAJADOR);null" json:"PK_DOCUMENTO_TRABAJADOR,omitempty"`
-	PK_ID_NOMINA            *int64  `orm:"column(PK_ID_NOMINA);null" json:"PK_ID_NOMINA,omitempty"`
+	PK_ID_NOMINA_TRABAJADOR int64       `orm:"column(pk_id_nomina_trabajador);pk;auto" json:"nominaTrabajadorId"`
+	SUELDO_BASE             int64       `orm:"column(sueldo_base)" json:"sueldoBase"`
+	MONTO_INCIDENCIAS       *int64      `orm:"column(monto_incidencias);null" json:"montoIncidencias,omitempty"`
+	DETALLES                *string     `orm:"column(detalles);type(text);null" json:"detalles,omitempty"`
+	PK_DOCUMENTO_TRABAJADOR *Trabajador `orm:"column(pk_documento_trabajador);rel(fk)" json:"documentoTrabajador" swaggertype:"integer"`
+	PK_ID_NOMINA            *Nomina     `orm:"column(pk_id_nomina);rel(fk)" json:"nominaId" swaggertype:"integer"`
 }
+
 type NominaTrabajadorRequest struct {
-	PK_DOCUMENTO_TRABAJADOR int64  `json:"PK_DOCUMENTO_TRABAJADOR" example:"1015466494"`
-	DETALLES                string `json:"DETALLES,omitempty" example:"Pago correspondiente al mes de enero"`
+	PK_DOCUMENTO_TRABAJADOR int64  `json:"documentoTrabajador" example:"1015466494"`
+	DETALLES                string `json:"detalles,omitempty" example:"Pago correspondiente al mes de enero"`
 }
+
 type NominaTrabajadorResponse struct {
-	PK_ID_NOMINA_TRABAJADOR int64  `json:"PK_ID_NOMINA_TRABAJADOR" example:"1"`
-	SUELDO_BASE             int64  `json:"SUELDO_BASE" example:"2000000"`
-	MONTO_INCIDENCIAS       int64  `json:"MONTO_INCIDENCIAS" example:"50000"`
-	TOTAL                   int64  `json:"TOTAL" example:"2050000"`
-	DETALLES                string `json:"DETALLES,omitempty" example:"Pago correspondiente al mes de enero"`
+	SUELDO_BASE             int64  `json:"sueldoBase" example:"2000000"`
+	MONTO_INCIDENCIAS       int64  `json:"montoIncidencias" example:"50000"`
+	DETALLES                string `json:"detalles,omitempty" example:"Pago correspondiente al mes de enero"`
+	PK_DOCUMENTO_TRABAJADOR int64  `json:"documentoTrabajador" example:"1015466494"`
 }
 
 type NominaTrabajadorDetalle struct {
-	PK_ID_NOMINA_TRABAJADOR int64  `orm:"column(PK_ID_NOMINA_TRABAJADOR)" json:"nominaTrabajadorId"`
-	SUELDO_BASE             int64  `orm:"column(SUELDO_BASE)" json:"sueldoBase"`
-	MONTO_INCIDENCIAS       int64  `orm:"column(MONTO_INCIDENCIAS)" json:"montoIncidencias"`
-	TOTAL                   int64  `orm:"column(TOTAL)" json:"total"`
-	DETALLES                string `orm:"column(DETALLES)" json:"detalles"`
-	PK_DOCUMENTO_TRABAJADOR int64  `orm:"column(PK_DOCUMENTO_TRABAJADOR)" json:"documentoTrabajador"`
-	PK_ID_NOMINA            int64  `orm:"column(PK_ID_NOMINA)" json:"nominaId"`
-	NOMBRE                  string `orm:"column(NOMBRE)" json:"nombre"`
-	APELLIDO                string `orm:"column(APELLIDO)" json:"apellido"`
+	SUELDO_BASE             int64  `orm:"column(sueldo_base)" json:"sueldoBase"`
+	MONTO_INCIDENCIAS       int64  `orm:"column(monto_incidencias)" json:"montoIncidencias"`
+	DETALLES                string `orm:"column(detalles)" json:"detalles"`
+	PK_DOCUMENTO_TRABAJADOR int64  `orm:"column(pk_documento_trabajador)" json:"documentoTrabajador"`
+	PK_ID_NOMINA            int64  `orm:"column(pk_id_nomina)" json:"nominaId"`
+	NOMBRE                  string `orm:"column(nombre)" json:"nombre"`
+	APELLIDO                string `orm:"column(apellido)" json:"apellido"`
 }
 
 func (n *NominaTrabajador) TableName() string {
-	return "NOMINA_TRABAJADOR"
+	return "nomina_trabajador"
 }
 
 func init() {
 	orm.RegisterModel(new(NominaTrabajador))
+}
+
+func (n *NominaTrabajador) TableUnique() [][]string {
+	return [][]string{
+		{"PK_DOCUMENTO_TRABAJADOR", "PK_ID_NOMINA"},
+	}
+}
+
+func (n *NominaTrabajador) UnmarshalJSON(data []byte) error {
+	type alias struct {
+		SUELDO_BASE            *int64          `json:"sueldoBase,omitempty"`
+		MONTO_INCIDENCIAS      *int64          `json:"montoIncidencias,omitempty"`
+		DETALLES               *string         `json:"detalles,omitempty"`
+		DocumentoTrabajador    json.RawMessage `json:"documentoTrabajador,omitempty"`
+		DocumentoTrabajadorAlt json.RawMessage `json:"pk_documento_trabajador,omitempty"`
+		NominaID               json.RawMessage `json:"nominaId,omitempty"`
+		NominaIDAlt            json.RawMessage `json:"pk_id_nomina,omitempty"`
+	}
+
+	var a alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+
+	if a.SUELDO_BASE != nil {
+		n.SUELDO_BASE = *a.SUELDO_BASE
+	}
+	n.MONTO_INCIDENCIAS = a.MONTO_INCIDENCIAS
+	n.DETALLES = a.DETALLES
+
+	parseIDToTrabajador := func(raw json.RawMessage) (*Trabajador, error) {
+		var idNum int64
+		if err := json.Unmarshal(raw, &idNum); err == nil {
+			return &Trabajador{PK_DOCUMENTO_TRABAJADOR: idNum}, nil
+		}
+		var t Trabajador
+		if err := json.Unmarshal(raw, &t); err == nil {
+			return &t, nil
+		}
+		return nil, nil
+	}
+
+	chosenTrab := a.DocumentoTrabajador
+	if len(chosenTrab) == 0 {
+		chosenTrab = a.DocumentoTrabajadorAlt
+	}
+	if len(chosenTrab) != 0 {
+		if tr, err := parseIDToTrabajador(chosenTrab); err == nil {
+			n.PK_DOCUMENTO_TRABAJADOR = tr
+		}
+	}
+
+	parseIDToNomina := func(raw json.RawMessage) (*Nomina, error) {
+		var idNum int64
+		if err := json.Unmarshal(raw, &idNum); err == nil {
+			return &Nomina{PK_ID_NOMINA: idNum}, nil
+		}
+		var m Nomina
+		if err := json.Unmarshal(raw, &m); err == nil {
+			return &m, nil
+		}
+		return nil, nil
+	}
+
+	chosenNom := a.NominaID
+	if len(chosenNom) == 0 {
+		chosenNom = a.NominaIDAlt
+	}
+	if len(chosenNom) != 0 {
+		if nm, err := parseIDToNomina(chosenNom); err == nil {
+			n.PK_ID_NOMINA = nm
+		}
+	}
+
+	return nil
 }

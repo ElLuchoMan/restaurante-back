@@ -1,0 +1,32 @@
+repos:
+  # Hooks genéricos útiles
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  # Formateo Go (aplica cambios)
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt -s
+        entry: gofmt -s -w .
+        language: system
+        pass_filenames: false
+        types: [go]
+
+      - id: golangci-lint-system
+        name: golangci-lint --fix
+        entry: golangci-lint run --fix
+        language: system
+        pass_filenames: false
+        types: [go]
+
+      # Detección de secretos con ggshield (GitGuardian) - usando instalación local
+      - id: ggshield
+        name: ggshield secret scan pre-commit
+        entry: ggshield secret scan pre-commit
+        language: system
+        pass_filenames: false

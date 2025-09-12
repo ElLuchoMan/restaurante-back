@@ -27,7 +27,41 @@ func TestNominaMarshalJSON(t *testing.T) {
 
 func TestNominaTableName(t *testing.T) {
 	n := Nomina{}
-	if n.TableName() != "NOMINA" {
-		t.Errorf("expected table name NOMINA, got %s", n.TableName())
+	if n.TableName() != "nomina" {
+		t.Errorf("expected table name nomina, got %s", n.TableName())
+	}
+}
+
+func TestNominaUnmarshalJSON_OK(t *testing.T) {
+	var n Nomina
+	payload := []byte(`{"fechaNomina":"2024-08-15"}`)
+	if err := json.Unmarshal(payload, &n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n.FECHA.IsZero() {
+		t.Fatalf("expected FECHA to be set")
+	}
+}
+
+func TestNominaUnmarshalJSON_Error(t *testing.T) {
+	var n Nomina
+	payload := []byte(`{"fechaNomina":"invalid"}`)
+	if err := json.Unmarshal(payload, &n); err == nil {
+		t.Fatalf("expected error for invalid date format")
+	}
+}
+
+func TestNominaUnmarshalJSON_EmptyFecha_NoChange(t *testing.T) {
+	var n Nomina
+	n.MONTO = 123
+	payload := []byte(`{}`)
+	if err := json.Unmarshal(payload, &n); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n.FECHA.IsZero() == false {
+		t.Fatalf("expected FECHA to remain zero when field is missing")
+	}
+	if n.MONTO != 123 {
+		t.Fatalf("expected MONTO to remain unchanged, got %d", n.MONTO)
 	}
 }

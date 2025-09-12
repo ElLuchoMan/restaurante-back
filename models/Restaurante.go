@@ -1,41 +1,20 @@
 package models
 
 import (
-	"encoding/json"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
 
-var jsonMarshal = json.Marshal
-
 type Restaurante struct {
-	PK_ID_RESTAURANTE    int    `orm:"column(PK_ID_RESTAURANTE);pk" json:"restauranteId"`
-	NOMBRE_RESTAURANTE   string `orm:"column(NOMBRE_RESTAURANTE)" json:"nombreRestaurante"`
-	HORA_APERTURA        string `orm:"column(HORA_APERTURA);type(time)" json:"horaApertura"`
-	DIAS_LABORALES       string `orm:"column(DIAS_LABORALES)" json:"diasLaborales"`
-	PK_ID_CAMBIO_HORARIO *int   `orm:"column(PK_ID_CAMBIO_HORARIO);null" json:"-"`
-	PK_ID_RESERVA        *int   `orm:"column(PK_ID_RESERVA);null" json:"-"`
+	PK_ID_RESTAURANTE    int64           `orm:"column(pk_id_restaurante);pk;auto" json:"restauranteId"`
+	NOMBRE_RESTAURANTE   string          `orm:"column(nombre_restaurante);type(text)" json:"nombreRestaurante"`
+	HORA_APERTURA        time.Time       `orm:"column(hora_apertura);type(time)" json:"horaApertura"`
+	PK_ID_CAMBIO_HORARIO *CambiosHorario `orm:"column(pk_id_cambio_horario);rel(fk);null" json:"cambioHorarioId,omitempty" swaggertype:"integer"`
 }
 
 func (t *Restaurante) TableName() string {
-	return "RESTAURANTE"
-}
-
-// Método para establecer los días laborales como una cadena JSON
-func (r *Restaurante) SetDiasLaborales(dias []string) error {
-	diasJSON, err := jsonMarshal(dias)
-	if err != nil {
-		return err
-	}
-	r.DIAS_LABORALES = string(diasJSON)
-	return nil
-}
-
-// Método para obtener los días laborales a partir de la cadena JSON
-func (r *Restaurante) GetDiasLaborales() ([]string, error) {
-	var dias []string
-	err := json.Unmarshal([]byte(r.DIAS_LABORALES), &dias)
-	return dias, err
+	return "restaurante"
 }
 
 func init() {

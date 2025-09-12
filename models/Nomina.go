@@ -2,20 +2,21 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
 
 type Nomina struct {
-	PK_ID_NOMINA  int64     `orm:"column(PK_ID_NOMINA);pk;auto" json:"nominaId"`
-	FECHA         time.Time `orm:"column(FECHA);type(date)" json:"fechaNomina"`
-	MONTO         int64     `orm:"column(MONTO)" json:"monto"`
-	ESTADO_NOMINA string    `orm:"column(ESTADO_NOMINA)" json:"estadoNomina"`
+	PK_ID_NOMINA  int64        `orm:"column(pk_id_nomina);pk;auto" json:"nominaId"`
+	FECHA         time.Time    `orm:"column(fecha);type(date);unique" json:"fechaNomina"`
+	MONTO         int64        `orm:"column(monto)" json:"monto"`
+	ESTADO_NOMINA EstadoNomina `orm:"column(estado_nomina);type(estado_nomina)" json:"estadoNomina"`
 }
 
 func (n *Nomina) TableName() string {
-	return "NOMINA"
+	return "nomina"
 }
 
 func init() {
@@ -31,4 +32,24 @@ func (t Nomina) MarshalJSON() ([]byte, error) {
 		FECHA: t.FECHA.Format("02-01-2006"),
 		Alias: (Alias)(t),
 	})
+}
+func (n *Nomina) UnmarshalJSON(data []byte) error {
+	type Alias Nomina
+	aux := &struct {
+		FECHA string `json:"fechaNomina"`
+		*Alias
+	}{
+		Alias: (*Alias)(n),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.FECHA != "" {
+		t, err := time.Parse("2006-01-02", aux.FECHA)
+		if err != nil {
+			return fmt.Errorf("fechaNomina debe tener formato YYYY-MM-DD: %w", err)
+		}
+		n.FECHA = t
+	}
+	return nil
 }

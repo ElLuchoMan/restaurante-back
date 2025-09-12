@@ -1,0 +1,457 @@
+package pedido
+
+import (
+	"encoding/json"
+	"restaurante/logging"
+	"restaurante/models"
+	"time"
+
+	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/server/web"
+)
+
+var loadLocationPedido = time.LoadLocation
+
+type PedidoController struct {
+	web.Controller
+}
+
+// @Title GetAll
+// @Summary Obtener pedidos con múltiples filtros
+// @Description Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario (cliente), tipo de método de pago, si tienen domicilio, etc.
+// @Tags pedido
+// @Accept json
+// @Produce json
+// @Param fecha query string false "Fecha específica en formato YYYY-MM-DD"
+// @Param desde query string false "Fecha inicial del rango en formato YYYY-MM-DD"
+// @Param hasta query string false "Fecha final del rango en formato YYYY-MM-DD"
+// @Param mes query int false "Mes del año (1-12)"
+// @Param anio query int false "Año para el filtro de mes"
+// @Param cliente query int false "ID del cliente (PK_DOCUMENTO_CLIENTE)"
+// @Param metodo_pago query string false "Tipo de método de pago (NEQUI, DAVIPLATA, EFECTIVO)"
+// @Param domicilio query bool false "Indica si el pedido tiene domicilio (true/false)"
+// @Success 200 {object} models.ApiResponse{data=[]models.Pedido} "Pedidos obtenidos exitosamente, cada uno con pagoId, metodoPagoId, domicilioId y documentoCliente cuando apliquen"
+// @Failure 400 {object} models.ApiResponse "Error en los parámetros de filtro"
+// @Failure 500 {object} models.ApiResponse "Error al obtener los pedidos"
+// @Security BearerAuth
+// @Router /pedidos [get]
+func (c *PedidoController) GetAll() {
+	o := orm.NewOrm()
+
+	query := `
+       SELECT p.*
+       FROM pedido p
+       LEFT JOIN pago pa ON p.pk_id_pago = pa.pk_id_pago
+       LEFT JOIN metodo_pago mp ON pa.pk_id_metodo_pago = mp.pk_id_metodo_pago
+       WHERE 1 = 1
+   `
+
+	params := []interface{}{}
+	fecha := c.GetString("fecha")
+	desde := c.GetString("desde")
+	hasta := c.GetString("hasta")
+	mes, _ := c.GetInt("mes")
+	anio, _ := c.GetInt("anio")
+	cliente, _ := c.GetInt("cliente")
+	metodoPago := c.GetString("metodo_pago")
+	domicilio, errDomicilio := c.GetBool("domicilio")
+
+	if fecha != "" {
+		query += ` AND p.fecha = ?`
+		params = append(params, fecha)
+	}
+
+	if desde != "" && hasta != "" {
+		query += ` AND p.fecha BETWEEN ? AND ?`
+		params = append(params, desde, hasta)
+	}
+
+	if mes > 0 && mes <= 12 {
+		query += ` AND EXTRACT(MONTH FROM p.fecha) = ?`
+		params = append(params, mes)
+		if anio > 0 {
+			query += ` AND EXTRACT(YEAR FROM p.fecha) = ?`
+			params = append(params, anio)
+		}
+	} else if anio > 0 {
+		query += ` AND EXTRACT(YEAR FROM p.fecha) = ?`
+		params = append(params, anio)
+	}
+
+	if cliente > 0 {
+		query += ` AND p.pk_documento_cliente = ?`
+		params = append(params, cliente)
+	}
+
+	if metodoPago != "" {
+		query += ` AND mp.tipo ILIKE ?`
+		params = append(params, metodoPago)
+	}
+
+	if errDomicilio == nil {
+		if domicilio {
+			query += ` AND p.pk_id_domicilio IS NOT NULL`
+		} else {
+			query += ` AND p.pk_id_domicilio IS NULL`
+		}
+	}
+
+	var pedidos []models.Pedido
+	_, err := o.Raw(query, params...).QueryRows(&pedidos)
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.getall.db_error", err, map[string]interface{}{
+			"fecha": fecha, "desde": desde, "hasta": hasta, "mes": mes, "anio": anio, "cliente": cliente, "metodo_pago": metodoPago, "domicilio": domicilio,
+		})
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al obtener los pedidos",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	if len(pedidos) == 0 {
+		c.Data["json"] = models.ApiResponse{
+			Code:    404,
+			Message: "No se encontraron pedidos que coincidan con los filtros proporcionados",
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Pedidos obtenidos exitosamente",
+		Data:    pedidos,
+	}
+	_ = c.ServeJSON()
+}
+
+// @Title PostPedido
+// @Summary Crear un nuevo pedido
+// @Description Crea un nuevo pedido. Fuerza FECHA/HORA (Bogotá) y ESTADO_PEDIDO=INICIADO. Lee 'delivery' del JSON.
+// @Tags pedido
+// @Accept json
+// @Produce json
+// @Param body body models.PedidoCreateRequest true "Datos del pedido (sólo se respeta 'delivery')"
+// @Success 200 {object} models.ApiResponse{data=models.Pedido} "Pedido creado con identificadores pagoId, metodoPagoId, domicilioId y documentoCliente cuando existan"
+// @Failure 400 {object} models.ApiResponse "Datos inválidos"
+// @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
+// @Security BearerAuth
+// @Router /pedidos [post]
+func (c *PedidoController) Post() {
+	var in struct {
+		Delivery      *bool  `json:"delivery"`
+		PKIDDomicilio *int64 `json:"pk_id_domicilio"`
+		RestauranteId int64  `json:"restauranteId"`
+	}
+
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{
+			Code:    400,
+			Message: "Datos inválidos (JSON mal formado)",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	loc, errLoc := loadLocationPedido("America/Bogota")
+	if errLoc != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.post.tz_error", errLoc, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{Code: 500, Message: "No se pudo cargar zona horaria", Cause: errLoc.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	now := time.Now().In(loc)
+
+	var pedido models.Pedido
+	pedido.FECHA = now
+	pedido.HORA = now
+	pedido.ESTADO_PEDIDO = models.EstadoPedidoIniciado
+
+	if in.Delivery != nil {
+		pedido.DELIVERY = *in.Delivery
+	} else {
+		pedido.DELIVERY = false
+	}
+	if in.PKIDDomicilio != nil && *in.PKIDDomicilio > 0 {
+		pedido.PK_ID_DOMICILIO = &models.Domicilio{ID: *in.PKIDDomicilio}
+	}
+	if in.RestauranteId != 0 {
+		pedido.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: in.RestauranteId}
+	}
+
+	if pedido.DELIVERY && pedido.PK_ID_DOMICILIO == nil {
+		logging.LogControllerError(c.Ctx, "pedidos.post.delivery_missing_domicilio", nil, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{
+			Code:    400,
+			Message: "El domicilio es obligatorio cuando delivery es true",
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	o := orm.NewOrm()
+	if _, err := o.Insert(&pedido); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.post.insert_error", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al crear el pedido",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	c.Ctx.Output.SetStatus(200)
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Pedido creado exitosamente",
+		Data:    pedido,
+	}
+	_ = c.ServeJSON()
+}
+
+// @Title AssignDomicilio
+// @Summary Asignar un domicilio a un pedido
+// @Description Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).
+// @Tags pedido
+// @Accept json
+// @Produce json
+// @Param pedido_id query int true "ID del pedido"
+// @Param domicilio_id query int true "ID del domicilio"
+// @Success 200 {object} models.ApiResponse "Domicilio asignado al pedido"
+// @Failure 404 {object} models.ApiResponse "Pedido o domicilio no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
+// @Security BearerAuth
+// @Router /pedidos/asignar-domicilio [post]
+func (c *PedidoController) AssignDomicilio() {
+	pedidoID, _ := c.GetInt64("pedido_id")
+	domicilioID, _ := c.GetInt64("domicilio_id")
+	o := orm.NewOrm()
+
+	if domicilioID <= 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_domicilio.bad_request", nil, map[string]interface{}{"pedido_id": pedidoID, "domicilio_id": domicilioID})
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{Code: 400, Message: "El parámetro 'domicilio_id' debe ser un entero positivo"}
+		_ = c.ServeJSON()
+		return
+	}
+
+	var pedidosExist []models.Pedido
+	if _, err := o.Raw("SELECT pk_id_pedido FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_domicilio.not_found", err, map[string]interface{}{"pedido_id": pedidoID})
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
+		_ = c.ServeJSON()
+		return
+	}
+
+	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, PK_ID_DOMICILIO: &models.Domicilio{ID: domicilioID}, DELIVERY: true}
+	if _, err := o.Update(&pedido, "PK_ID_DOMICILIO", "DELIVERY"); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_domicilio.update_error", err, map[string]interface{}{"pedido_id": pedidoID, "domicilio_id": domicilioID})
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar domicilio", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+
+	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Domicilio asignado correctamente", Data: pedido}
+	_ = c.ServeJSON()
+}
+
+// @Title AssignPago
+// @Summary Asignar un pago a un pedido
+// @Description Asigna un pago existente a un pedido y actualiza su estado a "TERMINADO" y el pago a "PAGADO".
+// @Tags pedido
+// @Accept json
+// @Produce json
+// @Param pedido_id query int true "ID del pedido"
+// @Param pago_id query int true "ID del pago"
+// @Success 200 {object} models.ApiResponse "Pago asignado al pedido"
+// @Failure 404 {object} models.ApiResponse "Pedido o pago no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error al asignar pago"
+// @Security BearerAuth
+// @Router /pedidos/asignar-pago [post]
+func (c *PedidoController) AssignPago() {
+	pedidoID, _ := c.GetInt64("pedido_id")
+	pagoID, _ := c.GetInt64("pago_id")
+	o := orm.NewOrm()
+
+	var pedidosExist []models.Pedido
+	if _, err := o.Raw("SELECT pk_id_pedido FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.not_found", err, map[string]interface{}{"pedido_id": pedidoID})
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = models.ApiResponse{Code: 404, Message: "Pedido no encontrado"}
+		_ = c.ServeJSON()
+		return
+	}
+
+	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, PK_ID_PAGO: &models.Pago{PK_ID_PAGO: pagoID}, ESTADO_PEDIDO: models.EstadoPedidoTerminado}
+	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_error", err, map[string]interface{}{"pedido_id": pedidoID, "pago_id": pagoID})
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar pago", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+
+	if _, err := o.Raw("UPDATE pago SET estado_pago = ? WHERE pk_id_pago = ?", models.EstadoPagoPagado, pagoID).Exec(); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_pago_error", err, map[string]interface{}{"pago_id": pagoID})
+	}
+
+	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Pago asignado correctamente", Data: pedido}
+	_ = c.ServeJSON()
+}
+
+// @Title UpdateEstadoPedido
+// @Summary Actualizar el estado de un pedido
+// @Description Actualiza el estado de un pedido existente.
+// @Tags pedido
+// @Accept json
+// @Produce json
+// @Param pedido_id query int true "ID del pedido"
+// @Param estado query string true "Nuevo estado del pedido"
+// @Success 200 {object} models.ApiResponse "Estado actualizado"
+// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error al actualizar estado del pedido"
+// @Security BearerAuth
+// @Router /pedidos/actualizar-estado [put]
+func (c *PedidoController) UpdateEstadoPedido() {
+	pedidoID, _ := c.GetInt64("pedido_id")
+	estado := c.GetString("estado")
+
+	if estado != models.EstadoPedidoIniciado &&
+		estado != models.EstadoPedidoEnPreparacion &&
+		estado != models.EstadoPedidoListo &&
+		estado != models.EstadoPedidoTerminado &&
+		estado != models.EstadoPedidoCancelado {
+		logging.LogControllerError(c.Ctx, "pedidos.update_estado.bad_request", nil, map[string]interface{}{"pedido_id": pedidoID, "estado": estado})
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = models.ApiResponse{
+			Code:    400,
+			Message: "Estado inválido",
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	o := orm.NewOrm()
+
+	var pedidosExist []models.Pedido
+	if _, err := o.Raw("SELECT pk_id_pedido FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRows(&pedidosExist); err != nil || len(pedidosExist) == 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.update_estado.not_found", err, map[string]interface{}{"pedido_id": pedidoID})
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = models.ApiResponse{
+			Code:    404,
+			Message: "Pedido no encontrado",
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	if _, err := o.Raw("UPDATE pedido SET estado_pedido = ? WHERE pk_id_pedido = ?", estado, pedidoID).Exec(); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.update_estado.update_error", err, map[string]interface{}{"pedido_id": pedidoID, "estado": estado})
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al actualizar estado del pedido",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, ESTADO_PEDIDO: estado}
+	c.Ctx.Output.SetStatus(200)
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Estado del pedido actualizado correctamente",
+		Data:    pedido,
+	}
+	_ = c.ServeJSON()
+}
+
+// @Title GetPedidoDetails
+// @Summary Obtener detalles completos de un pedido
+// @Description Devuelve la información del pedido, tipo de pago y los productos asociados.
+// @Tags pedido
+// @Accept json
+// @Produce json
+// @Param pedido_id query int false "ID del pedido (filtrar por pedido específico)"
+// @Success 200 {object} models.ApiResponse{data=models.PedidoDetails} "Detalles del pedido obtenidos exitosamente"
+// @Failure 400 {object} models.ApiResponse "Error en los parámetros de filtro"
+// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error al obtener los detalles del pedido"
+// @Security BearerAuth
+// @Router /pedidos/detalles [get]
+func (c *PedidoController) GetPedidoDetails() {
+	o := orm.NewOrm()
+
+	pedidoID, _ := c.GetInt64("pedido_id")
+	if pedidoID == 0 {
+		logging.LogControllerError(c.Ctx, "pedidos.details.bad_request", nil, nil)
+		c.Data["json"] = models.ApiResponse{
+			Code:    400,
+			Message: "El parámetro 'pedido_id' es obligatorio.",
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	query := `
+SELECT
+    p.pk_id_pedido                                   AS pk_id_pedido,
+    COALESCE(TO_CHAR(p.fecha, 'YYYY-MM-DD'), '')     AS fecha,
+    COALESCE(TO_CHAR(p.hora,  'HH24:MI:SS'), '')     AS hora,
+    COALESCE(p.delivery, false)                      AS delivery,
+    COALESCE(p.estado_pedido::text, '')              AS estado_pedido,
+    COALESCE(mp.tipo, '')                            AS metodo_pago,
+    COALESCE((
+        SELECT jsonb_agg(json_build_object(
+            'pk_id_producto', d.pk_id_producto,
+            'nombre', pr.nombre,
+            'cantidad', d.cantidad,
+            'precio', d.precio,
+            'subtotal', d.cantidad * d.precio
+        ))::text
+        FROM detalle_pedido d
+        JOIN producto pr ON pr.pk_id_producto = d.pk_id_producto
+        WHERE d.pk_id_pedido = p.pk_id_pedido
+    ), '[]')                                           AS productos,
+    COALESCE(p.pk_id_pago, 0)                        AS pago_id,
+    COALESCE(pa.pk_id_metodo_pago, 0)                AS metodo_pago_id,
+    COALESCE(p.pk_id_domicilio, 0)                   AS domicilio_id,
+    COALESCE(p.pk_documento_cliente, 0)             AS pk_documento_cliente
+FROM pedido p
+LEFT JOIN pago pa        ON p.pk_id_pago = pa.pk_id_pago
+LEFT JOIN metodo_pago mp ON pa.pk_id_metodo_pago = mp.pk_id_metodo_pago
+WHERE p.pk_id_pedido = ?;
+    `
+
+	var details models.PedidoDetails
+	if err := o.Raw(query, pedidoID).QueryRow(&details); err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos.details.db_error", err, map[string]interface{}{"pedido_id": pedidoID})
+		c.Data["json"] = models.ApiResponse{
+			Code:    500,
+			Message: "Error al obtener los detalles del pedido",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	c.Data["json"] = models.ApiResponse{
+		Code:    200,
+		Message: "Detalles del pedido obtenidos exitosamente",
+		Data:    details,
+	}
+	_ = c.ServeJSON()
+}

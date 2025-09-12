@@ -1,0 +1,27 @@
+rules:
+  # Contexto
+  - "Backend en Go (>=1.22) con Beego v2 y PostgreSQL; arquitectura por capas (controladores, servicios, repositorios, modelos)."
+  - "Rutas documentadas con Swagger; mantener documentación sincronizada."
+  # Estilo y Calidad
+  - "Formatea con gofmt, aplica golangci-lint con la configuración del repo y sigue patrones idiomáticos."
+  - "Maneja errores envolviéndolos (fmt.Errorf con %w) y usa context.Context donde aplique."
+  - "No captures errores sin tratarlos ni los ignores; devuelve causas útiles sin filtrar secretos."
+  - "Usa pre-commit (gofmt + golangci-lint) antes de subir cambios."
+  # Pruebas
+  - "Ejecuta 'go test ./...' antes de enviar cambios y valida con 'powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean'."
+  - "Cuando modifiques lógica, añade pruebas en tests/ o *_test.go cercanos."
+  - "Los unit tests no deben tocar la DB real; mockea hooks/wrappers del ORM (p. ej., funciones wrapper con orm.Ormer) y evita dependencias de conf/app.conf."
+  - "Fija timezones necesarios (p. ej., database.BogotaZone) y datos vía código para tests deterministas."
+  # Seguridad
+  - "Usa consultas parametrizadas para evitar SQL injection, valida/sanitiza entradas y guarda secretos en variables de entorno."
+  - "No registres secretos ni payloads sensibles en logs; limita tamaños de request body."
+  # Convenciones de Git
+  - "Realiza commits pequeños y descriptivos en español en modo imperativo; relaciona issues con #id."
+  - "No subas binarios, credenciales ni artefactos generados."
+  # Ignorar
+  - "Omite archivos generados, cobertura y contenido de tmp/ en commits."
+  - "Ignora binarios 'restaurante-back.exe*', 'coverage*.html', 'coverage.out', 'tmp/', 'swagger.zip' y artefactos generados."
+  # Documentación
+  - "Si cambias endpoints, actualiza README y los archivos de Swagger (docs/swagger.* y carpeta swagger/) y valida en Swagger UI."
+  # Instrucciones para la IA
+  - "Sigue estas reglas, actualiza README y tests cuando cambies comportamiento y responde en español."

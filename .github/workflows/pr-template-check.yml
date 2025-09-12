@@ -1,0 +1,60 @@
+name: PR Template Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  validate:
+    name: Validar plantilla de PR
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Validar cuerpo del PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request?.body || "";
+            const errors = [];
+
+            if (!body || body.trim().length < 20) {
+              errors.push("Agrega una descripción del cambio en el cuerpo del PR.");
+            }
+
+            if (/_Por ejemplo/i.test(body)) {
+              errors.push("Reemplaza los textos de ejemplo en la plantilla.");
+            }
+
+            const typePresent = /- \[(?: |x|X)\]\s*(Feature|Fix)/.test(body);
+            if (!typePresent) {
+              errors.push("Incluye la sección Type con Feature o Fix.");
+            }
+
+            const requiredSections = [
+              "## Título del cambio",
+              "## Descripción del cambio",
+              "## Type",
+              "## Checklist",
+            ];
+            for (const section of requiredSections) {
+              if (!body.includes(section)) {
+                errors.push(`Incluye la sección: ${section}`);
+              }
+            }
+
+            const requiredChecklistItems = [
+              "Test unitarios",
+              "Gofmt",
+              "Golangci-lint",
+            ];
+            const missingChecklist = requiredChecklistItems.filter(item => !new RegExp(`- \\[(?: |x|X)\\]\\s*${item}`).test(body));
+            if (missingChecklist.length > 0) {
+              errors.push(`Debes marcar: ${missingChecklist.join(", ")}.`);
+            }
+
+            if (errors.length) {
+              core.setFailed(errors.join("\n"));
+            } else {
+              core.info("Plantilla de PR verificada correctamente.");
+            }

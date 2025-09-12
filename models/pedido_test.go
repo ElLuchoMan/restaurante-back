@@ -31,7 +31,35 @@ func TestPedidoMarshalJSON(t *testing.T) {
 
 func TestPedidoTableName(t *testing.T) {
 	p := Pedido{}
-	if p.TableName() != "PEDIDO" {
-		t.Errorf("expected table name PEDIDO, got %s", p.TableName())
+	if p.TableName() != "pedido" {
+		t.Errorf("expected table name pedido, got %s", p.TableName())
+	}
+}
+
+type fakeOrmerDetalle struct {
+	insert func(interface{}) (int64, error)
+}
+
+func (f fakeOrmerDetalle) Insert(m interface{}) (int64, error) { return f.insert(m) }
+
+func TestDetallePedidoPrecioAuto(t *testing.T) {
+	o := fakeOrmerDetalle{insert: func(m interface{}) (int64, error) {
+		if d, ok := m.(*DetallePedido); ok {
+			d.Precio = 500
+		}
+		return 1, nil
+	}}
+	pedidoID := int64(1)
+	productoID := int64(1)
+	detalle := DetallePedido{
+		PKIDPedido:   &Pedido{PK_ID_PEDIDO: pedidoID},
+		PKIDProducto: &Producto{PK_ID_PRODUCTO: productoID},
+		Cantidad:     1,
+	}
+	if _, err := o.Insert(&detalle); err != nil {
+		t.Fatalf("insert returned error: %v", err)
+	}
+	if detalle.Precio == 0 {
+		t.Errorf("expected Precio to be set by trigger")
 	}
 }

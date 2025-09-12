@@ -3,6 +3,7 @@ package routers
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -12,6 +13,7 @@ import (
 )
 
 func init() {
+	os.Setenv("JWT_SECRET", "testsecret")
 	_, file, _, _ := runtime.Caller(0)
 	apppath, _ := filepath.Abs(filepath.Dir(filepath.Join(file, ".."+string(filepath.Separator))))
 	beego.TestBeegoInit(apppath)

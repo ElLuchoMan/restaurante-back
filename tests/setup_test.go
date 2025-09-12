@@ -12,22 +12,27 @@ import (
 	beego "github.com/beego/beego/v2/server/web"
 )
 
-// TestMain sets up Beego and a dedicated test database before running tests.
 func TestMain(m *testing.M) {
+	if os.Getenv("JWT_SECRET") == "" {
+		_ = os.Setenv("JWT_SECRET", "testsecret")
+	}
 	_, file, _, _ := runtime.Caller(0)
 	appPath, _ := filepath.Abs(filepath.Dir(filepath.Join(file, ".."+string(filepath.Separator))))
 	os.Setenv("BEEGO_APP_CONFIG_FILE", filepath.Join(appPath, "conf", "app.test.conf"))
 	os.Chdir(appPath)
 	beego.TestBeegoInit(appPath)
 
-	// Initialize the database using the test configuration
+	integration := os.Getenv("INTEGRATION") == "1"
+	if !integration {
+		_ = os.Setenv("SKIP_DB_SEED", "1")
+		_ = os.Setenv("QUIET_TESTS", "1")
+	}
+
 	if err := database.InitDB(); err != nil {
-		// Log the error but allow tests that do not require the
-		// database to run. This avoids reporting a coverage of
-		// "[no statements]" when the database is unavailable.
-		log.Println("Database unavailable, tests will run without DB:", err)
-	} else {
-		// Populate required seed data when a DB connection is available
+		if integration {
+			log.Println("Database unavailable, integration tests may fail:", err)
+		}
+	} else if integration {
 		SeedTestData()
 	}
 

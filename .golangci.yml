@@ -1,0 +1,68 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: false
+
+linters:
+  default: none        # reemplaza a disable-all: true
+  enable:
+    - errcheck
+    - ineffassign
+    - staticcheck
+    - unused
+    - goconst
+    - gosec
+  settings:            # reemplaza a "linters-settings"
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+    gosec:
+      excludes:
+        - G115 # integer conversion precision loss (ruido en tests)
+  exclusions:
+    paths:
+      - docs
+      - swagger
+      - tests
+    rules:
+      - path: ".*_test\\.go"
+        linters:
+          - errcheck
+          - ineffassign
+          - staticcheck
+          - unused
+      # Errores típicos ignorados por contrato del framework / controladores
+      - linters: [errcheck]
+        text: 'ServeJSON'
+      - linters: [errcheck]
+        text: 'Output\\.JSON'
+      - linters: [errcheck]
+        text: 'Close\('
+      - linters: [errcheck]
+        text: 'Rollback\('
+      - linters: [errcheck]
+        text: 'ParseMultipartForm'
+      - linters: [errcheck]
+        text: 'WriteField'
+      - linters: [errcheck]
+        text: 'GetInt\('
+      - linters: [errcheck]
+        text: 'GetInt64\('
+      - linters: [errcheck]
+        text: 'GetBool\('
+      - linters: [errcheck]
+        text: 'time\\.Parse'
+      - linters: [errcheck]
+        text: 'time\\.LoadLocation'
+      - linters: [errcheck]
+        text: 'QueryRows'
+      - linters: [errcheck]
+        text: 'RowsAffected'
+      - linters: [errcheck]
+        text: 'Raw\(.*\)\\.Exec'
+      - linters: [errcheck]
+        text: 'web\\.AppConfig\\.String'
+      # Ignorar advertencias de staticcheck que no aportan en este código
+      - linters: [staticcheck]
+        text: 'empty branch'
