@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-commit] Formateo y linter (auto-fix seguro)"
+
+# 1) Formatear con gofmt (-s -w) y verificar
+echo "[pre-commit] gofmt -s -w ."
+gofmt -s -w .
+UNFORMATTED=$(gofmt -l . | grep -v "^$" || true)
+if [[ -n "$UNFORMATTED" ]]; then
+  echo "Archivos aún sin formatear:" >&2
+  echo "$UNFORMATTED" >&2
+  exit 1
+fi
+
+# 2) Linter con autofix, luego verificación estricta
+echo "[pre-commit] golangci-lint run --fix"
+golangci-lint run --fix || true
+echo "[pre-commit] golangci-lint run"
+golangci-lint run
+
+# 3) Añadir cambios aplicados por los fixes
+git add -A
+
+echo "[pre-commit] OK"
+exit 0
