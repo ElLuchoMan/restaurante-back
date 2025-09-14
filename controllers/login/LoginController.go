@@ -278,6 +278,7 @@ func ValidateToken(ctx *context.Context) {
 	if method == http.MethodGet || method == http.MethodPost {
 		switch path {
 		case "/restaurante/v1/productos", "/restaurante/v1/productos/search",
+			"/restaurante/v1/restaurantes", "/restaurante/v1/restaurantes/search",
 			"/restaurante/v1/reservas", "/restaurante/v1/reservas/search",
 			"/restaurante/v1/reservas/parameter",
 			"/restaurante/v1/cambios_horario/actual":

@@ -197,7 +197,7 @@ Qué hace:
 - Autenticación: Bearer Token en cabecera `Authorization`.
 - Base path: `/restaurante/v1`.
 - Rutas principales (ver `routers/router.go` para el detalle):
-  - Público: `POST /clientes` (registro), `GET /productos`, `GET/POST /reservas`, `GET /cambios_horario/actual`, `POST /login`.
+  - Público: `POST /clientes` (registro), `GET /productos`, `GET /restaurantes`, `GET/POST /reservas`, `GET /cambios_horario/actual`, `POST /login`.
   - Protegido: clientes (GET/PUT/DELETE), productos (POST/PUT/DELETE), reservas (PUT/DELETE), pedidos, domicilios, trabajadores, horario_trabajador, métodos de pago, pagos, nóminas, incidencias, nomina_trabajador, producto_pedido, categorías, subcategorías.
   - Lectura auxiliar (protegido): `precio_producto_hist`, `control_nomina`, `restaurante_dia`, `reserva_contacto`.
 
