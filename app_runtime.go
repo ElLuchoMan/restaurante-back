@@ -4,13 +4,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/context"
-	"github.com/beego/beego/v2/server/web/filter/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
 
+	appcors "restaurante/internal/middleware/cors"
 	"restaurante/logging"
 )
 
@@ -49,40 +48,8 @@ func setupAndRun() {
 		}
 	}
 
-	allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
-	corsOpts := &cors.Options{
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Content-Type", "Accept"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-	}
-	if runMode == "prod" {
-		if strings.TrimSpace(allowedOriginsEnv) == "" {
-			corsOpts.AllowAllOrigins = false
-			corsOpts.AllowOrigins = []string{}
-		} else {
-			parts := strings.Split(allowedOriginsEnv, ",")
-			for i := range parts {
-				parts[i] = strings.TrimSpace(parts[i])
-			}
-			corsOpts.AllowAllOrigins = false
-			corsOpts.AllowOrigins = parts
-		}
-	} else {
-		if strings.TrimSpace(allowedOriginsEnv) == "" {
-			corsOpts.AllowAllOrigins = true
-			corsOpts.AllowCredentials = false
-		} else {
-			parts := strings.Split(allowedOriginsEnv, ",")
-			for i := range parts {
-				parts[i] = strings.TrimSpace(parts[i])
-			}
-			corsOpts.AllowAllOrigins = false
-			corsOpts.AllowOrigins = parts
-			corsOpts.AllowCredentials = true
-		}
-	}
-	web.InsertFilter("*", web.BeforeRouter, cors.Allow(corsOpts))
+	_ = runMode
+	web.InsertFilter("/*", web.BeforeRouter, appcors.CORS())
 
 	web.InsertFilter("*", web.BeforeRouter, setStaticHeaders)
 
