@@ -219,3 +219,12 @@ type SubcategoriaUpdateRequest struct {
 	Nombre      *string `json:"nombre,omitempty" example:"Gaseosas zero"`
 	CategoriaId *int64  `json:"categoriaId,omitempty" example:"1"`
 }
+
+// AuthResponse representa la respuesta de autenticación con tokens
+type AuthResponse struct {
+	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	TokenType    string `json:"token_type" example:"Bearer"`
+	ExpiresIn    string `json:"expires_in" example:"1800"`
+	Nombre       string `json:"nombre" example:"Juan Pérez"`
+}

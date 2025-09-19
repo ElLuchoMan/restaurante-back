@@ -39,6 +39,14 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+type RefreshClaims struct {
+	Documento int64  `json:"documento"`
+	Rol       string `json:"rol"`
+	Nombre    string `json:"nombre"`
+	TokenType string `json:"token_type"` // "refresh"
+	jwt.RegisteredClaims
+}
+
 var jwtSecret []byte
 
 var signingMethod jwt.SigningMethod = jwt.SigningMethodHS256
@@ -143,7 +151,7 @@ func allowLogin(r *http.Request) bool {
 // @Accept json
 // @Produce json
 // @Param   body  body   models.LoginRequest  true  "Documento y Contraseña"
-// @Success 200 {object} models.ApiResponse "Inicio de sesión exitoso con token JWT"
+// @Success 200 {object} models.ApiResponse{data=models.AuthResponse} "Inicio de sesión exitoso con tokens JWT"
 // @Failure 400 {object} models.ApiResponse "Solicitud incorrecta"
 // @Failure 401 {object} models.ApiResponse "Credenciales inválidas"
 // @Failure 429 {object} models.ApiResponse "Demasiadas solicitudes"
@@ -214,32 +222,54 @@ func (c *LoginController) Login() {
 	_ = c.ServeJSON()
 }
 
-func generateJWT(c *LoginController, documento int64, rol string, nombre string) {
+func generateTokens(documento int64, rol, nombre string) (string, string, error) {
 	if len(jwtSecret) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al generar el token",
-			Cause:   fmt.Errorf("secreto JWT no configurado").Error(),
-		}
-		_ = c.ServeJSON()
-		return
+		return "", "", fmt.Errorf("secreto JWT no configurado")
 	}
-	now := time.Now()
-	expirationTime := now.Add(24 * time.Hour)
 
-	claims := &Claims{
+	now := time.Now()
+
+	// Access Token (30 minutos)
+	accessClaims := &Claims{
 		Documento: documento,
 		Rol:       rol,
 		Nombre:    nombre,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			ExpiresAt: jwt.NewNumericDate(now.Add(30 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
 
-	token := jwt.NewWithClaims(signingMethod, claims)
-	tokenString, err := token.SignedString(jwtSecret)
+	// Refresh Token (30 días)
+	refreshClaims := &RefreshClaims{
+		Documento: documento,
+		Rol:       rol,
+		Nombre:    nombre,
+		TokenType: "refresh",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(30 * 24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
+	}
+
+	accessToken := jwt.NewWithClaims(signingMethod, accessClaims)
+	refreshToken := jwt.NewWithClaims(signingMethod, refreshClaims)
+
+	accessString, err := accessToken.SignedString(jwtSecret)
+	if err != nil {
+		return "", "", fmt.Errorf("error al generar access token: %w", err)
+	}
+
+	refreshString, err := refreshToken.SignedString(jwtSecret)
+	if err != nil {
+		return "", "", fmt.Errorf("error al generar refresh token: %w", err)
+	}
+
+	return accessString, refreshString, nil
+}
+
+func generateJWT(c *LoginController, documento int64, rol string, nombre string) {
+	accessToken, refreshToken, err := generateTokens(documento, rol, nombre)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -256,8 +286,95 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
 		Code:    http.StatusOK,
 		Message: "Inicio de sesión exitoso",
 		Data: map[string]string{
-			"token":  tokenString,
-			"nombre": nombre,
+			"token":         accessToken, // Compatibilidad hacia atrás
+			"access_token":  accessToken,
+			"refresh_token": refreshToken,
+			"token_type":    "Bearer",
+			"expires_in":    "1800", // 30 minutos en segundos
+			"nombre":        nombre,
+		},
+	}
+	_ = c.ServeJSON()
+}
+
+// @Title RefreshToken
+// @Summary Renovar access token usando refresh token
+// @Description Permite obtener un nuevo access token utilizando un refresh token válido
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param   Authorization  header  string  true  "Refresh Token en formato: Bearer {token}"
+// @Success 200 {object} models.ApiResponse{data=models.AuthResponse} "Tokens renovados exitosamente"
+// @Failure 400 {object} models.ApiResponse "Solicitud incorrecta"
+// @Failure 401 {object} models.ApiResponse "Refresh token inválido o expirado"
+// @Router /auth/refresh [post]
+func (c *LoginController) RefreshToken() {
+	authHeader := c.Ctx.Input.Header("Authorization")
+	if authHeader == "" {
+		c.Ctx.Output.SetStatus(http.StatusBadRequest)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Refresh token no proporcionado",
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	if len(authHeader) < 7 || authHeader[:7] != "Bearer " {
+		authHeader = "Bearer " + authHeader
+	}
+	tokenString := authHeader[len("Bearer "):]
+
+	refreshClaims := &RefreshClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, refreshClaims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	}, jwt.WithValidMethods([]string{"HS256"}))
+
+	if err != nil || !token.Valid {
+		c.Ctx.Output.SetStatus(http.StatusUnauthorized)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusUnauthorized,
+			Message: "Refresh token inválido o expirado",
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	// Verificar que sea un refresh token
+	if refreshClaims.TokenType != "refresh" {
+		c.Ctx.Output.SetStatus(http.StatusUnauthorized)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusUnauthorized,
+			Message: "Token inválido: no es un refresh token",
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	// Generar nuevos tokens
+	accessToken, newRefreshToken, err := generateTokens(refreshClaims.Documento, refreshClaims.Rol, refreshClaims.Nombre)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al generar nuevos tokens",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Tokens renovados exitosamente",
+		Data: map[string]string{
+			"token":         accessToken, // Compatibilidad hacia atrás
+			"access_token":  accessToken,
+			"refresh_token": newRefreshToken,
+			"token_type":    "Bearer",
+			"expires_in":    "1800", // 30 minutos en segundos
+			"nombre":        refreshClaims.Nombre,
 		},
 	}
 	_ = c.ServeJSON()

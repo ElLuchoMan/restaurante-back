@@ -9,11 +9,7 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// CORS returns a Beego filter function that applies CORS headers for allowed origins.
-// It allows development webviews and localhost origins, exposes X-Correlation-Id,
-// and short-circuits preflight requests with 204 No Content.
 func CORS() func(*context.Context) {
-	// Default allowed origins (case-insensitive match)
 	defaultAllowedOrigins := []string{
 		"capacitor://localhost",
 		"http://localhost",

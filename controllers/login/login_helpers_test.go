@@ -157,14 +157,14 @@ func TestGenerateJWT_WritesTokenAndClaims(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 	body := w.Body.String()
-	if !strings.Contains(body, "\"token\"") || !strings.Contains(body, "Juan Perez") {
-		t.Fatalf("respuesta no contiene token/nombre: %s", body)
+	if !strings.Contains(body, "\"access_token\"") || !strings.Contains(body, "Juan Perez") {
+		t.Fatalf("respuesta no contiene access_token/nombre: %s", body)
 	}
-	start := strings.Index(body, "\"token\":\"")
+	start := strings.Index(body, "\"access_token\":\"")
 	if start < 0 {
-		t.Fatalf("no se encontró token en body: %s", body)
+		t.Fatalf("no se encontró access_token en body: %s", body)
 	}
-	start += len("\"token\":\"")
+	start += len("\"access_token\":\"")
 	end := strings.Index(body[start:], "\"")
 	if end < 0 {
 		t.Fatalf("no se cerró token en body")

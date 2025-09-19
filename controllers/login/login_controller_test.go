@@ -54,8 +54,11 @@ func TestGenerateJWT(t *testing.T) {
 		t.Errorf("expected response code 200, got %d", resp.Code)
 	}
 	data := resp.Data.(map[string]interface{})
-	if data["token"] == "" {
-		t.Errorf("expected token to be set")
+	if data["access_token"] == "" {
+		t.Errorf("expected access_token to be set")
+	}
+	if data["refresh_token"] == "" {
+		t.Errorf("expected refresh_token to be set")
 	}
 	if data["nombre"] != "Foo Bar" {
 		t.Errorf("expected nombre Foo Bar, got %v", data["nombre"])
@@ -128,8 +131,11 @@ func TestLoginTrabajadorSuccess(t *testing.T) {
 		t.Fatalf("expected response code 200, got %d", resp.Code)
 	}
 	data := resp.Data.(map[string]interface{})
-	if data["token"].(string) == "" {
-		t.Errorf("expected token to be set")
+	if data["access_token"].(string) == "" {
+		t.Errorf("expected access_token to be set")
+	}
+	if data["refresh_token"].(string) == "" {
+		t.Errorf("expected refresh_token to be set")
 	}
 	if data["nombre"].(string) != "Foo Bar" {
 		t.Errorf("expected nombre Foo Bar, got %v", data["nombre"])
@@ -185,8 +191,11 @@ func TestLoginClienteSuccess(t *testing.T) {
 		t.Fatalf("expected response code 200, got %d", resp.Code)
 	}
 	data := resp.Data.(map[string]interface{})
-	if data["token"].(string) == "" {
-		t.Errorf("expected token to be set")
+	if data["access_token"].(string) == "" {
+		t.Errorf("expected access_token to be set")
+	}
+	if data["refresh_token"].(string) == "" {
+		t.Errorf("expected refresh_token to be set")
 	}
 	if data["nombre"].(string) != "Jane Doe" {
 		t.Errorf("expected nombre Jane Doe, got %v", data["nombre"])
@@ -456,5 +465,164 @@ func TestLoginRateLimitExceeded(t *testing.T) {
 
 	if w.Code != http.StatusTooManyRequests {
 		t.Fatalf("expected status 429, got %d", w.Code)
+	}
+}
+
+func TestGenerateTokens(t *testing.T) {
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+	accessToken, refreshToken, err := generateTokens(123, "Admin", "Test User")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if accessToken == "" {
+		t.Fatal("expected access token, got empty string")
+	}
+
+	if refreshToken == "" {
+		t.Fatal("expected refresh token, got empty string")
+	}
+
+	// Verificar que los tokens son diferentes
+	if accessToken == refreshToken {
+		t.Fatal("access token and refresh token should be different")
+	}
+
+	// Verificar claims del access token
+	accessClaims := &Claims{}
+	_, err = jwt.ParseWithClaims(accessToken, accessClaims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
+	if err != nil {
+		t.Fatalf("failed to parse access token: %v", err)
+	}
+
+	if accessClaims.Documento != 123 {
+		t.Fatalf("expected documento 123, got %d", accessClaims.Documento)
+	}
+
+	// Verificar claims del refresh token
+	refreshClaims := &RefreshClaims{}
+	_, err = jwt.ParseWithClaims(refreshToken, refreshClaims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
+	if err != nil {
+		t.Fatalf("failed to parse refresh token: %v", err)
+	}
+
+	if refreshClaims.TokenType != "refresh" {
+		t.Fatalf("expected token_type 'refresh', got %s", refreshClaims.TokenType)
+	}
+
+	if refreshClaims.Documento != 123 {
+		t.Fatalf("expected documento 123, got %d", refreshClaims.Documento)
+	}
+}
+
+func TestRefreshTokenEndpoint(t *testing.T) {
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+	// Generar un refresh token válido
+	_, refreshToken, err := generateTokens(123, "Admin", "Test User")
+	if err != nil {
+		t.Fatalf("failed to generate tokens: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
+	r.Header.Set("Authorization", "Bearer "+refreshToken)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := LoginController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.RefreshToken()
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var resp models.ApiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatal("expected data to be map[string]interface{}")
+	}
+
+	if _, exists := data["access_token"]; !exists {
+		t.Fatal("expected access_token in response")
+	}
+
+	if _, exists := data["refresh_token"]; !exists {
+		t.Fatal("expected refresh_token in response")
+	}
+}
+
+func TestRefreshTokenMissingHeader(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := LoginController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.RefreshToken()
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestRefreshTokenInvalid(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
+	r.Header.Set("Authorization", "Bearer invalid_token")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := LoginController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.RefreshToken()
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRefreshTokenWithAccessToken(t *testing.T) {
+	os.Setenv("JWT_SECRET", "testsecret")
+	defer os.Unsetenv("JWT_SECRET")
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+	// Generar un access token (no refresh token)
+	accessToken, _, err := generateTokens(123, "Admin", "Test User")
+	if err != nil {
+		t.Fatalf("failed to generate tokens: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
+	r.Header.Set("Authorization", "Bearer "+accessToken)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := LoginController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.RefreshToken()
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", w.Code)
 	}
 }

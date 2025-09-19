@@ -10,6 +10,24 @@ definitions:
       message:
         type: string
     type: object
+  models.AuthResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      expires_in:
+        example: "1800"
+        type: string
+      nombre:
+        example: Juan Pérez
+        type: string
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      token_type:
+        example: Bearer
+        type: string
+    type: object
   models.CambiosHorarioCreateRequest:
     properties:
       abierto:
@@ -915,6 +933,41 @@ info:
   title: El fogón de María API
   version: 2.0.0
 paths:
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Permite obtener un nuevo access token utilizando un refresh token
+        válido
+      parameters:
+      - description: 'Refresh Token en formato: Bearer {token}'
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tokens renovados exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AuthResponse'
+              type: object
+        "400":
+          description: Solicitud incorrecta
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "401":
+          description: Refresh token inválido o expirado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Renovar access token usando refresh token
+      tags:
+      - auth
   /cambios_horario:
     delete:
       consumes:
@@ -2054,9 +2107,14 @@ paths:
       - application/json
       responses:
         "200":
-          description: Inicio de sesión exitoso con token JWT
+          description: Inicio de sesión exitoso con tokens JWT
           schema:
-            $ref: '#/definitions/models.ApiResponse'
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AuthResponse'
+              type: object
         "400":
           description: Solicitud incorrecta
           schema:

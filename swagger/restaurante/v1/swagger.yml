@@ -73,6 +73,9 @@ definitions:
   models.ApiResponse{data=map[string]interface{}}:
     title: ApiResponse{data=map[string]interface{}}
     type: object
+  models.ApiResponse{data=models.AuthResponse}:
+    title: AuthResponse}
+    type: object
   models.ApiResponse{data=models.Categoria}:
     title: Categoria}
     type: object

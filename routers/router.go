@@ -66,6 +66,7 @@ func init() {
 
 	protected := beego.NewNamespace("/restaurante/v1",
 		beego.NSRouter("/login", &loginc.LoginController{}, "post:Login"),
+		beego.NSRouter("/auth/refresh", &loginc.LoginController{}, "post:RefreshToken"),
 
 		beego.NSNamespace("/producto_pedido",
 			beego.NSBefore(loginc.ValidateToken),
