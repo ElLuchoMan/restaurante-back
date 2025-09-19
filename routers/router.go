@@ -22,12 +22,27 @@ import (
 	rest "restaurante/controllers/restaurante"
 	rdia "restaurante/controllers/restaurantedia"
 	subc "restaurante/controllers/subcategoria"
+	tel "restaurante/controllers/telemetria"
 	trab "restaurante/controllers/trabajador"
 
 	beego "github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/filter/cors"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func init() {
+	// Configurar CORS para permitir conexiones del frontend
+	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type", "x-correlation-id"},
+		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"},
+		AllowCredentials: true,
+	}))
+
+	// Configurar Swagger UI
+	beego.Handler("/swagger/*", httpSwagger.WrapHandler)
+
 	public := beego.NewNamespace("/restaurante/v1",
 		beego.NSNamespace("/productos",
 			beego.NSRouter("/", &prod.ProductoController{}, "get:GetAll"),
@@ -176,6 +191,22 @@ func init() {
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &pg.PagoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &pg.PagoController{}, "get:GetById"),
+		),
+
+		beego.NSNamespace("/telemetria",
+			beego.NSBefore(loginc.ValidateToken),
+			beego.NSRouter("/dashboard", &tel.TelemetriaController{}, "get:GetDashboard"),
+			beego.NSRouter("/sales", &tel.TelemetriaController{}, "get:GetSales"),
+			beego.NSRouter("/products", &tel.TelemetriaController{}, "get:GetProducts"),
+			beego.NSRouter("/users", &tel.TelemetriaController{}, "get:GetUsers"),
+			beego.NSRouter("/time-analysis", &tel.TelemetriaController{}, "get:GetTimeAnalysis"),
+			// Nuevos endpoints de métricas avanzadas
+			beego.NSRouter("/rentabilidad", &tel.TelemetriaController{}, "get:GetRentabilidad"),
+			beego.NSRouter("/segmentacion", &tel.TelemetriaController{}, "get:GetSegmentacion"),
+			beego.NSRouter("/eficiencia", &tel.TelemetriaController{}, "get:GetEficiencia"),
+			// Endpoints adicionales de análisis
+			beego.NSRouter("/reservas-analisis", &tel.TelemetriaController{}, "get:GetReservasAnalisis"),
+			beego.NSRouter("/pedidos-analisis", &tel.TelemetriaController{}, "get:GetPedidosAnalisis"),
 		),
 	)
 

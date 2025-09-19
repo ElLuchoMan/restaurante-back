@@ -926,6 +926,372 @@ definitions:
       pedidoId:
         type: integer
     type: object
+  telemetria.ClienteSegmento:
+    properties:
+      diasSinPedir:
+        type: integer
+      documentoCliente:
+        type: integer
+      nombreCompleto:
+        type: string
+      promedioGasto:
+        type: number
+      segmento:
+        type: string
+      totalGastado:
+        type: integer
+      totalPedidos:
+        type: integer
+      ultimoPedido:
+        type: string
+      valorVida:
+        description: CLV estimado
+        type: integer
+    type: object
+  telemetria.DashboardData:
+    properties:
+      ingresosHoy:
+        type: integer
+      pedidosHoy:
+        type: integer
+      promedioVentaPedido:
+        type: number
+      totalIngresos:
+        type: integer
+      totalPedidos:
+        type: integer
+      totalUsuarios:
+        type: integer
+    type: object
+  telemetria.EficienciaData:
+    properties:
+      analisisPorHora:
+        items:
+          $ref: '#/definitions/telemetria.EficienciaPorHora'
+        type: array
+      estadisticasEficiencia:
+        $ref: '#/definitions/telemetria.EstadisticasEficiencia'
+      rendimientoTrabajadores:
+        items:
+          $ref: '#/definitions/telemetria.RendimientoTrabajador'
+        type: array
+      tiemposEntrega:
+        items:
+          $ref: '#/definitions/telemetria.TiempoEntrega'
+        type: array
+    type: object
+  telemetria.EficienciaPorHora:
+    properties:
+      capacidadUtilizada:
+        description: Porcentaje
+        type: number
+      hora:
+        type: string
+      nivelEficiencia:
+        description: Alto, Medio, Bajo
+        type: string
+      pedidosRecibidos:
+        type: integer
+      tiempoPromedioPrep:
+        type: number
+    type: object
+  telemetria.EstadisticasEficiencia:
+    properties:
+      capacidadPromedioUso:
+        type: number
+      horaMasEficiente:
+        type: string
+      horaMenosEficiente:
+        type: string
+      pedidosPendientes:
+        type: integer
+      tiempoPromedioGeneral:
+        type: number
+      trabajadorMasEficiente:
+        type: string
+    type: object
+  telemetria.EstadisticasProductos:
+    properties:
+      productoConMasVentas:
+        type: string
+      productoConMenosVentas:
+        type: string
+      totalProductosActivos:
+        type: integer
+    type: object
+  telemetria.EstadisticasRentabilidad:
+    properties:
+      margenPromedioGeneral:
+        type: number
+      productoMasRentable:
+        type: string
+      productoMenosRentable:
+        type: string
+      totalGanancias:
+        type: integer
+      totalIngresos:
+        type: integer
+    type: object
+  telemetria.EstadisticasSegmentacion:
+    properties:
+      porcentajeVIP:
+        type: number
+      promedioGastoRegular:
+        type: number
+      promedioGastoVIP:
+        type: number
+      totalClientesNuevos:
+        type: integer
+      totalClientesOcasionales:
+        type: integer
+      totalClientesRegulares:
+        type: integer
+      totalClientesVIP:
+        type: integer
+    type: object
+  telemetria.EstadisticasUsuarios:
+    properties:
+      clientesActivos:
+        type: integer
+      clientesInactivos:
+        type: integer
+      promedioGastoPorCliente:
+        type: number
+      totalClientes:
+        type: integer
+    type: object
+  telemetria.EstadisticasVentas:
+    properties:
+      pedidoPromedioDiario:
+        type: number
+      ticketPromedio:
+        type: number
+      ventaPromedioDiaria:
+        type: number
+    type: object
+  telemetria.ProductoRentabilidad:
+    properties:
+      cantidadVendida:
+        type: integer
+      gananciaTotal:
+        description: Ganancia total en pesos
+        type: integer
+      ingresoTotal:
+        type: integer
+      margenGanancia:
+        description: Porcentaje de ganancia
+        type: number
+      nombreProducto:
+        type: string
+      precioVenta:
+        type: integer
+      productoId:
+        type: integer
+    type: object
+  telemetria.ProductoVendido:
+    properties:
+      cantidadVendida:
+        type: integer
+      ingresoTotal:
+        type: integer
+      nombreProducto:
+        type: string
+      precio:
+        type: integer
+      productoId:
+        type: integer
+    type: object
+  telemetria.ProductsData:
+    properties:
+      estadisticasProductos:
+        $ref: '#/definitions/telemetria.EstadisticasProductos'
+      productosMasVendidos:
+        items:
+          $ref: '#/definitions/telemetria.ProductoVendido'
+        type: array
+      productosMenosVendidos:
+        items:
+          $ref: '#/definitions/telemetria.ProductoVendido'
+        type: array
+    type: object
+  telemetria.RendimientoTrabajador:
+    properties:
+      documentoTrabajador:
+        type: integer
+      eficienciaScore:
+        description: 1-10
+        type: number
+      horasTrabajadas:
+        type: number
+      nombreTrabajador:
+        type: string
+      pedidosAtendidos:
+        type: integer
+      tiempoPromedioAtencion:
+        type: number
+    type: object
+  telemetria.RentabilidadData:
+    properties:
+      estadisticasRentabilidad:
+        $ref: '#/definitions/telemetria.EstadisticasRentabilidad'
+      productosMenosRentables:
+        items:
+          $ref: '#/definitions/telemetria.ProductoRentabilidad'
+        type: array
+      productosRentables:
+        items:
+          $ref: '#/definitions/telemetria.ProductoRentabilidad'
+        type: array
+    type: object
+  telemetria.SalesData:
+    properties:
+      estadisticasGenerales:
+        $ref: '#/definitions/telemetria.EstadisticasVentas'
+      tendenciaVentas:
+        items:
+          $ref: '#/definitions/telemetria.VentaPorFecha'
+        type: array
+      ventasPorMetodoPago:
+        items:
+          $ref: '#/definitions/telemetria.VentaPorMetodo'
+        type: array
+    type: object
+  telemetria.SegmentacionData:
+    properties:
+      clientesNuevos:
+        items:
+          $ref: '#/definitions/telemetria.ClienteSegmento'
+        type: array
+      clientesOcasionales:
+        items:
+          $ref: '#/definitions/telemetria.ClienteSegmento'
+        type: array
+      clientesRegulares:
+        items:
+          $ref: '#/definitions/telemetria.ClienteSegmento'
+        type: array
+      clientesVIP:
+        items:
+          $ref: '#/definitions/telemetria.ClienteSegmento'
+        type: array
+      estadisticasSegmentacion:
+        $ref: '#/definitions/telemetria.EstadisticasSegmentacion'
+    type: object
+  telemetria.TiempoEntrega:
+    properties:
+      cliente:
+        type: string
+      estadoPedido:
+        type: string
+      fechaPedido:
+        type: string
+      horaPedido:
+        type: string
+      pedidoId:
+        type: integer
+      tiempoPreparacion:
+        description: en minutos
+        type: integer
+      trabajadorAsignado:
+        type: string
+    type: object
+  telemetria.TimeAnalysisData:
+    properties:
+      ventasPorDiaSemana:
+        items:
+          $ref: '#/definitions/telemetria.VentaPorDiaSemana'
+        type: array
+      ventasPorHora:
+        items:
+          $ref: '#/definitions/telemetria.VentaPorHora'
+        type: array
+      ventasPorMes:
+        items:
+          $ref: '#/definitions/telemetria.VentaPorMes'
+        type: array
+    type: object
+  telemetria.UsersData:
+    properties:
+      estadisticasUsuarios:
+        $ref: '#/definitions/telemetria.EstadisticasUsuarios'
+      usuariosFrecuentes:
+        items:
+          $ref: '#/definitions/telemetria.UsuarioFrecuente'
+        type: array
+      usuariosInactivos:
+        items:
+          $ref: '#/definitions/telemetria.UsuarioInactivo'
+        type: array
+    type: object
+  telemetria.UsuarioFrecuente:
+    properties:
+      documentoCliente:
+        type: integer
+      nombreCompleto:
+        type: string
+      totalGastado:
+        type: integer
+      totalPedidos:
+        type: integer
+      ultimoPedido:
+        type: string
+    type: object
+  telemetria.UsuarioInactivo:
+    properties:
+      documentoCliente:
+        type: integer
+      nombreCompleto:
+        type: string
+      totalPedidos:
+        type: integer
+      ultimoPedido:
+        type: string
+    type: object
+  telemetria.VentaPorDiaSemana:
+    properties:
+      cantidad:
+        type: integer
+      diaSemana:
+        type: string
+      total:
+        type: integer
+    type: object
+  telemetria.VentaPorFecha:
+    properties:
+      cantidad:
+        type: integer
+      fecha:
+        type: string
+      total:
+        type: integer
+    type: object
+  telemetria.VentaPorHora:
+    properties:
+      cantidad:
+        type: integer
+      hora:
+        type: integer
+      total:
+        type: integer
+    type: object
+  telemetria.VentaPorMes:
+    properties:
+      cantidad:
+        type: integer
+      mes:
+        type: string
+      total:
+        type: integer
+    type: object
+  telemetria.VentaPorMetodo:
+    properties:
+      cantidad:
+        type: integer
+      metodoPago:
+        type: string
+      total:
+        type: integer
+    type: object
 info:
   contact:
     email: baluisto96@gmail.com
@@ -4006,6 +4372,436 @@ paths:
       summary: Obtener subcategoría por ID
       tags:
       - subcategorias
+  /telemetria/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene métricas generales del dashboard usando datos existentes:
+        total de pedidos, ingresos, usuarios, promedios y métricas del período seleccionado.'
+      parameters:
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dashboard obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.DashboardData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Dashboard General de Telemetría
+      tags:
+      - telemetria
+  /telemetria/eficiencia:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis de eficiencia operacional: tiempos de entrega,
+        rendimiento de trabajadores y análisis por horas del período seleccionado.'
+      parameters:
+      - default: 10
+        description: Límite de registros por sección
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de eficiencia obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.EficienciaData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Eficiencia de Entregas
+      tags:
+      - telemetria
+  /telemetria/products:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene análisis de productos más y menos vendidos basado en datos
+        de pedidos del período seleccionado, incluyendo estadísticas generales de
+        productos.
+      parameters:
+      - default: 10
+        description: Límite de productos a mostrar
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de productos obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.ProductsData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Productos
+      tags:
+      - telemetria
+  /telemetria/rentabilidad:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis detallado de rentabilidad de productos: margen
+        de ganancia, productos más y menos rentables del período seleccionado.'
+      parameters:
+      - default: 10
+        description: Límite de productos a mostrar
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de rentabilidad obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.RentabilidadData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Rentabilidad por Producto
+      tags:
+      - telemetria
+  /telemetria/sales:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis detallado de ventas usando datos existentes:
+        ventas por método de pago, tendencias y estadísticas generales del período
+        seleccionado.'
+      parameters:
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de ventas obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.SalesData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Ventas
+      tags:
+      - telemetria
+  /telemetria/segmentacion:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene segmentación de clientes en VIP, regulares, ocasionales
+        y nuevos basado en frecuencia y valor de compras del período seleccionado.
+      parameters:
+      - default: 10
+        description: Límite de clientes por segmento
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de segmentación obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.SegmentacionData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Segmentación de Clientes
+      tags:
+      - telemetria
+  /telemetria/time-analysis:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis temporal de pedidos y ventas del período seleccionado:
+        por hora del día, día de la semana y por mes.'
+      parameters:
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis temporal obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.TimeAnalysisData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis Temporal
+      tags:
+      - telemetria
+  /telemetria/users:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene análisis de usuarios frecuentes e inactivos basado en historial
+        de pedidos del período seleccionado, incluyendo estadísticas generales de
+        clientes.
+      parameters:
+      - default: 10
+        description: Límite de usuarios a mostrar
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de usuarios obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.UsersData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Usuarios
+      tags:
+      - telemetria
   /trabajadores:
     delete:
       consumes:

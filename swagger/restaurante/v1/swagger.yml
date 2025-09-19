@@ -127,6 +127,21 @@ definitions:
   models.ApiResponse{data=productopedido.ProductoPedidoResponse}:
     title: ProductoPedidoResponse}
     type: object
+  models.ApiResponse{data=telemetria.DashboardData}:
+    title: DashboardData}
+    type: object
+  models.ApiResponse{data=telemetria.ProductsData}:
+    title: ProductsData}
+    type: object
+  models.ApiResponse{data=telemetria.SalesData}:
+    title: SalesData}
+    type: object
+  models.ApiResponse{data=telemetria.TimeAnalysisData}:
+    title: TimeAnalysisData}
+    type: object
+  models.ApiResponse{data=telemetria.UsersData}:
+    title: UsersData}
+    type: object
   models.CambiosHorario:
     title: CambiosHorario
     type: object

@@ -4978,6 +4978,659 @@ const docTemplate = `{
                 }
             }
         },
+        "/telemetria/dashboard": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene métricas generales del dashboard usando datos existentes: total de pedidos, ingresos, usuarios, promedios y métricas del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Dashboard General de Telemetría",
+                "parameters": [
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Dashboard obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.DashboardData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/eficiencia": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis de eficiencia operacional: tiempos de entrega, rendimiento de trabajadores y análisis por horas del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Eficiencia de Entregas",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de registros por sección",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de eficiencia obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.EficienciaData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/products": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis de productos más y menos vendidos basado en datos de pedidos del período seleccionado, incluyendo estadísticas generales de productos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Productos",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de productos a mostrar",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de productos obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.ProductsData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/rentabilidad": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis detallado de rentabilidad de productos: margen de ganancia, productos más y menos rentables del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Rentabilidad por Producto",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de productos a mostrar",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de rentabilidad obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.RentabilidadData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/sales": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis detallado de ventas usando datos existentes: ventas por método de pago, tendencias y estadísticas generales del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Ventas",
+                "parameters": [
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de ventas obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.SalesData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/segmentacion": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene segmentación de clientes en VIP, regulares, ocasionales y nuevos basado en frecuencia y valor de compras del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Segmentación de Clientes",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de clientes por segmento",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de segmentación obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.SegmentacionData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/time-analysis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis temporal de pedidos y ventas del período seleccionado: por hora del día, día de la semana y por mes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis Temporal",
+                "parameters": [
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis temporal obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.TimeAnalysisData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis de usuarios frecuentes e inactivos basado en historial de pedidos del período seleccionado, incluyendo estadísticas generales de clientes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Usuarios",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de usuarios a mostrar",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de usuarios obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.UsersData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/trabajadores": {
             "get": {
                 "security": [
@@ -6578,6 +7231,565 @@ const docTemplate = `{
             "properties": {
                 "detalles": {},
                 "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.ClienteSegmento": {
+            "type": "object",
+            "properties": {
+                "diasSinPedir": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "promedioGasto": {
+                    "type": "number"
+                },
+                "segmento": {
+                    "type": "string"
+                },
+                "totalGastado": {
+                    "type": "integer"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "ultimoPedido": {
+                    "type": "string"
+                },
+                "valorVida": {
+                    "description": "CLV estimado",
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.DashboardData": {
+            "type": "object",
+            "properties": {
+                "ingresosHoy": {
+                    "type": "integer"
+                },
+                "pedidosHoy": {
+                    "type": "integer"
+                },
+                "promedioVentaPedido": {
+                    "type": "number"
+                },
+                "totalIngresos": {
+                    "type": "integer"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "totalUsuarios": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.EficienciaData": {
+            "type": "object",
+            "properties": {
+                "analisisPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.EficienciaPorHora"
+                    }
+                },
+                "estadisticasEficiencia": {
+                    "$ref": "#/definitions/telemetria.EstadisticasEficiencia"
+                },
+                "rendimientoTrabajadores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.RendimientoTrabajador"
+                    }
+                },
+                "tiemposEntrega": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.TiempoEntrega"
+                    }
+                }
+            }
+        },
+        "telemetria.EficienciaPorHora": {
+            "type": "object",
+            "properties": {
+                "capacidadUtilizada": {
+                    "description": "Porcentaje",
+                    "type": "number"
+                },
+                "hora": {
+                    "type": "string"
+                },
+                "nivelEficiencia": {
+                    "description": "Alto, Medio, Bajo",
+                    "type": "string"
+                },
+                "pedidosRecibidos": {
+                    "type": "integer"
+                },
+                "tiempoPromedioPrep": {
+                    "type": "number"
+                }
+            }
+        },
+        "telemetria.EstadisticasEficiencia": {
+            "type": "object",
+            "properties": {
+                "capacidadPromedioUso": {
+                    "type": "number"
+                },
+                "horaMasEficiente": {
+                    "type": "string"
+                },
+                "horaMenosEficiente": {
+                    "type": "string"
+                },
+                "pedidosPendientes": {
+                    "type": "integer"
+                },
+                "tiempoPromedioGeneral": {
+                    "type": "number"
+                },
+                "trabajadorMasEficiente": {
+                    "type": "string"
+                }
+            }
+        },
+        "telemetria.EstadisticasProductos": {
+            "type": "object",
+            "properties": {
+                "productoConMasVentas": {
+                    "type": "string"
+                },
+                "productoConMenosVentas": {
+                    "type": "string"
+                },
+                "totalProductosActivos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.EstadisticasRentabilidad": {
+            "type": "object",
+            "properties": {
+                "margenPromedioGeneral": {
+                    "type": "number"
+                },
+                "productoMasRentable": {
+                    "type": "string"
+                },
+                "productoMenosRentable": {
+                    "type": "string"
+                },
+                "totalGanancias": {
+                    "type": "integer"
+                },
+                "totalIngresos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.EstadisticasSegmentacion": {
+            "type": "object",
+            "properties": {
+                "porcentajeVIP": {
+                    "type": "number"
+                },
+                "promedioGastoRegular": {
+                    "type": "number"
+                },
+                "promedioGastoVIP": {
+                    "type": "number"
+                },
+                "totalClientesNuevos": {
+                    "type": "integer"
+                },
+                "totalClientesOcasionales": {
+                    "type": "integer"
+                },
+                "totalClientesRegulares": {
+                    "type": "integer"
+                },
+                "totalClientesVIP": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.EstadisticasUsuarios": {
+            "type": "object",
+            "properties": {
+                "clientesActivos": {
+                    "type": "integer"
+                },
+                "clientesInactivos": {
+                    "type": "integer"
+                },
+                "promedioGastoPorCliente": {
+                    "type": "number"
+                },
+                "totalClientes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.EstadisticasVentas": {
+            "type": "object",
+            "properties": {
+                "pedidoPromedioDiario": {
+                    "type": "number"
+                },
+                "ticketPromedio": {
+                    "type": "number"
+                },
+                "ventaPromedioDiaria": {
+                    "type": "number"
+                }
+            }
+        },
+        "telemetria.ProductoRentabilidad": {
+            "type": "object",
+            "properties": {
+                "cantidadVendida": {
+                    "type": "integer"
+                },
+                "gananciaTotal": {
+                    "description": "Ganancia total en pesos",
+                    "type": "integer"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "margenGanancia": {
+                    "description": "Porcentaje de ganancia",
+                    "type": "number"
+                },
+                "nombreProducto": {
+                    "type": "string"
+                },
+                "precioVenta": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.ProductoVendido": {
+            "type": "object",
+            "properties": {
+                "cantidadVendida": {
+                    "type": "integer"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "nombreProducto": {
+                    "type": "string"
+                },
+                "precio": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.ProductsData": {
+            "type": "object",
+            "properties": {
+                "estadisticasProductos": {
+                    "$ref": "#/definitions/telemetria.EstadisticasProductos"
+                },
+                "productosMasVendidos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ProductoVendido"
+                    }
+                },
+                "productosMenosVendidos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ProductoVendido"
+                    }
+                }
+            }
+        },
+        "telemetria.RendimientoTrabajador": {
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "eficienciaScore": {
+                    "description": "1-10",
+                    "type": "number"
+                },
+                "horasTrabajadas": {
+                    "type": "number"
+                },
+                "nombreTrabajador": {
+                    "type": "string"
+                },
+                "pedidosAtendidos": {
+                    "type": "integer"
+                },
+                "tiempoPromedioAtencion": {
+                    "type": "number"
+                }
+            }
+        },
+        "telemetria.RentabilidadData": {
+            "type": "object",
+            "properties": {
+                "estadisticasRentabilidad": {
+                    "$ref": "#/definitions/telemetria.EstadisticasRentabilidad"
+                },
+                "productosMenosRentables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ProductoRentabilidad"
+                    }
+                },
+                "productosRentables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ProductoRentabilidad"
+                    }
+                }
+            }
+        },
+        "telemetria.SalesData": {
+            "type": "object",
+            "properties": {
+                "estadisticasGenerales": {
+                    "$ref": "#/definitions/telemetria.EstadisticasVentas"
+                },
+                "tendenciaVentas": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.VentaPorFecha"
+                    }
+                },
+                "ventasPorMetodoPago": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.VentaPorMetodo"
+                    }
+                }
+            }
+        },
+        "telemetria.SegmentacionData": {
+            "type": "object",
+            "properties": {
+                "clientesNuevos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ClienteSegmento"
+                    }
+                },
+                "clientesOcasionales": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ClienteSegmento"
+                    }
+                },
+                "clientesRegulares": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ClienteSegmento"
+                    }
+                },
+                "clientesVIP": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ClienteSegmento"
+                    }
+                },
+                "estadisticasSegmentacion": {
+                    "$ref": "#/definitions/telemetria.EstadisticasSegmentacion"
+                }
+            }
+        },
+        "telemetria.TiempoEntrega": {
+            "type": "object",
+            "properties": {
+                "cliente": {
+                    "type": "string"
+                },
+                "estadoPedido": {
+                    "type": "string"
+                },
+                "fechaPedido": {
+                    "type": "string"
+                },
+                "horaPedido": {
+                    "type": "string"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                },
+                "tiempoPreparacion": {
+                    "description": "en minutos",
+                    "type": "integer"
+                },
+                "trabajadorAsignado": {
+                    "type": "string"
+                }
+            }
+        },
+        "telemetria.TimeAnalysisData": {
+            "type": "object",
+            "properties": {
+                "ventasPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.VentaPorDiaSemana"
+                    }
+                },
+                "ventasPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.VentaPorHora"
+                    }
+                },
+                "ventasPorMes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.VentaPorMes"
+                    }
+                }
+            }
+        },
+        "telemetria.UsersData": {
+            "type": "object",
+            "properties": {
+                "estadisticasUsuarios": {
+                    "$ref": "#/definitions/telemetria.EstadisticasUsuarios"
+                },
+                "usuariosFrecuentes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.UsuarioFrecuente"
+                    }
+                },
+                "usuariosInactivos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.UsuarioInactivo"
+                    }
+                }
+            }
+        },
+        "telemetria.UsuarioFrecuente": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "totalGastado": {
+                    "type": "integer"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "ultimoPedido": {
+                    "type": "string"
+                }
+            }
+        },
+        "telemetria.UsuarioInactivo": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "ultimoPedido": {
+                    "type": "string"
+                }
+            }
+        },
+        "telemetria.VentaPorDiaSemana": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "diaSemana": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.VentaPorFecha": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "fecha": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.VentaPorHora": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "hora": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.VentaPorMes": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "mes": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.VentaPorMetodo": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "metodoPago": {
+                    "type": "string"
+                },
+                "total": {
                     "type": "integer"
                 }
             }

@@ -18,12 +18,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var dbReady bool
-
-type sqlPinger interface {
-	Ping() error
-}
-
 var (
 	initDBFunc       = database.InitDB
 	initTimezoneFunc = database.InitTimezone
@@ -36,9 +30,6 @@ func init() {
 func appInit() {
 	if err := initDBFunc(); err != nil {
 		log.Println("Error al conectar a la base de datos:", err)
-		dbReady = false
-	} else {
-		dbReady = true
 	}
 	initTimezoneFunc()
 }
@@ -49,15 +40,6 @@ var (
 	cronNewOrm    = orm.NewOrm
 	cronInsertNom = ormInsert
 	cronRawExec   = ormRawExec
-	webRun        = web.Run
-	dbGetter      = database.GetDefaultSQLDB
-	getSQLPinger  = func() (sqlPinger, error) {
-		db, err := dbGetter()
-		if db == nil {
-			return nil, err
-		}
-		return db, err
-	}
 )
 
 func ormInsert(o orm.Ormer, n *models.Nomina) (int64, error) {
@@ -130,5 +112,17 @@ func setStaticHeaders(ctx *context.Context) { setStaticHeadersFn(ctx) }
 // @name Authorization
 // @Security BearerAuth
 func main() {
-	setupAndRun()
+	// Configurar timezone
+	database.InitTimezone()
+
+	// Configurar headers estáticos
+	web.InsertFilter("*", web.BeforeStatic, setStaticHeaders)
+
+	// Iniciar cron job si no está deshabilitado
+	if os.Getenv("SKIP_CRON") != "1" {
+		go generarNominaAutomatica()
+	}
+
+	// Ejecutar aplicación
+	web.Run()
 }

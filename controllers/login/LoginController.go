@@ -380,6 +380,25 @@ func (c *LoginController) RefreshToken() {
 	_ = c.ServeJSON()
 }
 
+// GetJWTSecret retorna el secreto JWT para uso en otros controladores
+func GetJWTSecret() []byte {
+	return jwtSecret
+}
+
+// ParseTokenClaims parsea un token JWT y retorna los claims
+func ParseTokenClaims(tokenString string) (*Claims, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	}, jwt.WithValidMethods([]string{"HS256"}))
+
+	if err != nil || !token.Valid {
+		return nil, fmt.Errorf("token inválido")
+	}
+
+	return claims, nil
+}
+
 func ValidateToken(ctx *context.Context) {
 	if ctx.Input.Method() == "OPTIONS" {
 		ctx.Output.Status = http.StatusOK

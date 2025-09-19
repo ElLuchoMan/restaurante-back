@@ -101,6 +101,10 @@
             "title": "ApiResponse{data=map[string]interface{}}",
             "type": "object"
         },
+        "models.ApiResponse{data=models.AuthResponse}": {
+            "title": "AuthResponse}",
+            "type": "object"
+        },
         "models.ApiResponse{data=models.Categoria}": {
             "title": "Categoria}",
             "type": "object"
@@ -167,6 +171,46 @@
         },
         "models.ApiResponse{data=productopedido.ProductoPedidoResponse}": {
             "title": "ProductoPedidoResponse}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.DashboardData}": {
+            "title": "DashboardData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.EficienciaData}": {
+            "title": "EficienciaData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.PedidosAnalisisData}": {
+            "title": "PedidosAnalisisData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.ProductsData}": {
+            "title": "ProductsData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.RentabilidadData}": {
+            "title": "RentabilidadData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.ReservasAnalisisData}": {
+            "title": "ReservasAnalisisData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.SalesData}": {
+            "title": "SalesData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.SegmentacionData}": {
+            "title": "SegmentacionData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.TimeAnalysisData}": {
+            "title": "TimeAnalysisData}",
+            "type": "object"
+        },
+        "models.ApiResponse{data=telemetria.UsersData}": {
+            "title": "UsersData}",
             "type": "object"
         },
         "models.CambiosHorario": {
