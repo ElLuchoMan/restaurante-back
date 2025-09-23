@@ -29,6 +29,10 @@
                 }
             }
         },
+        "models.ApiResponse{data=ProductosPopularesData}": {
+            "title": "ApiResponse{data=ProductosPopularesData}",
+            "type": "object"
+        },
         "models.ApiResponse{data=[]map[string]interface{}}": {
             "title": "ApiResponse{data=[]map[string]interface{}}",
             "type": "object"

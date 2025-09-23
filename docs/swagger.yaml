@@ -1010,6 +1010,19 @@ definitions:
       trabajadorMasEficiente:
         type: string
     type: object
+  telemetria.EstadisticasPedidos:
+    properties:
+      diaMasPedidos:
+        type: string
+      horaMasPedidos:
+        type: string
+      ingresoPromedioHora:
+        type: number
+      tasaCompletamientoGeneral:
+        type: number
+      totalPedidosTerminados:
+        type: integer
+    type: object
   telemetria.EstadisticasProductos:
     properties:
       productoConMasVentas:
@@ -1030,6 +1043,19 @@ definitions:
       totalGanancias:
         type: integer
       totalIngresos:
+        type: integer
+    type: object
+  telemetria.EstadisticasReservas:
+    properties:
+      diaMasReservas:
+        type: string
+      horaMasReservas:
+        type: string
+      promedioPersonasPorReserva:
+        type: number
+      tasaCompletamiento:
+        type: number
+      totalReservasCompletadas:
         type: integer
     type: object
   telemetria.EstadisticasSegmentacion:
@@ -1068,6 +1094,62 @@ definitions:
         type: number
       ventaPromedioDiaria:
         type: number
+    type: object
+  telemetria.PedidoPorDia:
+    properties:
+      fecha:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  telemetria.PedidoPorDiaSemana:
+    properties:
+      diaSemana:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  telemetria.PedidoPorHora:
+    properties:
+      hora:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  telemetria.PedidosAnalisisData:
+    properties:
+      estadisticasPedidos:
+        $ref: '#/definitions/telemetria.EstadisticasPedidos'
+      pedidosPorDia:
+        items:
+          $ref: '#/definitions/telemetria.PedidoPorDia'
+        type: array
+      pedidosPorDiaSemana:
+        items:
+          $ref: '#/definitions/telemetria.PedidoPorDiaSemana'
+        type: array
+      pedidosPorHora:
+        items:
+          $ref: '#/definitions/telemetria.PedidoPorHora'
+        type: array
     type: object
   telemetria.ProductoRentabilidad:
     properties:
@@ -1141,6 +1223,62 @@ definitions:
       productosRentables:
         items:
           $ref: '#/definitions/telemetria.ProductoRentabilidad'
+        type: array
+    type: object
+  telemetria.ReservaPorDia:
+    properties:
+      fecha:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
+  telemetria.ReservaPorDiaSemana:
+    properties:
+      diaSemana:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
+  telemetria.ReservaPorHora:
+    properties:
+      hora:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
+  telemetria.ReservasAnalisisData:
+    properties:
+      estadisticasReservas:
+        $ref: '#/definitions/telemetria.EstadisticasReservas'
+      reservasPorDia:
+        items:
+          $ref: '#/definitions/telemetria.ReservaPorDia'
+        type: array
+      reservasPorDiaSemana:
+        items:
+          $ref: '#/definitions/telemetria.ReservaPorDiaSemana'
+        type: array
+      reservasPorHora:
+        items:
+          $ref: '#/definitions/telemetria.ReservaPorHora'
         type: array
     type: object
   telemetria.SalesData:
@@ -4477,6 +4615,63 @@ paths:
       summary: Análisis de Eficiencia de Entregas
       tags:
       - telemetria
+  /telemetria/pedidos-analisis:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis detallado de pedidos realizados por días y horas:
+        identificar patrones de pedidos más exitosos y horarios de mayor demanda del
+        período seleccionado.'
+      parameters:
+      - default: 10
+        description: Límite de registros por sección
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de pedidos obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.PedidosAnalisisData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Pedidos por Días y Horas
+      tags:
+      - telemetria
   /telemetria/products:
     get:
       consumes:
@@ -4588,6 +4783,62 @@ paths:
       security:
       - BearerAuth: []
       summary: Análisis de Rentabilidad por Producto
+      tags:
+      - telemetria
+  /telemetria/reservas-analisis:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis detallado de reservas completadas por días y
+        horas: identificar patrones de reservas más exitosas del período seleccionado.'
+      parameters:
+      - default: 10
+        description: Límite de registros por sección
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        in: query
+        name: periodo
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de reservas obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.ReservasAnalisisData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Reservas por Días y Horas
       tags:
       - telemetria
   /telemetria/sales:

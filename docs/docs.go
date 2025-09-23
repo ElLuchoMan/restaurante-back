@@ -5139,6 +5139,91 @@ const docTemplate = `{
                 }
             }
         },
+        "/telemetria/pedidos-analisis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis detallado de pedidos realizados por días y horas: identificar patrones de pedidos más exitosos y horarios de mayor demanda del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Pedidos por Días y Horas",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de registros por sección",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de pedidos obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.PedidosAnalisisData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/telemetria/products": {
             "get": {
                 "security": [
@@ -5282,6 +5367,91 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/telemetria.RentabilidadData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/reservas-analisis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis detallado de reservas completadas por días y horas: identificar patrones de reservas más exitosas del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Reservas por Días y Horas",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de registros por sección",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de reservas obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.ReservasAnalisisData"
                                         }
                                     }
                                 }
@@ -7362,6 +7532,26 @@ const docTemplate = `{
                 }
             }
         },
+        "telemetria.EstadisticasPedidos": {
+            "type": "object",
+            "properties": {
+                "diaMasPedidos": {
+                    "type": "string"
+                },
+                "horaMasPedidos": {
+                    "type": "string"
+                },
+                "ingresoPromedioHora": {
+                    "type": "number"
+                },
+                "tasaCompletamientoGeneral": {
+                    "type": "number"
+                },
+                "totalPedidosTerminados": {
+                    "type": "integer"
+                }
+            }
+        },
         "telemetria.EstadisticasProductos": {
             "type": "object",
             "properties": {
@@ -7392,6 +7582,26 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "totalIngresos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.EstadisticasReservas": {
+            "type": "object",
+            "properties": {
+                "diaMasReservas": {
+                    "type": "string"
+                },
+                "horaMasReservas": {
+                    "type": "string"
+                },
+                "promedioPersonasPorReserva": {
+                    "type": "number"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalReservasCompletadas": {
                     "type": "integer"
                 }
             }
@@ -7450,6 +7660,92 @@ const docTemplate = `{
                 },
                 "ventaPromedioDiaria": {
                     "type": "number"
+                }
+            }
+        },
+        "telemetria.PedidoPorDia": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.PedidoPorDiaSemana": {
+            "type": "object",
+            "properties": {
+                "diaSemana": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.PedidoPorHora": {
+            "type": "object",
+            "properties": {
+                "hora": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.PedidosAnalisisData": {
+            "type": "object",
+            "properties": {
+                "estadisticasPedidos": {
+                    "$ref": "#/definitions/telemetria.EstadisticasPedidos"
+                },
+                "pedidosPorDia": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.PedidoPorDia"
+                    }
+                },
+                "pedidosPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.PedidoPorDiaSemana"
+                    }
+                },
+                "pedidosPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.PedidoPorHora"
+                    }
                 }
             }
         },
@@ -7561,6 +7857,92 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/telemetria.ProductoRentabilidad"
+                    }
+                }
+            }
+        },
+        "telemetria.ReservaPorDia": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.ReservaPorDiaSemana": {
+            "type": "object",
+            "properties": {
+                "diaSemana": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.ReservaPorHora": {
+            "type": "object",
+            "properties": {
+                "hora": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.ReservasAnalisisData": {
+            "type": "object",
+            "properties": {
+                "estadisticasReservas": {
+                    "$ref": "#/definitions/telemetria.EstadisticasReservas"
+                },
+                "reservasPorDia": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ReservaPorDia"
+                    }
+                },
+                "reservasPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ReservaPorDiaSemana"
+                    }
+                },
+                "reservasPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ReservaPorHora"
                     }
                 }
             }

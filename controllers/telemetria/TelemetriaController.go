@@ -125,6 +125,7 @@ type ProductoVendido struct {
 	CantidadVendida int64  `json:"cantidadVendida"`
 	IngresoTotal    int64  `json:"ingresoTotal"`
 	Precio          int64  `json:"precio"`
+	Imagen          string `json:"imagen"`
 }
 
 type EstadisticasProductos struct {
@@ -2086,6 +2087,80 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 		Code:    http.StatusOK,
 		Message: fmt.Sprintf("Análisis de pedidos (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
 		Data:    pedidosData,
+	}
+	_ = c.ServeJSON()
+}
+
+// ProductosPopularesData estructura para productos más vendidos (público)
+type ProductosPopularesData struct {
+	ProductosPopulares []ProductoVendido `json:"productosPopulares"`
+}
+
+// GetProductosPopulares obtiene los productos más vendidos (endpoint público)
+// @Title GetProductosPopulares
+// @Description Obtiene los productos más vendidos - endpoint público sin autenticación
+// @Param limit query int false "Número de productos a retornar (default: 4)"
+// @Param periodo query string false "Filtro temporal: hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico"
+// @Success 200 {object} models.ApiResponse{data=ProductosPopularesData}
+// @Failure 500 {object} models.ApiResponse
+// @router /productos-populares [get]
+func (c *TelemetriaController) GetProductosPopulares() {
+	// Obtener parámetros de consulta
+	limitStr := c.GetString("limit", "4") // Default 4 productos
+	periodoStr := c.GetString("periodo", "ultimo_mes")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 4
+	}
+
+	periodo := TimeFilter(periodoStr)
+	startDate, endDate := getTimeRange(periodo)
+	dateFilter := buildDateFilter(startDate, endDate)
+
+	o := orm.NewOrm()
+
+	// Consulta para productos más vendidos
+	var productosMasVendidos []ProductoVendido
+	sql := fmt.Sprintf(`
+		SELECT
+			pr.pk_id_producto as producto_id,
+			pr.nombre as nombre_producto,
+			COALESCE(SUM(dp.cantidad), 0) as cantidad_vendida,
+			COALESCE(SUM(dp.precio * dp.cantidad), 0) as ingreso_total,
+			pr.precio,
+			COALESCE(encode(pr.imagen, 'base64'), '') as imagen
+		FROM producto pr
+		LEFT JOIN detalle_pedido dp ON pr.pk_id_producto = dp.pk_id_producto
+		LEFT JOIN pedido pe ON dp.pk_id_pedido = pe.pk_id_pedido
+		LEFT JOIN pago p ON pe.pk_id_pago = p.pk_id_pago AND p.estado_pago = 'PAGADO'
+		WHERE pe.estado_pedido = 'TERMINADO' AND %s
+		GROUP BY pr.pk_id_producto, pr.nombre, pr.precio, pr.imagen
+		ORDER BY cantidad_vendida DESC
+		LIMIT %d
+	`, dateFilter, limit)
+
+	_, err = o.Raw(sql).QueryRows(&productosMasVendidos)
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al obtener productos populares",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	productosData := ProductosPopularesData{
+		ProductosPopulares: productosMasVendidos,
+	}
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: fmt.Sprintf("Productos populares (%s) obtenidos exitosamente", string(periodo)),
+		Data:    productosData,
 	}
 	_ = c.ServeJSON()
 }

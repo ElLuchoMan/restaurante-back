@@ -193,6 +193,9 @@ func init() {
 			beego.NSRouter("/search", &pg.PagoController{}, "get:GetById"),
 		),
 
+		// Endpoint público para productos más vendidos (sin autenticación)
+		beego.NSRouter("/productos-populares", &tel.TelemetriaController{}, "get:GetProductosPopulares"),
+
 		beego.NSNamespace("/telemetria",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/dashboard", &tel.TelemetriaController{}, "get:GetDashboard"),
