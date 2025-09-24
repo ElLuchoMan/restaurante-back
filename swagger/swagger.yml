@@ -88,8 +88,14 @@ definitions:
   models.ApiResponse{data=models.ControlNomina}:
     title: ControlNomina}
     type: object
+  models.ApiResponse{data=models.DashboardData}:
+    title: DashboardData}
+    type: object
   models.ApiResponse{data=models.Domicilio}:
     title: Domicilio}
+    type: object
+  models.ApiResponse{data=models.EficienciaData}:
+    title: EficienciaData}
     type: object
   models.ApiResponse{data=models.HorarioTrabajador}:
     title: HorarioTrabajador}
@@ -112,53 +118,47 @@ definitions:
   models.ApiResponse{data=models.PedidoDetails}:
     title: PedidoDetails}
     type: object
+  models.ApiResponse{data=models.PedidosAnalisisData}:
+    title: PedidosAnalisisData}
+    type: object
   models.ApiResponse{data=models.Producto}:
     title: Producto}
+    type: object
+  models.ApiResponse{data=models.ProductsData}:
+    title: ProductsData}
+    type: object
+  models.ApiResponse{data=models.RentabilidadData}:
+    title: RentabilidadData}
     type: object
   models.ApiResponse{data=models.ReservaContacto}:
     title: ReservaContacto}
     type: object
+  models.ApiResponse{data=models.ReservasAnalisisData}:
+    title: ReservasAnalisisData}
+    type: object
   models.ApiResponse{data=models.Restaurante}:
     title: Restaurante}
+    type: object
+  models.ApiResponse{data=models.SalesData}:
+    title: SalesData}
+    type: object
+  models.ApiResponse{data=models.SegmentacionData}:
+    title: SegmentacionData}
     type: object
   models.ApiResponse{data=models.Subcategoria}:
     title: Subcategoria}
     type: object
+  models.ApiResponse{data=models.TimeAnalysisData}:
+    title: TimeAnalysisData}
+    type: object
   models.ApiResponse{data=models.Trabajador}:
     title: Trabajador}
     type: object
+  models.ApiResponse{data=models.UsersData}:
+    title: UsersData}
+    type: object
   models.ApiResponse{data=productopedido.ProductoPedidoResponse}:
     title: ProductoPedidoResponse}
-    type: object
-  models.ApiResponse{data=telemetria.DashboardData}:
-    title: DashboardData}
-    type: object
-  models.ApiResponse{data=telemetria.EficienciaData}:
-    title: EficienciaData}
-    type: object
-  models.ApiResponse{data=telemetria.PedidosAnalisisData}:
-    title: PedidosAnalisisData}
-    type: object
-  models.ApiResponse{data=telemetria.ProductsData}:
-    title: ProductsData}
-    type: object
-  models.ApiResponse{data=telemetria.RentabilidadData}:
-    title: RentabilidadData}
-    type: object
-  models.ApiResponse{data=telemetria.ReservasAnalisisData}:
-    title: ReservasAnalisisData}
-    type: object
-  models.ApiResponse{data=telemetria.SalesData}:
-    title: SalesData}
-    type: object
-  models.ApiResponse{data=telemetria.SegmentacionData}:
-    title: SegmentacionData}
-    type: object
-  models.ApiResponse{data=telemetria.TimeAnalysisData}:
-    title: TimeAnalysisData}
-    type: object
-  models.ApiResponse{data=telemetria.UsersData}:
-    title: UsersData}
     type: object
   models.CambiosHorario:
     title: CambiosHorario

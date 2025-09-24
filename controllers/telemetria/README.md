@@ -109,10 +109,58 @@ GET /restaurante/v1/telemetria/eficiencia?limit=10&periodo=ultimo_mes
 - Score de eficiencia de trabajadores (1-10)
 - Identificación de horas más/menos eficientes
 
-### 🕒 Filtros Temporales
+#### 9. Análisis de Reservas Completadas
+```
+GET /restaurante/v1/telemetria/reservas-analisis?limit=10&periodo=ultimo_mes
+```
+**Funcionalidades:**
+- **Reservas por día**: Análisis diario de reservas completadas
+- **Reservas por hora**: Identificación de horarios pico de reservas
+- **Reservas por día de la semana**: Patrones semanales de reservas
+- **Estadísticas generales**: Totales, promedios y porcentajes de completado
+- **Análisis de ocupación**: Total de personas por período
+- **Tendencias temporales**: Evolución de reservas completadas
 
-Todos los endpoints soportan el parámetro `periodo` para filtrar datos por tiempo:
+#### 10. Análisis de Pedidos Completados
+```
+GET /restaurante/v1/telemetria/pedidos-analisis?limit=10&periodo=ultimo_mes
+```
+**Funcionalidades:**
+- **Pedidos por día**: Análisis diario de pedidos completados
+- **Pedidos por hora**: Identificación de horarios pico de pedidos
+- **Pedidos por día de la semana**: Patrones semanales de pedidos
+- **Estadísticas generales**: Totales, promedios y valores de pedidos
+- **Análisis de volumen**: Cantidad de pedidos por período
+- **Tendencias de demanda**: Evolución de pedidos completados
 
+### 🍽️ Endpoint Público - Productos Populares
+```
+GET /restaurante/v1/productos-populares?limit=4&periodo=ultimo_mes
+```
+**Características:**
+- **Sin autenticación requerida**: Acceso público para landing pages
+- **Productos más vendidos**: Los platos estrella del restaurante
+- **Incluye imágenes**: Imágenes en base64 para mostrar en frontend
+- **Filtros temporales**: Soporta todos los filtros avanzados
+- **Casos de uso**: Landing pages, menús destacados, promociones
+
+**Ejemplos de uso:**
+```bash
+# 4 platos más vendidos (default)
+GET /restaurante/v1/productos-populares
+
+# 6 productos más vendidos de la última semana
+GET /restaurante/v1/productos-populares?limit=6&periodo=ultima_semana
+
+# Productos más vendidos en horario de almuerzo
+GET /restaurante/v1/productos-populares?hora_inicio=11:00&hora_fin=15:00
+```
+
+### 🕒 Filtros Temporales Avanzados
+
+Todos los endpoints soportan múltiples tipos de filtros temporales para análisis flexible:
+
+#### 1. Filtros Predefinidos
 ```
 ?periodo=<valor>
 ```
@@ -126,16 +174,91 @@ Todos los endpoints soportan el parámetro `periodo` para filtrar datos por tiem
 - `ultimo_año`: Últimos 365 días
 - `historico`: Todos los datos disponibles
 
+#### 2. Filtros por Mes y Año
+```
+?mes=<1-12>&año=<YYYY>
+```
+
 **Ejemplos:**
 ```bash
-# Dashboard de hoy
-GET /restaurante/v1/telemetria/dashboard?periodo=hoy
+# Enero 2024
+GET /restaurante/v1/telemetria/dashboard?mes=1&año=2024
 
-# Rentabilidad de los últimos 6 meses
-GET /restaurante/v1/telemetria/rentabilidad?periodo=ultimos_6_meses&limit=15
+# Diciembre 2023
+GET /restaurante/v1/telemetria/sales?mes=12&año=2023
 
-# Segmentación histórica
-GET /restaurante/v1/telemetria/segmentacion?periodo=historico&limit=20
+# Todo el año 2024 (solo año)
+GET /restaurante/v1/telemetria/products?año=2024
+```
+
+#### 3. Filtros por Rango de Fechas Personalizado
+```
+?fecha_inicio=<YYYY-MM-DD>&fecha_fin=<YYYY-MM-DD>
+```
+
+**Ejemplos:**
+```bash
+# Período específico
+GET /restaurante/v1/telemetria/users?fecha_inicio=2024-01-15&fecha_fin=2024-02-15
+
+# Solo fecha inicio (hasta hoy)
+GET /restaurante/v1/telemetria/time-analysis?fecha_inicio=2024-01-01
+```
+
+#### 4. Filtros por Horario
+```
+?hora_inicio=<HH:MM>&hora_fin=<HH:MM>
+```
+
+**Ejemplos:**
+```bash
+# Solo horario de almuerzo (11:00 - 15:00)
+GET /restaurante/v1/telemetria/dashboard?hora_inicio=11:00&hora_fin=15:00
+
+# Horario nocturno
+GET /restaurante/v1/telemetria/sales?hora_inicio=18:00&hora_fin=23:00
+```
+
+#### 5. Combinaciones Avanzadas
+```bash
+# Enero 2024, solo horario de almuerzo
+GET /restaurante/v1/telemetria/rentabilidad?mes=1&año=2024&hora_inicio=11:00&hora_fin=15:00
+
+# Última semana, solo horario de cena
+GET /restaurante/v1/telemetria/eficiencia?periodo=ultima_semana&hora_inicio=18:00&hora_fin=22:00
+
+# Período específico con horario
+GET /restaurante/v1/telemetria/segmentacion?fecha_inicio=2024-01-01&fecha_fin=2024-01-31&hora_inicio=12:00&hora_fin=20:00
+```
+
+#### 6. Prioridad de Filtros
+Los filtros se aplican en el siguiente orden de prioridad:
+1. **Rango personalizado**: `fecha_inicio` y `fecha_fin` tienen máxima prioridad
+2. **Mes/Año**: `mes` y `año` tienen segunda prioridad
+3. **Período predefinido**: `periodo` es el filtro por defecto
+
+#### 7. Casos de Uso Comunes
+
+**Análisis de temporada alta:**
+```bash
+GET /restaurante/v1/telemetria/dashboard?mes=12&año=2023
+```
+
+**Análisis de fin de semana:**
+```bash
+GET /restaurante/v1/telemetria/sales?fecha_inicio=2024-01-06&fecha_fin=2024-01-07
+```
+
+**Análisis de horarios pico:**
+```bash
+GET /restaurante/v1/telemetria/time-analysis?periodo=ultimo_mes&hora_inicio=12:00&hora_fin=14:00
+```
+
+**Comparación mensual:**
+```bash
+# Enero vs Febrero 2024
+GET /restaurante/v1/telemetria/products?mes=1&año=2024
+GET /restaurante/v1/telemetria/products?mes=2&año=2024
 ```
 
 ## Estructura de Respuesta
@@ -187,12 +310,33 @@ fetch('/restaurante/v1/telemetria/sales', {
 - Consultas con ventanas de tiempo limitadas (30 días, 12 meses)
 
 ### Datos Utilizados
-- **Tabla `pedido`**: Fechas, horas, estados, clientes
-- **Tabla `pago`**: Montos, métodos de pago, estados
-- **Tabla `detalle_pedido`**: Productos, cantidades, precios
-- **Tabla `producto`**: Nombres, precios actuales
-- **Tabla `cliente`**: Información de usuarios
-- **Tabla `metodo_pago`**: Tipos de métodos de pago
+- **Tabla `pedido`**: Fechas, horas, estados, clientes, análisis temporal
+- **Tabla `pago`**: Montos, métodos de pago, estados de transacciones
+- **Tabla `detalle_pedido`**: Productos, cantidades, precios por item
+- **Tabla `producto`**: Nombres, precios actuales, imágenes (base64)
+- **Tabla `cliente`**: Información de usuarios, segmentación
+- **Tabla `metodo_pago`**: Tipos de métodos de pago disponibles
+- **Tabla `reserva`**: Fechas, horas, estados de reservas, análisis de ocupación
+- **Tabla `trabajador`**: Información de empleados para análisis de eficiencia
+- **Tabla `domicilio`**: Datos de entregas para análisis operacional
+
+### Mejoras Implementadas
+
+#### ✅ Filtros Avanzados
+- **Filtros por mes y año**: Análisis específico por períodos mensuales/anuales
+- **Filtros por rango de fechas**: Períodos personalizados con fecha inicio/fin
+- **Filtros por horario**: Análisis por franjas horarias específicas
+- **Combinaciones múltiples**: Filtros compuestos para análisis granular
+
+#### ✅ Métricas Contextuales
+- **TotalUsuarios corregido**: Refleja usuarios activos en el período filtrado
+- **Análisis temporal granular**: Soporte para filtros de hora específicos
+- **Consultas optimizadas**: Uso de `::date` y `::time` para mejor performance
+
+#### ✅ Nuevos Análisis
+- **Reservas completadas**: Análisis de ocupación y patrones de reservas
+- **Pedidos completados**: Análisis de demanda y volumen de pedidos
+- **Productos populares públicos**: Endpoint sin autenticación para landing pages
 
 ### Limitaciones
 - Solo datos existentes en las tablas actuales

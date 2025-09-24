@@ -24,6 +24,74 @@ Usa Axios para las peticiones HTTP, incluye manejo de errores, loading states, y
 
 ---
 
+## 🕒 **NUEVO: Filtros Temporales Avanzados**
+
+Todos los endpoints de telemetría ahora soportan **3 tipos de filtros temporales** para análisis flexible:
+
+### **1. Filtros Predefinidos (periodo)**
+```bash
+?periodo=ultimo_mes
+```
+- `hoy`: Solo datos del día actual
+- `ultima_semana`: Últimos 7 días
+- `ultimo_mes`: Últimos 30 días (por defecto)
+- `ultimos_3_meses`: Últimos 90 días
+- `ultimos_6_meses`: Últimos 180 días
+- `ultimo_año`: Últimos 365 días
+- `historico`: Todos los datos disponibles
+
+### **2. Filtros por Mes y Año**
+```bash
+?mes=1&año=2024          # Enero 2024
+?mes=12&año=2023         # Diciembre 2023
+?año=2024                # Todo el año 2024
+?mes=6                   # Junio del año actual
+```
+
+### **3. Filtros por Rango de Fechas y Horas**
+```bash
+# Rango de fechas
+?fecha_inicio=2024-01-01&fecha_fin=2024-01-31
+
+# Rango de fechas con horarios específicos
+?fecha_inicio=2024-01-01&fecha_fin=2024-01-31&hora_inicio=08:00:00&hora_fin=18:00:00
+
+# Solo filtro por horas (cualquier día)
+?hora_inicio=12:00:00&hora_fin=14:00:00
+```
+
+### **🎯 Ejemplos de Uso Combinado:**
+
+```bash
+# Dashboard de enero 2024
+curl -X 'GET' \
+  'http://localhost:8080/restaurante/v1/telemetria/dashboard?mes=1&año=2024' \
+  -H 'Authorization: Bearer {token}'
+
+# Ventas entre fechas específicas
+curl -X 'GET' \
+  'http://localhost:8080/restaurante/v1/telemetria/sales?fecha_inicio=2024-01-15&fecha_fin=2024-02-15' \
+  -H 'Authorization: Bearer {token}'
+
+# Productos más vendidos en horario de almuerzo
+curl -X 'GET' \
+  'http://localhost:8080/restaurante/v1/telemetria/products?hora_inicio=12:00:00&hora_fin=14:00:00&limit=5' \
+  -H 'Authorization: Bearer {token}'
+
+# Análisis de eficiencia en fin de semana de diciembre 2023
+curl -X 'GET' \
+  'http://localhost:8080/restaurante/v1/telemetria/eficiencia?mes=12&año=2023&fecha_inicio=2023-12-02&fecha_fin=2023-12-31' \
+  -H 'Authorization: Bearer {token}'
+```
+
+### **⚠️ Notas Importantes:**
+- Los filtros se aplican en orden de prioridad: **Mes/Año** > **Rango de Fechas** > **Periodo Predefinido**
+- Los filtros de hora se pueden combinar con cualquier filtro de fecha
+- El campo `totalUsuarios` en el dashboard ahora refleja usuarios activos en el período filtrado
+- Todos los análisis temporales respetan los filtros aplicados
+
+---
+
 ## 🌟 **NUEVO: Endpoint Público de Productos Populares**
 
 ### **Endpoint:** `GET /productos-populares` ⚡ **SIN AUTENTICACIÓN**
@@ -37,6 +105,12 @@ curl -X 'GET' \
 **Parámetros:**
 - `limit` (opcional): Número de productos a retornar (default: 4)
 - `periodo` (opcional): `hoy` | `ultima_semana` | `ultimo_mes` | `ultimos_3_meses` | `ultimos_6_meses` | `ultimo_año` | `historico`
+- `mes` (opcional): Mes específico (1-12) para filtrar por mes y año
+- `año` (opcional): Año específico (ej: 2024) para filtrar por mes y año
+- `fecha_inicio` (opcional): Fecha de inicio para rango personalizado (YYYY-MM-DD)
+- `fecha_fin` (opcional): Fecha de fin para rango personalizado (YYYY-MM-DD)
+- `hora_inicio` (opcional): Hora de inicio para filtro horario (HH:MM:SS)
+- `hora_fin` (opcional): Hora de fin para filtro horario (HH:MM:SS)
 
 **Respuesta esperada:**
 ```json
@@ -103,6 +177,12 @@ curl -X 'GET' \
 
 **Parámetros:**
 - `periodo` (opcional): `hoy` | `ultima_semana` | `ultimo_mes` | `ultimos_3_meses` | `ultimos_6_meses` | `ultimo_año` | `historico`
+- `mes` (opcional): Mes específico (1-12) para filtrar por mes y año
+- `año` (opcional): Año específico (ej: 2024) para filtrar por mes y año
+- `fecha_inicio` (opcional): Fecha de inicio para rango personalizado (YYYY-MM-DD)
+- `fecha_fin` (opcional): Fecha de fin para rango personalizado (YYYY-MM-DD)
+- `hora_inicio` (opcional): Hora de inicio para filtro horario (HH:MM:SS)
+- `hora_fin` (opcional): Hora de fin para filtro horario (HH:MM:SS)
 
 **Respuesta esperada:**
 ```json
@@ -112,7 +192,7 @@ curl -X 'GET' \
   "data": {
     "totalPedidos": 1250,
     "ingresosTotales": 45750000.50,
-    "usuariosRegistrados": 320,
+    "usuariosRegistrados": 320,  // ⚠️ Ahora refleja usuarios activos en el período filtrado
     "valorPromedioOrden": 36600.40
   }
 }
@@ -174,7 +254,13 @@ curl -X 'GET' \
 
 **Parámetros:**
 - `limit` (opcional): Número de productos a retornar (default: 10)
-- `periodo` (opcional): Filtros temporales disponibles
+- `periodo` (opcional): `hoy` | `ultima_semana` | `ultimo_mes` | `ultimos_3_meses` | `ultimos_6_meses` | `ultimo_año` | `historico`
+- `mes` (opcional): Mes específico (1-12) para filtrar por mes y año
+- `año` (opcional): Año específico (ej: 2024) para filtrar por mes y año
+- `fecha_inicio` (opcional): Fecha de inicio para rango personalizado (YYYY-MM-DD)
+- `fecha_fin` (opcional): Fecha de fin para rango personalizado (YYYY-MM-DD)
+- `hora_inicio` (opcional): Hora de inicio para filtro horario (HH:MM:SS)
+- `hora_fin` (opcional): Hora de fin para filtro horario (HH:MM:SS)
 
 **Respuesta esperada:**
 ```json
@@ -216,7 +302,13 @@ curl -X 'GET' \
 
 **Parámetros:**
 - `limit` (opcional): Número de usuarios a retornar (default: 10)
-- `periodo` (opcional): Filtros temporales disponibles
+- `periodo` (opcional): `hoy` | `ultima_semana` | `ultimo_mes` | `ultimos_3_meses` | `ultimos_6_meses` | `ultimo_año` | `historico`
+- `mes` (opcional): Mes específico (1-12) para filtrar por mes y año
+- `año` (opcional): Año específico (ej: 2024) para filtrar por mes y año
+- `fecha_inicio` (opcional): Fecha de inicio para rango personalizado (YYYY-MM-DD)
+- `fecha_fin` (opcional): Fecha de fin para rango personalizado (YYYY-MM-DD)
+- `hora_inicio` (opcional): Hora de inicio para filtro horario (HH:MM:SS)
+- `hora_fin` (opcional): Hora de fin para filtro horario (HH:MM:SS)
 
 **Respuesta esperada:**
 ```json
@@ -301,7 +393,13 @@ curl -X 'GET' \
 
 **Parámetros:**
 - `limit` (opcional): Número de productos a retornar (default: 10)
-- `periodo` (opcional): Filtros temporales disponibles
+- `periodo` (opcional): `hoy` | `ultima_semana` | `ultimo_mes` | `ultimos_3_meses` | `ultimos_6_meses` | `ultimo_año` | `historico`
+- `mes` (opcional): Mes específico (1-12) para filtrar por mes y año
+- `año` (opcional): Año específico (ej: 2024) para filtrar por mes y año
+- `fecha_inicio` (opcional): Fecha de inicio para rango personalizado (YYYY-MM-DD)
+- `fecha_fin` (opcional): Fecha de fin para rango personalizado (YYYY-MM-DD)
+- `hora_inicio` (opcional): Hora de inicio para filtro horario (HH:MM:SS)
+- `hora_fin` (opcional): Hora de fin para filtro horario (HH:MM:SS)
 
 **Respuesta esperada:**
 ```json
@@ -341,7 +439,13 @@ curl -X 'GET' \
 
 **Parámetros:**
 - `limit` (opcional): Número de clientes a retornar (default: 10)
-- `periodo` (opcional): Filtros temporales disponibles
+- `periodo` (opcional): `hoy` | `ultima_semana` | `ultimo_mes` | `ultimos_3_meses` | `ultimos_6_meses` | `ultimo_año` | `historico`
+- `mes` (opcional): Mes específico (1-12) para filtrar por mes y año
+- `año` (opcional): Año específico (ej: 2024) para filtrar por mes y año
+- `fecha_inicio` (opcional): Fecha de inicio para rango personalizado (YYYY-MM-DD)
+- `fecha_fin` (opcional): Fecha de fin para rango personalizado (YYYY-MM-DD)
+- `hora_inicio` (opcional): Hora de inicio para filtro horario (HH:MM:SS)
+- `hora_fin` (opcional): Hora de fin para filtro horario (HH:MM:SS)
 
 **Respuesta esperada:**
 ```json
@@ -388,7 +492,13 @@ curl -X 'GET' \
 
 **Parámetros:**
 - `limit` (opcional): Número de registros a retornar (default: 10)
-- `periodo` (opcional): Filtros temporales disponibles
+- `periodo` (opcional): `hoy` | `ultima_semana` | `ultimo_mes` | `ultimos_3_meses` | `ultimos_6_meses` | `ultimo_año` | `historico`
+- `mes` (opcional): Mes específico (1-12) para filtrar por mes y año
+- `año` (opcional): Año específico (ej: 2024) para filtrar por mes y año
+- `fecha_inicio` (opcional): Fecha de inicio para rango personalizado (YYYY-MM-DD)
+- `fecha_fin` (opcional): Fecha de fin para rango personalizado (YYYY-MM-DD)
+- `hora_inicio` (opcional): Hora de inicio para filtro horario (HH:MM:SS)
+- `hora_fin` (opcional): Hora de fin para filtro horario (HH:MM:SS)
 
 **Respuesta esperada:**
 ```json
@@ -780,6 +890,12 @@ export interface PedidosAnalisisData {
 export interface TelemetryParams {
   periodo?: TimePeriod;
   limit?: number;
+  mes?: number;           // 1-12
+  año?: number;           // ej: 2024
+  fecha_inicio?: string;  // YYYY-MM-DD
+  fecha_fin?: string;     // YYYY-MM-DD
+  hora_inicio?: string;   // HH:MM:SS
+  hora_fin?: string;      // HH:MM:SS
 }
 
 // Productos Populares Types (Endpoint Público)
@@ -1137,7 +1253,7 @@ class TelemetryService {
 ## 🎨 Componentes de UI Sugeridos
 
 ```typescript
-// Resultados esperados en el componente de teletemetría
+// Resultados esperados en el componente de telemetría
 
 - TelemetryDashboard: Vista principal con KPIs
 - SalesChart: Gráficos de ventas y métodos de pago
@@ -1148,19 +1264,35 @@ class TelemetryService {
 - ReservationsAnalysis: Análisis de reservas por tiempo
 - OrdersAnalysis: Análisis de pedidos completados
 - ProfitabilityChart: Análisis de rentabilidad por producto
-- PeriodFilter: Selector de filtros temporales
+
+// 🆕 Componentes de Filtros Avanzados
+- AdvancedPeriodFilter: Selector con 3 tipos de filtros temporales
+  - PredefinedPeriodSelector: Filtros predefinidos (hoy, semana, mes, etc.)
+  - MonthYearPicker: Selector de mes y año específicos
+  - CustomDateRangePicker: Rango de fechas personalizado con horas
+- FilterPresets: Botones de filtros rápidos comunes
+- DateTimeRangePicker: Componente combinado fecha + hora
+- FilterSummary: Resumen visual de filtros aplicados
+- PopularProductsPublic: Componente público para productos populares (sin auth)
 ```
 
 ---
 
 ## 📝 Notas Importantes
 
-1. **Autenticación**: Todos los endpoints requieren token JWT válido con rol "Administrador"
-2. **Filtros temporales**: Todos los endpoints soportan el parámetro `periodo`
-3. **Paginación**: Algunos endpoints soportan el parámetro `limit`
-4. **Formato de fechas**: Las fechas se devuelven en formato ISO 8601
-5. **Moneda**: Los valores monetarios están en pesos colombianos (COP)
-6. **Porcentajes**: Se devuelven como números decimales (ej: 36.5 = 36.5%)
+1. **Autenticación**: Todos los endpoints requieren token JWT válido con rol "Administrador" (excepto `/productos-populares`)
+2. **Filtros temporales avanzados**: Todos los endpoints soportan 3 tipos de filtros:
+   - **Predefinidos**: `periodo` (hoy, ultima_semana, ultimo_mes, etc.)
+   - **Mes/Año**: `mes` (1-12) y `año` (ej: 2024)
+   - **Rango personalizado**: `fecha_inicio`, `fecha_fin`, `hora_inicio`, `hora_fin`
+3. **Prioridad de filtros**: Mes/Año > Rango de fechas > Periodo predefinido
+4. **Paginación**: Algunos endpoints soportan el parámetro `limit`
+5. **Formato de fechas**: Las fechas se devuelven en formato ISO 8601
+6. **Formato de horas**: Las horas se especifican en formato HH:MM:SS (24 horas)
+7. **Moneda**: Los valores monetarios están en pesos colombianos (COP)
+8. **Porcentajes**: Se devuelven como números decimales (ej: 36.5 = 36.5%)
+9. **TotalUsuarios**: Ahora refleja usuarios activos en el período filtrado, no el total global
+10. **Endpoint público**: `/productos-populares` no requiere autenticación y soporta todos los filtros
 
 ---
 

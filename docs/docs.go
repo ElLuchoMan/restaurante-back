@@ -4010,6 +4010,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/productos-populares": {
+            "get": {
+                "description": "Obtiene los productos más vendidos - endpoint público sin autenticación",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número de productos a retornar (default: 4)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtro temporal: hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.ProductosPopularesData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/productos/search": {
             "get": {
                 "description": "Devuelve un producto específico por ID, incluyendo la imagen en formato Base64.",
@@ -5005,12 +5050,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5026,7 +5109,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.DashboardData"
+                                            "$ref": "#/definitions/models.DashboardData"
                                         }
                                     }
                                 }
@@ -5090,12 +5173,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5175,12 +5296,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5260,12 +5419,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5345,12 +5542,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5430,12 +5665,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5506,12 +5779,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5591,12 +5902,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5667,12 +6016,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -5752,12 +6139,50 @@ const docTemplate = `{
                             "ultimos_3_meses",
                             "ultimos_6_meses",
                             "ultimo_año",
-                            "historico"
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
                         "description": "Período de tiempo",
                         "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
                         "in": "query"
                     }
                 ],
@@ -6299,6 +6724,29 @@ const docTemplate = `{
                 },
                 "fecha": {
                     "type": "string"
+                }
+            }
+        },
+        "models.DashboardData": {
+            "type": "object",
+            "properties": {
+                "ingresosHoy": {
+                    "type": "integer"
+                },
+                "pedidosHoy": {
+                    "type": "integer"
+                },
+                "promedioVentaPedido": {
+                    "type": "number"
+                },
+                "totalIngresos": {
+                    "type": "integer"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "totalUsuarios": {
+                    "type": "integer"
                 }
             }
         },
@@ -7438,29 +7886,6 @@ const docTemplate = `{
                 }
             }
         },
-        "telemetria.DashboardData": {
-            "type": "object",
-            "properties": {
-                "ingresosHoy": {
-                    "type": "integer"
-                },
-                "pedidosHoy": {
-                    "type": "integer"
-                },
-                "promedioVentaPedido": {
-                    "type": "number"
-                },
-                "totalIngresos": {
-                    "type": "integer"
-                },
-                "totalPedidos": {
-                    "type": "integer"
-                },
-                "totalUsuarios": {
-                    "type": "integer"
-                }
-            }
-        },
         "telemetria.EficienciaData": {
             "type": "object",
             "properties": {
@@ -7783,6 +8208,9 @@ const docTemplate = `{
                 "cantidadVendida": {
                     "type": "integer"
                 },
+                "imagen": {
+                    "type": "string"
+                },
                 "ingresoTotal": {
                     "type": "integer"
                 },
@@ -7794,6 +8222,17 @@ const docTemplate = `{
                 },
                 "productoId": {
                     "type": "integer"
+                }
+            }
+        },
+        "telemetria.ProductosPopularesData": {
+            "type": "object",
+            "properties": {
+                "productosPopulares": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/telemetria.ProductoVendido"
+                    }
                 }
             }
         },

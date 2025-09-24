@@ -155,6 +155,21 @@ definitions:
       fecha:
         type: string
     type: object
+  models.DashboardData:
+    properties:
+      ingresosHoy:
+        type: integer
+      pedidosHoy:
+        type: integer
+      promedioVentaPedido:
+        type: number
+      totalIngresos:
+        type: integer
+      totalPedidos:
+        type: integer
+      totalUsuarios:
+        type: integer
+    type: object
   models.DiaSemana:
     enum:
     - Lunes
@@ -948,21 +963,6 @@ definitions:
         description: CLV estimado
         type: integer
     type: object
-  telemetria.DashboardData:
-    properties:
-      ingresosHoy:
-        type: integer
-      pedidosHoy:
-        type: integer
-      promedioVentaPedido:
-        type: number
-      totalIngresos:
-        type: integer
-      totalPedidos:
-        type: integer
-      totalUsuarios:
-        type: integer
-    type: object
   telemetria.EficienciaData:
     properties:
       analisisPorHora:
@@ -1174,6 +1174,8 @@ definitions:
     properties:
       cantidadVendida:
         type: integer
+      imagen:
+        type: string
       ingresoTotal:
         type: integer
       nombreProducto:
@@ -1182,6 +1184,13 @@ definitions:
         type: integer
       productoId:
         type: integer
+    type: object
+  telemetria.ProductosPopularesData:
+    properties:
+      productosPopulares:
+        items:
+          $ref: '#/definitions/telemetria.ProductoVendido'
+        type: array
     type: object
   telemetria.ProductsData:
     properties:
@@ -3906,6 +3915,33 @@ paths:
       summary: Actualizar un producto
       tags:
       - productos
+  /productos-populares:
+    get:
+      description: Obtiene los productos más vendidos - endpoint público sin autenticación
+      parameters:
+      - description: 'Número de productos a retornar (default: 4)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Filtro temporal: hoy, ultima_semana, ultimo_mes, ultimos_3_meses,
+          ultimos_6_meses, ultimo_año, historico'
+        in: query
+        name: periodo
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.ProductosPopularesData'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
   /productos/search:
     get:
       consumes:
@@ -4527,8 +4563,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -4540,7 +4602,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.DashboardData'
+                  $ref: '#/definitions/models.DashboardData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -4583,8 +4645,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -4640,8 +4728,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -4697,8 +4811,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -4753,8 +4893,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -4809,8 +4975,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -4859,8 +5051,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -4915,8 +5133,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -4964,8 +5208,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json
@@ -5021,8 +5291,34 @@ paths:
         - ultimos_6_meses
         - ultimo_año
         - historico
+        - mes_año
+        - rango_fechas
         in: query
         name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
         type: string
       produces:
       - application/json

@@ -31,6 +31,14 @@ const (
 	FilterLast6Months TimeFilter = "ultimos_6_meses"
 	FilterLastYear    TimeFilter = "ultimo_año"
 	FilterHistoric    TimeFilter = "historico"
+	FilterMonthYear   TimeFilter = "mes_año"
+	FilterDateRange   TimeFilter = "rango_fechas"
+)
+
+// Constantes para horarios por defecto
+const (
+	DefaultStartTime = "00:00:00"
+	DefaultEndTime   = "23:59:59"
 )
 
 // getTimeRange retorna las fechas de inicio y fin basadas en el filtro
@@ -77,299 +85,132 @@ func buildDateFilter(startDate, endDate string) string {
 	return fmt.Sprintf("pe.fecha >= '%s' AND pe.fecha <= '%s'", startDate, endDate)
 }
 
-// DashboardData representa los datos del dashboard general
-type DashboardData struct {
-	TotalPedidos        int64   `json:"totalPedidos"`
-	TotalIngresos       int64   `json:"totalIngresos"`
-	TotalUsuarios       int64   `json:"totalUsuarios"`
-	PromedioVentaPedido float64 `json:"promedioVentaPedido"`
-	PedidosHoy          int64   `json:"pedidosHoy"`
-	IngresosHoy         int64   `json:"ingresosHoy"`
+// getAdvancedTimeRange maneja filtros avanzados con parámetros adicionales
+func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, horaInicio, horaFin string) (startDate, endDate, startTime, endTime string) {
+	now := time.Now()
+
+	switch filter {
+	case FilterMonthYear:
+		if mes != "" && año != "" {
+			// Parsear mes y año
+			mesInt := 1
+			añoInt := now.Year()
+
+			if m, err := strconv.Atoi(mes); err == nil && m >= 1 && m <= 12 {
+				mesInt = m
+			}
+			if a, err := strconv.Atoi(año); err == nil && a >= 1900 && a <= 2100 {
+				añoInt = a
+			}
+
+			// Primer día del mes
+			startDate = fmt.Sprintf("%04d-%02d-01", añoInt, mesInt)
+
+			// Último día del mes
+			firstOfNextMonth := time.Date(añoInt, time.Month(mesInt+1), 1, 0, 0, 0, 0, time.UTC)
+			lastOfMonth := firstOfNextMonth.AddDate(0, 0, -1)
+			endDate = lastOfMonth.Format("2006-01-02")
+		} else {
+			// Default al mes actual
+			startDate = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+			endDate = now.Format("2006-01-02")
+		}
+	case FilterDateRange:
+		if fechaInicio != "" && fechaFin != "" {
+			// Validar formato de fechas
+			if _, err := time.Parse("2006-01-02", fechaInicio); err == nil {
+				startDate = fechaInicio
+			} else {
+				startDate = now.AddDate(0, -1, 0).Format("2006-01-02")
+			}
+
+			if _, err := time.Parse("2006-01-02", fechaFin); err == nil {
+				endDate = fechaFin
+			} else {
+				endDate = now.Format("2006-01-02")
+			}
+		} else {
+			// Default al último mes
+			startDate = now.AddDate(0, -1, 0).Format("2006-01-02")
+			endDate = now.Format("2006-01-02")
+		}
+	default:
+		// Usar filtros estándar
+		startDate, endDate = getTimeRange(filter)
+	}
+
+	// Manejar filtros de hora
+	if horaInicio != "" {
+		if _, err := time.Parse("15:04:05", horaInicio); err == nil {
+			startTime = horaInicio
+		} else if _, err := time.Parse("15:04", horaInicio); err == nil {
+			startTime = horaInicio + ":00"
+		} else {
+			startTime = DefaultStartTime
+		}
+	} else {
+		startTime = DefaultStartTime
+	}
+
+	if horaFin != "" {
+		if _, err := time.Parse("15:04:05", horaFin); err == nil {
+			endTime = horaFin
+		} else if _, err := time.Parse("15:04", horaFin); err == nil {
+			endTime = horaFin + ":00"
+		} else {
+			endTime = DefaultEndTime
+		}
+	} else {
+		endTime = DefaultEndTime
+	}
+
+	return startDate, endDate, startTime, endTime
 }
 
-// SalesData representa los datos de análisis de ventas
-type SalesData struct {
-	VentasPorMetodoPago   []VentaPorMetodo   `json:"ventasPorMetodoPago"`
-	TendenciaVentas       []VentaPorFecha    `json:"tendenciaVentas"`
-	EstadisticasGenerales EstadisticasVentas `json:"estadisticasGenerales"`
+// buildAdvancedDateFilter construye condición SQL con filtros de fecha y hora
+func buildAdvancedDateFilter(startDate, endDate, startTime, endTime string) string {
+	return buildAdvancedDateFilterWithField("pe.fecha_pedido", startDate, endDate, startTime, endTime)
 }
 
-type VentaPorMetodo struct {
-	MetodoPago string `json:"metodoPago"`
-	Total      int64  `json:"total"`
-	Cantidad   int64  `json:"cantidad"`
+func buildAdvancedDateFilterWithField(dateField, startDate, endDate, startTime, endTime string) string {
+	if startDate == endDate && startTime == DefaultStartTime && endTime == DefaultEndTime {
+		return fmt.Sprintf("%s::date = '%s'", dateField, startDate)
+	}
+
+	if startTime != DefaultStartTime || endTime != DefaultEndTime {
+		// Incluir filtros de hora
+		return fmt.Sprintf("(%s::date > '%s' OR (%s::date = '%s' AND %s::time >= '%s')) AND (%s::date < '%s' OR (%s::date = '%s' AND %s::time <= '%s'))",
+			dateField, startDate, dateField, startDate, dateField, startTime, dateField, endDate, dateField, endDate, dateField, endTime)
+	}
+
+	return fmt.Sprintf("%s::date >= '%s' AND %s::date <= '%s'", dateField, startDate, dateField, endDate)
 }
 
-type VentaPorFecha struct {
-	Fecha    string `json:"fecha"`
-	Total    int64  `json:"total"`
-	Cantidad int64  `json:"cantidad"`
-}
+// parseFilterParams extrae y procesa los parámetros de filtro de tiempo
+func parseFilterParams(c *web.Controller) (startDate, endDate, startTime, endTime string) {
+	// Obtener parámetros
+	periodo := c.GetString("periodo", "ultimo_mes")
+	mes := c.GetString("mes")
+	año := c.GetString("año")
+	fechaInicio := c.GetString("fecha_inicio")
+	fechaFin := c.GetString("fecha_fin")
+	horaInicio := c.GetString("hora_inicio")
+	horaFin := c.GetString("hora_fin")
 
-type EstadisticasVentas struct {
-	VentaPromedioDiaria  float64 `json:"ventaPromedioDiaria"`
-	PedidoPromedioDiario float64 `json:"pedidoPromedioDiario"`
-	TicketPromedio       float64 `json:"ticketPromedio"`
-}
+	// Determinar el tipo de filtro
+	var timeFilter TimeFilter
+	if mes != "" || año != "" {
+		timeFilter = FilterMonthYear
+	} else if fechaInicio != "" || fechaFin != "" {
+		timeFilter = FilterDateRange
+	} else {
+		timeFilter = TimeFilter(periodo)
+	}
 
-// ProductsData representa los datos de análisis de productos
-type ProductsData struct {
-	ProductosMasVendidos   []ProductoVendido     `json:"productosMasVendidos"`
-	ProductosMenosVendidos []ProductoVendido     `json:"productosMenosVendidos"`
-	EstadisticasProductos  EstadisticasProductos `json:"estadisticasProductos"`
-}
+	// Obtener rango de fechas y tiempos
+	startDate, endDate, startTime, endTime = getAdvancedTimeRange(timeFilter, mes, año, fechaInicio, fechaFin, horaInicio, horaFin)
 
-type ProductoVendido struct {
-	ProductoID      int64  `json:"productoId"`
-	NombreProducto  string `json:"nombreProducto"`
-	CantidadVendida int64  `json:"cantidadVendida"`
-	IngresoTotal    int64  `json:"ingresoTotal"`
-	Precio          int64  `json:"precio"`
-	Imagen          string `json:"imagen"`
-}
-
-type EstadisticasProductos struct {
-	TotalProductosActivos  int64  `json:"totalProductosActivos"`
-	ProductoConMasVentas   string `json:"productoConMasVentas"`
-	ProductoConMenosVentas string `json:"productoConMenosVentas"`
-}
-
-// UsersData representa los datos de análisis de usuarios
-type UsersData struct {
-	UsuariosFrecuentes   []UsuarioFrecuente   `json:"usuariosFrecuentes"`
-	UsuariosInactivos    []UsuarioInactivo    `json:"usuariosInactivos"`
-	EstadisticasUsuarios EstadisticasUsuarios `json:"estadisticasUsuarios"`
-}
-
-type UsuarioFrecuente struct {
-	DocumentoCliente int64  `json:"documentoCliente"`
-	NombreCompleto   string `json:"nombreCompleto"`
-	TotalPedidos     int64  `json:"totalPedidos"`
-	TotalGastado     int64  `json:"totalGastado"`
-	UltimoPedido     string `json:"ultimoPedido"`
-}
-
-type UsuarioInactivo struct {
-	DocumentoCliente int64  `json:"documentoCliente"`
-	NombreCompleto   string `json:"nombreCompleto"`
-	TotalPedidos     int64  `json:"totalPedidos"`
-	UltimoPedido     string `json:"ultimoPedido"`
-}
-
-type EstadisticasUsuarios struct {
-	TotalClientes           int64   `json:"totalClientes"`
-	ClientesActivos         int64   `json:"clientesActivos"`
-	ClientesInactivos       int64   `json:"clientesInactivos"`
-	PromedioGastoPorCliente float64 `json:"promedioGastoPorCliente"`
-}
-
-// TimeAnalysisData representa los datos de análisis temporal
-type TimeAnalysisData struct {
-	VentasPorHora      []VentaPorHora      `json:"ventasPorHora"`
-	VentasPorDiaSemana []VentaPorDiaSemana `json:"ventasPorDiaSemana"`
-	VentasPorMes       []VentaPorMes       `json:"ventasPorMes"`
-}
-
-type VentaPorHora struct {
-	Hora     int   `json:"hora"`
-	Total    int64 `json:"total"`
-	Cantidad int64 `json:"cantidad"`
-}
-
-type VentaPorDiaSemana struct {
-	DiaSemana string `json:"diaSemana"`
-	Total     int64  `json:"total"`
-	Cantidad  int64  `json:"cantidad"`
-}
-
-type VentaPorMes struct {
-	Mes      string `json:"mes"`
-	Total    int64  `json:"total"`
-	Cantidad int64  `json:"cantidad"`
-}
-
-// === NUEVAS ESTRUCTURAS PARA MÉTRICAS AVANZADAS ===
-
-// RentabilidadData representa el análisis de rentabilidad
-type RentabilidadData struct {
-	ProductosRentables       []ProductoRentabilidad   `json:"productosRentables"`
-	ProductosMenosRentables  []ProductoRentabilidad   `json:"productosMenosRentables"`
-	EstadisticasRentabilidad EstadisticasRentabilidad `json:"estadisticasRentabilidad"`
-}
-
-type ProductoRentabilidad struct {
-	ProductoID      int64   `json:"productoId"`
-	NombreProducto  string  `json:"nombreProducto"`
-	PrecioVenta     int64   `json:"precioVenta"`
-	CantidadVendida int64   `json:"cantidadVendida"`
-	IngresoTotal    int64   `json:"ingresoTotal"`
-	MargenGanancia  float64 `json:"margenGanancia"` // Porcentaje de ganancia
-	GananciaTotal   int64   `json:"gananciaTotal"`  // Ganancia total en pesos
-}
-
-type EstadisticasRentabilidad struct {
-	MargenPromedioGeneral float64 `json:"margenPromedioGeneral"`
-	ProductoMasRentable   string  `json:"productoMasRentable"`
-	ProductoMenosRentable string  `json:"productoMenosRentable"`
-	TotalGanancias        int64   `json:"totalGanancias"`
-	TotalIngresos         int64   `json:"totalIngresos"`
-}
-
-// SegmentacionData representa el análisis de segmentación de clientes
-type SegmentacionData struct {
-	ClientesVIP              []ClienteSegmento        `json:"clientesVIP"`
-	ClientesRegulares        []ClienteSegmento        `json:"clientesRegulares"`
-	ClientesOcasionales      []ClienteSegmento        `json:"clientesOcasionales"`
-	ClientesNuevos           []ClienteSegmento        `json:"clientesNuevos"`
-	EstadisticasSegmentacion EstadisticasSegmentacion `json:"estadisticasSegmentacion"`
-}
-
-type ClienteSegmento struct {
-	DocumentoCliente int64   `json:"documentoCliente"`
-	NombreCompleto   string  `json:"nombreCompleto"`
-	TotalPedidos     int64   `json:"totalPedidos"`
-	TotalGastado     int64   `json:"totalGastado"`
-	PromedioGasto    float64 `json:"promedioGasto"`
-	UltimoPedido     string  `json:"ultimoPedido"`
-	DiasSinPedir     int     `json:"diasSinPedir"`
-	Segmento         string  `json:"segmento"`
-	ValorVida        int64   `json:"valorVida"` // CLV estimado
-}
-
-type EstadisticasSegmentacion struct {
-	TotalClientesVIP         int64   `json:"totalClientesVIP"`
-	TotalClientesRegulares   int64   `json:"totalClientesRegulares"`
-	TotalClientesOcasionales int64   `json:"totalClientesOcasionales"`
-	TotalClientesNuevos      int64   `json:"totalClientesNuevos"`
-	PromedioGastoVIP         float64 `json:"promedioGastoVIP"`
-	PromedioGastoRegular     float64 `json:"promedioGastoRegular"`
-	PorcentajeVIP            float64 `json:"porcentajeVIP"`
-}
-
-// EficienciaData representa el análisis de eficiencia de entregas
-type EficienciaData struct {
-	TiemposEntrega          []TiempoEntrega         `json:"tiemposEntrega"`
-	RendimientoTrabajadores []RendimientoTrabajador `json:"rendimientoTrabajadores"`
-	AnalisisPorHora         []EficienciaPorHora     `json:"analisisPorHora"`
-	EstadisticasEficiencia  EstadisticasEficiencia  `json:"estadisticasEficiencia"`
-}
-
-type TiempoEntrega struct {
-	PedidoID           int64  `json:"pedidoId"`
-	Cliente            string `json:"cliente"`
-	FechaPedido        string `json:"fechaPedido"`
-	HoraPedido         string `json:"horaPedido"`
-	TiempoPreparacion  int    `json:"tiempoPreparacion"` // en minutos
-	EstadoPedido       string `json:"estadoPedido"`
-	TrabajadorAsignado string `json:"trabajadorAsignado"`
-}
-
-type RendimientoTrabajador struct {
-	DocumentoTrabajador    int64   `json:"documentoTrabajador"`
-	NombreTrabajador       string  `json:"nombreTrabajador"`
-	PedidosAtendidos       int64   `json:"pedidosAtendidos"`
-	TiempoPromedioAtencion float64 `json:"tiempoPromedioAtencion"`
-	EficienciaScore        float64 `json:"eficienciaScore"` // 1-10
-	HorasTrabajadas        float64 `json:"horasTrabajadas"`
-}
-
-type EficienciaPorHora struct {
-	Hora               string  `json:"hora"`
-	PedidosRecibidos   int64   `json:"pedidosRecibidos"`
-	TiempoPromedioPrep float64 `json:"tiempoPromedioPrep"`
-	CapacidadUtilizada float64 `json:"capacidadUtilizada"` // Porcentaje
-	NivelEficiencia    string  `json:"nivelEficiencia"`    // Alto, Medio, Bajo
-}
-
-type EstadisticasEficiencia struct {
-	TiempoPromedioGeneral  float64 `json:"tiempoPromedioGeneral"`
-	HoraMasEficiente       string  `json:"horaMasEficiente"`
-	HoraMenosEficiente     string  `json:"horaMenosEficiente"`
-	TrabajadorMasEficiente string  `json:"trabajadorMasEficiente"`
-	CapacidadPromedioUso   float64 `json:"capacidadPromedioUso"`
-	PedidosPendientes      int64   `json:"pedidosPendientes"`
-}
-
-// === NUEVOS ENDPOINTS ADICIONALES ===
-
-// ReservasAnalisisData representa el análisis de reservas por días y horas
-type ReservasAnalisisData struct {
-	ReservasPorDia       []ReservaPorDia       `json:"reservasPorDia"`
-	ReservasPorHora      []ReservaPorHora      `json:"reservasPorHora"`
-	ReservasPorDiaSemana []ReservaPorDiaSemana `json:"reservasPorDiaSemana"`
-	EstadisticasReservas EstadisticasReservas  `json:"estadisticasReservas"`
-}
-
-type ReservaPorDia struct {
-	Fecha                string  `json:"fecha"`
-	TotalReservas        int64   `json:"totalReservas"`
-	ReservasCompletadas  int64   `json:"reservasCompletadas"`
-	TotalPersonas        int64   `json:"totalPersonas"`
-	PorcentajeCompletado float64 `json:"porcentajeCompletado"`
-}
-
-type ReservaPorHora struct {
-	Hora                 string  `json:"hora"`
-	TotalReservas        int64   `json:"totalReservas"`
-	ReservasCompletadas  int64   `json:"reservasCompletadas"`
-	TotalPersonas        int64   `json:"totalPersonas"`
-	PorcentajeCompletado float64 `json:"porcentajeCompletado"`
-}
-
-type ReservaPorDiaSemana struct {
-	DiaSemana            string  `json:"diaSemana"`
-	TotalReservas        int64   `json:"totalReservas"`
-	ReservasCompletadas  int64   `json:"reservasCompletadas"`
-	TotalPersonas        int64   `json:"totalPersonas"`
-	PorcentajeCompletado float64 `json:"porcentajeCompletado"`
-}
-
-type EstadisticasReservas struct {
-	TotalReservasCompletadas   int64   `json:"totalReservasCompletadas"`
-	DiaMasReservas             string  `json:"diaMasReservas"`
-	HoraMasReservas            string  `json:"horaMasReservas"`
-	PromedioPersonasPorReserva float64 `json:"promedioPersonasPorReserva"`
-	TasaCompletamiento         float64 `json:"tasaCompletamiento"`
-}
-
-// PedidosAnalisisData representa el análisis de pedidos por días y horas
-type PedidosAnalisisData struct {
-	PedidosPorDia       []PedidoPorDia       `json:"pedidosPorDia"`
-	PedidosPorHora      []PedidoPorHora      `json:"pedidosPorHora"`
-	PedidosPorDiaSemana []PedidoPorDiaSemana `json:"pedidosPorDiaSemana"`
-	EstadisticasPedidos EstadisticasPedidos  `json:"estadisticasPedidos"`
-}
-
-type PedidoPorDia struct {
-	Fecha              string  `json:"fecha"`
-	TotalPedidos       int64   `json:"totalPedidos"`
-	PedidosTerminados  int64   `json:"pedidosTerminados"`
-	IngresoTotal       int64   `json:"ingresoTotal"`
-	TasaCompletamiento float64 `json:"tasaCompletamiento"`
-}
-
-type PedidoPorHora struct {
-	Hora               string  `json:"hora"`
-	TotalPedidos       int64   `json:"totalPedidos"`
-	PedidosTerminados  int64   `json:"pedidosTerminados"`
-	IngresoTotal       int64   `json:"ingresoTotal"`
-	TasaCompletamiento float64 `json:"tasaCompletamiento"`
-}
-
-type PedidoPorDiaSemana struct {
-	DiaSemana          string  `json:"diaSemana"`
-	TotalPedidos       int64   `json:"totalPedidos"`
-	PedidosTerminados  int64   `json:"pedidosTerminados"`
-	IngresoTotal       int64   `json:"ingresoTotal"`
-	TasaCompletamiento float64 `json:"tasaCompletamiento"`
-}
-
-type EstadisticasPedidos struct {
-	TotalPedidosTerminados    int64   `json:"totalPedidosTerminados"`
-	DiaMasPedidos             string  `json:"diaMasPedidos"`
-	HoraMasPedidos            string  `json:"horaMasPedidos"`
-	IngresoPromedioHora       float64 `json:"ingresoPromedioHora"`
-	TasaCompletamientoGeneral float64 `json:"tasaCompletamientoGeneral"`
+	return startDate, endDate, startTime, endTime
 }
 
 // validateAdminRole valida que el usuario tenga rol de administrador
@@ -423,8 +264,14 @@ func (c *TelemetriaController) validateAdminRole() (*Claims, bool) {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.DashboardData} "Dashboard obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.DashboardData} "Dashboard obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -436,15 +283,13 @@ func (c *TelemetriaController) GetDashboard() {
 		return
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Obtener parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var dashboardData DashboardData
+	var dashboardData models.DashboardData
 
 	// Total de pedidos en el período
 	var totalPedidos int64
@@ -481,8 +326,13 @@ func (c *TelemetriaController) GetDashboard() {
 	}
 	dashboardData.TotalIngresos = totalIngresos
 
-	// Total de usuarios (clientes) - siempre histórico
-	totalUsuarios, err := o.QueryTable("cliente").Count()
+	// Total de usuarios (clientes) que hicieron pedidos en el período
+	var totalUsuarios int64
+	err = o.Raw(fmt.Sprintf(`
+		SELECT COUNT(DISTINCT pe.pk_documento_cliente)
+		FROM pedido pe
+		WHERE pe.pk_documento_cliente IS NOT NULL AND %s
+	`, dateFilter)).QueryRow(&totalUsuarios)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -538,7 +388,7 @@ func (c *TelemetriaController) GetDashboard() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Dashboard (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Dashboard obtenido exitosamente por %s", claims.Nombre),
 		Data:    dashboardData,
 	}
 	_ = c.ServeJSON()
@@ -550,8 +400,14 @@ func (c *TelemetriaController) GetDashboard() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.SalesData} "Análisis de ventas obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.SalesData} "Análisis de ventas obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -563,18 +419,16 @@ func (c *TelemetriaController) GetSales() {
 		return
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Obtener parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var salesData SalesData
+	var salesData models.SalesData
 
 	// Ventas por método de pago en el período
-	var ventasPorMetodo []VentaPorMetodo
+	var ventasPorMetodo []models.VentaPorMetodo
 	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			mp.tipo as metodo_pago,
@@ -600,7 +454,7 @@ func (c *TelemetriaController) GetSales() {
 	salesData.VentasPorMetodoPago = ventasPorMetodo
 
 	// Tendencia de ventas por fecha en el período
-	var tendenciaVentas []VentaPorFecha
+	var tendenciaVentas []models.VentaPorFecha
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			pe.fecha::text as fecha,
@@ -625,7 +479,7 @@ func (c *TelemetriaController) GetSales() {
 	salesData.TendenciaVentas = tendenciaVentas
 
 	// Estadísticas generales del período
-	var estadisticas EstadisticasVentas
+	var estadisticas models.EstadisticasVentas
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
 			COALESCE(AVG(daily_sales.total), 0) as venta_promedio_diaria,
@@ -661,7 +515,7 @@ func (c *TelemetriaController) GetSales() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis de ventas (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis de ventas obtenido exitosamente por %s", claims.Nombre),
 		Data:    salesData,
 	}
 	_ = c.ServeJSON()
@@ -674,8 +528,14 @@ func (c *TelemetriaController) GetSales() {
 // @Accept json
 // @Produce json
 // @Param limit query int false "Límite de productos a mostrar" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.ProductsData} "Análisis de productos obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.ProductsData} "Análisis de productos obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -694,18 +554,16 @@ func (c *TelemetriaController) GetProducts() {
 		limit = 10
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Parsear parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var productsData ProductsData
+	var productsData models.ProductsData
 
 	// Productos más vendidos en el período
-	var productosMasVendidos []ProductoVendido
+	var productosMasVendidos []models.ProductoVendido
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			pr.pk_id_producto as producto_id,
@@ -736,7 +594,7 @@ func (c *TelemetriaController) GetProducts() {
 	productsData.ProductosMasVendidos = productosMasVendidos
 
 	// Productos menos vendidos en el período
-	var productosMenosVendidos []ProductoVendido
+	var productosMenosVendidos []models.ProductoVendido
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			pr.pk_id_producto as producto_id,
@@ -767,7 +625,7 @@ func (c *TelemetriaController) GetProducts() {
 	productsData.ProductosMenosVendidos = productosMenosVendidos
 
 	// Estadísticas de productos
-	var estadisticas EstadisticasProductos
+	var estadisticas models.EstadisticasProductos
 	totalProductosActivos, err := o.QueryTable("producto").Filter("estado_producto", "DISPONIBLE").Count()
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -796,7 +654,7 @@ func (c *TelemetriaController) GetProducts() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis de productos (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis de productos obtenido exitosamente por %s", claims.Nombre),
 		Data:    productsData,
 	}
 	_ = c.ServeJSON()
@@ -809,8 +667,14 @@ func (c *TelemetriaController) GetProducts() {
 // @Accept json
 // @Produce json
 // @Param limit query int false "Límite de usuarios a mostrar" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.UsersData} "Análisis de usuarios obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.UsersData} "Análisis de usuarios obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -829,18 +693,16 @@ func (c *TelemetriaController) GetUsers() {
 		limit = 10
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Parsear parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var usersData UsersData
+	var usersData models.UsersData
 
 	// Usuarios frecuentes (con más pedidos en el período)
-	var usuariosFrecuentes []UsuarioFrecuente
+	var usuariosFrecuentes []models.UsuarioFrecuente
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			c.pk_documento_cliente as documento_cliente,
@@ -870,7 +732,7 @@ func (c *TelemetriaController) GetUsers() {
 	usersData.UsuariosFrecuentes = usuariosFrecuentes
 
 	// Usuarios inactivos (con pocos pedidos o sin pedidos en el período)
-	var usuariosInactivos []UsuarioInactivo
+	var usuariosInactivos []models.UsuarioInactivo
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			c.pk_documento_cliente as documento_cliente,
@@ -897,7 +759,7 @@ func (c *TelemetriaController) GetUsers() {
 	usersData.UsuariosInactivos = usuariosInactivos
 
 	// Estadísticas de usuarios
-	var estadisticas EstadisticasUsuarios
+	var estadisticas models.EstadisticasUsuarios
 
 	// Total de clientes
 	totalClientes, err := o.QueryTable("cliente").Count()
@@ -962,7 +824,7 @@ func (c *TelemetriaController) GetUsers() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis de usuarios (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis de usuarios obtenido exitosamente por %s", claims.Nombre),
 		Data:    usersData,
 	}
 	_ = c.ServeJSON()
@@ -974,8 +836,14 @@ func (c *TelemetriaController) GetUsers() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.TimeAnalysisData} "Análisis temporal obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.TimeAnalysisData} "Análisis temporal obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -987,18 +855,16 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 		return
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Parsear parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var timeData TimeAnalysisData
+	var timeData models.TimeAnalysisData
 
 	// Ventas por hora del día en el período
-	var ventasPorHora []VentaPorHora
+	var ventasPorHora []models.VentaPorHora
 	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			EXTRACT(HOUR FROM pe.hora) as hora,
@@ -1023,7 +889,7 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 	timeData.VentasPorHora = ventasPorHora
 
 	// Ventas por día de la semana en el período
-	var ventasPorDiaSemana []VentaPorDiaSemana
+	var ventasPorDiaSemana []models.VentaPorDiaSemana
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			CASE EXTRACT(DOW FROM pe.fecha)
@@ -1056,7 +922,7 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 	timeData.VentasPorDiaSemana = ventasPorDiaSemana
 
 	// Ventas por mes en el período
-	var ventasPorMes []VentaPorMes
+	var ventasPorMes []models.VentaPorMes
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			TO_CHAR(pe.fecha, 'YYYY-MM') as mes,
@@ -1083,7 +949,7 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis temporal (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis temporal obtenido exitosamente por %s", claims.Nombre),
 		Data:    timeData,
 	}
 	_ = c.ServeJSON()
@@ -1098,8 +964,14 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 // @Accept json
 // @Produce json
 // @Param limit query int false "Límite de productos a mostrar" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.RentabilidadData} "Análisis de rentabilidad obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.RentabilidadData} "Análisis de rentabilidad obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -1118,18 +990,16 @@ func (c *TelemetriaController) GetRentabilidad() {
 		limit = 10
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Parsear parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var rentabilidadData RentabilidadData
+	var rentabilidadData models.RentabilidadData
 
 	// Productos más rentables (asumiendo 70% de margen como ejemplo)
-	var productosRentables []ProductoRentabilidad
+	var productosRentables []models.ProductoRentabilidad
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			pr.pk_id_producto as producto_id,
@@ -1164,7 +1034,7 @@ func (c *TelemetriaController) GetRentabilidad() {
 	rentabilidadData.ProductosRentables = productosRentables
 
 	// Productos menos rentables
-	var productosMenosRentables []ProductoRentabilidad
+	var productosMenosRentables []models.ProductoRentabilidad
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			pr.pk_id_producto as producto_id,
@@ -1208,7 +1078,7 @@ func (c *TelemetriaController) GetRentabilidad() {
 	rentabilidadData.ProductosMenosRentables = productosMenosRentables
 
 	// Estadísticas de rentabilidad
-	var estadisticas EstadisticasRentabilidad
+	var estadisticas models.EstadisticasRentabilidad
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
 			AVG(CASE
@@ -1254,7 +1124,7 @@ func (c *TelemetriaController) GetRentabilidad() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis de rentabilidad (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis de rentabilidad obtenido exitosamente por %s", claims.Nombre),
 		Data:    rentabilidadData,
 	}
 	_ = c.ServeJSON()
@@ -1267,8 +1137,14 @@ func (c *TelemetriaController) GetRentabilidad() {
 // @Accept json
 // @Produce json
 // @Param limit query int false "Límite de clientes por segmento" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.SegmentacionData} "Análisis de segmentación obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.SegmentacionData} "Análisis de segmentación obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -1287,18 +1163,16 @@ func (c *TelemetriaController) GetSegmentacion() {
 		limit = 10
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Parsear parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var segmentacionData SegmentacionData
+	var segmentacionData models.SegmentacionData
 
 	// Clientes VIP (más de 5 pedidos y más de $50,000 gastados)
-	var clientesVIP []ClienteSegmento
+	var clientesVIP []models.ClienteSegmento
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			c.pk_documento_cliente as documento_cliente,
@@ -1336,7 +1210,7 @@ func (c *TelemetriaController) GetSegmentacion() {
 	segmentacionData.ClientesVIP = clientesVIP
 
 	// Clientes Regulares (2-5 pedidos)
-	var clientesRegulares []ClienteSegmento
+	var clientesRegulares []models.ClienteSegmento
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			c.pk_documento_cliente as documento_cliente,
@@ -1374,7 +1248,7 @@ func (c *TelemetriaController) GetSegmentacion() {
 	segmentacionData.ClientesRegulares = clientesRegulares
 
 	// Clientes Ocasionales (1 pedido)
-	var clientesOcasionales []ClienteSegmento
+	var clientesOcasionales []models.ClienteSegmento
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			c.pk_documento_cliente as documento_cliente,
@@ -1412,7 +1286,7 @@ func (c *TelemetriaController) GetSegmentacion() {
 	segmentacionData.ClientesOcasionales = clientesOcasionales
 
 	// Clientes Nuevos (sin pedidos en el período)
-	var clientesNuevos []ClienteSegmento
+	var clientesNuevos []models.ClienteSegmento
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			c.pk_documento_cliente as documento_cliente,
@@ -1445,7 +1319,7 @@ func (c *TelemetriaController) GetSegmentacion() {
 	segmentacionData.ClientesNuevos = clientesNuevos
 
 	// Estadísticas de segmentación
-	var estadisticas EstadisticasSegmentacion
+	var estadisticas models.EstadisticasSegmentacion
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
 			COUNT(CASE WHEN pedidos > 5 AND gasto > 50000 THEN 1 END) as total_clientes_vip,
@@ -1496,7 +1370,7 @@ func (c *TelemetriaController) GetSegmentacion() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis de segmentación (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis de segmentación obtenido exitosamente por %s", claims.Nombre),
 		Data:    segmentacionData,
 	}
 	_ = c.ServeJSON()
@@ -1509,8 +1383,14 @@ func (c *TelemetriaController) GetSegmentacion() {
 // @Accept json
 // @Produce json
 // @Param limit query int false "Límite de registros por sección" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.EficienciaData} "Análisis de eficiencia obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.EficienciaData} "Análisis de eficiencia obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -1529,18 +1409,16 @@ func (c *TelemetriaController) GetEficiencia() {
 		limit = 10
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Parsear parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var eficienciaData EficienciaData
+	var eficienciaData models.EficienciaData
 
 	// Tiempos de entrega (simulamos tiempo de preparación basado en la diferencia de horas)
-	var tiemposEntrega []TiempoEntrega
+	var tiemposEntrega []models.TiempoEntrega
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			pe.pk_id_pedido as pedido_id,
@@ -1576,7 +1454,7 @@ func (c *TelemetriaController) GetEficiencia() {
 	eficienciaData.TiemposEntrega = tiemposEntrega
 
 	// Rendimiento de trabajadores (basado en domicilios asignados)
-	var rendimientoTrabajadores []RendimientoTrabajador
+	var rendimientoTrabajadores []models.RendimientoTrabajador
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			t.pk_documento_trabajador as documento_trabajador,
@@ -1620,7 +1498,7 @@ func (c *TelemetriaController) GetEficiencia() {
 	eficienciaData.RendimientoTrabajadores = rendimientoTrabajadores
 
 	// Análisis por hora
-	var analisisPorHora []EficienciaPorHora
+	var analisisPorHora []models.EficienciaPorHora
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			EXTRACT(HOUR FROM pe.hora)::text || ':00' as hora,
@@ -1661,7 +1539,7 @@ func (c *TelemetriaController) GetEficiencia() {
 	eficienciaData.AnalisisPorHora = analisisPorHora
 
 	// Estadísticas generales de eficiencia
-	var estadisticas EstadisticasEficiencia
+	var estadisticas models.EstadisticasEficiencia
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
 			AVG(CASE
@@ -1719,7 +1597,7 @@ func (c *TelemetriaController) GetEficiencia() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis de eficiencia (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis de eficiencia obtenido exitosamente por %s", claims.Nombre),
 		Data:    eficienciaData,
 	}
 	_ = c.ServeJSON()
@@ -1732,8 +1610,14 @@ func (c *TelemetriaController) GetEficiencia() {
 // @Accept json
 // @Produce json
 // @Param limit query int false "Límite de registros por sección" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.ReservasAnalisisData} "Análisis de reservas obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.ReservasAnalisisData} "Análisis de reservas obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -1752,18 +1636,16 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 		limit = 10
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Parsear parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilterWithField("r.fecha_reserva", startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var reservasData ReservasAnalisisData
+	var reservasData models.ReservasAnalisisData
 
 	// Reservas por día
-	var reservasPorDia []ReservaPorDia
+	var reservasPorDia []models.ReservaPorDia
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			r.fecha::text as fecha,
@@ -1794,7 +1676,7 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 	reservasData.ReservasPorDia = reservasPorDia
 
 	// Reservas por hora
-	var reservasPorHora []ReservaPorHora
+	var reservasPorHora []models.ReservaPorHora
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			EXTRACT(HOUR FROM r.hora)::text || ':00' as hora,
@@ -1825,7 +1707,7 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 	reservasData.ReservasPorHora = reservasPorHora
 
 	// Reservas por día de la semana
-	var reservasPorDiaSemana []ReservaPorDiaSemana
+	var reservasPorDiaSemana []models.ReservaPorDiaSemana
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			CASE EXTRACT(DOW FROM r.fecha)
@@ -1863,7 +1745,7 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 	reservasData.ReservasPorDiaSemana = reservasPorDiaSemana
 
 	// Estadísticas de reservas
-	var estadisticas EstadisticasReservas
+	var estadisticas models.EstadisticasReservas
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
 			COUNT(CASE WHEN r.estado_reserva = 'CUMPLIDA' THEN 1 END) as total_reservas_completadas,
@@ -1900,7 +1782,7 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis de reservas (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis de reservas obtenido exitosamente por %s", claims.Nombre),
 		Data:    reservasData,
 	}
 	_ = c.ServeJSON()
@@ -1913,8 +1795,14 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 // @Accept json
 // @Produce json
 // @Param limit query int false "Límite de registros por sección" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
-// @Success 200 {object} models.ApiResponse{data=telemetria.PedidosAnalisisData} "Análisis de pedidos obtenido exitosamente"
+// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) para filtro mes_año"
+// @Param año query int false "Año para filtro mes_año"
+// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
+// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
+// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Success 200 {object} models.ApiResponse{data=models.PedidosAnalisisData} "Análisis de pedidos obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
@@ -1933,18 +1821,16 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 		limit = 10
 	}
 
-	// Obtener filtro de tiempo
-	periodoStr := c.GetString("periodo", "ultimo_mes")
-	periodo := TimeFilter(periodoStr)
-	startDate, endDate := getTimeRange(periodo)
-	dateFilter := buildDateFilter(startDate, endDate)
+	// Parsear parámetros de filtro
+	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
+	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
-	var pedidosData PedidosAnalisisData
+	var pedidosData models.PedidosAnalisisData
 
 	// Pedidos por día
-	var pedidosPorDia []PedidoPorDia
+	var pedidosPorDia []models.PedidoPorDia
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			pe.fecha::text as fecha,
@@ -1976,7 +1862,7 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	pedidosData.PedidosPorDia = pedidosPorDia
 
 	// Pedidos por hora
-	var pedidosPorHora []PedidoPorHora
+	var pedidosPorHora []models.PedidoPorHora
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			EXTRACT(HOUR FROM pe.hora)::text || ':00' as hora,
@@ -2008,7 +1894,7 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	pedidosData.PedidosPorHora = pedidosPorHora
 
 	// Pedidos por día de la semana
-	var pedidosPorDiaSemana []PedidoPorDiaSemana
+	var pedidosPorDiaSemana []models.PedidoPorDiaSemana
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
 			CASE EXTRACT(DOW FROM pe.fecha)
@@ -2047,7 +1933,7 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	pedidosData.PedidosPorDiaSemana = pedidosPorDiaSemana
 
 	// Estadísticas de pedidos
-	var estadisticas EstadisticasPedidos
+	var estadisticas models.EstadisticasPedidos
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
 			COUNT(CASE WHEN pe.estado_pedido = 'TERMINADO' THEN 1 END) as total_pedidos_terminados,
@@ -2085,7 +1971,7 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Análisis de pedidos (%s) obtenido exitosamente por %s", string(periodo), claims.Nombre),
+		Message: fmt.Sprintf("Análisis de pedidos obtenido exitosamente por %s", claims.Nombre),
 		Data:    pedidosData,
 	}
 	_ = c.ServeJSON()
@@ -2093,7 +1979,7 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 
 // ProductosPopularesData estructura para productos más vendidos (público)
 type ProductosPopularesData struct {
-	ProductosPopulares []ProductoVendido `json:"productosPopulares"`
+	ProductosPopulares []models.ProductoVendido `json:"productosPopulares"`
 }
 
 // GetProductosPopulares obtiene los productos más vendidos (endpoint público)
@@ -2121,7 +2007,7 @@ func (c *TelemetriaController) GetProductosPopulares() {
 	o := orm.NewOrm()
 
 	// Consulta para productos más vendidos
-	var productosMasVendidos []ProductoVendido
+	var productosMasVendidos []models.ProductoVendido
 	sql := fmt.Sprintf(`
 		SELECT
 			pr.pk_id_producto as producto_id,
@@ -2159,7 +2045,7 @@ func (c *TelemetriaController) GetProductosPopulares() {
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
-		Message: fmt.Sprintf("Productos populares (%s) obtenidos exitosamente", string(periodo)),
+		Message: "Productos populares obtenidos exitosamente",
 		Data:    productosData,
 	}
 	_ = c.ServeJSON()
