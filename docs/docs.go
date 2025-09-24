@@ -5232,7 +5232,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.EficienciaData"
+                                            "$ref": "#/definitions/models.EficienciaData"
                                         }
                                     }
                                 }
@@ -5355,7 +5355,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.PedidosAnalisisData"
+                                            "$ref": "#/definitions/models.PedidosAnalisisData"
                                         }
                                     }
                                 }
@@ -5478,7 +5478,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.ProductsData"
+                                            "$ref": "#/definitions/models.ProductsData"
                                         }
                                     }
                                 }
@@ -5601,7 +5601,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.RentabilidadData"
+                                            "$ref": "#/definitions/models.RentabilidadData"
                                         }
                                     }
                                 }
@@ -5724,7 +5724,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.ReservasAnalisisData"
+                                            "$ref": "#/definitions/models.ReservasAnalisisData"
                                         }
                                     }
                                 }
@@ -5838,7 +5838,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.SalesData"
+                                            "$ref": "#/definitions/models.SalesData"
                                         }
                                     }
                                 }
@@ -5961,7 +5961,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.SegmentacionData"
+                                            "$ref": "#/definitions/models.SegmentacionData"
                                         }
                                     }
                                 }
@@ -6075,7 +6075,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.TimeAnalysisData"
+                                            "$ref": "#/definitions/models.TimeAnalysisData"
                                         }
                                     }
                                 }
@@ -6198,7 +6198,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/telemetria.UsersData"
+                                            "$ref": "#/definitions/models.UsersData"
                                         }
                                     }
                                 }
@@ -6680,6 +6680,39 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ClienteSegmento": {
+            "type": "object",
+            "properties": {
+                "diasSinPedir": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "promedioGasto": {
+                    "type": "number"
+                },
+                "segmento": {
+                    "type": "string"
+                },
+                "totalGastado": {
+                    "type": "integer"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "ultimoPedido": {
+                    "type": "string"
+                },
+                "valorVida": {
+                    "description": "CLV estimado",
+                    "type": "integer"
+                }
+            }
+        },
         "models.ClienteUpdateRequest": {
             "type": "object",
             "properties": {
@@ -6863,6 +6896,208 @@ const docTemplate = `{
                 "updatedBy": {
                     "type": "string",
                     "example": "operador@example.com"
+                }
+            }
+        },
+        "models.EficienciaData": {
+            "type": "object",
+            "properties": {
+                "analisisPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.EficienciaPorHora"
+                    }
+                },
+                "estadisticasEficiencia": {
+                    "$ref": "#/definitions/models.EstadisticasEficiencia"
+                },
+                "rendimientoTrabajadores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.RendimientoTrabajador"
+                    }
+                },
+                "tiemposEntrega": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.TiempoEntrega"
+                    }
+                }
+            }
+        },
+        "models.EficienciaPorHora": {
+            "type": "object",
+            "properties": {
+                "capacidadUtilizada": {
+                    "description": "Porcentaje",
+                    "type": "number"
+                },
+                "hora": {
+                    "type": "string"
+                },
+                "nivelEficiencia": {
+                    "description": "Alto, Medio, Bajo",
+                    "type": "string"
+                },
+                "pedidosRecibidos": {
+                    "type": "integer"
+                },
+                "tiempoPromedioPrep": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.EstadisticasEficiencia": {
+            "type": "object",
+            "properties": {
+                "capacidadPromedioUso": {
+                    "type": "number"
+                },
+                "horaMasEficiente": {
+                    "type": "string"
+                },
+                "horaMenosEficiente": {
+                    "type": "string"
+                },
+                "pedidosPendientes": {
+                    "type": "integer"
+                },
+                "tiempoPromedioGeneral": {
+                    "type": "number"
+                },
+                "trabajadorMasEficiente": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.EstadisticasPedidos": {
+            "type": "object",
+            "properties": {
+                "diaMasPedidos": {
+                    "type": "string"
+                },
+                "horaMasPedidos": {
+                    "type": "string"
+                },
+                "ingresoPromedioHora": {
+                    "type": "number"
+                },
+                "tasaCompletamientoGeneral": {
+                    "type": "number"
+                },
+                "totalPedidosTerminados": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasProductos": {
+            "type": "object",
+            "properties": {
+                "productoConMasVentas": {
+                    "type": "string"
+                },
+                "productoConMenosVentas": {
+                    "type": "string"
+                },
+                "totalProductosActivos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasRentabilidad": {
+            "type": "object",
+            "properties": {
+                "margenPromedioGeneral": {
+                    "type": "number"
+                },
+                "productoMasRentable": {
+                    "type": "string"
+                },
+                "productoMenosRentable": {
+                    "type": "string"
+                },
+                "totalGanancias": {
+                    "type": "integer"
+                },
+                "totalIngresos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasReservas": {
+            "type": "object",
+            "properties": {
+                "diaMasReservas": {
+                    "type": "string"
+                },
+                "horaMasReservas": {
+                    "type": "string"
+                },
+                "promedioPersonasPorReserva": {
+                    "type": "number"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalReservasCompletadas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasSegmentacion": {
+            "type": "object",
+            "properties": {
+                "porcentajeVIP": {
+                    "type": "number"
+                },
+                "promedioGastoRegular": {
+                    "type": "number"
+                },
+                "promedioGastoVIP": {
+                    "type": "number"
+                },
+                "totalClientesNuevos": {
+                    "type": "integer"
+                },
+                "totalClientesOcasionales": {
+                    "type": "integer"
+                },
+                "totalClientesRegulares": {
+                    "type": "integer"
+                },
+                "totalClientesVIP": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasUsuarios": {
+            "type": "object",
+            "properties": {
+                "clientesActivos": {
+                    "type": "integer"
+                },
+                "clientesInactivos": {
+                    "type": "integer"
+                },
+                "promedioGastoPorCliente": {
+                    "type": "number"
+                },
+                "totalClientes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasVentas": {
+            "type": "object",
+            "properties": {
+                "pedidoPromedioDiario": {
+                    "type": "number"
+                },
+                "ticketPromedio": {
+                    "type": "number"
+                },
+                "ventaPromedioDiaria": {
+                    "type": "number"
                 }
             }
         },
@@ -7404,6 +7639,92 @@ const docTemplate = `{
                 }
             }
         },
+        "models.PedidoPorDia": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PedidoPorDiaSemana": {
+            "type": "object",
+            "properties": {
+                "diaSemana": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PedidoPorHora": {
+            "type": "object",
+            "properties": {
+                "hora": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PedidosAnalisisData": {
+            "type": "object",
+            "properties": {
+                "estadisticasPedidos": {
+                    "$ref": "#/definitions/models.EstadisticasPedidos"
+                },
+                "pedidosPorDia": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PedidoPorDia"
+                    }
+                },
+                "pedidosPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PedidoPorDiaSemana"
+                    }
+                },
+                "pedidosPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PedidoPorHora"
+                    }
+                }
+            }
+        },
         "models.Producto": {
             "type": "object",
             "properties": {
@@ -7461,6 +7782,121 @@ const docTemplate = `{
                 "productoId": {
                     "type": "integer",
                     "example": 1
+                }
+            }
+        },
+        "models.ProductoRentabilidad": {
+            "type": "object",
+            "properties": {
+                "cantidadVendida": {
+                    "type": "integer"
+                },
+                "gananciaTotal": {
+                    "description": "Ganancia total en pesos",
+                    "type": "integer"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "margenGanancia": {
+                    "description": "Porcentaje de ganancia",
+                    "type": "number"
+                },
+                "nombreProducto": {
+                    "type": "string"
+                },
+                "precioVenta": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ProductoVendido": {
+            "type": "object",
+            "properties": {
+                "cantidadVendida": {
+                    "type": "integer"
+                },
+                "imagen": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "nombreProducto": {
+                    "type": "string"
+                },
+                "precio": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ProductsData": {
+            "type": "object",
+            "properties": {
+                "estadisticasProductos": {
+                    "$ref": "#/definitions/models.EstadisticasProductos"
+                },
+                "productosMasVendidos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoVendido"
+                    }
+                },
+                "productosMenosVendidos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoVendido"
+                    }
+                }
+            }
+        },
+        "models.RendimientoTrabajador": {
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "eficienciaScore": {
+                    "description": "1-10",
+                    "type": "number"
+                },
+                "horasTrabajadas": {
+                    "type": "number"
+                },
+                "nombreTrabajador": {
+                    "type": "string"
+                },
+                "pedidosAtendidos": {
+                    "type": "integer"
+                },
+                "tiempoPromedioAtencion": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.RentabilidadData": {
+            "type": "object",
+            "properties": {
+                "estadisticasRentabilidad": {
+                    "$ref": "#/definitions/models.EstadisticasRentabilidad"
+                },
+                "productosMenosRentables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoRentabilidad"
+                    }
+                },
+                "productosRentables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoRentabilidad"
+                    }
                 }
             }
         },
@@ -7562,6 +7998,66 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ReservaPorDia": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ReservaPorDiaSemana": {
+            "type": "object",
+            "properties": {
+                "diaSemana": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ReservaPorHora": {
+            "type": "object",
+            "properties": {
+                "hora": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.ReservaUpdateRequest": {
             "type": "object",
             "properties": {
@@ -7596,6 +8092,32 @@ const docTemplate = `{
                 "updatedBy": {
                     "type": "string",
                     "example": "operador@example.com"
+                }
+            }
+        },
+        "models.ReservasAnalisisData": {
+            "type": "object",
+            "properties": {
+                "estadisticasReservas": {
+                    "$ref": "#/definitions/models.EstadisticasReservas"
+                },
+                "reservasPorDia": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ReservaPorDia"
+                    }
+                },
+                "reservasPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ReservaPorDiaSemana"
+                    }
+                },
+                "reservasPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ReservaPorHora"
+                    }
                 }
             }
         },
@@ -7667,6 +8189,58 @@ const docTemplate = `{
                 "RolOficiosVarios"
             ]
         },
+        "models.SalesData": {
+            "type": "object",
+            "properties": {
+                "estadisticasGenerales": {
+                    "$ref": "#/definitions/models.EstadisticasVentas"
+                },
+                "tendenciaVentas": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorFecha"
+                    }
+                },
+                "ventasPorMetodoPago": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorMetodo"
+                    }
+                }
+            }
+        },
+        "models.SegmentacionData": {
+            "type": "object",
+            "properties": {
+                "clientesNuevos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ClienteSegmento"
+                    }
+                },
+                "clientesOcasionales": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ClienteSegmento"
+                    }
+                },
+                "clientesRegulares": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ClienteSegmento"
+                    }
+                },
+                "clientesVIP": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ClienteSegmento"
+                    }
+                },
+                "estadisticasSegmentacion": {
+                    "$ref": "#/definitions/models.EstadisticasSegmentacion"
+                }
+            }
+        },
         "models.Subcategoria": {
             "type": "object",
             "properties": {
@@ -7704,6 +8278,56 @@ const docTemplate = `{
                 "nombre": {
                     "type": "string",
                     "example": "Gaseosas zero"
+                }
+            }
+        },
+        "models.TiempoEntrega": {
+            "type": "object",
+            "properties": {
+                "cliente": {
+                    "type": "string"
+                },
+                "estadoPedido": {
+                    "type": "string"
+                },
+                "fechaPedido": {
+                    "type": "string"
+                },
+                "horaPedido": {
+                    "type": "string"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                },
+                "tiempoPreparacion": {
+                    "description": "en minutos",
+                    "type": "integer"
+                },
+                "trabajadorAsignado": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.TimeAnalysisData": {
+            "type": "object",
+            "properties": {
+                "ventasPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorDiaSemana"
+                    }
+                },
+                "ventasPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorHora"
+                    }
+                },
+                "ventasPorMes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorMes"
+                    }
                 }
             }
         },
@@ -7844,671 +8468,27 @@ const docTemplate = `{
                 }
             }
         },
-        "productopedido.ProductoPedidoResponse": {
-            "type": "object",
-            "properties": {
-                "detalles": {},
-                "pedidoId": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.ClienteSegmento": {
-            "type": "object",
-            "properties": {
-                "diasSinPedir": {
-                    "type": "integer"
-                },
-                "documentoCliente": {
-                    "type": "integer"
-                },
-                "nombreCompleto": {
-                    "type": "string"
-                },
-                "promedioGasto": {
-                    "type": "number"
-                },
-                "segmento": {
-                    "type": "string"
-                },
-                "totalGastado": {
-                    "type": "integer"
-                },
-                "totalPedidos": {
-                    "type": "integer"
-                },
-                "ultimoPedido": {
-                    "type": "string"
-                },
-                "valorVida": {
-                    "description": "CLV estimado",
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.EficienciaData": {
-            "type": "object",
-            "properties": {
-                "analisisPorHora": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.EficienciaPorHora"
-                    }
-                },
-                "estadisticasEficiencia": {
-                    "$ref": "#/definitions/telemetria.EstadisticasEficiencia"
-                },
-                "rendimientoTrabajadores": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.RendimientoTrabajador"
-                    }
-                },
-                "tiemposEntrega": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.TiempoEntrega"
-                    }
-                }
-            }
-        },
-        "telemetria.EficienciaPorHora": {
-            "type": "object",
-            "properties": {
-                "capacidadUtilizada": {
-                    "description": "Porcentaje",
-                    "type": "number"
-                },
-                "hora": {
-                    "type": "string"
-                },
-                "nivelEficiencia": {
-                    "description": "Alto, Medio, Bajo",
-                    "type": "string"
-                },
-                "pedidosRecibidos": {
-                    "type": "integer"
-                },
-                "tiempoPromedioPrep": {
-                    "type": "number"
-                }
-            }
-        },
-        "telemetria.EstadisticasEficiencia": {
-            "type": "object",
-            "properties": {
-                "capacidadPromedioUso": {
-                    "type": "number"
-                },
-                "horaMasEficiente": {
-                    "type": "string"
-                },
-                "horaMenosEficiente": {
-                    "type": "string"
-                },
-                "pedidosPendientes": {
-                    "type": "integer"
-                },
-                "tiempoPromedioGeneral": {
-                    "type": "number"
-                },
-                "trabajadorMasEficiente": {
-                    "type": "string"
-                }
-            }
-        },
-        "telemetria.EstadisticasPedidos": {
-            "type": "object",
-            "properties": {
-                "diaMasPedidos": {
-                    "type": "string"
-                },
-                "horaMasPedidos": {
-                    "type": "string"
-                },
-                "ingresoPromedioHora": {
-                    "type": "number"
-                },
-                "tasaCompletamientoGeneral": {
-                    "type": "number"
-                },
-                "totalPedidosTerminados": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.EstadisticasProductos": {
-            "type": "object",
-            "properties": {
-                "productoConMasVentas": {
-                    "type": "string"
-                },
-                "productoConMenosVentas": {
-                    "type": "string"
-                },
-                "totalProductosActivos": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.EstadisticasRentabilidad": {
-            "type": "object",
-            "properties": {
-                "margenPromedioGeneral": {
-                    "type": "number"
-                },
-                "productoMasRentable": {
-                    "type": "string"
-                },
-                "productoMenosRentable": {
-                    "type": "string"
-                },
-                "totalGanancias": {
-                    "type": "integer"
-                },
-                "totalIngresos": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.EstadisticasReservas": {
-            "type": "object",
-            "properties": {
-                "diaMasReservas": {
-                    "type": "string"
-                },
-                "horaMasReservas": {
-                    "type": "string"
-                },
-                "promedioPersonasPorReserva": {
-                    "type": "number"
-                },
-                "tasaCompletamiento": {
-                    "type": "number"
-                },
-                "totalReservasCompletadas": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.EstadisticasSegmentacion": {
-            "type": "object",
-            "properties": {
-                "porcentajeVIP": {
-                    "type": "number"
-                },
-                "promedioGastoRegular": {
-                    "type": "number"
-                },
-                "promedioGastoVIP": {
-                    "type": "number"
-                },
-                "totalClientesNuevos": {
-                    "type": "integer"
-                },
-                "totalClientesOcasionales": {
-                    "type": "integer"
-                },
-                "totalClientesRegulares": {
-                    "type": "integer"
-                },
-                "totalClientesVIP": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.EstadisticasUsuarios": {
-            "type": "object",
-            "properties": {
-                "clientesActivos": {
-                    "type": "integer"
-                },
-                "clientesInactivos": {
-                    "type": "integer"
-                },
-                "promedioGastoPorCliente": {
-                    "type": "number"
-                },
-                "totalClientes": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.EstadisticasVentas": {
-            "type": "object",
-            "properties": {
-                "pedidoPromedioDiario": {
-                    "type": "number"
-                },
-                "ticketPromedio": {
-                    "type": "number"
-                },
-                "ventaPromedioDiaria": {
-                    "type": "number"
-                }
-            }
-        },
-        "telemetria.PedidoPorDia": {
-            "type": "object",
-            "properties": {
-                "fecha": {
-                    "type": "string"
-                },
-                "ingresoTotal": {
-                    "type": "integer"
-                },
-                "pedidosTerminados": {
-                    "type": "integer"
-                },
-                "tasaCompletamiento": {
-                    "type": "number"
-                },
-                "totalPedidos": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.PedidoPorDiaSemana": {
-            "type": "object",
-            "properties": {
-                "diaSemana": {
-                    "type": "string"
-                },
-                "ingresoTotal": {
-                    "type": "integer"
-                },
-                "pedidosTerminados": {
-                    "type": "integer"
-                },
-                "tasaCompletamiento": {
-                    "type": "number"
-                },
-                "totalPedidos": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.PedidoPorHora": {
-            "type": "object",
-            "properties": {
-                "hora": {
-                    "type": "string"
-                },
-                "ingresoTotal": {
-                    "type": "integer"
-                },
-                "pedidosTerminados": {
-                    "type": "integer"
-                },
-                "tasaCompletamiento": {
-                    "type": "number"
-                },
-                "totalPedidos": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.PedidosAnalisisData": {
-            "type": "object",
-            "properties": {
-                "estadisticasPedidos": {
-                    "$ref": "#/definitions/telemetria.EstadisticasPedidos"
-                },
-                "pedidosPorDia": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.PedidoPorDia"
-                    }
-                },
-                "pedidosPorDiaSemana": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.PedidoPorDiaSemana"
-                    }
-                },
-                "pedidosPorHora": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.PedidoPorHora"
-                    }
-                }
-            }
-        },
-        "telemetria.ProductoRentabilidad": {
-            "type": "object",
-            "properties": {
-                "cantidadVendida": {
-                    "type": "integer"
-                },
-                "gananciaTotal": {
-                    "description": "Ganancia total en pesos",
-                    "type": "integer"
-                },
-                "ingresoTotal": {
-                    "type": "integer"
-                },
-                "margenGanancia": {
-                    "description": "Porcentaje de ganancia",
-                    "type": "number"
-                },
-                "nombreProducto": {
-                    "type": "string"
-                },
-                "precioVenta": {
-                    "type": "integer"
-                },
-                "productoId": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.ProductoVendido": {
-            "type": "object",
-            "properties": {
-                "cantidadVendida": {
-                    "type": "integer"
-                },
-                "imagen": {
-                    "type": "string"
-                },
-                "ingresoTotal": {
-                    "type": "integer"
-                },
-                "nombreProducto": {
-                    "type": "string"
-                },
-                "precio": {
-                    "type": "integer"
-                },
-                "productoId": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.ProductosPopularesData": {
-            "type": "object",
-            "properties": {
-                "productosPopulares": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ProductoVendido"
-                    }
-                }
-            }
-        },
-        "telemetria.ProductsData": {
-            "type": "object",
-            "properties": {
-                "estadisticasProductos": {
-                    "$ref": "#/definitions/telemetria.EstadisticasProductos"
-                },
-                "productosMasVendidos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ProductoVendido"
-                    }
-                },
-                "productosMenosVendidos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ProductoVendido"
-                    }
-                }
-            }
-        },
-        "telemetria.RendimientoTrabajador": {
-            "type": "object",
-            "properties": {
-                "documentoTrabajador": {
-                    "type": "integer"
-                },
-                "eficienciaScore": {
-                    "description": "1-10",
-                    "type": "number"
-                },
-                "horasTrabajadas": {
-                    "type": "number"
-                },
-                "nombreTrabajador": {
-                    "type": "string"
-                },
-                "pedidosAtendidos": {
-                    "type": "integer"
-                },
-                "tiempoPromedioAtencion": {
-                    "type": "number"
-                }
-            }
-        },
-        "telemetria.RentabilidadData": {
-            "type": "object",
-            "properties": {
-                "estadisticasRentabilidad": {
-                    "$ref": "#/definitions/telemetria.EstadisticasRentabilidad"
-                },
-                "productosMenosRentables": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ProductoRentabilidad"
-                    }
-                },
-                "productosRentables": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ProductoRentabilidad"
-                    }
-                }
-            }
-        },
-        "telemetria.ReservaPorDia": {
-            "type": "object",
-            "properties": {
-                "fecha": {
-                    "type": "string"
-                },
-                "porcentajeCompletado": {
-                    "type": "number"
-                },
-                "reservasCompletadas": {
-                    "type": "integer"
-                },
-                "totalPersonas": {
-                    "type": "integer"
-                },
-                "totalReservas": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.ReservaPorDiaSemana": {
-            "type": "object",
-            "properties": {
-                "diaSemana": {
-                    "type": "string"
-                },
-                "porcentajeCompletado": {
-                    "type": "number"
-                },
-                "reservasCompletadas": {
-                    "type": "integer"
-                },
-                "totalPersonas": {
-                    "type": "integer"
-                },
-                "totalReservas": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.ReservaPorHora": {
-            "type": "object",
-            "properties": {
-                "hora": {
-                    "type": "string"
-                },
-                "porcentajeCompletado": {
-                    "type": "number"
-                },
-                "reservasCompletadas": {
-                    "type": "integer"
-                },
-                "totalPersonas": {
-                    "type": "integer"
-                },
-                "totalReservas": {
-                    "type": "integer"
-                }
-            }
-        },
-        "telemetria.ReservasAnalisisData": {
-            "type": "object",
-            "properties": {
-                "estadisticasReservas": {
-                    "$ref": "#/definitions/telemetria.EstadisticasReservas"
-                },
-                "reservasPorDia": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ReservaPorDia"
-                    }
-                },
-                "reservasPorDiaSemana": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ReservaPorDiaSemana"
-                    }
-                },
-                "reservasPorHora": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ReservaPorHora"
-                    }
-                }
-            }
-        },
-        "telemetria.SalesData": {
-            "type": "object",
-            "properties": {
-                "estadisticasGenerales": {
-                    "$ref": "#/definitions/telemetria.EstadisticasVentas"
-                },
-                "tendenciaVentas": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.VentaPorFecha"
-                    }
-                },
-                "ventasPorMetodoPago": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.VentaPorMetodo"
-                    }
-                }
-            }
-        },
-        "telemetria.SegmentacionData": {
-            "type": "object",
-            "properties": {
-                "clientesNuevos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ClienteSegmento"
-                    }
-                },
-                "clientesOcasionales": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ClienteSegmento"
-                    }
-                },
-                "clientesRegulares": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ClienteSegmento"
-                    }
-                },
-                "clientesVIP": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.ClienteSegmento"
-                    }
-                },
-                "estadisticasSegmentacion": {
-                    "$ref": "#/definitions/telemetria.EstadisticasSegmentacion"
-                }
-            }
-        },
-        "telemetria.TiempoEntrega": {
-            "type": "object",
-            "properties": {
-                "cliente": {
-                    "type": "string"
-                },
-                "estadoPedido": {
-                    "type": "string"
-                },
-                "fechaPedido": {
-                    "type": "string"
-                },
-                "horaPedido": {
-                    "type": "string"
-                },
-                "pedidoId": {
-                    "type": "integer"
-                },
-                "tiempoPreparacion": {
-                    "description": "en minutos",
-                    "type": "integer"
-                },
-                "trabajadorAsignado": {
-                    "type": "string"
-                }
-            }
-        },
-        "telemetria.TimeAnalysisData": {
-            "type": "object",
-            "properties": {
-                "ventasPorDiaSemana": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.VentaPorDiaSemana"
-                    }
-                },
-                "ventasPorHora": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.VentaPorHora"
-                    }
-                },
-                "ventasPorMes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/telemetria.VentaPorMes"
-                    }
-                }
-            }
-        },
-        "telemetria.UsersData": {
+        "models.UsersData": {
             "type": "object",
             "properties": {
                 "estadisticasUsuarios": {
-                    "$ref": "#/definitions/telemetria.EstadisticasUsuarios"
+                    "$ref": "#/definitions/models.EstadisticasUsuarios"
                 },
                 "usuariosFrecuentes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/telemetria.UsuarioFrecuente"
+                        "$ref": "#/definitions/models.UsuarioFrecuente"
                     }
                 },
                 "usuariosInactivos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/telemetria.UsuarioInactivo"
+                        "$ref": "#/definitions/models.UsuarioInactivo"
                     }
                 }
             }
         },
-        "telemetria.UsuarioFrecuente": {
+        "models.UsuarioFrecuente": {
             "type": "object",
             "properties": {
                 "documentoCliente": {
@@ -8528,7 +8508,7 @@ const docTemplate = `{
                 }
             }
         },
-        "telemetria.UsuarioInactivo": {
+        "models.UsuarioInactivo": {
             "type": "object",
             "properties": {
                 "documentoCliente": {
@@ -8545,7 +8525,7 @@ const docTemplate = `{
                 }
             }
         },
-        "telemetria.VentaPorDiaSemana": {
+        "models.VentaPorDiaSemana": {
             "type": "object",
             "properties": {
                 "cantidad": {
@@ -8559,7 +8539,7 @@ const docTemplate = `{
                 }
             }
         },
-        "telemetria.VentaPorFecha": {
+        "models.VentaPorFecha": {
             "type": "object",
             "properties": {
                 "cantidad": {
@@ -8573,7 +8553,7 @@ const docTemplate = `{
                 }
             }
         },
-        "telemetria.VentaPorHora": {
+        "models.VentaPorHora": {
             "type": "object",
             "properties": {
                 "cantidad": {
@@ -8587,7 +8567,7 @@ const docTemplate = `{
                 }
             }
         },
-        "telemetria.VentaPorMes": {
+        "models.VentaPorMes": {
             "type": "object",
             "properties": {
                 "cantidad": {
@@ -8601,7 +8581,7 @@ const docTemplate = `{
                 }
             }
         },
-        "telemetria.VentaPorMetodo": {
+        "models.VentaPorMetodo": {
             "type": "object",
             "properties": {
                 "cantidad": {
@@ -8612,6 +8592,26 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "productopedido.ProductoPedidoResponse": {
+            "type": "object",
+            "properties": {
+                "detalles": {},
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telemetria.ProductosPopularesData": {
+            "type": "object",
+            "properties": {
+                "productosPopulares": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoVendido"
+                    }
                 }
             }
         }

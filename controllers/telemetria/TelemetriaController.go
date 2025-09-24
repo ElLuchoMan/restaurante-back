@@ -1982,6 +1982,66 @@ type ProductosPopularesData struct {
 	ProductosPopulares []models.ProductoVendido `json:"productosPopulares"`
 }
 
+// GetEstadosPedidos obtiene el conteo de pedidos por estado (endpoint público)
+// @Title GetEstadosPedidos
+// @Description Obtiene el conteo de pedidos agrupados por estado - endpoint público sin autenticación
+// @Success 200 {object} models.ApiResponse{data=map[string]int64}
+// @Failure 500 {object} models.ApiResponse
+// @router /estados-pedidos [get]
+func (c *TelemetriaController) GetEstadosPedidos() {
+	o := orm.NewOrm()
+
+	// Consulta para contar pedidos por estado
+	type EstadoCount struct {
+		Estado string `json:"estado"`
+		Count  int64  `json:"count"`
+	}
+
+	var estados []EstadoCount
+	_, err := o.Raw(`
+		SELECT
+			estado_pedido as estado,
+			COUNT(*) as count
+		FROM pedido
+		GROUP BY estado_pedido
+		ORDER BY estado_pedido
+	`).QueryRows(&estados)
+
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al obtener estados de pedidos",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	// Convertir a mapa para respuesta más clara
+	estadosMap := make(map[string]int64)
+	var noFinalizados int64 = 0
+
+	for _, estado := range estados {
+		estadosMap[estado.Estado] = estado.Count
+		// Contar pedidos no finalizados (no TERMINADO ni CANCELADO)
+		if estado.Estado != "TERMINADO" && estado.Estado != "CANCELADO" {
+			noFinalizados += estado.Count
+		}
+	}
+
+	// Agregar el total de no finalizados
+	estadosMap["NO_FINALIZADOS"] = noFinalizados
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Estados de pedidos obtenidos exitosamente",
+		Data:    estadosMap,
+	}
+	_ = c.ServeJSON()
+}
+
 // GetProductosPopulares obtiene los productos más vendidos (endpoint público)
 // @Title GetProductosPopulares
 // @Description Obtiene los productos más vendidos - endpoint público sin autenticación
@@ -2017,10 +2077,12 @@ func (c *TelemetriaController) GetProductosPopulares() {
 			pr.precio,
 			COALESCE(encode(pr.imagen, 'base64'), '') as imagen
 		FROM producto pr
-		LEFT JOIN detalle_pedido dp ON pr.pk_id_producto = dp.pk_id_producto
-		LEFT JOIN pedido pe ON dp.pk_id_pedido = pe.pk_id_pedido
-		LEFT JOIN pago p ON pe.pk_id_pago = p.pk_id_pago AND p.estado_pago = 'PAGADO'
-		WHERE pe.estado_pedido = 'TERMINADO' AND %s
+		INNER JOIN detalle_pedido dp ON pr.pk_id_producto = dp.pk_id_producto
+		INNER JOIN pedido pe ON dp.pk_id_pedido = pe.pk_id_pedido
+		INNER JOIN pago p ON pe.pk_id_pago = p.pk_id_pago
+		WHERE pe.estado_pedido = 'TERMINADO'
+		  AND p.estado_pago = 'PAGADO'
+		  AND %s
 		GROUP BY pr.pk_id_producto, pr.nombre, pr.precio, pr.imagen
 		ORDER BY cantidad_vendida DESC
 		LIMIT %d
@@ -2047,6 +2109,60 @@ func (c *TelemetriaController) GetProductosPopulares() {
 		Code:    http.StatusOK,
 		Message: "Productos populares obtenidos exitosamente",
 		Data:    productosData,
+	}
+	_ = c.ServeJSON()
+}
+
+// GetProductosDisponibles obtiene todos los productos disponibles (endpoint público)
+// @Title GetProductosDisponibles
+// @Description Obtiene todos los productos disponibles en el sistema - endpoint público sin autenticación
+// @Success 200 {object} models.ApiResponse{data=[]map[string]interface{}}
+// @Failure 500 {object} models.ApiResponse
+// @router /productos-disponibles [get]
+func (c *TelemetriaController) GetProductosDisponibles() {
+	o := orm.NewOrm()
+
+	type ProductoInfo struct {
+		ProductoId     int64  `json:"productoId"`
+		NombreProducto string `json:"nombreProducto"`
+		Precio         int64  `json:"precio"`
+		Estado         string `json:"estado"`
+		TotalVendido   int64  `json:"totalVendido"`
+	}
+
+	var productos []ProductoInfo
+	_, err := o.Raw(`
+		SELECT
+			pr.pk_id_producto as producto_id,
+			pr.nombre as nombre_producto,
+			pr.precio,
+			pr.estado_producto as estado,
+			COALESCE(SUM(dp.cantidad), 0) as total_vendido
+		FROM producto pr
+		LEFT JOIN detalle_pedido dp ON pr.pk_id_producto = dp.pk_id_producto
+		LEFT JOIN pedido pe ON dp.pk_id_pedido = pe.pk_id_pedido
+		LEFT JOIN pago p ON pe.pk_id_pago = p.pk_id_pago AND p.estado_pago = 'PAGADO'
+		WHERE pe.estado_pedido = 'TERMINADO' OR pe.estado_pedido IS NULL
+		GROUP BY pr.pk_id_producto, pr.nombre, pr.precio, pr.estado_producto
+		ORDER BY total_vendido DESC, pr.nombre ASC
+	`).QueryRows(&productos)
+
+	if err != nil {
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Error al obtener productos disponibles",
+			Cause:   err.Error(),
+		}
+		_ = c.ServeJSON()
+		return
+	}
+
+	c.Ctx.Output.SetStatus(http.StatusOK)
+	c.Data["json"] = models.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Productos disponibles obtenidos exitosamente",
+		Data:    productos,
 	}
 	_ = c.ServeJSON()
 }

@@ -122,6 +122,28 @@ definitions:
         example: "3001234567"
         type: string
     type: object
+  models.ClienteSegmento:
+    properties:
+      diasSinPedir:
+        type: integer
+      documentoCliente:
+        type: integer
+      nombreCompleto:
+        type: string
+      promedioGasto:
+        type: number
+      segmento:
+        type: string
+      totalGastado:
+        type: integer
+      totalPedidos:
+        type: integer
+      ultimoPedido:
+        type: string
+      valorVida:
+        description: CLV estimado
+        type: integer
+    type: object
   models.ClienteUpdateRequest:
     properties:
       apellido:
@@ -251,6 +273,138 @@ definitions:
       updatedBy:
         example: operador@example.com
         type: string
+    type: object
+  models.EficienciaData:
+    properties:
+      analisisPorHora:
+        items:
+          $ref: '#/definitions/models.EficienciaPorHora'
+        type: array
+      estadisticasEficiencia:
+        $ref: '#/definitions/models.EstadisticasEficiencia'
+      rendimientoTrabajadores:
+        items:
+          $ref: '#/definitions/models.RendimientoTrabajador'
+        type: array
+      tiemposEntrega:
+        items:
+          $ref: '#/definitions/models.TiempoEntrega'
+        type: array
+    type: object
+  models.EficienciaPorHora:
+    properties:
+      capacidadUtilizada:
+        description: Porcentaje
+        type: number
+      hora:
+        type: string
+      nivelEficiencia:
+        description: Alto, Medio, Bajo
+        type: string
+      pedidosRecibidos:
+        type: integer
+      tiempoPromedioPrep:
+        type: number
+    type: object
+  models.EstadisticasEficiencia:
+    properties:
+      capacidadPromedioUso:
+        type: number
+      horaMasEficiente:
+        type: string
+      horaMenosEficiente:
+        type: string
+      pedidosPendientes:
+        type: integer
+      tiempoPromedioGeneral:
+        type: number
+      trabajadorMasEficiente:
+        type: string
+    type: object
+  models.EstadisticasPedidos:
+    properties:
+      diaMasPedidos:
+        type: string
+      horaMasPedidos:
+        type: string
+      ingresoPromedioHora:
+        type: number
+      tasaCompletamientoGeneral:
+        type: number
+      totalPedidosTerminados:
+        type: integer
+    type: object
+  models.EstadisticasProductos:
+    properties:
+      productoConMasVentas:
+        type: string
+      productoConMenosVentas:
+        type: string
+      totalProductosActivos:
+        type: integer
+    type: object
+  models.EstadisticasRentabilidad:
+    properties:
+      margenPromedioGeneral:
+        type: number
+      productoMasRentable:
+        type: string
+      productoMenosRentable:
+        type: string
+      totalGanancias:
+        type: integer
+      totalIngresos:
+        type: integer
+    type: object
+  models.EstadisticasReservas:
+    properties:
+      diaMasReservas:
+        type: string
+      horaMasReservas:
+        type: string
+      promedioPersonasPorReserva:
+        type: number
+      tasaCompletamiento:
+        type: number
+      totalReservasCompletadas:
+        type: integer
+    type: object
+  models.EstadisticasSegmentacion:
+    properties:
+      porcentajeVIP:
+        type: number
+      promedioGastoRegular:
+        type: number
+      promedioGastoVIP:
+        type: number
+      totalClientesNuevos:
+        type: integer
+      totalClientesOcasionales:
+        type: integer
+      totalClientesRegulares:
+        type: integer
+      totalClientesVIP:
+        type: integer
+    type: object
+  models.EstadisticasUsuarios:
+    properties:
+      clientesActivos:
+        type: integer
+      clientesInactivos:
+        type: integer
+      promedioGastoPorCliente:
+        type: number
+      totalClientes:
+        type: integer
+    type: object
+  models.EstadisticasVentas:
+    properties:
+      pedidoPromedioDiario:
+        type: number
+      ticketPromedio:
+        type: number
+      ventaPromedioDiaria:
+        type: number
     type: object
   models.EstadoControlNomina:
     enum:
@@ -628,6 +782,62 @@ definitions:
       productos:
         type: string
     type: object
+  models.PedidoPorDia:
+    properties:
+      fecha:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  models.PedidoPorDiaSemana:
+    properties:
+      diaSemana:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  models.PedidoPorHora:
+    properties:
+      hora:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  models.PedidosAnalisisData:
+    properties:
+      estadisticasPedidos:
+        $ref: '#/definitions/models.EstadisticasPedidos'
+      pedidosPorDia:
+        items:
+          $ref: '#/definitions/models.PedidoPorDia'
+        type: array
+      pedidosPorDiaSemana:
+        items:
+          $ref: '#/definitions/models.PedidoPorDiaSemana'
+        type: array
+      pedidosPorHora:
+        items:
+          $ref: '#/definitions/models.PedidoPorHora'
+        type: array
+    type: object
   models.Producto:
     properties:
       calorias:
@@ -667,6 +877,82 @@ definitions:
       productoId:
         example: 1
         type: integer
+    type: object
+  models.ProductoRentabilidad:
+    properties:
+      cantidadVendida:
+        type: integer
+      gananciaTotal:
+        description: Ganancia total en pesos
+        type: integer
+      ingresoTotal:
+        type: integer
+      margenGanancia:
+        description: Porcentaje de ganancia
+        type: number
+      nombreProducto:
+        type: string
+      precioVenta:
+        type: integer
+      productoId:
+        type: integer
+    type: object
+  models.ProductoVendido:
+    properties:
+      cantidadVendida:
+        type: integer
+      imagen:
+        type: string
+      ingresoTotal:
+        type: integer
+      nombreProducto:
+        type: string
+      precio:
+        type: integer
+      productoId:
+        type: integer
+    type: object
+  models.ProductsData:
+    properties:
+      estadisticasProductos:
+        $ref: '#/definitions/models.EstadisticasProductos'
+      productosMasVendidos:
+        items:
+          $ref: '#/definitions/models.ProductoVendido'
+        type: array
+      productosMenosVendidos:
+        items:
+          $ref: '#/definitions/models.ProductoVendido'
+        type: array
+    type: object
+  models.RendimientoTrabajador:
+    properties:
+      documentoTrabajador:
+        type: integer
+      eficienciaScore:
+        description: 1-10
+        type: number
+      horasTrabajadas:
+        type: number
+      nombreTrabajador:
+        type: string
+      pedidosAtendidos:
+        type: integer
+      tiempoPromedioAtencion:
+        type: number
+    type: object
+  models.RentabilidadData:
+    properties:
+      estadisticasRentabilidad:
+        $ref: '#/definitions/models.EstadisticasRentabilidad'
+      productosMenosRentables:
+        items:
+          $ref: '#/definitions/models.ProductoRentabilidad'
+        type: array
+      productosRentables:
+        items:
+          $ref: '#/definitions/models.ProductoRentabilidad'
+        type: array
     type: object
   models.Reserva:
     properties:
@@ -735,6 +1021,45 @@ definitions:
         example: 1
         type: integer
     type: object
+  models.ReservaPorDia:
+    properties:
+      fecha:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
+  models.ReservaPorDiaSemana:
+    properties:
+      diaSemana:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
+  models.ReservaPorHora:
+    properties:
+      hora:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
   models.ReservaUpdateRequest:
     properties:
       contactoId:
@@ -761,6 +1086,23 @@ definitions:
       updatedBy:
         example: operador@example.com
         type: string
+    type: object
+  models.ReservasAnalisisData:
+    properties:
+      estadisticasReservas:
+        $ref: '#/definitions/models.EstadisticasReservas'
+      reservasPorDia:
+        items:
+          $ref: '#/definitions/models.ReservaPorDia'
+        type: array
+      reservasPorDiaSemana:
+        items:
+          $ref: '#/definitions/models.ReservaPorDiaSemana'
+        type: array
+      reservasPorHora:
+        items:
+          $ref: '#/definitions/models.ReservaPorHora'
+        type: array
     type: object
   models.Restaurante:
     properties:
@@ -811,6 +1153,40 @@ definitions:
     - RolCocinero
     - RolDomiciliario
     - RolOficiosVarios
+  models.SalesData:
+    properties:
+      estadisticasGenerales:
+        $ref: '#/definitions/models.EstadisticasVentas'
+      tendenciaVentas:
+        items:
+          $ref: '#/definitions/models.VentaPorFecha'
+        type: array
+      ventasPorMetodoPago:
+        items:
+          $ref: '#/definitions/models.VentaPorMetodo'
+        type: array
+    type: object
+  models.SegmentacionData:
+    properties:
+      clientesNuevos:
+        items:
+          $ref: '#/definitions/models.ClienteSegmento'
+        type: array
+      clientesOcasionales:
+        items:
+          $ref: '#/definitions/models.ClienteSegmento'
+        type: array
+      clientesRegulares:
+        items:
+          $ref: '#/definitions/models.ClienteSegmento'
+        type: array
+      clientesVIP:
+        items:
+          $ref: '#/definitions/models.ClienteSegmento'
+        type: array
+      estadisticasSegmentacion:
+        $ref: '#/definitions/models.EstadisticasSegmentacion'
+    type: object
   models.Subcategoria:
     properties:
       categoriaId:
@@ -837,6 +1213,39 @@ definitions:
       nombre:
         example: Gaseosas zero
         type: string
+    type: object
+  models.TiempoEntrega:
+    properties:
+      cliente:
+        type: string
+      estadoPedido:
+        type: string
+      fechaPedido:
+        type: string
+      horaPedido:
+        type: string
+      pedidoId:
+        type: integer
+      tiempoPreparacion:
+        description: en minutos
+        type: integer
+      trabajadorAsignado:
+        type: string
+    type: object
+  models.TimeAnalysisData:
+    properties:
+      ventasPorDiaSemana:
+        items:
+          $ref: '#/definitions/models.VentaPorDiaSemana'
+        type: array
+      ventasPorHora:
+        items:
+          $ref: '#/definitions/models.VentaPorHora'
+        type: array
+      ventasPorMes:
+        items:
+          $ref: '#/definitions/models.VentaPorMes'
+        type: array
     type: object
   models.Trabajador:
     properties:
@@ -935,442 +1344,20 @@ definitions:
         example: "3012223344"
         type: string
     type: object
-  productopedido.ProductoPedidoResponse:
-    properties:
-      detalles: {}
-      pedidoId:
-        type: integer
-    type: object
-  telemetria.ClienteSegmento:
-    properties:
-      diasSinPedir:
-        type: integer
-      documentoCliente:
-        type: integer
-      nombreCompleto:
-        type: string
-      promedioGasto:
-        type: number
-      segmento:
-        type: string
-      totalGastado:
-        type: integer
-      totalPedidos:
-        type: integer
-      ultimoPedido:
-        type: string
-      valorVida:
-        description: CLV estimado
-        type: integer
-    type: object
-  telemetria.EficienciaData:
-    properties:
-      analisisPorHora:
-        items:
-          $ref: '#/definitions/telemetria.EficienciaPorHora'
-        type: array
-      estadisticasEficiencia:
-        $ref: '#/definitions/telemetria.EstadisticasEficiencia'
-      rendimientoTrabajadores:
-        items:
-          $ref: '#/definitions/telemetria.RendimientoTrabajador'
-        type: array
-      tiemposEntrega:
-        items:
-          $ref: '#/definitions/telemetria.TiempoEntrega'
-        type: array
-    type: object
-  telemetria.EficienciaPorHora:
-    properties:
-      capacidadUtilizada:
-        description: Porcentaje
-        type: number
-      hora:
-        type: string
-      nivelEficiencia:
-        description: Alto, Medio, Bajo
-        type: string
-      pedidosRecibidos:
-        type: integer
-      tiempoPromedioPrep:
-        type: number
-    type: object
-  telemetria.EstadisticasEficiencia:
-    properties:
-      capacidadPromedioUso:
-        type: number
-      horaMasEficiente:
-        type: string
-      horaMenosEficiente:
-        type: string
-      pedidosPendientes:
-        type: integer
-      tiempoPromedioGeneral:
-        type: number
-      trabajadorMasEficiente:
-        type: string
-    type: object
-  telemetria.EstadisticasPedidos:
-    properties:
-      diaMasPedidos:
-        type: string
-      horaMasPedidos:
-        type: string
-      ingresoPromedioHora:
-        type: number
-      tasaCompletamientoGeneral:
-        type: number
-      totalPedidosTerminados:
-        type: integer
-    type: object
-  telemetria.EstadisticasProductos:
-    properties:
-      productoConMasVentas:
-        type: string
-      productoConMenosVentas:
-        type: string
-      totalProductosActivos:
-        type: integer
-    type: object
-  telemetria.EstadisticasRentabilidad:
-    properties:
-      margenPromedioGeneral:
-        type: number
-      productoMasRentable:
-        type: string
-      productoMenosRentable:
-        type: string
-      totalGanancias:
-        type: integer
-      totalIngresos:
-        type: integer
-    type: object
-  telemetria.EstadisticasReservas:
-    properties:
-      diaMasReservas:
-        type: string
-      horaMasReservas:
-        type: string
-      promedioPersonasPorReserva:
-        type: number
-      tasaCompletamiento:
-        type: number
-      totalReservasCompletadas:
-        type: integer
-    type: object
-  telemetria.EstadisticasSegmentacion:
-    properties:
-      porcentajeVIP:
-        type: number
-      promedioGastoRegular:
-        type: number
-      promedioGastoVIP:
-        type: number
-      totalClientesNuevos:
-        type: integer
-      totalClientesOcasionales:
-        type: integer
-      totalClientesRegulares:
-        type: integer
-      totalClientesVIP:
-        type: integer
-    type: object
-  telemetria.EstadisticasUsuarios:
-    properties:
-      clientesActivos:
-        type: integer
-      clientesInactivos:
-        type: integer
-      promedioGastoPorCliente:
-        type: number
-      totalClientes:
-        type: integer
-    type: object
-  telemetria.EstadisticasVentas:
-    properties:
-      pedidoPromedioDiario:
-        type: number
-      ticketPromedio:
-        type: number
-      ventaPromedioDiaria:
-        type: number
-    type: object
-  telemetria.PedidoPorDia:
-    properties:
-      fecha:
-        type: string
-      ingresoTotal:
-        type: integer
-      pedidosTerminados:
-        type: integer
-      tasaCompletamiento:
-        type: number
-      totalPedidos:
-        type: integer
-    type: object
-  telemetria.PedidoPorDiaSemana:
-    properties:
-      diaSemana:
-        type: string
-      ingresoTotal:
-        type: integer
-      pedidosTerminados:
-        type: integer
-      tasaCompletamiento:
-        type: number
-      totalPedidos:
-        type: integer
-    type: object
-  telemetria.PedidoPorHora:
-    properties:
-      hora:
-        type: string
-      ingresoTotal:
-        type: integer
-      pedidosTerminados:
-        type: integer
-      tasaCompletamiento:
-        type: number
-      totalPedidos:
-        type: integer
-    type: object
-  telemetria.PedidosAnalisisData:
-    properties:
-      estadisticasPedidos:
-        $ref: '#/definitions/telemetria.EstadisticasPedidos'
-      pedidosPorDia:
-        items:
-          $ref: '#/definitions/telemetria.PedidoPorDia'
-        type: array
-      pedidosPorDiaSemana:
-        items:
-          $ref: '#/definitions/telemetria.PedidoPorDiaSemana'
-        type: array
-      pedidosPorHora:
-        items:
-          $ref: '#/definitions/telemetria.PedidoPorHora'
-        type: array
-    type: object
-  telemetria.ProductoRentabilidad:
-    properties:
-      cantidadVendida:
-        type: integer
-      gananciaTotal:
-        description: Ganancia total en pesos
-        type: integer
-      ingresoTotal:
-        type: integer
-      margenGanancia:
-        description: Porcentaje de ganancia
-        type: number
-      nombreProducto:
-        type: string
-      precioVenta:
-        type: integer
-      productoId:
-        type: integer
-    type: object
-  telemetria.ProductoVendido:
-    properties:
-      cantidadVendida:
-        type: integer
-      imagen:
-        type: string
-      ingresoTotal:
-        type: integer
-      nombreProducto:
-        type: string
-      precio:
-        type: integer
-      productoId:
-        type: integer
-    type: object
-  telemetria.ProductosPopularesData:
-    properties:
-      productosPopulares:
-        items:
-          $ref: '#/definitions/telemetria.ProductoVendido'
-        type: array
-    type: object
-  telemetria.ProductsData:
-    properties:
-      estadisticasProductos:
-        $ref: '#/definitions/telemetria.EstadisticasProductos'
-      productosMasVendidos:
-        items:
-          $ref: '#/definitions/telemetria.ProductoVendido'
-        type: array
-      productosMenosVendidos:
-        items:
-          $ref: '#/definitions/telemetria.ProductoVendido'
-        type: array
-    type: object
-  telemetria.RendimientoTrabajador:
-    properties:
-      documentoTrabajador:
-        type: integer
-      eficienciaScore:
-        description: 1-10
-        type: number
-      horasTrabajadas:
-        type: number
-      nombreTrabajador:
-        type: string
-      pedidosAtendidos:
-        type: integer
-      tiempoPromedioAtencion:
-        type: number
-    type: object
-  telemetria.RentabilidadData:
-    properties:
-      estadisticasRentabilidad:
-        $ref: '#/definitions/telemetria.EstadisticasRentabilidad'
-      productosMenosRentables:
-        items:
-          $ref: '#/definitions/telemetria.ProductoRentabilidad'
-        type: array
-      productosRentables:
-        items:
-          $ref: '#/definitions/telemetria.ProductoRentabilidad'
-        type: array
-    type: object
-  telemetria.ReservaPorDia:
-    properties:
-      fecha:
-        type: string
-      porcentajeCompletado:
-        type: number
-      reservasCompletadas:
-        type: integer
-      totalPersonas:
-        type: integer
-      totalReservas:
-        type: integer
-    type: object
-  telemetria.ReservaPorDiaSemana:
-    properties:
-      diaSemana:
-        type: string
-      porcentajeCompletado:
-        type: number
-      reservasCompletadas:
-        type: integer
-      totalPersonas:
-        type: integer
-      totalReservas:
-        type: integer
-    type: object
-  telemetria.ReservaPorHora:
-    properties:
-      hora:
-        type: string
-      porcentajeCompletado:
-        type: number
-      reservasCompletadas:
-        type: integer
-      totalPersonas:
-        type: integer
-      totalReservas:
-        type: integer
-    type: object
-  telemetria.ReservasAnalisisData:
-    properties:
-      estadisticasReservas:
-        $ref: '#/definitions/telemetria.EstadisticasReservas'
-      reservasPorDia:
-        items:
-          $ref: '#/definitions/telemetria.ReservaPorDia'
-        type: array
-      reservasPorDiaSemana:
-        items:
-          $ref: '#/definitions/telemetria.ReservaPorDiaSemana'
-        type: array
-      reservasPorHora:
-        items:
-          $ref: '#/definitions/telemetria.ReservaPorHora'
-        type: array
-    type: object
-  telemetria.SalesData:
-    properties:
-      estadisticasGenerales:
-        $ref: '#/definitions/telemetria.EstadisticasVentas'
-      tendenciaVentas:
-        items:
-          $ref: '#/definitions/telemetria.VentaPorFecha'
-        type: array
-      ventasPorMetodoPago:
-        items:
-          $ref: '#/definitions/telemetria.VentaPorMetodo'
-        type: array
-    type: object
-  telemetria.SegmentacionData:
-    properties:
-      clientesNuevos:
-        items:
-          $ref: '#/definitions/telemetria.ClienteSegmento'
-        type: array
-      clientesOcasionales:
-        items:
-          $ref: '#/definitions/telemetria.ClienteSegmento'
-        type: array
-      clientesRegulares:
-        items:
-          $ref: '#/definitions/telemetria.ClienteSegmento'
-        type: array
-      clientesVIP:
-        items:
-          $ref: '#/definitions/telemetria.ClienteSegmento'
-        type: array
-      estadisticasSegmentacion:
-        $ref: '#/definitions/telemetria.EstadisticasSegmentacion'
-    type: object
-  telemetria.TiempoEntrega:
-    properties:
-      cliente:
-        type: string
-      estadoPedido:
-        type: string
-      fechaPedido:
-        type: string
-      horaPedido:
-        type: string
-      pedidoId:
-        type: integer
-      tiempoPreparacion:
-        description: en minutos
-        type: integer
-      trabajadorAsignado:
-        type: string
-    type: object
-  telemetria.TimeAnalysisData:
-    properties:
-      ventasPorDiaSemana:
-        items:
-          $ref: '#/definitions/telemetria.VentaPorDiaSemana'
-        type: array
-      ventasPorHora:
-        items:
-          $ref: '#/definitions/telemetria.VentaPorHora'
-        type: array
-      ventasPorMes:
-        items:
-          $ref: '#/definitions/telemetria.VentaPorMes'
-        type: array
-    type: object
-  telemetria.UsersData:
+  models.UsersData:
     properties:
       estadisticasUsuarios:
-        $ref: '#/definitions/telemetria.EstadisticasUsuarios'
+        $ref: '#/definitions/models.EstadisticasUsuarios'
       usuariosFrecuentes:
         items:
-          $ref: '#/definitions/telemetria.UsuarioFrecuente'
+          $ref: '#/definitions/models.UsuarioFrecuente'
         type: array
       usuariosInactivos:
         items:
-          $ref: '#/definitions/telemetria.UsuarioInactivo'
+          $ref: '#/definitions/models.UsuarioInactivo'
         type: array
     type: object
-  telemetria.UsuarioFrecuente:
+  models.UsuarioFrecuente:
     properties:
       documentoCliente:
         type: integer
@@ -1383,7 +1370,7 @@ definitions:
       ultimoPedido:
         type: string
     type: object
-  telemetria.UsuarioInactivo:
+  models.UsuarioInactivo:
     properties:
       documentoCliente:
         type: integer
@@ -1394,7 +1381,7 @@ definitions:
       ultimoPedido:
         type: string
     type: object
-  telemetria.VentaPorDiaSemana:
+  models.VentaPorDiaSemana:
     properties:
       cantidad:
         type: integer
@@ -1403,7 +1390,7 @@ definitions:
       total:
         type: integer
     type: object
-  telemetria.VentaPorFecha:
+  models.VentaPorFecha:
     properties:
       cantidad:
         type: integer
@@ -1412,7 +1399,7 @@ definitions:
       total:
         type: integer
     type: object
-  telemetria.VentaPorHora:
+  models.VentaPorHora:
     properties:
       cantidad:
         type: integer
@@ -1421,7 +1408,7 @@ definitions:
       total:
         type: integer
     type: object
-  telemetria.VentaPorMes:
+  models.VentaPorMes:
     properties:
       cantidad:
         type: integer
@@ -1430,7 +1417,7 @@ definitions:
       total:
         type: integer
     type: object
-  telemetria.VentaPorMetodo:
+  models.VentaPorMetodo:
     properties:
       cantidad:
         type: integer
@@ -1438,6 +1425,19 @@ definitions:
         type: string
       total:
         type: integer
+    type: object
+  productopedido.ProductoPedidoResponse:
+    properties:
+      detalles: {}
+      pedidoId:
+        type: integer
+    type: object
+  telemetria.ProductosPopularesData:
+    properties:
+      productosPopulares:
+        items:
+          $ref: '#/definitions/models.ProductoVendido'
+        type: array
     type: object
 info:
   contact:
@@ -4684,7 +4684,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.EficienciaData'
+                  $ref: '#/definitions/models.EficienciaData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -4767,7 +4767,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.PedidosAnalisisData'
+                  $ref: '#/definitions/models.PedidosAnalisisData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -4850,7 +4850,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.ProductsData'
+                  $ref: '#/definitions/models.ProductsData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -4932,7 +4932,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.RentabilidadData'
+                  $ref: '#/definitions/models.RentabilidadData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -5014,7 +5014,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.ReservasAnalisisData'
+                  $ref: '#/definitions/models.ReservasAnalisisData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -5090,7 +5090,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.SalesData'
+                  $ref: '#/definitions/models.SalesData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -5172,7 +5172,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.SegmentacionData'
+                  $ref: '#/definitions/models.SegmentacionData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -5247,7 +5247,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.TimeAnalysisData'
+                  $ref: '#/definitions/models.TimeAnalysisData'
               type: object
         "401":
           description: Token no proporcionado o inválido
@@ -5330,7 +5330,7 @@ paths:
             - $ref: '#/definitions/models.ApiResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/telemetria.UsersData'
+                  $ref: '#/definitions/models.UsersData'
               type: object
         "401":
           description: Token no proporcionado o inválido

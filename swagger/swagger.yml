@@ -73,6 +73,9 @@ definitions:
   models.ApiResponse{data=ProductosPopularesData}:
     title: ApiResponse{data=ProductosPopularesData}
     type: object
+  models.ApiResponse{data=map[string]int64}:
+    title: ApiResponse{data=map[string]int64}
+    type: object
   models.ApiResponse{data=map[string]interface{}}:
     title: ApiResponse{data=map[string]interface{}}
     type: object
