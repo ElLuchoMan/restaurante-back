@@ -169,7 +169,7 @@ func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, h
 
 // buildAdvancedDateFilter construye condición SQL con filtros de fecha y hora
 func buildAdvancedDateFilter(startDate, endDate, startTime, endTime string) string {
-	return buildAdvancedDateFilterWithField("pe.fecha_pedido", startDate, endDate, startTime, endTime)
+	return buildAdvancedDateFilterWithField("pe.fecha", startDate, endDate, startTime, endTime)
 }
 
 func buildAdvancedDateFilterWithField(dateField, startDate, endDate, startTime, endTime string) string {
@@ -1638,7 +1638,7 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 
 	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
-	dateFilter := buildAdvancedDateFilterWithField("r.fecha_reserva", startDate, endDate, startTime, endTime)
+	dateFilter := buildAdvancedDateFilterWithField("r.fecha", startDate, endDate, startTime, endTime)
 
 	o := orm.NewOrm()
 
