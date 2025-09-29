@@ -68,6 +68,8 @@ func init() {
 			beego.NSRouter("/", &resv.ReservaController{}, "get:GetAll"),
 			beego.NSRouter("/search", &resv.ReservaController{}, "get:GetById"),
 			beego.NSRouter("/parameter", &resv.ReservaController{}, "get:GetByParameter"),
+			beego.NSRouter("/cliente", &resv.ReservaController{}, "get:GetByDocumentoCliente"),
+			beego.NSRouter("/documento", &resv.ReservaController{}, "get:GetByDocumento"),
 		),
 		beego.NSNamespace("/reserva_contacto",
 			beego.NSRouter("/", &rc.ReservaContactoController{}, "get:GetAll"),

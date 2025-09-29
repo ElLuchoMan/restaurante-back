@@ -2266,6 +2266,27 @@ paths:
       summary: Obtener domicilio por ID (incluye cliente y pedido asociado si existen)
       tags:
       - domicilios
+  /estados-pedidos:
+    get:
+      description: Obtiene el conteo de pedidos agrupados por estado - endpoint público
+        sin autenticación
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    format: int64
+                    type: integer
+                  type: object
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
   /horario_trabajador:
     delete:
       consumes:
@@ -3915,6 +3936,27 @@ paths:
       summary: Actualizar un producto
       tags:
       - productos
+  /productos-disponibles:
+    get:
+      description: Obtiene todos los productos disponibles en el sistema - endpoint
+        público sin autenticación
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
   /productos-populares:
     get:
       description: Obtiene los productos más vendidos - endpoint público sin autenticación
@@ -4138,6 +4180,78 @@ paths:
       security:
       - BearerAuth: []
       summary: Actualizar una reserva
+      tags:
+      - reservas
+  /reservas/cliente:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve las reservas asociadas a un documento de cliente registrado,
+        opcionalmente filtradas por fecha.
+      parameters:
+      - description: Documento del Cliente Registrado
+        in: query
+        name: documentoCliente
+        required: true
+        type: integer
+      - description: Fecha de la reserva (YYYY-MM-DD) (Opcional)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de reservas encontradas
+          schema:
+            items:
+              $ref: '#/definitions/models.Reserva'
+            type: array
+        "400":
+          description: Error en los parámetros
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener reservas por documento de cliente registrado
+      tags:
+      - reservas
+  /reservas/documento:
+    get:
+      consumes:
+      - application/json
+      description: Busca reservas por documento de cliente registrado o documento
+        de contacto. Intenta primero como cliente registrado, luego como contacto.
+      parameters:
+      - description: Documento del Cliente o Contacto
+        in: query
+        name: documento
+        required: true
+        type: integer
+      - description: Fecha de la reserva (YYYY-MM-DD) (Opcional)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de reservas encontradas
+          schema:
+            items:
+              $ref: '#/definitions/models.Reserva'
+            type: array
+        "400":
+          description: Error en los parámetros
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener reservas por documento (cliente loggeado o no loggeado)
       tags:
       - reservas
   /reservas/parameter:

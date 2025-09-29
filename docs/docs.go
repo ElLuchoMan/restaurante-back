@@ -1352,6 +1352,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/estados-pedidos": {
+            "get": {
+                "description": "Obtiene el conteo de pedidos agrupados por estado - endpoint público sin autenticación",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "integer",
+                                                "format": "int64"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/horario_trabajador": {
             "get": {
                 "security": [
@@ -4010,6 +4045,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/productos-disponibles": {
+            "get": {
+                "description": "Obtiene todos los productos disponibles en el sistema - endpoint público sin autenticación",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "additionalProperties": true
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/productos-populares": {
             "get": {
                 "description": "Obtiene los productos más vendidos - endpoint público sin autenticación",
@@ -4365,6 +4435,112 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Reserva no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/cliente": {
+            "get": {
+                "description": "Devuelve las reservas asociadas a un documento de cliente registrado, opcionalmente filtradas por fecha.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Obtener reservas por documento de cliente registrado",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del Cliente Registrado",
+                        "name": "documentoCliente",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha de la reserva (YYYY-MM-DD) (Opcional)",
+                        "name": "fecha",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas encontradas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Error en los parámetros",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/documento": {
+            "get": {
+                "description": "Busca reservas por documento de cliente registrado o documento de contacto. Intenta primero como cliente registrado, luego como contacto.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Obtener reservas por documento (cliente loggeado o no loggeado)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del Cliente o Contacto",
+                        "name": "documento",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha de la reserva (YYYY-MM-DD) (Opcional)",
+                        "name": "fecha",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas encontradas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Error en los parámetros",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
