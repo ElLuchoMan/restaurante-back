@@ -94,3 +94,68 @@ func (e EstadoControlNomina) IsValid() bool {
 	}
 	return false
 }
+
+// Nuevos enums para notificaciones, cupones y ofertas
+
+type PlataformaNotificacion string
+
+const (
+	PlataformaWeb     PlataformaNotificacion = "WEB"
+	PlataformaAndroid PlataformaNotificacion = "ANDROID"
+	PlataformaIOS     PlataformaNotificacion = "IOS"
+)
+
+func (p PlataformaNotificacion) IsValid() bool {
+	switch p {
+	case PlataformaWeb, PlataformaAndroid, PlataformaIOS:
+		return true
+	}
+	return false
+}
+
+type ProveedorPush string
+
+const (
+	ProveedorWebPush ProveedorPush = "WEB_PUSH"
+	ProveedorFCM     ProveedorPush = "FCM"
+)
+
+func (p ProveedorPush) IsValid() bool {
+	switch p {
+	case ProveedorWebPush, ProveedorFCM:
+		return true
+	}
+	return false
+}
+
+type TipoDescuento string
+
+const (
+	TipoDescuentoPorcentaje TipoDescuento = "PORCENTAJE"
+	TipoDescuentoMonto      TipoDescuento = "MONTO"
+)
+
+func (t TipoDescuento) IsValid() bool {
+	switch t {
+	case TipoDescuentoPorcentaje, TipoDescuentoMonto:
+		return true
+	}
+	return false
+}
+
+type CuponScope string
+
+const (
+	CuponScopeGlobal    CuponScope = "GLOBAL"
+	CuponScopeProducto  CuponScope = "PRODUCTO"
+	CuponScopeCategoria CuponScope = "CATEGORIA"
+	CuponScopeCliente   CuponScope = "CLIENTE"
+)
+
+func (c CuponScope) IsValid() bool {
+	switch c {
+	case CuponScopeGlobal, CuponScopeProducto, CuponScopeCategoria, CuponScopeCliente:
+		return true
+	}
+	return false
+}

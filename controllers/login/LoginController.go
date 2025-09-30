@@ -406,7 +406,7 @@ func ValidateToken(ctx *context.Context) {
 	}
 
 	method := ctx.Input.Method()
-	path := ctx.Input.URL()
+	path := ctx.Input.URI()
 	if strings.HasSuffix(path, "/") && len(path) > 1 {
 		path = strings.TrimRight(path, "/")
 	}
@@ -418,7 +418,8 @@ func ValidateToken(ctx *context.Context) {
 			"/restaurante/v1/reservas", "/restaurante/v1/reservas/search",
 			"/restaurante/v1/reservas/parameter", "/restaurante/v1/reservas/cliente",
 			"/restaurante/v1/reservas/documento",
-			"/restaurante/v1/cambios_horario/actual":
+			"/restaurante/v1/cambios_horario/actual",
+			"/restaurante/v1/ofertas/activas":
 			return
 		}
 	}

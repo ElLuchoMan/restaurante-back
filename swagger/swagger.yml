@@ -6,6 +6,20 @@ definitions:
   map[string]interface{}:
     title: map[string]interface{}
     type: object
+  models.ActualizarEstadoDispositivoRequest:
+    title: ActualizarEstadoDispositivoRequest
+    type: object
+    properties:
+      enabled:
+        type: boolean
+  models.ActualizarTopicsRequest:
+    title: ActualizarTopicsRequest
+    type: object
+    properties:
+      subscribedTopics:
+        type: array
+        items:
+          type: string
   models.ApiResponse:
     title: ApiResponse
     type: object
@@ -49,11 +63,17 @@ definitions:
   models.ApiResponse{data=[]models.NominaTrabajador}:
     title: NominaTrabajador}
     type: object
+  models.ApiResponse{data=[]models.OfertaActivaResponse}:
+    title: OfertaActivaResponse}
+    type: object
   models.ApiResponse{data=[]models.Pago}:
     title: Pago}
     type: object
   models.ApiResponse{data=[]models.Pedido}:
     title: Pedido}
+    type: object
+  models.ApiResponse{data=[]models.PedidoDescuentoAplicado}:
+    title: PedidoDescuentoAplicado}
     type: object
   models.ApiResponse{data=[]models.Producto}:
     title: Producto}
@@ -91,6 +111,12 @@ definitions:
   models.ApiResponse{data=models.ControlNomina}:
     title: ControlNomina}
     type: object
+  models.ApiResponse{data=models.Cupon}:
+    title: Cupon}
+    type: object
+  models.ApiResponse{data=models.CuponRedencion}:
+    title: CuponRedencion}
+    type: object
   models.ApiResponse{data=models.DashboardData}:
     title: DashboardData}
     type: object
@@ -99,6 +125,9 @@ definitions:
     type: object
   models.ApiResponse{data=models.EficienciaData}:
     title: EficienciaData}
+    type: object
+  models.ApiResponse{data=models.EnviarNotificacionResponse}:
+    title: EnviarNotificacionResponse}
     type: object
   models.ApiResponse{data=models.HorarioTrabajador}:
     title: HorarioTrabajador}
@@ -112,11 +141,20 @@ definitions:
   models.ApiResponse{data=models.NominaTrabajadorResponse}:
     title: NominaTrabajadorResponse}
     type: object
+  models.ApiResponse{data=models.Oferta}:
+    title: Oferta}
+    type: object
+  models.ApiResponse{data=models.PaginatedResponse}:
+    title: PaginatedResponse}
+    type: object
   models.ApiResponse{data=models.Pago}:
     title: Pago}
     type: object
   models.ApiResponse{data=models.Pedido}:
     title: Pedido}
+    type: object
+  models.ApiResponse{data=models.PedidoDescuentoAplicado}:
+    title: PedidoDescuentoAplicado}
     type: object
   models.ApiResponse{data=models.PedidoDetails}:
     title: PedidoDetails}
@@ -129,6 +167,12 @@ definitions:
     type: object
   models.ApiResponse{data=models.ProductsData}:
     title: ProductsData}
+    type: object
+  models.ApiResponse{data=models.PushDispositivo}:
+    title: PushDispositivo}
+    type: object
+  models.ApiResponse{data=models.PushEnvio}:
+    title: PushEnvio}
     type: object
   models.ApiResponse{data=models.RentabilidadData}:
     title: RentabilidadData}
@@ -160,9 +204,34 @@ definitions:
   models.ApiResponse{data=models.UsersData}:
     title: UsersData}
     type: object
+  models.ApiResponse{data=models.ValidarCuponResponse}:
+    title: ValidarCuponResponse}
+    type: object
   models.ApiResponse{data=productopedido.ProductoPedidoResponse}:
     title: ProductoPedidoResponse}
     type: object
+  models.AplicarDescuentoRequest:
+    title: AplicarDescuentoRequest
+    type: object
+    properties:
+      cuponId:
+        type: integer
+        format: int64
+      detalle:
+        type: object
+      montoDescuento:
+        type: integer
+        format: int64
+      ofertaId:
+        type: integer
+        format: int64
+  models.AsociarProductoOfertaRequest:
+    title: AsociarProductoOfertaRequest
+    type: object
+    properties:
+      productoId:
+        type: integer
+        format: int64
   models.CambiosHorario:
     title: CambiosHorario
     type: object
@@ -301,6 +370,100 @@ definitions:
       telefono:
         type: string
         example: "3009876543"
+  models.ContenidoNotificacion:
+    title: ContenidoNotificacion
+    type: object
+    properties:
+      datos:
+        type: object
+      mensaje:
+        type: string
+      titulo:
+        type: string
+  models.CrearCuponRequest:
+    title: CrearCuponRequest
+    type: object
+    properties:
+      categoriaId:
+        type: integer
+        format: int64
+      codigo:
+        type: string
+      documentoCliente:
+        type: integer
+        format: int64
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      limitePorCliente:
+        type: integer
+        format: int64
+      maxUsos:
+        type: integer
+        format: int64
+      montoMinimo:
+        type: integer
+        format: int64
+      productoId:
+        type: integer
+        format: int64
+      scope:
+        $ref: '#/definitions/models.CuponScope'
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      valorDescuento:
+        type: integer
+        format: int64
+  models.CrearOfertaRequest:
+    title: CrearOfertaRequest
+    type: object
+    properties:
+      diasSemana:
+        type: array
+        items:
+          type: string
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      horaFin:
+        type: string
+      horaInicio:
+        type: string
+      restauranteId:
+        type: integer
+        format: int64
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      titulo:
+        type: string
+      valorDescuento:
+        type: integer
+        format: int64
+  models.CuponScope:
+    title: CuponScope
+    type: string
+    enum:
+    - CuponScopeGlobal = "GLOBAL"
+    - CuponScopeProducto = "PRODUCTO"
+    - CuponScopeCategoria = "CATEGORIA"
+    - CuponScopeCliente = "CLIENTE"
+    example: GLOBAL
+  models.DestinatariosNotificacion:
+    title: DestinatariosNotificacion
+    type: object
+    properties:
+      documentoCliente:
+        type: integer
+        format: int64
+      documentoTrabajador:
+        type: integer
+        format: int64
+      tipo:
+        $ref: '#/definitions/models.TipoDestinatario'
+      topic:
+        type: string
   models.DomicilioCreate:
     title: DomicilioCreate
     type: object
@@ -339,6 +502,16 @@ definitions:
       updatedBy:
         type: string
         example: operador@example.com
+  models.EnviarNotificacionRequest:
+    title: EnviarNotificacionRequest
+    type: object
+    properties:
+      destinatarios:
+        $ref: '#/definitions/models.DestinatariosNotificacion'
+      notificacion:
+        $ref: '#/definitions/models.ContenidoNotificacion'
+      remitente:
+        $ref: '#/definitions/models.RemitenteNotificacion'
   models.EstadoDomicilio:
     title: EstadoDomicilio
     type: string
@@ -538,6 +711,14 @@ definitions:
         type: integer
         example: 1
         format: int64
+  models.PlataformaNotificacion:
+    title: PlataformaNotificacion
+    type: string
+    enum:
+    - PlataformaWeb = "WEB"
+    - PlataformaAndroid = "ANDROID"
+    - PlataformaIOS = "IOS"
+    example: WEB
   models.ProductoPedidoCreateRequest:
     title: ProductoPedidoCreateRequest
     type: object
@@ -567,6 +748,84 @@ definitions:
     type: array
     items:
       $ref: '#/definitions/models.ProductoPedidoItemInput'
+  models.ProveedorPush:
+    title: ProveedorPush
+    type: string
+    enum:
+    - ProveedorWebPush = "WEB_PUSH"
+    - ProveedorFCM = "FCM"
+    example: WEB_PUSH
+  models.RedimirCuponRequest:
+    title: RedimirCuponRequest
+    type: object
+    properties:
+      clienteId:
+        type: integer
+        format: int64
+      pedidoId:
+        type: integer
+        format: int64
+  models.RegistrarDispositivoRequest:
+    title: RegistrarDispositivoRequest
+    type: object
+    properties:
+      appVersion:
+        type: string
+      auth:
+        type: string
+      documentoCliente:
+        type: integer
+        format: int64
+      documentoTrabajador:
+        type: integer
+        format: int64
+      endpoint:
+        type: string
+      fcmToken:
+        type: string
+      locale:
+        type: string
+      p256dh:
+        type: string
+      plataforma:
+        $ref: '#/definitions/models.PlataformaNotificacion'
+      subscribedTopics:
+        type: array
+        items:
+          type: string
+      timeZone:
+        type: string
+      userAgent:
+        type: string
+  models.RegistrarEnvioRequest:
+    title: RegistrarEnvioRequest
+    type: object
+    properties:
+      data:
+        type: object
+      errorCode:
+        type: string
+      exito:
+        type: boolean
+      proveedor:
+        $ref: '#/definitions/models.ProveedorPush'
+      pushDispositivoId:
+        type: integer
+        format: int64
+      statusCode:
+        type: integer
+        format: int64
+  models.RemitenteNotificacion:
+    title: RemitenteNotificacion
+    type: object
+    properties:
+      documentoTrabajador:
+        type: integer
+        format: int64
+      nombre:
+        type: string
+      tipo:
+        $ref: '#/definitions/models.TipoRemitente'
   models.Reserva:
     title: Reserva
     type: object
@@ -743,6 +1002,29 @@ definitions:
       nombre:
         type: string
         example: Gaseosas zero
+  models.TipoDescuento:
+    title: TipoDescuento
+    type: string
+    enum:
+    - TipoDescuentoPorcentaje = "PORCENTAJE"
+    - TipoDescuentoMonto = "MONTO"
+    example: PORCENTAJE
+  models.TipoDestinatario:
+    title: TipoDestinatario
+    type: string
+    enum:
+    - DestinatarioTodos = "TODOS"
+    - DestinatarioCliente = "CLIENTE"
+    - DestinatarioTrabajador = "TRABAJADOR"
+    - DestinatarioTopic = "TOPIC"
+    example: TODOS
+  models.TipoRemitente:
+    title: TipoRemitente
+    type: string
+    enum:
+    - RemitenteTrabajador = "TRABAJADOR"
+    - RemitenteSistema = "SISTEMA"
+    example: TRABAJADOR
   models.TrabajadorCreateRequest:
     title: TrabajadorCreateRequest
     type: object
@@ -815,6 +1097,35 @@ definitions:
       telefono:
         type: string
         example: "3012223344"
+  models.ValidarCuponItemRequest:
+    title: ValidarCuponItemRequest
+    type: object
+    properties:
+      cantidad:
+        type: integer
+        format: int64
+      precio:
+        type: integer
+        format: int64
+      productoId:
+        type: integer
+        format: int64
+  models.ValidarCuponRequest:
+    title: ValidarCuponRequest
+    type: object
+    properties:
+      clienteId:
+        type: integer
+        format: int64
+      codigo:
+        type: string
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/models.ValidarCuponItemRequest'
+      pedidoId:
+        type: integer
+        format: int64
   models.any:
     title: any
     type: object

@@ -1,5 +1,17 @@
 basePath: /restaurante/v1
 definitions:
+  models.ActualizarEstadoDispositivoRequest:
+    properties:
+      enabled:
+        type: boolean
+    type: object
+  models.ActualizarTopicsRequest:
+    properties:
+      subscribedTopics:
+        items:
+          type: string
+        type: array
+    type: object
   models.ApiResponse:
     properties:
       cause:
@@ -9,6 +21,22 @@ definitions:
       data: {}
       message:
         type: string
+    type: object
+  models.AplicarDescuentoRequest:
+    properties:
+      cuponId:
+        type: integer
+      detalle:
+        type: object
+      montoDescuento:
+        type: integer
+      ofertaId:
+        type: integer
+    type: object
+  models.AsociarProductoOfertaRequest:
+    properties:
+      productoId:
+        type: integer
     type: object
   models.AuthResponse:
     properties:
@@ -168,6 +196,15 @@ definitions:
         example: "3009876543"
         type: string
     type: object
+  models.ContenidoNotificacion:
+    properties:
+      datos:
+        type: object
+      mensaje:
+        type: string
+      titulo:
+        type: string
+    type: object
   models.ControlNomina:
     properties:
       controlNominaId:
@@ -177,6 +214,114 @@ definitions:
       fecha:
         type: string
     type: object
+  models.CrearCuponRequest:
+    properties:
+      categoriaId:
+        type: integer
+      codigo:
+        type: string
+      documentoCliente:
+        type: integer
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      limitePorCliente:
+        type: integer
+      maxUsos:
+        type: integer
+      montoMinimo:
+        type: integer
+      productoId:
+        type: integer
+      scope:
+        $ref: '#/definitions/models.CuponScope'
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      valorDescuento:
+        type: integer
+    type: object
+  models.CrearOfertaRequest:
+    properties:
+      diasSemana:
+        items:
+          type: string
+        type: array
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      horaFin:
+        type: string
+      horaInicio:
+        type: string
+      restauranteId:
+        type: integer
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      titulo:
+        type: string
+      valorDescuento:
+        type: integer
+    type: object
+  models.Cupon:
+    properties:
+      activo:
+        type: boolean
+      categoriaId:
+        type: integer
+      codigo:
+        type: string
+      cuponId:
+        type: integer
+      documentoCliente:
+        type: integer
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      limitePorCliente:
+        type: integer
+      maxUsos:
+        type: integer
+      montoMinimo:
+        type: integer
+      productoId:
+        type: integer
+      scope:
+        $ref: '#/definitions/models.CuponScope'
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      valorDescuento:
+        type: integer
+    type: object
+  models.CuponRedencion:
+    properties:
+      createdAt:
+        type: string
+      cuponId:
+        type: integer
+      cuponRedencionId:
+        type: integer
+      documentoCliente:
+        type: integer
+      montoDescuento:
+        type: integer
+      pedidoId:
+        type: integer
+    type: object
+  models.CuponScope:
+    enum:
+    - GLOBAL
+    - PRODUCTO
+    - CATEGORIA
+    - CLIENTE
+    type: string
+    x-enum-varnames:
+    - CuponScopeGlobal
+    - CuponScopeProducto
+    - CuponScopeCategoria
+    - CuponScopeCliente
   models.DashboardData:
     properties:
       ingresosHoy:
@@ -190,6 +335,34 @@ definitions:
       totalPedidos:
         type: integer
       totalUsuarios:
+        type: integer
+    type: object
+  models.DestinatariosNotificacion:
+    properties:
+      documentoCliente:
+        type: integer
+      documentoTrabajador:
+        type: integer
+      tipo:
+        $ref: '#/definitions/models.TipoDestinatario'
+      topic:
+        type: string
+    type: object
+  models.DetalleEnvioNotificacion:
+    properties:
+      documentoCliente:
+        type: integer
+      documentoTrabajador:
+        type: integer
+      errorCode:
+        type: string
+      exito:
+        type: boolean
+      plataforma:
+        type: string
+      pushDispositivoId:
+        type: integer
+      statusCode:
         type: integer
     type: object
   models.DiaSemana:
@@ -305,6 +478,30 @@ definitions:
         type: integer
       tiempoPromedioPrep:
         type: number
+    type: object
+  models.EnviarNotificacionRequest:
+    properties:
+      destinatarios:
+        $ref: '#/definitions/models.DestinatariosNotificacion'
+      notificacion:
+        $ref: '#/definitions/models.ContenidoNotificacion'
+      remitente:
+        $ref: '#/definitions/models.RemitenteNotificacion'
+    type: object
+  models.EnviarNotificacionResponse:
+    properties:
+      detalleEnvios:
+        items:
+          $ref: '#/definitions/models.DetalleEnvioNotificacion'
+        type: array
+      enviosExitosos:
+        type: integer
+      enviosFallidos:
+        type: integer
+      resumenDestinatarios:
+        $ref: '#/definitions/models.ResumenDestinatarios'
+      totalDispositivos:
+        type: integer
     type: object
   models.EstadisticasEficiencia:
     properties:
@@ -659,6 +856,60 @@ definitions:
         example: 2000000
         type: integer
     type: object
+  models.Oferta:
+    properties:
+      activo:
+        type: boolean
+      diasSemana:
+        items:
+          type: string
+        type: array
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      horaFin:
+        type: string
+      horaInicio:
+        type: string
+      ofertaId:
+        type: integer
+      restauranteId:
+        type: integer
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      titulo:
+        type: string
+      valorDescuento:
+        type: integer
+    type: object
+  models.OfertaActivaResponse:
+    properties:
+      ofertaId:
+        type: integer
+      productosIds:
+        items:
+          type: integer
+        type: array
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      titulo:
+        type: string
+      valorDescuento:
+        type: integer
+    type: object
+  models.PaginatedResponse:
+    properties:
+      data: {}
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
   models.Pago:
     properties:
       estadoPago:
@@ -757,6 +1008,23 @@ definitions:
         example: 1
         type: integer
     type: object
+  models.PedidoDescuentoAplicado:
+    properties:
+      createdAt:
+        type: string
+      cuponId:
+        type: integer
+      detalle:
+        type: object
+      montoDescuento:
+        type: integer
+      ofertaId:
+        type: integer
+      pedidoDescuentoId:
+        type: integer
+      pedidoId:
+        type: integer
+    type: object
   models.PedidoDetails:
     properties:
       delivery:
@@ -838,6 +1106,16 @@ definitions:
           $ref: '#/definitions/models.PedidoPorHora'
         type: array
     type: object
+  models.PlataformaNotificacion:
+    enum:
+    - WEB
+    - ANDROID
+    - IOS
+    type: string
+    x-enum-varnames:
+    - PlataformaWeb
+    - PlataformaAndroid
+    - PlataformaIOS
   models.Producto:
     properties:
       calorias:
@@ -924,6 +1202,130 @@ definitions:
         items:
           $ref: '#/definitions/models.ProductoVendido'
         type: array
+    type: object
+  models.ProveedorPush:
+    enum:
+    - WEB_PUSH
+    - FCM
+    type: string
+    x-enum-varnames:
+    - ProveedorWebPush
+    - ProveedorFCM
+  models.PushDispositivo:
+    properties:
+      appVersion:
+        type: string
+      auth:
+        type: string
+      createdAt:
+        type: string
+      documentoCliente:
+        type: integer
+      documentoTrabajador:
+        type: integer
+      enabled:
+        type: boolean
+      endpoint:
+        type: string
+      fcmToken:
+        type: string
+      lastSeenAt:
+        type: string
+      locale:
+        type: string
+      p256dh:
+        type: string
+      plataforma:
+        $ref: '#/definitions/models.PlataformaNotificacion'
+      pushDispositivoId:
+        type: integer
+      subscribedTopics:
+        items:
+          type: string
+        type: array
+      timeZone:
+        type: string
+      userAgent:
+        type: string
+    type: object
+  models.PushEnvio:
+    properties:
+      data:
+        type: object
+      errorCode:
+        type: string
+      exito:
+        type: boolean
+      proveedor:
+        $ref: '#/definitions/models.ProveedorPush'
+      pushDispositivoId:
+        type: integer
+      pushEnvioId:
+        type: integer
+      sentAt:
+        type: string
+      statusCode:
+        type: integer
+    type: object
+  models.RedimirCuponRequest:
+    properties:
+      clienteId:
+        type: integer
+      pedidoId:
+        type: integer
+    type: object
+  models.RegistrarDispositivoRequest:
+    properties:
+      appVersion:
+        type: string
+      auth:
+        type: string
+      documentoCliente:
+        type: integer
+      documentoTrabajador:
+        type: integer
+      endpoint:
+        type: string
+      fcmToken:
+        type: string
+      locale:
+        type: string
+      p256dh:
+        type: string
+      plataforma:
+        $ref: '#/definitions/models.PlataformaNotificacion'
+      subscribedTopics:
+        items:
+          type: string
+        type: array
+      timeZone:
+        type: string
+      userAgent:
+        type: string
+    type: object
+  models.RegistrarEnvioRequest:
+    properties:
+      data:
+        type: object
+      errorCode:
+        type: string
+      exito:
+        type: boolean
+      proveedor:
+        $ref: '#/definitions/models.ProveedorPush'
+      pushDispositivoId:
+        type: integer
+      statusCode:
+        type: integer
+    type: object
+  models.RemitenteNotificacion:
+    properties:
+      documentoTrabajador:
+        type: integer
+      nombre:
+        type: string
+      tipo:
+        $ref: '#/definitions/models.TipoRemitente'
     type: object
   models.RendimientoTrabajador:
     properties:
@@ -1139,6 +1541,23 @@ definitions:
         example: El Fogón Centro
         type: string
     type: object
+  models.ResumenDestinatarios:
+    properties:
+      clientesNotificados:
+        items:
+          type: integer
+        type: array
+      tipoDestinatario:
+        type: string
+      topicsNotificados:
+        items:
+          type: string
+        type: array
+      trabajadoresNotificados:
+        items:
+          type: integer
+        type: array
+    type: object
   models.RolTrabajador:
     enum:
     - Administrador
@@ -1247,6 +1666,34 @@ definitions:
           $ref: '#/definitions/models.VentaPorMes'
         type: array
     type: object
+  models.TipoDescuento:
+    enum:
+    - PORCENTAJE
+    - MONTO
+    type: string
+    x-enum-varnames:
+    - TipoDescuentoPorcentaje
+    - TipoDescuentoMonto
+  models.TipoDestinatario:
+    enum:
+    - TODOS
+    - CLIENTE
+    - TRABAJADOR
+    - TOPIC
+    type: string
+    x-enum-varnames:
+    - DestinatarioTodos
+    - DestinatarioCliente
+    - DestinatarioTrabajador
+    - DestinatarioTopic
+  models.TipoRemitente:
+    enum:
+    - TRABAJADOR
+    - SISTEMA
+    type: string
+    x-enum-varnames:
+    - RemitenteTrabajador
+    - RemitenteSistema
   models.Trabajador:
     properties:
       apellido:
@@ -1379,6 +1826,37 @@ definitions:
       totalPedidos:
         type: integer
       ultimoPedido:
+        type: string
+    type: object
+  models.ValidarCuponItemRequest:
+    properties:
+      cantidad:
+        type: integer
+      precio:
+        type: integer
+      productoId:
+        type: integer
+    type: object
+  models.ValidarCuponRequest:
+    properties:
+      clienteId:
+        type: integer
+      codigo:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/models.ValidarCuponItemRequest'
+        type: array
+      pedidoId:
+        type: integer
+    type: object
+  models.ValidarCuponResponse:
+    properties:
+      aplicable:
+        type: boolean
+      montoDescuento:
+        type: integer
+      motivo:
         type: string
     type: object
   models.VentaPorDiaSemana:
@@ -2044,6 +2522,411 @@ paths:
       summary: Obtener control de nómina por ID
       tags:
       - control_nomina
+  /cupones:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del cupón
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Desactivar cupón
+      tags:
+      - cupones
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Filtrar por estado activo
+        in: query
+        name: activo
+        type: boolean
+      - description: Filtrar por código
+        in: query
+        name: codigo
+        type: string
+      - description: Filtrar por scope (GLOBAL, PRODUCTO, CATEGORIA, CLIENTE)
+        in: query
+        name: scope
+        type: string
+      - description: Fecha desde (YYYY-MM-DD)
+        in: query
+        name: fecha_desde
+        type: string
+      - description: Fecha hasta (YYYY-MM-DD)
+        in: query
+        name: fecha_hasta
+        type: string
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los cupones
+      tags:
+      - cupones
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos del cupón
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrearCuponRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cupon'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear cupón
+      tags:
+      - cupones
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del cupón
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados del cupón
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrearCuponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cupon'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar cupón
+      tags:
+      - cupones
+  /cupones/{codigo}/redimir:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Código del cupón
+        in: path
+        name: codigo
+        required: true
+        type: string
+      - description: Datos de redención
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RedimirCuponRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CuponRedencion'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Redimir cupón
+      tags:
+      - cupones
+  /cupones/redenciones:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Código del cupón
+        in: query
+        name: cupon_codigo
+        type: string
+      - description: ID del cupón
+        in: query
+        name: cupon_id
+        type: integer
+      - description: ID del cliente
+        in: query
+        name: cliente_id
+        type: integer
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar redenciones de cupones
+      tags:
+      - cupones
+  /cupones/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID o código del cupón
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cupon'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener cupón por ID
+      tags:
+      - cupones
+  /cupones/validar:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos para validación
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ValidarCuponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ValidarCuponResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Validar cupón
+      tags:
+      - cupones
+  /descuentos/pedidos:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.PedidoDescuentoAplicado'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener descuentos de pedido
+      tags:
+      - descuentos
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      - description: Datos del descuento a aplicar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.AplicarDescuentoRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PedidoDescuentoAplicado'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Aplicar descuento a pedido
+      tags:
+      - descuentos
   /domicilios:
     delete:
       consumes:
@@ -3132,6 +4015,306 @@ paths:
       summary: Actualizar el estado de una nómina
       tags:
       - nominas
+  /ofertas:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Desactivar oferta
+      tags:
+      - ofertas
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Filtrar por estado activo
+        in: query
+        name: activo
+        type: boolean
+      - description: ID del restaurante
+        in: query
+        name: restaurante_id
+        type: integer
+      - description: Filtrar por título
+        in: query
+        name: titulo
+        type: string
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las ofertas
+      tags:
+      - ofertas
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos de la oferta
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrearOfertaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Oferta'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear oferta
+      tags:
+      - ofertas
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados de la oferta
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrearOfertaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Oferta'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar oferta
+      tags:
+      - ofertas
+  /ofertas/activas:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del restaurante
+        in: query
+        name: restaurante_id
+        required: true
+        type: integer
+      - description: 'Fecha a consultar (YYYY-MM-DD, default: hoy)'
+        in: query
+        name: fecha
+        type: string
+      - description: 'Hora a consultar (HH:MM, default: ahora)'
+        in: query
+        name: hora
+        type: string
+      - description: ID del producto específico
+        in: query
+        name: producto_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.OfertaActivaResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener ofertas activas
+      tags:
+      - ofertas
+  /ofertas/productos:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: ID del producto
+        in: query
+        name: producto_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Desasociar producto de oferta
+      tags:
+      - ofertas
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: ID del producto
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.AsociarProductoOfertaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Asociar producto a oferta
+      tags:
+      - ofertas
+  /ofertas/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Oferta'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener oferta por ID
+      tags:
+      - ofertas
   /pagos:
     delete:
       consumes:
@@ -4015,6 +5198,357 @@ paths:
       summary: Obtener producto por ID
       tags:
       - productos
+  /push/dispositivos:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar dispositivo push
+      tags:
+      - push_notifications
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del cliente
+        in: query
+        name: cliente_id
+        type: integer
+      - description: ID del trabajador
+        in: query
+        name: trabajador_id
+        type: integer
+      - description: Plataforma (WEB, ANDROID, IOS)
+        in: query
+        name: plataforma
+        type: string
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener dispositivos push
+      tags:
+      - push_notifications
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos del dispositivo
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistrarDispositivoRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PushDispositivo'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Registrar dispositivo push
+      tags:
+      - push_notifications
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Nuevo estado
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ActualizarEstadoDispositivoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar dispositivo push
+      tags:
+      - push_notifications
+  /push/dispositivos/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PushDispositivo'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener dispositivo por ID
+      tags:
+      - push_notifications
+  /push/dispositivos/topics:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Nuevos topics
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ActualizarTopicsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar topics suscritos del dispositivo
+      tags:
+      - push_notifications
+  /push/dispositivos/visto:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar última vista del dispositivo
+      tags:
+      - push_notifications
+  /push/enviar:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos de la notificación a enviar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.EnviarNotificacionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.EnviarNotificacionResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Enviar notificación push
+      tags:
+      - push_notifications
+  /push/envios:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: dispositivo_id
+        type: integer
+      - description: Fecha desde (YYYY-MM-DD)
+        in: query
+        name: fecha_desde
+        type: string
+      - description: Fecha hasta (YYYY-MM-DD)
+        in: query
+        name: fecha_hasta
+        type: string
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar envíos push
+      tags:
+      - push_notifications
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos del envío
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistrarEnvioRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PushEnvio'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Registrar envío push
+      tags:
+      - push_notifications
   /reserva_contacto:
     get:
       consumes:

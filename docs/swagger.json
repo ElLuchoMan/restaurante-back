@@ -986,6 +986,664 @@
                 }
             }
         },
+        "/cupones": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Obtener todos los cupones",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Filtrar por estado activo",
+                        "name": "activo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por código",
+                        "name": "codigo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por scope (GLOBAL, PRODUCTO, CATEGORIA, CLIENTE)",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha desde (YYYY-MM-DD)",
+                        "name": "fecha_desde",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha hasta (YYYY-MM-DD)",
+                        "name": "fecha_hasta",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Actualizar cupón",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del cupón",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados del cupón",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrearCuponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cupon"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Crear cupón",
+                "parameters": [
+                    {
+                        "description": "Datos del cupón",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrearCuponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cupon"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Desactivar cupón",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del cupón",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cupones/redenciones": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Listar redenciones de cupones",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código del cupón",
+                        "name": "cupon_codigo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del cupón",
+                        "name": "cupon_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del cliente",
+                        "name": "cliente_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cupones/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Obtener cupón por ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID o código del cupón",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cupon"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cupones/validar": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Validar cupón",
+                "parameters": [
+                    {
+                        "description": "Datos para validación",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidarCuponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ValidarCuponResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cupones/{codigo}/redimir": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Redimir cupón",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código del cupón",
+                        "name": "codigo",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de redención",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RedimirCuponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.CuponRedencion"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/descuentos/pedidos": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "descuentos"
+                ],
+                "summary": "Obtener descuentos de pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.PedidoDescuentoAplicado"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "descuentos"
+                ],
+                "summary": "Aplicar descuento a pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del descuento a aplicar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AplicarDescuentoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PedidoDescuentoAplicado"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/domicilios": {
             "get": {
                 "security": [
@@ -2756,6 +3414,485 @@
                 }
             }
         },
+        "/ofertas": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Obtener todas las ofertas",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Filtrar por estado activo",
+                        "name": "activo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del restaurante",
+                        "name": "restaurante_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por título",
+                        "name": "titulo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Actualizar oferta",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados de la oferta",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrearOfertaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Oferta"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Crear oferta",
+                "parameters": [
+                    {
+                        "description": "Datos de la oferta",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrearOfertaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Oferta"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Desactivar oferta",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ofertas/activas": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Obtener ofertas activas",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del restaurante",
+                        "name": "restaurante_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha a consultar (YYYY-MM-DD, default: hoy)",
+                        "name": "fecha",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora a consultar (HH:MM, default: ahora)",
+                        "name": "hora",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del producto específico",
+                        "name": "producto_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.OfertaActivaResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ofertas/productos": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Asociar producto a oferta",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "ID del producto",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AsociarProductoOfertaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Desasociar producto de oferta",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del producto",
+                        "name": "producto_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ofertas/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Obtener oferta por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Oferta"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pagos": {
             "get": {
                 "security": [
@@ -4161,6 +5298,570 @@
                     },
                     "404": {
                         "description": "Producto no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/dispositivos": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Obtener dispositivos push",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del cliente",
+                        "name": "cliente_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del trabajador",
+                        "name": "trabajador_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Plataforma (WEB, ANDROID, IOS)",
+                        "name": "plataforma",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Actualizar dispositivo push",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Nuevo estado",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ActualizarEstadoDispositivoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Registrar dispositivo push",
+                "parameters": [
+                    {
+                        "description": "Datos del dispositivo",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegistrarDispositivoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PushDispositivo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Eliminar dispositivo push",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/dispositivos/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Obtener dispositivo por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PushDispositivo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/dispositivos/topics": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Actualizar topics suscritos del dispositivo",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Nuevos topics",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ActualizarTopicsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/dispositivos/visto": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Actualizar última vista del dispositivo",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/enviar": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Enviar notificación push",
+                "parameters": [
+                    {
+                        "description": "Datos de la notificación a enviar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.EnviarNotificacionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.EnviarNotificacionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/envios": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Listar envíos push",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "dispositivo_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha desde (YYYY-MM-DD)",
+                        "name": "fecha_desde",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha hasta (YYYY-MM-DD)",
+                        "name": "fecha_hasta",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Registrar envío push",
+                "parameters": [
+                    {
+                        "description": "Datos del envío",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegistrarEnvioRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PushEnvio"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6673,6 +8374,25 @@
         }
     },
     "definitions": {
+        "models.ActualizarEstadoDispositivoRequest": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.ActualizarTopicsRequest": {
+            "type": "object",
+            "properties": {
+                "subscribedTopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "models.ApiResponse": {
             "type": "object",
             "properties": {
@@ -6685,6 +8405,31 @@
                 "data": {},
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "models.AplicarDescuentoRequest": {
+            "type": "object",
+            "properties": {
+                "cuponId": {
+                    "type": "integer"
+                },
+                "detalle": {
+                    "type": "object"
+                },
+                "montoDescuento": {
+                    "type": "integer"
+                },
+                "ofertaId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.AsociarProductoOfertaRequest": {
+            "type": "object",
+            "properties": {
+                "productoId": {
+                    "type": "integer"
                 }
             }
         },
@@ -6915,6 +8660,20 @@
                 }
             }
         },
+        "models.ContenidoNotificacion": {
+            "type": "object",
+            "properties": {
+                "datos": {
+                    "type": "object"
+                },
+                "mensaje": {
+                    "type": "string"
+                },
+                "titulo": {
+                    "type": "string"
+                }
+            }
+        },
         "models.ControlNomina": {
             "type": "object",
             "properties": {
@@ -6928,6 +8687,167 @@
                     "type": "string"
                 }
             }
+        },
+        "models.CrearCuponRequest": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer"
+                },
+                "codigo": {
+                    "type": "string"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "fechaFin": {
+                    "type": "string"
+                },
+                "fechaInicio": {
+                    "type": "string"
+                },
+                "limitePorCliente": {
+                    "type": "integer"
+                },
+                "maxUsos": {
+                    "type": "integer"
+                },
+                "montoMinimo": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "$ref": "#/definitions/models.CuponScope"
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.CrearOfertaRequest": {
+            "type": "object",
+            "properties": {
+                "diasSemana": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "fechaFin": {
+                    "type": "string"
+                },
+                "fechaInicio": {
+                    "type": "string"
+                },
+                "horaFin": {
+                    "type": "string"
+                },
+                "horaInicio": {
+                    "type": "string"
+                },
+                "restauranteId": {
+                    "type": "integer"
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "titulo": {
+                    "type": "string"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Cupon": {
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "type": "boolean"
+                },
+                "categoriaId": {
+                    "type": "integer"
+                },
+                "codigo": {
+                    "type": "string"
+                },
+                "cuponId": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "fechaFin": {
+                    "type": "string"
+                },
+                "fechaInicio": {
+                    "type": "string"
+                },
+                "limitePorCliente": {
+                    "type": "integer"
+                },
+                "maxUsos": {
+                    "type": "integer"
+                },
+                "montoMinimo": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "$ref": "#/definitions/models.CuponScope"
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.CuponRedencion": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "cuponId": {
+                    "type": "integer"
+                },
+                "cuponRedencionId": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "montoDescuento": {
+                    "type": "integer"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.CuponScope": {
+            "type": "string",
+            "enum": [
+                "GLOBAL",
+                "PRODUCTO",
+                "CATEGORIA",
+                "CLIENTE"
+            ],
+            "x-enum-varnames": [
+                "CuponScopeGlobal",
+                "CuponScopeProducto",
+                "CuponScopeCategoria",
+                "CuponScopeCliente"
+            ]
         },
         "models.DashboardData": {
             "type": "object",
@@ -6948,6 +8868,49 @@
                     "type": "integer"
                 },
                 "totalUsuarios": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.DestinatariosNotificacion": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "tipo": {
+                    "$ref": "#/definitions/models.TipoDestinatario"
+                },
+                "topic": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.DetalleEnvioNotificacion": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "errorCode": {
+                    "type": "string"
+                },
+                "exito": {
+                    "type": "boolean"
+                },
+                "plataforma": {
+                    "type": "string"
+                },
+                "pushDispositivoId": {
+                    "type": "integer"
+                },
+                "statusCode": {
                     "type": "integer"
                 }
             }
@@ -7113,6 +9076,43 @@
                 },
                 "tiempoPromedioPrep": {
                     "type": "number"
+                }
+            }
+        },
+        "models.EnviarNotificacionRequest": {
+            "type": "object",
+            "properties": {
+                "destinatarios": {
+                    "$ref": "#/definitions/models.DestinatariosNotificacion"
+                },
+                "notificacion": {
+                    "$ref": "#/definitions/models.ContenidoNotificacion"
+                },
+                "remitente": {
+                    "$ref": "#/definitions/models.RemitenteNotificacion"
+                }
+            }
+        },
+        "models.EnviarNotificacionResponse": {
+            "type": "object",
+            "properties": {
+                "detalleEnvios": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DetalleEnvioNotificacion"
+                    }
+                },
+                "enviosExitosos": {
+                    "type": "integer"
+                },
+                "enviosFallidos": {
+                    "type": "integer"
+                },
+                "resumenDestinatarios": {
+                    "$ref": "#/definitions/models.ResumenDestinatarios"
+                },
+                "totalDispositivos": {
+                    "type": "integer"
                 }
             }
         },
@@ -7628,6 +9628,88 @@
                 }
             }
         },
+        "models.Oferta": {
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "type": "boolean"
+                },
+                "diasSemana": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "fechaFin": {
+                    "type": "string"
+                },
+                "fechaInicio": {
+                    "type": "string"
+                },
+                "horaFin": {
+                    "type": "string"
+                },
+                "horaInicio": {
+                    "type": "string"
+                },
+                "ofertaId": {
+                    "type": "integer"
+                },
+                "restauranteId": {
+                    "type": "integer"
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "titulo": {
+                    "type": "string"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.OfertaActivaResponse": {
+            "type": "object",
+            "properties": {
+                "ofertaId": {
+                    "type": "integer"
+                },
+                "productosIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "titulo": {
+                    "type": "string"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Pago": {
             "type": "object",
             "properties": {
@@ -7770,6 +9852,32 @@
                 }
             }
         },
+        "models.PedidoDescuentoAplicado": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "cuponId": {
+                    "type": "integer"
+                },
+                "detalle": {
+                    "type": "object"
+                },
+                "montoDescuento": {
+                    "type": "integer"
+                },
+                "ofertaId": {
+                    "type": "integer"
+                },
+                "pedidoDescuentoId": {
+                    "type": "integer"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.PedidoDetails": {
             "type": "object",
             "properties": {
@@ -7893,6 +10001,19 @@
                     }
                 }
             }
+        },
+        "models.PlataformaNotificacion": {
+            "type": "string",
+            "enum": [
+                "WEB",
+                "ANDROID",
+                "IOS"
+            ],
+            "x-enum-varnames": [
+                "PlataformaWeb",
+                "PlataformaAndroid",
+                "PlataformaIOS"
+            ]
         },
         "models.Producto": {
             "type": "object",
@@ -8022,6 +10143,194 @@
                     "items": {
                         "$ref": "#/definitions/models.ProductoVendido"
                     }
+                }
+            }
+        },
+        "models.ProveedorPush": {
+            "type": "string",
+            "enum": [
+                "WEB_PUSH",
+                "FCM"
+            ],
+            "x-enum-varnames": [
+                "ProveedorWebPush",
+                "ProveedorFCM"
+            ]
+        },
+        "models.PushDispositivo": {
+            "type": "object",
+            "properties": {
+                "appVersion": {
+                    "type": "string"
+                },
+                "auth": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "fcmToken": {
+                    "type": "string"
+                },
+                "lastSeenAt": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "p256dh": {
+                    "type": "string"
+                },
+                "plataforma": {
+                    "$ref": "#/definitions/models.PlataformaNotificacion"
+                },
+                "pushDispositivoId": {
+                    "type": "integer"
+                },
+                "subscribedTopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timeZone": {
+                    "type": "string"
+                },
+                "userAgent": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PushEnvio": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object"
+                },
+                "errorCode": {
+                    "type": "string"
+                },
+                "exito": {
+                    "type": "boolean"
+                },
+                "proveedor": {
+                    "$ref": "#/definitions/models.ProveedorPush"
+                },
+                "pushDispositivoId": {
+                    "type": "integer"
+                },
+                "pushEnvioId": {
+                    "type": "integer"
+                },
+                "sentAt": {
+                    "type": "string"
+                },
+                "statusCode": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RedimirCuponRequest": {
+            "type": "object",
+            "properties": {
+                "clienteId": {
+                    "type": "integer"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RegistrarDispositivoRequest": {
+            "type": "object",
+            "properties": {
+                "appVersion": {
+                    "type": "string"
+                },
+                "auth": {
+                    "type": "string"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "fcmToken": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "p256dh": {
+                    "type": "string"
+                },
+                "plataforma": {
+                    "$ref": "#/definitions/models.PlataformaNotificacion"
+                },
+                "subscribedTopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timeZone": {
+                    "type": "string"
+                },
+                "userAgent": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.RegistrarEnvioRequest": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object"
+                },
+                "errorCode": {
+                    "type": "string"
+                },
+                "exito": {
+                    "type": "boolean"
+                },
+                "proveedor": {
+                    "$ref": "#/definitions/models.ProveedorPush"
+                },
+                "pushDispositivoId": {
+                    "type": "integer"
+                },
+                "statusCode": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RemitenteNotificacion": {
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "$ref": "#/definitions/models.TipoRemitente"
                 }
             }
         },
@@ -8341,6 +10650,32 @@
                 }
             }
         },
+        "models.ResumenDestinatarios": {
+            "type": "object",
+            "properties": {
+                "clientesNotificados": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "tipoDestinatario": {
+                    "type": "string"
+                },
+                "topicsNotificados": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "trabajadoresNotificados": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "models.RolTrabajador": {
             "type": "string",
             "enum": [
@@ -8499,6 +10834,43 @@
                     }
                 }
             }
+        },
+        "models.TipoDescuento": {
+            "type": "string",
+            "enum": [
+                "PORCENTAJE",
+                "MONTO"
+            ],
+            "x-enum-varnames": [
+                "TipoDescuentoPorcentaje",
+                "TipoDescuentoMonto"
+            ]
+        },
+        "models.TipoDestinatario": {
+            "type": "string",
+            "enum": [
+                "TODOS",
+                "CLIENTE",
+                "TRABAJADOR",
+                "TOPIC"
+            ],
+            "x-enum-varnames": [
+                "DestinatarioTodos",
+                "DestinatarioCliente",
+                "DestinatarioTrabajador",
+                "DestinatarioTopic"
+            ]
+        },
+        "models.TipoRemitente": {
+            "type": "string",
+            "enum": [
+                "TRABAJADOR",
+                "SISTEMA"
+            ],
+            "x-enum-varnames": [
+                "RemitenteTrabajador",
+                "RemitenteSistema"
+            ]
         },
         "models.Trabajador": {
             "type": "object",
@@ -8690,6 +11062,54 @@
                     "type": "integer"
                 },
                 "ultimoPedido": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ValidarCuponItemRequest": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "precio": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ValidarCuponRequest": {
+            "type": "object",
+            "properties": {
+                "clienteId": {
+                    "type": "integer"
+                },
+                "codigo": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ValidarCuponItemRequest"
+                    }
+                },
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ValidarCuponResponse": {
+            "type": "object",
+            "properties": {
+                "aplicable": {
+                    "type": "boolean"
+                },
+                "montoDescuento": {
+                    "type": "integer"
+                },
+                "motivo": {
                     "type": "string"
                 }
             }

@@ -5,6 +5,8 @@ import (
 	cat "restaurante/controllers/categoria"
 	cli "restaurante/controllers/cliente"
 	cn "restaurante/controllers/controlnomina"
+	cup "restaurante/controllers/cupon"
+	desc "restaurante/controllers/descuento"
 	dom "restaurante/controllers/domicilio"
 	ht "restaurante/controllers/horariotrabajador"
 	inc "restaurante/controllers/incidencia"
@@ -12,11 +14,13 @@ import (
 	mp "restaurante/controllers/metodopago"
 	nom "restaurante/controllers/nomina"
 	nt "restaurante/controllers/nominatrabajador"
+	ofer "restaurante/controllers/oferta"
 	pg "restaurante/controllers/pago"
 	pd "restaurante/controllers/pedido"
 	pph "restaurante/controllers/precioproductohist"
 	prod "restaurante/controllers/producto"
 	ppd "restaurante/controllers/productopedido"
+	push "restaurante/controllers/push"
 	resv "restaurante/controllers/reserva"
 	rc "restaurante/controllers/reservacontacto"
 	rest "restaurante/controllers/restaurante"
@@ -84,6 +88,11 @@ func init() {
 	protected := beego.NewNamespace("/restaurante/v1",
 		beego.NSRouter("/login", &loginc.LoginController{}, "post:Login"),
 		beego.NSRouter("/auth/refresh", &loginc.LoginController{}, "post:RefreshToken"),
+
+		// Endpoints públicos (sin autenticación) - DEBEN IR ANTES de los NSBefore
+		beego.NSRouter("/productos-populares", &tel.TelemetriaController{}, "get:GetProductosPopulares"),
+		beego.NSRouter("/estados-pedidos", &tel.TelemetriaController{}, "get:GetEstadosPedidos"),
+		beego.NSRouter("/productos-disponibles", &tel.TelemetriaController{}, "get:GetProductosDisponibles"),
 
 		beego.NSNamespace("/producto_pedido",
 			beego.NSBefore(loginc.ValidateToken),
@@ -195,11 +204,6 @@ func init() {
 			beego.NSRouter("/search", &pg.PagoController{}, "get:GetById"),
 		),
 
-		// Endpoints públicos (sin autenticación)
-		beego.NSRouter("/productos-populares", &tel.TelemetriaController{}, "get:GetProductosPopulares"),
-		beego.NSRouter("/estados-pedidos", &tel.TelemetriaController{}, "get:GetEstadosPedidos"),
-		beego.NSRouter("/productos-disponibles", &tel.TelemetriaController{}, "get:GetProductosDisponibles"),
-
 		beego.NSNamespace("/telemetria",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/dashboard", &tel.TelemetriaController{}, "get:GetDashboard"),
@@ -217,6 +221,45 @@ func init() {
 		),
 	)
 
+	// Nuevas rutas API v1 para notificaciones, cupones y ofertas
+	apiv1 := beego.NewNamespace("/restaurante/v1",
+		// Ruta pública para ofertas activas (sin autenticación)
+		beego.NSRouter("/ofertas/activas", &ofer.OfertaController{}, "get:ObtenerOfertasActivas"),
+
+		// Rutas protegidas
+		beego.NSNamespace("/push",
+			beego.NSBefore(loginc.ValidateToken),
+			beego.NSRouter("/dispositivos", &push.PushController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/dispositivos/search", &push.PushController{}, "get:GetById"),
+			beego.NSRouter("/dispositivos/visto", &push.PushController{}, "patch:ActualizarUltimaVista"),
+			beego.NSRouter("/dispositivos/topics", &push.PushController{}, "patch:ActualizarTopics"),
+			beego.NSRouter("/envios", &push.PushController{}, "get:ListarEnvios;post:RegistrarEnvio"),
+			beego.NSRouter("/enviar", &push.PushController{}, "post:EnviarNotificacion"),
+		),
+
+		beego.NSNamespace("/cupones",
+			beego.NSBefore(loginc.ValidateToken),
+			beego.NSRouter("/", &cup.CuponController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &cup.CuponController{}, "get:GetById"),
+			beego.NSRouter("/validar", &cup.CuponController{}, "post:ValidarCupon"),
+			beego.NSRouter("/redimir", &cup.CuponController{}, "post:RedimirCupon"),
+			beego.NSRouter("/redenciones", &cup.CuponController{}, "get:ListarRedenciones"),
+		),
+
+		beego.NSNamespace("/ofertas",
+			beego.NSBefore(loginc.ValidateToken),
+			beego.NSRouter("/", &ofer.OfertaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &ofer.OfertaController{}, "get:GetById"),
+			beego.NSRouter("/productos", &ofer.OfertaController{}, "post:AsociarProducto;delete:DesasociarProducto"),
+		),
+
+		beego.NSNamespace("/descuentos",
+			beego.NSBefore(loginc.ValidateToken),
+			beego.NSRouter("/pedidos", &desc.DescuentoController{}, "get:GetAll;post:Post"),
+		),
+	)
+
 	beego.AddNamespace(public)
 	beego.AddNamespace(protected)
+	beego.AddNamespace(apiv1)
 }
