@@ -229,13 +229,13 @@ func generateTokens(documento int64, rol, nombre string) (string, string, error)
 
 	now := time.Now()
 
-	// Access Token (30 minutos)
+	// Access Token (120 minutos)
 	accessClaims := &Claims{
 		Documento: documento,
 		Rol:       rol,
 		Nombre:    nombre,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(30 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(120 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
@@ -419,7 +419,7 @@ func ValidateToken(ctx *context.Context) {
 			"/restaurante/v1/reservas/parameter", "/restaurante/v1/reservas/cliente",
 			"/restaurante/v1/reservas/documento",
 			"/restaurante/v1/cambios_horario/actual",
-			"/restaurante/v1/ofertas/activas":
+			"/restaurante/v1/ofertas/a,ctivas":
 			return
 		}
 	}

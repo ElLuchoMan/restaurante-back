@@ -51,6 +51,27 @@ API REST en Go para gestionar operaciones de "El fogón de María": clientes, pe
   - `CRON_ONE_SHOT=1`: ejecuta una sola iteración del cron.
   - `SKIP_WEB_RUN=1`: no levanta el servidor web (tests).
 
+- Push/FCM (Android/iOS):
+  - `FIREBASE_PROJECT_ID`: ID del proyecto Firebase para FCM HTTP v1.
+  - `FCM_BEARER_TOKEN`: token Bearer OAuth2 para `https://fcm.googleapis.com/` (opcional). Si no se define, el backend intentará usar ADC:
+    1) Metadata server (GCE/GKE) `service-accounts/default/token`.
+    2) Si falla, se requiere inyectar `FCM_BEARER_TOKEN` manualmente.
+  - El payload FCM se arma desde `models.ContenidoNotificacion` (`Titulo`→`notification.title`, `Mensaje`→`notification.body`) y `Datos`→`data`.
+
+- Web Push (navegadores web):
+  - `VAPID_PUBLIC_KEY`: Clave pública VAPID para autenticación Web Push (base64url sin padding).
+  - `VAPID_PRIVATE_KEY`: Clave privada VAPID para autenticación Web Push (base64url sin padding).
+  - `VAPID_SUBJECT`: Email o URL del contacto responsable (formato: `mailto:admin@example.com` o `https://example.com`).
+  - El backend detecta automáticamente la plataforma (`WEB`, `ANDROID`, `IOS`) y usa el proveedor correcto:
+    - Dispositivos `WEB` → Web Push Protocol (RFC 8030 + VAPID RFC 8292)
+    - Dispositivos `ANDROID`/`IOS` → FCM HTTP v1
+  - Manejo automático de errores:
+    - **410 Gone** / **404 Not Found**: Desactiva automáticamente el dispositivo en BD (`enabled = false`)
+    - **401 Unauthorized**: Error de autenticación VAPID (verificar claves)
+    - **429 Too Many Requests**: Rate limit del servidor push
+  - Timeout configurado: 10 segundos por notificación
+  - Ver documentación completa: [`API_NOTIFICACIONES_CUPONES_OFERTAS.md`](API_NOTIFICACIONES_CUPONES_OFERTAS.md)
+
 - `appname` en `conf/*.conf`: `el_fogon_de_maria`.
 
 ### CORS
@@ -68,6 +89,9 @@ API REST en Go para gestionar operaciones de "El fogón de María": clientes, pe
 - DB (equivalentes a `conf/app.conf`): `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_SSLMODE`.
 - App/Test: `BEEGO_APP_CONFIG_FILE`, `INTEGRATION`, `SKIP_DB_SEED`, `SKIP_WEB_RUN`, `SKIP_CRON`, `CRON_ONE_SHOT`, `CORS_ALLOWED_ORIGINS`.
 - Auth: `JWT_SECRET` (obligatorio en prod; en dev/test se genera efímero si está vacío).
+- Push Notifications:
+  - FCM: `FIREBASE_PROJECT_ID`, `FCM_BEARER_TOKEN` (opcional, usa ADC si no está definido).
+  - Web Push: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (obligatorios para notificaciones web).
 
 ## Enlaces rápidos
 - Script de cobertura: [`tools/cover.ps1`](tools/cover.ps1)
