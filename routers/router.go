@@ -47,27 +47,49 @@ func init() {
 	// Configurar Swagger UI
 	beego.Handler("/swagger/*", httpSwagger.WrapHandler)
 
-	public := beego.NewNamespace("/restaurante/v1",
+	// Namespace principal consolidado
+	main := beego.NewNamespace("/restaurante/v1",
+		// Rutas de autenticación (públicas)
+		beego.NSRouter("/login", &loginc.LoginController{}, "post:Login"),
+		beego.NSRouter("/auth/refresh", &loginc.LoginController{}, "post:RefreshToken"),
+
+		// Endpoints públicos (sin autenticación)
+		beego.NSRouter("/productos-populares", &tel.TelemetriaController{}, "get:GetProductosPopulares"),
+		beego.NSRouter("/estados-pedidos", &tel.TelemetriaController{}, "get:GetEstadosPedidos"),
+		beego.NSRouter("/productos-disponibles", &tel.TelemetriaController{}, "get:GetProductosDisponibles"),
+		beego.NSRouter("/ofertas/activas", &ofer.OfertaController{}, "get:ObtenerOfertasActivas"),
+
+		// Endpoints públicos de productos (GET)
 		beego.NSNamespace("/productos",
 			beego.NSRouter("/", &prod.ProductoController{}, "get:GetAll"),
 			beego.NSRouter("/search", &prod.ProductoController{}, "get:GetById"),
 		),
+
+		// Endpoints públicos de restaurantes (GET)
 		beego.NSNamespace("/restaurantes",
 			beego.NSRouter("/", &rest.RestauranteController{}, "get:GetAll"),
 			beego.NSRouter("/search", &rest.RestauranteController{}, "get:GetById"),
 		),
+
+		// Endpoints públicos de restaurante_dia (GET)
 		beego.NSNamespace("/restaurante_dia",
 			beego.NSRouter("/", &rdia.RestauranteDiaController{}, "get:GetAll"),
 			beego.NSRouter("/search", &rdia.RestauranteDiaController{}, "get:GetById"),
 		),
+
+		// Endpoints públicos de subcategorias (GET)
 		beego.NSNamespace("/subcategorias",
 			beego.NSRouter("/", &subc.SubcategoriaController{}, "get:GetAll"),
 			beego.NSRouter("/search", &subc.SubcategoriaController{}, "get:GetById"),
 		),
+
+		// Endpoints públicos de trabajadores (GET)
 		beego.NSNamespace("/trabajadores",
 			beego.NSRouter("/", &trab.TrabajadorController{}, "get:GetAll"),
 			beego.NSRouter("/search", &trab.TrabajadorController{}, "get:GetById"),
 		),
+
+		// Endpoints públicos de reservas (GET)
 		beego.NSNamespace("/reservas",
 			beego.NSRouter("/", &resv.ReservaController{}, "get:GetAll"),
 			beego.NSRouter("/search", &resv.ReservaController{}, "get:GetById"),
@@ -75,55 +97,36 @@ func init() {
 			beego.NSRouter("/cliente", &resv.ReservaController{}, "get:GetByDocumentoCliente"),
 			beego.NSRouter("/documento", &resv.ReservaController{}, "get:GetByDocumento"),
 		),
+
+		// Endpoints públicos de reserva_contacto (GET)
 		beego.NSNamespace("/reserva_contacto",
 			beego.NSRouter("/", &rc.ReservaContactoController{}, "get:GetAll"),
 			beego.NSRouter("/search", &rc.ReservaContactoController{}, "get:GetById"),
 		),
+
+		// Endpoints públicos de categorias (GET)
 		beego.NSNamespace("/categorias",
 			beego.NSRouter("/", &cat.CategoriaController{}, "get:GetAll"),
 			beego.NSRouter("/search", &cat.CategoriaController{}, "get:GetById"),
 		),
-	)
 
-	protected := beego.NewNamespace("/restaurante/v1",
-		beego.NSRouter("/login", &loginc.LoginController{}, "post:Login"),
-		beego.NSRouter("/auth/refresh", &loginc.LoginController{}, "post:RefreshToken"),
+		// Endpoints públicos de clientes (POST para registro)
+		beego.NSRouter("/clientes", &cli.ClienteController{}, "post:Post"),
 
-		// Endpoints públicos (sin autenticación) - DEBEN IR ANTES de los NSBefore
-		beego.NSRouter("/productos-populares", &tel.TelemetriaController{}, "get:GetProductosPopulares"),
-		beego.NSRouter("/estados-pedidos", &tel.TelemetriaController{}, "get:GetEstadosPedidos"),
-		beego.NSRouter("/productos-disponibles", &tel.TelemetriaController{}, "get:GetProductosDisponibles"),
-
+		// Rutas protegidas (con autenticación)
 		beego.NSNamespace("/producto_pedido",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &ppd.ProductoPedidoController{}, "get:GetAll;post:Post;put:Update"),
 		),
 
-		beego.NSNamespace("/productos",
+		// Endpoints protegidos de clientes (GET, PUT, DELETE)
+		beego.NSNamespace("/clientes",
 			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &prod.ProductoController{}, "post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/", &cli.ClienteController{}, "get:GetAll;put:Put;delete:Delete"),
+			beego.NSRouter("/search", &cli.ClienteController{}, "get:GetById"),
 		),
 
-		beego.NSNamespace("/restaurantes",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &rest.RestauranteController{}, "post:Post;put:Put;delete:Delete"),
-		),
-
-		beego.NSNamespace("/subcategorias",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &subc.SubcategoriaController{}, "post:Post;put:Put;delete:Delete"),
-		),
-
-		beego.NSNamespace("/trabajadores",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &trab.TrabajadorController{}, "post:Post;put:Put;delete:Delete"),
-		),
-
-		beego.NSNamespace("/reservas",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &resv.ReservaController{}, "post:Post;put:Put;delete:Delete"),
-		),
-
+		// Resto de endpoints protegidos...
 		beego.NSNamespace("/precio_producto_hist",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &pph.PrecioProductoHistController{}, "get:GetAll"),
@@ -143,17 +146,6 @@ func init() {
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &ch.CambiosHorarioController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/actual", &ch.CambiosHorarioController{}, "get:GetByCurrentDate"),
-		),
-
-		beego.NSNamespace("/categorias",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &cat.CategoriaController{}, "post:Post;put:Put;delete:Delete"),
-		),
-
-		beego.NSNamespace("/clientes",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &cli.ClienteController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
-			beego.NSRouter("/search", &cli.ClienteController{}, "get:GetById"),
 		),
 
 		beego.NSNamespace("/control_nomina",
@@ -219,14 +211,8 @@ func init() {
 			beego.NSRouter("/reservas-analisis", &tel.TelemetriaController{}, "get:GetReservasAnalisis"),
 			beego.NSRouter("/pedidos-analisis", &tel.TelemetriaController{}, "get:GetPedidosAnalisis"),
 		),
-	)
 
-	// Nuevas rutas API v1 para notificaciones, cupones y ofertas
-	apiv1 := beego.NewNamespace("/restaurante/v1",
-		// Ruta pública para ofertas activas (sin autenticación)
-		beego.NSRouter("/ofertas/activas", &ofer.OfertaController{}, "get:ObtenerOfertasActivas"),
-
-		// Rutas protegidas
+		// Rutas de notificaciones, cupones y ofertas
 		beego.NSNamespace("/push",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/dispositivos", &push.PushController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
@@ -259,7 +245,6 @@ func init() {
 		),
 	)
 
-	beego.AddNamespace(public)
-	beego.AddNamespace(protected)
-	beego.AddNamespace(apiv1)
+	// Registrar el namespace principal
+	beego.AddNamespace(main)
 }

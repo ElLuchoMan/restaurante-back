@@ -2,6 +2,7 @@ package push
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -182,7 +183,13 @@ func (c *PushController) GetAll() {
 // @Router /push/dispositivos [post]
 func (c *PushController) Post() {
 	var req models.RegistrarDispositivoRequest
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
+	// Fallback: si RequestBody está vacío (tests), leer del body del request
+	body := c.Ctx.Input.RequestBody
+	if len(body) == 0 && c.Ctx.Request != nil && c.Ctx.Request.Body != nil {
+		b, _ := io.ReadAll(c.Ctx.Request.Body)
+		body = b
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
 		logging.LogControllerError(c.Ctx, "push.post.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -241,6 +248,15 @@ func (c *PushController) Post() {
 func (c *PushController) GetById() {
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		// Fallback a parámetro de ruta :id
+		if sid := c.Ctx.Input.Param(":id"); sid != "" {
+			if v, convErr := strconv.ParseInt(sid, 10, 64); convErr == nil {
+				id = v
+				err = nil
+			}
+		}
+	}
+	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "push.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -298,6 +314,14 @@ func (c *PushController) GetById() {
 func (c *PushController) Put() {
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		if sid := c.Ctx.Input.Param(":id"); sid != "" {
+			if v, convErr := strconv.ParseInt(sid, 10, 64); convErr == nil {
+				id = v
+				err = nil
+			}
+		}
+	}
+	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "push.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -354,6 +378,14 @@ func (c *PushController) Put() {
 // @Router /push/dispositivos [delete]
 func (c *PushController) Delete() {
 	id, err := c.GetInt64("id")
+	if err != nil || id == 0 {
+		if sid := c.Ctx.Input.Param(":id"); sid != "" {
+			if v, convErr := strconv.ParseInt(sid, 10, 64); convErr == nil {
+				id = v
+				err = nil
+			}
+		}
+	}
 	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "push.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -426,6 +458,14 @@ func (c *PushController) Delete() {
 func (c *PushController) ActualizarUltimaVista() {
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		if sid := c.Ctx.Input.Param(":id"); sid != "" {
+			if v, convErr := strconv.ParseInt(sid, 10, 64); convErr == nil {
+				id = v
+				err = nil
+			}
+		}
+	}
+	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "push.visto.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -471,6 +511,14 @@ func (c *PushController) ActualizarUltimaVista() {
 func (c *PushController) ActualizarTopics() {
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
+		if sid := c.Ctx.Input.Param(":id"); sid != "" {
+			if v, convErr := strconv.ParseInt(sid, 10, 64); convErr == nil {
+				id = v
+				err = nil
+			}
+		}
+	}
+	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "push.topics.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -482,7 +530,12 @@ func (c *PushController) ActualizarTopics() {
 	}
 
 	var req models.ActualizarTopicsRequest
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
+	body := c.Ctx.Input.RequestBody
+	if len(body) == 0 && c.Ctx.Request != nil && c.Ctx.Request.Body != nil {
+		b, _ := io.ReadAll(c.Ctx.Request.Body)
+		body = b
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
 		logging.LogControllerError(c.Ctx, "push.topics.bad_json", err, map[string]interface{}{"id": id})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -527,7 +580,12 @@ func (c *PushController) ActualizarTopics() {
 // @Router /push/enviar [post]
 func (c *PushController) EnviarNotificacion() {
 	var req models.EnviarNotificacionRequest
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
+	body := c.Ctx.Input.RequestBody
+	if len(body) == 0 && c.Ctx.Request != nil && c.Ctx.Request.Body != nil {
+		b, _ := io.ReadAll(c.Ctx.Request.Body)
+		body = b
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
 		logging.LogControllerError(c.Ctx, "push.enviar.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -694,7 +752,12 @@ func (c *PushController) ListarEnvios() {
 // @Router /push/envios [post]
 func (c *PushController) RegistrarEnvio() {
 	var req models.RegistrarEnvioRequest
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
+	body := c.Ctx.Input.RequestBody
+	if len(body) == 0 && c.Ctx.Request != nil && c.Ctx.Request.Body != nil {
+		b, _ := io.ReadAll(c.Ctx.Request.Body)
+		body = b
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
 		logging.LogControllerError(c.Ctx, "push.registrar_envio.bad_json", err, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{

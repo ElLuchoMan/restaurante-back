@@ -1680,12 +1680,16 @@ definitions:
     - CLIENTE
     - TRABAJADOR
     - TOPIC
+    - CLIENTES
+    - TRABAJADORES
     type: string
     x-enum-varnames:
     - DestinatarioTodos
     - DestinatarioCliente
     - DestinatarioTrabajador
     - DestinatarioTopic
+    - DestinatarioClientes
+    - DestinatarioTrabajadores
   models.TipoRemitente:
     enum:
     - TRABAJADOR

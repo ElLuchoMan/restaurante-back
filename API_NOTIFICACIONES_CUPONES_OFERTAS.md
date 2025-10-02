@@ -551,6 +551,38 @@ curl -X POST http://localhost:8080/restaurante/v1/push/enviar \
   }'
 ```
 
+##### Enviar a todos los CLIENTES
+```bash
+curl -X POST http://localhost:8080/restaurante/v1/push/enviar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "remitente": { "tipo": "SISTEMA" },
+    "destinatarios": { "tipo": "CLIENTES" },
+    "notificacion": {
+      "titulo": "Promo exclusiva",
+      "mensaje": "Solo para clientes",
+      "datos": { "segmento": "CLIENTES" }
+    }
+  }'
+```
+
+##### Enviar a todos los TRABAJADORES
+```bash
+curl -X POST http://localhost:8080/restaurante/v1/push/enviar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "remitente": { "tipo": "TRABAJADOR", "documentoTrabajador": 1000000000 },
+    "destinatarios": { "tipo": "TRABAJADORES" },
+    "notificacion": {
+      "titulo": "Comunicado interno",
+      "mensaje": "Solo para trabajadores",
+      "datos": { "segmento": "TRABAJADORES" }
+    }
+  }'
+```
+
 ### 🎫 Cupones
 
 #### Crear Cupón Global
@@ -1044,7 +1076,7 @@ export interface OfertaParams {
 
 // ⭐ NUEVO: Tipos para envío de notificaciones
 export type TipoRemitente = 'TRABAJADOR' | 'SISTEMA';
-export type TipoDestinatario = 'TODOS' | 'CLIENTE' | 'TRABAJADOR' | 'TOPIC';
+export type TipoDestinatario = 'TODOS' | 'CLIENTE' | 'TRABAJADOR' | 'TOPIC' | 'CLIENTES' | 'TRABAJADORES';
 
 export interface RemitenteNotificacion {
   tipo: TipoRemitente;
@@ -1412,7 +1444,7 @@ export type ProveedorPush = 'WEB_PUSH' | 'FCM';
 export type TipoDescuento = 'PORCENTAJE' | 'MONTO';
 export type CuponScope = 'GLOBAL' | 'PRODUCTO' | 'CATEGORIA' | 'CLIENTE';
 export type TipoRemitente = 'TRABAJADOR' | 'SISTEMA';
-export type TipoDestinatario = 'TODOS' | 'CLIENTE' | 'TRABAJADOR' | 'TOPIC';
+export type TipoDestinatario = 'TODOS' | 'CLIENTE' | 'TRABAJADOR' | 'TOPIC' | 'CLIENTES' | 'TRABAJADORES';
 
 export interface ApiResponse<T> {
   code: number;

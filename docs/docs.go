@@ -10859,13 +10859,17 @@ const docTemplate = `{
                 "TODOS",
                 "CLIENTE",
                 "TRABAJADOR",
-                "TOPIC"
+                "TOPIC",
+                "CLIENTES",
+                "TRABAJADORES"
             ],
             "x-enum-varnames": [
                 "DestinatarioTodos",
                 "DestinatarioCliente",
                 "DestinatarioTrabajador",
-                "DestinatarioTopic"
+                "DestinatarioTopic",
+                "DestinatarioClientes",
+                "DestinatarioTrabajadores"
             ]
         },
         "models.TipoRemitente": {

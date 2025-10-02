@@ -1017,6 +1017,8 @@ definitions:
     - DestinatarioCliente = "CLIENTE"
     - DestinatarioTrabajador = "TRABAJADOR"
     - DestinatarioTopic = "TOPIC"
+    - DestinatarioClientes = "CLIENTES"
+    - DestinatarioTrabajadores = "TRABAJADORES"
     example: TODOS
   models.TipoRemitente:
     title: TipoRemitente

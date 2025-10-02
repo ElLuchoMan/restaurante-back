@@ -1396,7 +1396,9 @@
                 "DestinatarioTodos = \"TODOS\"",
                 "DestinatarioCliente = \"CLIENTE\"",
                 "DestinatarioTrabajador = \"TRABAJADOR\"",
-                "DestinatarioTopic = \"TOPIC\""
+                "DestinatarioTopic = \"TOPIC\"",
+                "DestinatarioClientes = \"CLIENTES\"",
+                "DestinatarioTrabajadores = \"TRABAJADORES\""
             ],
             "example": "TODOS"
         },

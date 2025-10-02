@@ -109,10 +109,12 @@ const (
 type TipoDestinatario string
 
 const (
-	DestinatarioTodos      TipoDestinatario = "TODOS"
-	DestinatarioCliente    TipoDestinatario = "CLIENTE"
-	DestinatarioTrabajador TipoDestinatario = "TRABAJADOR"
-	DestinatarioTopic      TipoDestinatario = "TOPIC"
+	DestinatarioTodos        TipoDestinatario = "TODOS"
+	DestinatarioCliente      TipoDestinatario = "CLIENTE"
+	DestinatarioTrabajador   TipoDestinatario = "TRABAJADOR"
+	DestinatarioTopic        TipoDestinatario = "TOPIC"
+	DestinatarioClientes     TipoDestinatario = "CLIENTES"
+	DestinatarioTrabajadores TipoDestinatario = "TRABAJADORES"
 )
 
 // Estructura del remitente
@@ -124,7 +126,7 @@ type RemitenteNotificacion struct {
 
 // Estructura de destinatarios
 type DestinatariosNotificacion struct {
-	Tipo                TipoDestinatario `json:"tipo" valid:"required,in(TODOS|CLIENTE|TRABAJADOR|TOPIC)"`
+	Tipo                TipoDestinatario `json:"tipo" valid:"required,in(TODOS|CLIENTE|TRABAJADOR|TOPIC|CLIENTES|TRABAJADORES)"`
 	DocumentoCliente    *int64           `json:"documentoCliente,omitempty"`
 	DocumentoTrabajador *int64           `json:"documentoTrabajador,omitempty"`
 	Topic               *string          `json:"topic,omitempty"`

@@ -16,6 +16,7 @@ try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false) } catc
 if (-not $env:JWT_SECRET) { $env:JWT_SECRET = 'testsecret' }
 if (-not $env:SKIP_WEB_RUN) { $env:SKIP_WEB_RUN = '1' }
 if (-not $env:SKIP_CRON) { $env:SKIP_CRON = '1' }
+if (-not $env:BEEGO_APP_CONFIG_FILE) { $env:BEEGO_APP_CONFIG_FILE = 'conf/app.test.conf' }
 
 # Alinear con CI: activar -race si se solicita o si CI=true
 $useRace = $false

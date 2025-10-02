@@ -419,7 +419,7 @@ func ValidateToken(ctx *context.Context) {
 			"/restaurante/v1/reservas/parameter", "/restaurante/v1/reservas/cliente",
 			"/restaurante/v1/reservas/documento",
 			"/restaurante/v1/cambios_horario/actual",
-			"/restaurante/v1/ofertas/a,ctivas":
+			"/restaurante/v1/ofertas/activas":
 			return
 		}
 	}
