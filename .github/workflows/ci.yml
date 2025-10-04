@@ -79,6 +79,15 @@ jobs:
             coverage.out
             coverage.txt
 
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
   swagger-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
