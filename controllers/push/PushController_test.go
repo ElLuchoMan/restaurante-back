@@ -112,16 +112,9 @@ func setupPushTest() (*PushController, *httptest.ResponseRecorder, *context.Cont
 	// Crear request
 	req := httptest.NewRequest("GET", "/", nil)
 
-	// Crear contexto
-	ctx := &context.Context{
-		Request:        req,
-		ResponseWriter: &context.Response{ResponseWriter: recorder},
-		Input:          context.NewInput(),
-		Output:         context.NewOutput(),
-	}
-	ctx.Input.Context = ctx
-	ctx.Output.Context = ctx
-	ctx.Output.EnableGzip = false
+	// Crear contexto usando la forma correcta
+	ctx := context.NewContext()
+	ctx.Reset(recorder, req)
 
 	controller.Ctx = ctx
 	controller.Data = make(map[interface{}]interface{})

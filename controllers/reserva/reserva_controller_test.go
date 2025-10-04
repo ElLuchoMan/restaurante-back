@@ -113,11 +113,13 @@ func TestReservaPostInvalidJSON(t *testing.T) {
 func TestReservaPostInvalidDate(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":  "2024-13-01",
-		"horaReserva":   "12:00:00",
-		"personas":      2,
-		"contactoId":    123,
-		"restauranteId": 1,
+		"fechaReserva":      "2024-13-01",
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -142,10 +144,12 @@ func TestReservaPostInvalidDate(t *testing.T) {
 func TestReservaPostMissingHora(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":  "2024-01-01",
-		"personas":      2,
-		"contactoId":    123,
-		"restauranteId": 1,
+		"fechaReserva":      "2024-01-01",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -495,13 +499,22 @@ func TestReservaPostInvalidReservaContacto(t *testing.T) {
 func TestReservaPostInsertError(t *testing.T) {
 	ormNew = func() orm.Ormer { return nil }
 	insertReserva = func(o orm.Ormer, r *models.Reserva) (int64, error) { return 0, errors.New("db") }
+	// Mockear funciones de contacto
+	queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
+		return orm.ErrNoRows // No encontrado, para que cree uno nuevo
+	}
+	insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
+		return 1, nil
+	}
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":  "2024-01-01",
-		"horaReserva":   "12:00:00",
-		"personas":      2,
-		"contactoId":    123,
-		"restauranteId": 1,
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -524,6 +537,13 @@ func TestReservaPostSuccess(t *testing.T) {
 	ormNew = func() orm.Ormer { return nil }
 	insertReserva = func(o orm.Ormer, r *models.Reserva) (int64, error) {
 		db = append(db, *r)
+		return 1, nil
+	}
+	// Mockear funciones de contacto
+	queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
+		return orm.ErrNoRows // No encontrado, para que cree uno nuevo
+	}
+	insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
 		return 1, nil
 	}
 	t.Cleanup(resetReservaMocks)
