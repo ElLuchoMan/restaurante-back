@@ -182,7 +182,7 @@ func TestReservaPostMissingHora(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "El campo HORA no puede estar vacío") {
+	if !strings.Contains(w.Body.String(), "horaReserva") {
 		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
@@ -339,11 +339,21 @@ func TestReservaGetByIdScenarios(t *testing.T) {
 
 func TestReservaPostMissingFecha(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
+	// Mockear funciones de contacto
+	ormNew = func() orm.Ormer { return nil }
+	queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
+		return orm.ErrNoRows
+	}
+	insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
+		return 1, nil
+	}
 	payload := map[string]interface{}{
-		"horaReserva":   "12:00:00",
-		"personas":      2,
-		"contactoId":    123,
-		"restauranteId": 1,
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -363,11 +373,13 @@ func TestReservaPostMissingFecha(t *testing.T) {
 func TestReservaPostInvalidHora(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":  "2024-01-01",
-		"horaReserva":   "99:99:99",
-		"personas":      2,
-		"contactoId":    123,
-		"restauranteId": 1,
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "99:99:99",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -388,10 +400,12 @@ func TestReservaPostInvalidHora(t *testing.T) {
 func TestReservaPostMissingPersonas(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":  "2024-01-01",
-		"horaReserva":   "12:00:00",
-		"contactoId":    123,
-		"restauranteId": 1,
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "12:00:00",
+		"contactoId":        123,
+		"restauranteId":     1,
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -412,12 +426,14 @@ func TestReservaPostMissingPersonas(t *testing.T) {
 func TestReservaPostInvalidEstado(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":  "2024-01-01",
-		"horaReserva":   "12:00:00",
-		"personas":      2,
-		"contactoId":    123,
-		"restauranteId": 1,
-		"estadoReserva": "DESCONOCIDO",
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     1,
+		"estadoReserva":     "DESCONOCIDO",
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -438,11 +454,13 @@ func TestReservaPostInvalidEstado(t *testing.T) {
 func TestReservaPostInvalidContacto(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":  "2024-01-01",
-		"horaReserva":   "12:00:00",
-		"personas":      2,
-		"contactoId":    "abc",
-		"restauranteId": 1,
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        "abc",
+		"restauranteId":     1,
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -463,11 +481,13 @@ func TestReservaPostInvalidContacto(t *testing.T) {
 func TestReservaPostInvalidRestaurante(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
 	payload := map[string]interface{}{
-		"fechaReserva":  "2024-01-01",
-		"horaReserva":   "12:00:00",
-		"personas":      2,
-		"contactoId":    123,
-		"restauranteId": "abc",
+		"fechaReserva":      "2024-01-01",
+		"horaReserva":       "12:00:00",
+		"personas":          2,
+		"contactoId":        123,
+		"restauranteId":     "abc",
+		"documentoContacto": 123456789,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
@@ -495,6 +515,7 @@ func TestReservaPostInvalidReservaContacto(t *testing.T) {
 		"restauranteId":     1,
 		"documentoContacto": 1,
 		"documentoCliente":  2,
+		"nombreCompleto":    "Test User",
 	}
 	body, _ := json.Marshal(payload)
 	r := httptest.NewRequest(http.MethodPost, "/reservas", bytes.NewReader(body))
