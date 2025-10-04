@@ -41,15 +41,9 @@ func (h *TestHelper) CreateTestContext(method, url string, body interface{}) (*c
 
 	recorder := httptest.NewRecorder()
 
-	ctx := &context.Context{
-		Request:  req,
-		Response: &context.Response{ResponseWriter: recorder},
-		Input:    context.NewInput(),
-		Output:   context.NewOutput(),
-	}
-
-	ctx.Input.Context = ctx
-	ctx.Output.Context = ctx
+	// Usar context.NewContext() y Reset() para inicializar correctamente
+	ctx := context.NewContext()
+	ctx.Reset(recorder, req)
 
 	return ctx, recorder
 }

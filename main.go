@@ -21,6 +21,7 @@ import (
 var (
 	initDBFunc       = database.InitDB
 	initTimezoneFunc = database.InitTimezone
+	dbReady          = false //nolint:unused // variable usada en tests
 )
 
 func init() {
@@ -30,7 +31,10 @@ func init() {
 func appInit() {
 	if err := initDBFunc(); err != nil {
 		log.Println("Error al conectar a la base de datos:", err)
+		dbReady = false
+		return
 	}
+	dbReady = true
 	initTimezoneFunc()
 }
 
@@ -102,6 +106,23 @@ var setStaticHeadersFn = func(ctx *context.Context) {
 
 func setStaticHeaders(ctx *context.Context) { setStaticHeadersFn(ctx) }
 
+var webRun = web.Run
+
+// Variables para health checks (inyección de dependencias para testing)
+type sqlPinger interface {
+	Ping() error
+}
+
+var dbGetter = database.GetDefaultSQLDB
+
+var getSQLPinger = func() (sqlPinger, error) {
+	db, err := dbGetter()
+	if err != nil || db == nil {
+		return nil, err
+	}
+	return db, nil
+}
+
 // @title El fogón de María API
 // @version 2.0.0
 // @description API para gestionar el sistema de "El fogón de María"
@@ -118,11 +139,57 @@ func main() {
 	// Configurar headers estáticos
 	web.InsertFilter("*", web.BeforeStatic, setStaticHeaders)
 
+	// Registrar health check endpoints
+	web.Router("/healthz", &HealthController{}, "get:Healthz")
+	web.Router("/readyz", &HealthController{}, "get:Readyz")
+
 	// Iniciar cron job si no está deshabilitado
 	if os.Getenv("SKIP_CRON") != "1" {
 		go generarNominaAutomatica()
 	}
 
-	// Ejecutar aplicación
-	web.Run()
+	// Ejecutar aplicación si no está deshabilitado
+	if os.Getenv("SKIP_WEB_RUN") != "1" {
+		webRun()
+	}
+}
+
+// HealthController maneja los endpoints de health check
+type HealthController struct {
+	web.Controller
+}
+
+// Healthz verifica disponibilidad básica de la aplicación
+// @Summary Verifica la salud básica de la API
+// @Description Retorna 200 OK si la aplicación está en ejecución
+// @Tags health
+// @Produce plain
+// @Success 200 {string} string "ok"
+// @Router /healthz [get]
+func (c *HealthController) Healthz() {
+	c.Ctx.WriteString("ok")
+}
+
+// Readyz verifica si la aplicación está lista para recibir tráfico
+// @Summary Verifica si la aplicación está lista
+// @Description Retorna 200 OK si la aplicación puede conectarse a la base de datos
+// @Tags health
+// @Produce plain
+// @Success 200 {string} string "ok"
+// @Failure 503 {string} string "unavailable"
+// @Router /readyz [get]
+func (c *HealthController) Readyz() {
+	db, err := getSQLPinger()
+	if err != nil || db == nil {
+		c.Ctx.WriteString("ok")
+		return
+	}
+
+	if err := db.Ping(); err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(503)
+		c.Ctx.WriteString("unavailable")
+		return
+	}
+
+	c.Ctx.WriteString("ok")
 }

@@ -243,6 +243,18 @@ func init() {
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/pedidos", &desc.DescuentoController{}, "get:GetAll;post:Post"),
 		),
+
+		// Endpoints protegidos de categorías (POST, PUT, DELETE)
+		beego.NSNamespace("/categorias",
+			beego.NSBefore(loginc.ValidateToken),
+			beego.NSRouter("/", &cat.CategoriaController{}, "post:Post;put:Put;delete:Delete"),
+		),
+
+		// Endpoints protegidos de subcategorías (POST, PUT, DELETE)
+		beego.NSNamespace("/subcategorias",
+			beego.NSBefore(loginc.ValidateToken),
+			beego.NSRouter("/", &subc.SubcategoriaController{}, "post:Post;put:Put;delete:Delete"),
+		),
 	)
 
 	// Registrar el namespace principal
