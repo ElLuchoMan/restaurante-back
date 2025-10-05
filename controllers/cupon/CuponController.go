@@ -73,6 +73,11 @@ func (a cupOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
 
 var cupOrmNew = func() cuponOrmer { return cupOrmAdapter{o: orm.NewOrm()} }
 
+// Variable mockeable para tests
+var newCuponService = func(o orm.Ormer) *services.CuponService {
+	return services.NewCuponService(o)
+}
+
 type CuponController struct {
 	web.Controller
 }
@@ -281,7 +286,8 @@ func (c *CuponController) Post() {
 
 	// Validar reglas de negocio
 	o := cupOrmNew()
-	cuponService := services.NewCuponService(orm.NewOrm())
+	// ValidarReglasNegocioCupon no usa el ORM, así que podemos pasar nil
+	cuponService := newCuponService(nil)
 
 	if err := cuponService.ValidarReglasNegocioCupon(cupon); err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.post.validation_error", err, map[string]interface{}{"codigo": req.Codigo})
@@ -534,7 +540,7 @@ func (c *CuponController) Put() {
 	}
 
 	// Validar reglas de negocio
-	cuponService := services.NewCuponService(orm.NewOrm())
+	cuponService := newCuponService(nil)
 	if err := cuponService.ValidarReglasNegocioCupon(cupon); err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.put.validation_error", err, map[string]interface{}{"codigo": req.Codigo, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -676,7 +682,7 @@ func (c *CuponController) ValidarCupon() {
 		return
 	}
 
-	cuponService := services.NewCuponService(orm.NewOrm())
+	cuponService := newCuponService(nil)
 	response, err := cuponService.ValidarCupon(c.Ctx.Request.Context(), &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.validar.service_error", err, map[string]interface{}{"codigo": "validacion"})
@@ -728,7 +734,7 @@ func (c *CuponController) RedimirCupon() {
 		return
 	}
 
-	cuponService := services.NewCuponService(orm.NewOrm())
+	cuponService := newCuponService(nil)
 	redencion, err := cuponService.RedimirCupon(c.Ctx.Request.Context(), codigo, &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.redimir.service_error", err, map[string]interface{}{"codigo": codigo})

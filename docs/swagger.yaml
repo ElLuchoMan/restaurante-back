@@ -3174,6 +3174,19 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/models.ApiResponse'
+  /healthz:
+    get:
+      description: Retorna 200 OK si la aplicación está en ejecución
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+      summary: Verifica la salud básica de la API
+      tags:
+      - health
   /horario_trabajador:
     delete:
       consumes:
@@ -5553,6 +5566,23 @@ paths:
       summary: Registrar envío push
       tags:
       - push_notifications
+  /readyz:
+    get:
+      description: Retorna 200 OK si la aplicación puede conectarse a la base de datos
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "503":
+          description: unavailable
+          schema:
+            type: string
+      summary: Verifica si la aplicación está lista
+      tags:
+      - health
   /reserva_contacto:
     get:
       consumes:

@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"restaurante/models"
+	"restaurante/services"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/context"
 	"github.com/stretchr/testify/assert"
@@ -95,6 +97,10 @@ var mockQS *mockCuponQuerySeter
 func init() {
 	cupOrmNew = func() cuponOrmer {
 		return mockOrmer
+	}
+	// Mockear el servicio - ValidarReglasNegocioCupon no usa el ORM, así que podemos pasar nil
+	newCuponService = func(o orm.Ormer) *services.CuponService {
+		return services.NewCuponService(nil)
 	}
 }
 
@@ -225,21 +231,20 @@ func TestPost_Success(t *testing.T) {
 	controller, recorder, ctx := setupTest()
 
 	// Preparar request body
-	fechaInicio, _ := time.Parse("2006-01-02", "2025-01-01")
-	fechaFin, _ := time.Parse("2006-01-02", "2025-12-31")
-	cupon := models.Cupon{
-		Codigo:         "NEWTEST",
-		Scope:          "GLOBAL",
-		TipoDescuento:  "PORCENTAJE",
-		ValorDescuento: 15,
-		FechaInicio:    fechaInicio,
-		FechaFin:       fechaFin,
-		Activo:         true,
+	cupon := map[string]interface{}{
+		"codigo":         "NEWTEST",
+		"scope":          "GLOBAL",
+		"tipoDescuento":  "PORCENTAJE",
+		"valorDescuento": 15,
+		"fechaInicio":    "2025-01-01",
+		"fechaFin":       "2025-12-31",
+		"activo":         true,
 	}
 
 	body, _ := json.Marshal(cupon)
 	ctx.Request = httptest.NewRequest("POST", "/cupones", bytes.NewBuffer(body))
 	ctx.Request.Header.Set("Content-Type", "application/json")
+	ctx.Input.RequestBody = body
 
 	// Configurar mocks
 	mockOrmer.On("Insert", mock.AnythingOfType("*models.Cupon")).Return(int64(1), nil)
