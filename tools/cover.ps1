@@ -13,7 +13,8 @@ $ErrorActionPreference = "Stop"
 try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false) } catch { }
 
 # Variables de entorno requeridas para que los tests no fallen en init
-if (-not $env:JWT_SECRET) { $env:JWT_SECRET = 'testsecret' }
+# ggignore (valor dummy solo para tests locales, no es un secreto real)
+if (-not $env:JWT_SECRET) { $env:JWT_SECRET = 'test-jwt-secret-for-local-testing-only' }
 if (-not $env:SKIP_WEB_RUN) { $env:SKIP_WEB_RUN = '1' }
 if (-not $env:SKIP_CRON) { $env:SKIP_CRON = '1' }
 if (-not $env:BEEGO_APP_CONFIG_FILE) { $env:BEEGO_APP_CONFIG_FILE = 'conf/app.test.conf' }
