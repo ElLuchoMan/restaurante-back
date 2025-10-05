@@ -180,3 +180,131 @@ func TestValidateAdminRole_InvalidToken(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 	}
 }
+
+// TestGetTimeRange prueba la función getTimeRange con diferentes filtros
+func TestGetTimeRange(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter TimeFilter
+	}{
+		{"FilterToday", FilterToday},
+		{"FilterLastWeek", FilterLastWeek},
+		{"FilterLastMonth", FilterLastMonth},
+		{"FilterLast3Months", FilterLast3Months},
+		{"FilterLast6Months", FilterLast6Months},
+		{"FilterLastYear", FilterLastYear},
+		{"FilterHistoric", FilterHistoric},
+		{"FilterDefault", TimeFilter("invalid")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			startDate, endDate := getTimeRange(tt.filter)
+
+			// Verificar que las fechas no están vacías
+			if startDate == "" || endDate == "" {
+				t.Errorf("Expected non-empty dates, got start=%s, end=%s", startDate, endDate)
+			}
+
+			// Verificar formato de fecha YYYY-MM-DD
+			if len(startDate) != 10 || len(endDate) != 10 {
+				t.Errorf("Expected date format YYYY-MM-DD, got start=%s, end=%s", startDate, endDate)
+			}
+		})
+	}
+}
+
+// TestBuildDateFilter prueba la construcción de filtros SQL de fechas
+func TestBuildDateFilter(t *testing.T) {
+	tests := []struct {
+		name      string
+		startDate string
+		endDate   string
+		expected  string
+	}{
+		{
+			name:      "Same date",
+			startDate: "2025-01-01",
+			endDate:   "2025-01-01",
+			expected:  "pe.fecha = '2025-01-01'",
+		},
+		{
+			name:      "Date range",
+			startDate: "2025-01-01",
+			endDate:   "2025-01-31",
+			expected:  "pe.fecha >= '2025-01-01' AND pe.fecha <= '2025-01-31'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := buildDateFilter(tt.startDate, tt.endDate)
+			if result != tt.expected {
+				t.Errorf("Expected %s, got %s", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestGetAdvancedTimeRange prueba la función getAdvancedTimeRange
+func TestGetAdvancedTimeRange(t *testing.T) {
+	tests := []struct {
+		name        string
+		filter      TimeFilter
+		mes         string
+		año         string
+		fechaInicio string
+		fechaFin    string
+		horaInicio  string
+		horaFin     string
+	}{
+		{
+			name:   "FilterMonthYear with valid month and year",
+			filter: FilterMonthYear,
+			mes:    "6",
+			año:    "2025",
+		},
+		{
+			name:   "FilterMonthYear with invalid month",
+			filter: FilterMonthYear,
+			mes:    "13",
+			año:    "2025",
+		},
+		{
+			name:        "FilterDateRange with valid dates",
+			filter:      FilterDateRange,
+			fechaInicio: "2025-01-01",
+			fechaFin:    "2025-01-31",
+		},
+		{
+			name:        "FilterDateRange with times",
+			filter:      FilterDateRange,
+			fechaInicio: "2025-01-01",
+			fechaFin:    "2025-01-31",
+			horaInicio:  "08:00:00",
+			horaFin:     "18:00:00",
+		},
+		{
+			name:   "Other filter",
+			filter: FilterToday,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			startDate, endDate, startTime, endTime := getAdvancedTimeRange(
+				tt.filter, tt.mes, tt.año, tt.fechaInicio, tt.fechaFin, tt.horaInicio, tt.horaFin,
+			)
+
+			// Verificar que las fechas no están vacías
+			if startDate == "" || endDate == "" {
+				t.Errorf("Expected non-empty dates, got start=%s, end=%s", startDate, endDate)
+			}
+
+			// Verificar que los tiempos no están vacíos
+			if startTime == "" || endTime == "" {
+				t.Errorf("Expected non-empty times, got startTime=%s, endTime=%s", startTime, endTime)
+			}
+		})
+	}
+}
