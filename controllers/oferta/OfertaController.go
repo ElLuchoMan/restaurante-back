@@ -74,6 +74,11 @@ func (a ofertOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
 
 var ofertOrmNew = func() ofertaOrmer { return ofertOrmAdapter{o: orm.NewOrm()} }
 
+// Variable mockeable para crear el servicio
+var newOfertaService = func(o orm.Ormer) *services.OfertaService {
+	return services.NewOfertaService(o)
+}
+
 type OfertaController struct {
 	web.Controller
 }
@@ -280,7 +285,7 @@ func (c *OfertaController) Post() {
 
 	// Validar reglas de negocio
 	o := ofertOrmNew()
-	ofertaService := services.NewOfertaService(orm.NewOrm())
+	ofertaService := newOfertaService(nil) // ValidarReglasNegocioOferta no usa el ORM
 
 	if err := ofertaService.ValidarReglasNegocioOferta(oferta); err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.post.validation_error", err, map[string]interface{}{"titulo": req.Titulo})
@@ -344,7 +349,7 @@ func (c *OfertaController) GetById() {
 	err = o.Read(oferta)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Oferta no encontrada",
@@ -417,7 +422,7 @@ func (c *OfertaController) Put() {
 	err = o.Read(oferta)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Oferta no encontrada",
@@ -517,7 +522,7 @@ func (c *OfertaController) Put() {
 	oferta.PkIdRestaurante = &models.Restaurante{PK_ID_RESTAURANTE: req.PkIdRestaurante}
 
 	// Validar reglas de negocio
-	ofertaService := services.NewOfertaService(orm.NewOrm())
+	ofertaService := newOfertaService(nil) // ValidarReglasNegocioOferta no usa el ORM
 	if err := ofertaService.ValidarReglasNegocioOferta(oferta); err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.put.validation_error", err, map[string]interface{}{"titulo": req.Titulo, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -581,7 +586,7 @@ func (c *OfertaController) Delete() {
 	err = o.Read(oferta)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Oferta no encontrada",
@@ -700,7 +705,7 @@ func (c *OfertaController) ObtenerOfertasActivas() {
 		}
 	}
 
-	ofertaService := services.NewOfertaService(orm.NewOrm())
+	ofertaService := newOfertaService(orm.NewOrm())
 	ofertas, err := ofertaService.ObtenerOfertasActivas(c.Ctx.Request.Context(), restauranteId, fecha, hora, productoId)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.activas.service_error", err, map[string]interface{}{"restaurante_id": restauranteId})

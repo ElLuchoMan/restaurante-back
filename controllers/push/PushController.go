@@ -15,6 +15,11 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+// Variable mockeable para crear el servicio (testing)
+var newPushService = func(o orm.Ormer) *services.PushService {
+	return services.NewPushService(o)
+}
+
 // Interfaces para testing
 type pushQuerySeter interface {
 	All(interface{}, ...string) (int64, error)
@@ -213,7 +218,7 @@ func (c *PushController) Post() {
 		return
 	}
 
-	pushService := services.NewPushService(orm.NewOrm())
+	pushService := newPushService(orm.NewOrm())
 	dispositivo, err := pushService.RegistrarDispositivo(c.Ctx.Request.Context(), &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.post.service_error", err, map[string]interface{}{"dispositivo": "registro"})
@@ -272,7 +277,7 @@ func (c *PushController) GetById() {
 	err = o.Read(dispositivo)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Dispositivo no encontrado",
@@ -345,11 +350,11 @@ func (c *PushController) Put() {
 		return
 	}
 
-	pushService := services.NewPushService(orm.NewOrm())
+	pushService := newPushService(orm.NewOrm())
 	err = pushService.ActualizarEstadoDispositivo(c.Ctx.Request.Context(), id, req.Enabled)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.put.service_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusOK)
+		c.Ctx.Output.SetStatus(http.StatusNotFound)
 		c.Data["json"] = models.ApiResponse{
 			Code:    http.StatusNotFound,
 			Message: "Dispositivo no encontrado",
@@ -476,7 +481,7 @@ func (c *PushController) ActualizarUltimaVista() {
 		return
 	}
 
-	pushService := services.NewPushService(orm.NewOrm())
+	pushService := newPushService(orm.NewOrm())
 	err = pushService.ActualizarUltimaVista(c.Ctx.Request.Context(), id)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.visto.service_error", err, map[string]interface{}{"id": id})
@@ -547,7 +552,7 @@ func (c *PushController) ActualizarTopics() {
 		return
 	}
 
-	pushService := services.NewPushService(orm.NewOrm())
+	pushService := newPushService(orm.NewOrm())
 	err = pushService.ActualizarTopicsDispositivo(c.Ctx.Request.Context(), id, req.SubscribedTopics)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.topics.service_error", err, map[string]interface{}{"id": id})
@@ -621,7 +626,7 @@ func (c *PushController) EnviarNotificacion() {
 	}
 
 	// Crear servicio y enviar notificación
-	service := services.NewPushService(orm.NewOrm())
+	service := newPushService(orm.NewOrm())
 	response, err := service.EnviarNotificacion(&req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.enviar.service_error", err, map[string]interface{}{"titulo": req.Notificacion.Titulo})
@@ -781,7 +786,7 @@ func (c *PushController) RegistrarEnvio() {
 		return
 	}
 
-	pushService := services.NewPushService(orm.NewOrm())
+	pushService := newPushService(orm.NewOrm())
 	envio, err := pushService.RegistrarEnvio(c.Ctx.Request.Context(), &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.registrar_envio.service_error", err, map[string]interface{}{"proveedor": req.Proveedor})
