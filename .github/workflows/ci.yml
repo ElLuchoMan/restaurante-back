@@ -165,9 +165,15 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
           DB_NAME: ${{ secrets.DB_NAME }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
         run: |
           echo "JWT_SECRET set: $([[ -n \"$JWT_SECRET\" ]] && echo yes || echo no)"
           for v in DB_HOST DB_PORT DB_USER DB_PASS DB_NAME; do
             echo "$v set: $([[ -n \"${!v}\" ]] && echo yes || echo no)"
           done
+          echo "VAPID_PUBLIC_KEY set: $([[ -n \"$VAPID_PUBLIC_KEY\" ]] && echo yes || echo no)"
+          echo "VAPID_PRIVATE_KEY set: $([[ -n \"$VAPID_PRIVATE_KEY\" ]] && echo yes || echo no)"
+          echo "VAPID_SUBJECT set: $([[ -n \"$VAPID_SUBJECT\" ]] && echo yes || echo no)"
           # Aquí iría tu lógica real de despliegue (Docker, SSH, etc.)
