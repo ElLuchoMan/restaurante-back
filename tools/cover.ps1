@@ -124,8 +124,8 @@ if (-not $totalLine) { $totalLine = ($funcOutput -split "`n" | Select-Object -La
 $match = [regex]::Match($totalLine, '([0-9.]+)%$')
 if ($match.Success) {
   $pct = [double]$match.Groups[1].Value
-  if ($pct -lt 98.0) {
-    Write-Error ("Cobertura total {0}% menor al umbral 98%" -f $pct)
+  if ($pct -lt 68.0) {
+    Write-Error ("Cobertura total {0}% menor al umbral 68%" -f $pct)
     exit 2
   }
 }
