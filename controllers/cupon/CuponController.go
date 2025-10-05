@@ -353,16 +353,21 @@ func (c *CuponController) GetById() {
 	if id, err := strconv.ParseInt(idOrCodigo, 10, 64); err == nil {
 		cupon.PkIdCupon = id
 		err = o.Read(cupon)
-		if err != nil && err != orm.ErrNoRows {
-			logging.LogControllerError(c.Ctx, "cupones.getbyid.read_error", err, map[string]interface{}{"id": id})
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error interno del servidor",
-				Cause:   err.Error(),
+		if err != nil {
+			if err == orm.ErrNoRows {
+				// No encontrado por ID, resetear para buscar por código
+				cupon.PkIdCupon = 0
+			} else {
+				logging.LogControllerError(c.Ctx, "cupones.getbyid.read_error", err, map[string]interface{}{"id": id})
+				c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+				c.Data["json"] = models.ApiResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "Error interno del servidor",
+					Cause:   err.Error(),
+				}
+				_ = c.ServeJSON()
+				return
 			}
-			_ = c.ServeJSON()
-			return
 		}
 	}
 
@@ -371,7 +376,7 @@ func (c *CuponController) GetById() {
 		err := o.QueryTable("cupon").Filter("codigo", idOrCodigo).One(cupon)
 		if err != nil {
 			if err == orm.ErrNoRows {
-				c.Ctx.Output.SetStatus(http.StatusOK)
+				c.Ctx.Output.SetStatus(http.StatusNotFound)
 				c.Data["json"] = models.ApiResponse{
 					Code:    http.StatusNotFound,
 					Message: "Cupón no encontrado",
@@ -445,7 +450,7 @@ func (c *CuponController) Put() {
 	err = o.Read(cupon)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Cupón no encontrado",
@@ -604,7 +609,7 @@ func (c *CuponController) Delete() {
 	err = o.Read(cupon)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Cupón no encontrado",
@@ -682,7 +687,7 @@ func (c *CuponController) ValidarCupon() {
 		return
 	}
 
-	cuponService := newCuponService(nil)
+	cuponService := newCuponService(orm.NewOrm())
 	response, err := cuponService.ValidarCupon(c.Ctx.Request.Context(), &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.validar.service_error", err, map[string]interface{}{"codigo": "validacion"})

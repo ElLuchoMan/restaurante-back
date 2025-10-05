@@ -71,6 +71,11 @@ func (a descOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
 
 var descOrmNew = func() descuentoOrmer { return descOrmAdapter{o: orm.NewOrm()} }
 
+// Variable mockeable para tests
+var newDescuentoService = func(o orm.Ormer) *services.DescuentoService {
+	return services.NewDescuentoService(o)
+}
+
 type DescuentoController struct {
 	web.Controller
 }
@@ -125,7 +130,7 @@ func (c *DescuentoController) GetAll() {
 		return
 	}
 
-	descuentoService := services.NewDescuentoService(orm.NewOrm())
+	descuentoService := newDescuentoService(orm.NewOrm())
 	descuentos, err := descuentoService.ObtenerDescuentosPedido(c.Ctx.Request.Context(), pedidoId)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "descuentos.getall.service_error", err, map[string]interface{}{"pedido_id": pedidoId})
@@ -199,7 +204,7 @@ func (c *DescuentoController) Post() {
 		return
 	}
 
-	descuentoService := services.NewDescuentoService(orm.NewOrm())
+	descuentoService := newDescuentoService(orm.NewOrm())
 
 	// Validar exclusividad antes de aplicar
 	err = descuentoService.ValidarExclusividadDescuento(c.Ctx.Request.Context(), pedidoId, req.PkIdCupon, req.PkIdOferta)
