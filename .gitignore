@@ -29,3 +29,6 @@ swagger/**/*.json
 .vscode/
 .idea/
 .DS_Store
+
+# GitGuardian cache
+.cache_ggshield
