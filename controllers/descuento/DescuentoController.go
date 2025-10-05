@@ -111,7 +111,7 @@ func (c *DescuentoController) GetAll() {
 	err = o.Read(pedido)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusNotFound,
 				Message: "Pedido no encontrado",
