@@ -1,0 +1,4 @@
+﻿.env.example
+conf/app.conf
+conf/app.test.conf
+tools/cover.ps1
