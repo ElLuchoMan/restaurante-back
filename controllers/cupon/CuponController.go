@@ -75,7 +75,15 @@ var cupOrmNew = func() cuponOrmer { return cupOrmAdapter{o: orm.NewOrm()} }
 
 // Variable mockeable para tests
 var newCuponService = func(o orm.Ormer) *services.CuponService {
-	return services.NewCuponService(o)
+	if o == nil {
+		return services.NewCuponService(nil)
+	}
+	return services.NewCuponService(services.NewCuponOrmerFromFuncs(
+		func(name string) orm.QuerySeter {
+			return o.QueryTable(name)
+		},
+		o.Insert,
+	))
 }
 
 type CuponController struct {

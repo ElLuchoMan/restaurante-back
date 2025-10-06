@@ -8,6 +8,62 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type mockCuponOrmer struct {
+	tables   map[string]func() cuponQuerySeter
+	insertFn func(interface{}) (int64, error)
+}
+
+func (m *mockCuponOrmer) QueryTable(name string) cuponQuerySeter {
+	if m.tables != nil {
+		if factory, ok := m.tables[name]; ok && factory != nil {
+			return factory()
+		}
+	}
+	return &mockQuerySeter{}
+}
+
+func (m *mockCuponOrmer) Insert(model interface{}) (int64, error) {
+	if m.insertFn != nil {
+		return m.insertFn(model)
+	}
+	return 0, nil
+}
+
+type mockQuerySeter struct {
+	filterHook     func(string, ...interface{}) cuponQuerySeter
+	oneHook        func(interface{}, ...string) error
+	countHook      func() (int64, error)
+	relatedSelHook func(...interface{}) cuponQuerySeter
+}
+
+func (m *mockQuerySeter) Filter(field string, args ...interface{}) cuponQuerySeter {
+	if m.filterHook != nil {
+		return m.filterHook(field, args...)
+	}
+	return m
+}
+
+func (m *mockQuerySeter) One(dest interface{}, cols ...string) error {
+	if m.oneHook != nil {
+		return m.oneHook(dest, cols...)
+	}
+	return nil
+}
+
+func (m *mockQuerySeter) Count() (int64, error) {
+	if m.countHook != nil {
+		return m.countHook()
+	}
+	return 0, nil
+}
+
+func (m *mockQuerySeter) RelatedSel(params ...interface{}) cuponQuerySeter {
+	if m.relatedSelHook != nil {
+		return m.relatedSelHook(params...)
+	}
+	return m
+}
+
 // Tests básicos para CuponService sin mocks complejos
 
 func TestNewCuponService(t *testing.T) {
@@ -205,6 +261,13 @@ func TestCuponService_ValidarReglasNegocioCupon_ScopeProducto(t *testing.T) {
 	err = service.ValidarReglasNegocioCupon(cupon)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "producto")
+
+	// Scope PRODUCTO con categoría asignada
+	cupon.PkIdProducto = producto
+	cupon.PkIdCategoria = &models.Categoria{PK_ID_CATEGORIA: 9}
+	err = service.ValidarReglasNegocioCupon(cupon)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "PRODUCTO")
 }
 
 func TestCuponService_ValidarReglasNegocioCupon_ScopeCategoria(t *testing.T) {
@@ -227,6 +290,13 @@ func TestCuponService_ValidarReglasNegocioCupon_ScopeCategoria(t *testing.T) {
 	err = service.ValidarReglasNegocioCupon(cupon)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "categoría")
+
+	// Scope CATEGORIA con producto asignado
+	cupon.PkIdCategoria = categoria
+	cupon.PkIdProducto = &models.Producto{PK_ID_PRODUCTO: 22}
+	err = service.ValidarReglasNegocioCupon(cupon)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "CATEGORIA")
 }
 
 func TestCuponService_ValidarReglasNegocioCupon_ScopeCliente(t *testing.T) {
@@ -249,6 +319,13 @@ func TestCuponService_ValidarReglasNegocioCupon_ScopeCliente(t *testing.T) {
 	err = service.ValidarReglasNegocioCupon(cupon)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cliente")
+
+	// Scope CLIENTE con producto asignado
+	cupon.PkDocumentoCliente = cliente
+	cupon.PkIdProducto = &models.Producto{PK_ID_PRODUCTO: 33}
+	err = service.ValidarReglasNegocioCupon(cupon)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "CLIENTE")
 }
 
 // Test para cobertura de diferentes tipos de descuento
