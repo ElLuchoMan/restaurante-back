@@ -32,3 +32,7 @@ swagger/**/*.json
 
 # GitGuardian cache
 .cache_ggshield
+
+# Variables de entorno locales (no versionar)
+.env
+.env.local

@@ -15,6 +15,7 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/context"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -25,7 +26,21 @@ var (
 )
 
 func init() {
+	loadEnvFile()
 	appInit()
+}
+
+// loadEnvFile carga variables de entorno desde .env si existe (solo para desarrollo local)
+func loadEnvFile() {
+	// Intentar cargar .env solo si no estamos en CI
+	if os.Getenv("CI") != "true" && os.Getenv("SKIP_WEB_RUN") != "1" {
+		if err := godotenv.Load(); err != nil {
+			// No es error crítico si no existe .env, puede usar variables del sistema o config file
+			log.Printf("Info: no se encontró archivo .env, usando variables de entorno del sistema o configuración: %v\n", err)
+		} else {
+			log.Println("Variables de entorno cargadas desde .env")
+		}
+	}
 }
 
 func appInit() {
