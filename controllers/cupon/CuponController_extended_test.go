@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"restaurante/models"
 
@@ -733,5 +734,6 @@ func TestListarRedenciones_QueryError(t *testing.T) {
 	mockQS.AssertExpectations(t)
 }
 
-// Tests de RedimirCupon requieren refactorización del controller para inyectar el servicio completo
-// Estos casos están cubiertos por los tests existentes de ValidarCupon y RedimirCupon en CuponController_test.go
+// Tests adicionales para ValidarCupon y RedimirCupon requieren refactorización del controller
+// para inyectar el servicio completo. La cobertura de estas funciones se mejorará desde el servicio directamente.
+// Los casos básicos (éxito e invalid JSON) ya están cubiertos en CuponController_test.go
