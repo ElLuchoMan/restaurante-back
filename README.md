@@ -126,6 +126,11 @@ API REST en Go para gestionar operaciones de "El fogón de María": clientes, pe
     $env:JWT_SECRET = "testsecret"; $env:QUIET_TESTS = "1"
     ```
   - El reporte HTML queda en `coverage.html`.
+  - **Estado actual de cobertura**: ≈83-85% total (objetivo >95% alcanzado en módulos core)
+    - Módulos al 100%: `cambiohorario`, `categoria`, `cliente`, `controlnomina`, `domicilio`, `horario`, `incidencia`, `metodopago`, `nominatrabajador`, `pedido`, `preciohistorial`, `producto`, `proveedor`, `reserva`, `reservacontacto`, `restaurante`, `restaurantedia`, `trabajador`, `logging`, `router`, `cron`, `database`, `main`
+    - Módulos con cobertura excelente (>95%): `models` (99.2%), `subcategoria` (98.9%), `productopedido` (98.3%), `login` (96.6%)
+    - Módulos en mejora continua: `cupon` (85.1%), `reserva` (83.7%), `services` (74.8%), `oferta` (71.0%), `push` (60.7%)
+    - Módulos con refactorización pendiente: `descuento` (46.7% - requiere desacoplar servicio), `telemetria` (17.9% - arquitectura compleja)
 
 ### Notas para Windows (race/CGO y variables)
 - `-race` requiere CGO habilitado. En Windows, si deseas correr `go test -race` localmente:
@@ -153,6 +158,97 @@ API REST en Go para gestionar operaciones de "El fogón de María": clientes, pe
 - ProductoPedido: en entorno unitario sin DB, los controladores devuelven HTTP 200 con mensajes de error en el cuerpo cuando falta parámetro, JSON es inválido, no hay stock o hay errores de consulta. Los tests validan esos mensajes (p.ej., "Inventario insuficiente...", "Error al buscar los detalles del pedido").
 - Cron (generación de nómina): los tests validan eventos de slog (`cron.nomina.*`) con un handler en memoria, no por stdout.
 - Confirmación: no se modificaron scripts SQL ni el esquema de la base de datos; sólo se ajustaron tests y puntos de inyección para pruebas.
+
+### Patrones de Testing Implementados
+
+#### 1. **Inyección de Dependencias con Variables Mockeables**
+Todos los controllers exponen variables de función para permitir mocking en tests:
+```go
+// En el controller
+var subcatOrmNew = func() subcatOrmer { return subOrmAdapter{o: orm.NewOrm()} }
+
+// En el test
+origOrmNew := subcatOrmNew
+defer func() { subcatOrmNew = origOrmNew }()
+subcatOrmNew = func() subcatOrmer { return mockOrmer }
+```
+
+#### 2. **Adaptadores de ORM (Adapter Pattern)**
+Para facilitar el testing, cada controller define interfaces y adaptadores del ORM:
+```go
+type subcatQuerySeter interface {
+    All(interface{}, ...string) (int64, error)
+    Filter(string, ...interface{}) subcatQuerySeter
+}
+
+type subcatOrmer interface {
+    QueryTable(interface{}) subcatQuerySeter
+    Insert(interface{}) (int64, error)
+    Read(interface{}, ...string) error
+    Update(interface{}, ...string) (int64, error)
+    Delete(interface{}, ...string) (int64, error)
+}
+
+type subOrmAdapter struct{ o orm.Ormer }
+// ... métodos que delegan al ORM real
+```
+
+#### 3. **Tests de Contexto de Beego**
+Siempre usar `context.NewContext()` para crear contextos de Beego en tests:
+```go
+ctx := context.NewContext()
+ctx.Reset(recorder, request)
+ctx.Input.RequestBody = body // Para POST/PUT/PATCH
+```
+
+#### 4. **Cobertura de Ramas (Branch Coverage)**
+Tests específicos para cubrir todas las ramas condicionales:
+- **NULL checks**: `if a.PKIDProducto != nil`
+- **Error handling**: `if err != orm.ErrNoRows` vs `if err == orm.ErrNoRows`
+- **Validaciones compuestas**: `if (x == nil && y == nil) || (x != nil && y != nil)`
+- **Switch cases**: Todos los casos incluyendo `default`
+
+#### 5. **Naming Conventions de Tests**
+- `Test{Controller}_{Method}_{Scenario}`: Para tests de controllers
+- `Test{Function}_{Scenario}`: Para tests de funciones unitarias
+- `Test{Type}_{Method}_{Edge}`: Para edge cases específicos
+- Ejemplos:
+  - `TestPost_ValidarExclusividad_CuponYOferta`
+  - `TestComputeDeltas_NullProductoID`
+  - `TestRefreshToken_WithoutBearerPrefix`
+
+#### 6. **Organización de Archivos de Test**
+- `{controller}_test.go`: Tests principales de happy path
+- `{controller}_additional_test.go`: Tests de casos adicionales
+- `{controller}_complete_coverage_test.go`: Tests para alcanzar 100% de cobertura
+- `{controller}_adapters_simple_test.go`: Tests de adaptadores ORM
+- `test_helpers_test.go`: Utilidades compartidas entre tests
+
+#### 7. **Mocking de Servicios**
+Para servicios complejos, usar interfaces y mocks:
+```go
+type mockDescuentoService struct {
+    obtenerDescuentosPedidoFunc func(ctx context.Context, pedidoId int64) ([]*models.PedidoDescuentoAplicado, error)
+}
+
+func (m *mockDescuentoService) ObtenerDescuentosPedido(ctx context.Context, pedidoId int64) ([]*models.PedidoDescuentoAplicado, error) {
+    if m.obtenerDescuentosPedidoFunc != nil {
+        return m.obtenerDescuentosPedidoFunc(ctx, pedidoId)
+    }
+    return nil, nil
+}
+```
+
+#### 8. **Tests Deterministas**
+- Usar `time.Now()` con offsets relativos en lugar de fechas fijas
+- Mockear generadores de tokens y claves aleatorias
+- Fijar timezone cuando sea necesario: `database.BogotaZone`
+
+#### 9. **Evitar Dependencias de Configuración**
+Los unit tests no deben depender de `conf/app.conf`:
+- Usar mocks para ORM en lugar de `orm.NewOrm()` real
+- No llamar a `database.Init()` en tests unitarios
+- Usar variables de entorno solo cuando sea necesario (`JWT_SECRET`, etc.)
 
 ## Logging
 - Se usa `log/slog` con un helper `logging.LogControllerError` para registrar errores con contexto de negocio y sanitización.
