@@ -72,12 +72,10 @@ func TestAuthResponse_Tokens(t *testing.T) {
 
 func TestPaginatedResponse_WithData(t *testing.T) {
 	resp := PaginatedResponse{
-		Code:       200,
-		Message:    "Success",
 		Data:       []string{"item1", "item2"},
 		Total:      100,
 		Page:       1,
-		Limit:      10,
+		PageSize:   10,
 		TotalPages: 10,
 	}
 
@@ -170,12 +168,10 @@ func TestApiResponse_WithError(t *testing.T) {
 
 func TestPaginatedResponse_EmptyData(t *testing.T) {
 	resp := PaginatedResponse{
-		Code:       200,
-		Message:    "Success",
 		Data:       []string{},
 		Total:      0,
 		Page:       1,
-		Limit:      10,
+		PageSize:   10,
 		TotalPages: 0,
 	}
 

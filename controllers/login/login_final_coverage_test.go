@@ -170,7 +170,7 @@ func TestAllowLogin_RateLimitReset(t *testing.T) {
 // Mock de signing method inválido
 type invalidSigningMethod struct{}
 
-func (m *invalidSigningMethod) Verify(signingString, signature string, key interface{}) error {
+func (m *invalidSigningMethod) Verify(signingString string, signature []byte, key interface{}) error {
 	return jwt.ErrSignatureInvalid
 }
 
