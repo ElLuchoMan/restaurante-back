@@ -1,16 +1,30 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"restaurante/models"
 
+	webpush "github.com/SherClockHolmes/webpush-go"
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/client/orm/clauses/order_clause"
 	"github.com/beego/beego/v2/core/utils"
+	"github.com/beego/beego/v2/server/web"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
+	oauthgoogle "golang.org/x/oauth2/google"
 )
 
 // Mocks para PushService
@@ -200,6 +214,15 @@ func (m *mockPushQuerySeter) AllWithCtx(ctx context.Context, container interface
 func (m *mockPushQuerySeter) ValuesWithCtx(context.Context, *[]orm.Params, ...string) (int64, error) {
 	return 0, nil
 }
+
+type staticTokenSource struct {
+	token *oauth2.Token
+	err   error
+}
+
+func (s staticTokenSource) Token() (*oauth2.Token, error) {
+	return s.token, s.err
+}
 func (m *mockPushQuerySeter) ValuesListWithCtx(context.Context, *[]orm.ParamsList, ...string) (int64, error) {
 	return 0, nil
 }
@@ -338,6 +361,18 @@ func TestPushService_ActualizarEstadoDispositivo_ErrorActualizacion(t *testing.T
 	assert.Contains(t, err.Error(), "error al actualizar estado del dispositivo")
 }
 
+func TestPushService_ActualizarEstadoDispositivo_ErrorLecturaGeneral(t *testing.T) {
+	service := NewPushService(&mockPushOrmer{
+		readFn: func(md interface{}, cols ...string) error {
+			return assert.AnError
+		},
+	})
+
+	err := service.ActualizarEstadoDispositivo(context.Background(), 1, true)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error al buscar dispositivo")
+}
+
 // Tests para ActualizarTopicsDispositivo
 
 func TestPushService_ActualizarTopicsDispositivo_Success(t *testing.T) {
@@ -381,6 +416,18 @@ func TestPushService_ActualizarTopicsDispositivo_ErrorActualizacion(t *testing.T
 	err := service.ActualizarTopicsDispositivo(context.Background(), 1, []string{"ofertas"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error al actualizar topics del dispositivo")
+}
+
+func TestPushService_ActualizarTopicsDispositivo_ErrorLecturaGeneral(t *testing.T) {
+	service := NewPushService(&mockPushOrmer{
+		readFn: func(md interface{}, cols ...string) error {
+			return assert.AnError
+		},
+	})
+
+	err := service.ActualizarTopicsDispositivo(context.Background(), 1, []string{"ofertas"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error al buscar dispositivo")
 }
 
 // Tests para RegistrarEnvio
@@ -467,6 +514,24 @@ func TestPushService_RegistrarEnvio_ErrorInsercion(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, envio)
 	assert.Contains(t, err.Error(), "error al registrar envío")
+}
+
+func TestPushService_RegistrarEnvio_ErrorLecturaGeneral(t *testing.T) {
+	service := NewPushService(&mockPushOrmer{
+		readFn: func(md interface{}, cols ...string) error {
+			return assert.AnError
+		},
+	})
+
+	req := &models.RegistrarEnvioRequest{
+		PkIdPushDispositivo: 1,
+		Proveedor:           models.ProveedorWebPush,
+	}
+
+	envio, err := service.RegistrarEnvio(context.Background(), req)
+	assert.Error(t, err)
+	assert.Nil(t, envio)
+	assert.Contains(t, err.Error(), "error al buscar dispositivo")
 }
 
 // Tests para obtenerProveedor - Caso default
@@ -740,6 +805,42 @@ func TestPushService_RegistrarDispositivo_NuevoDispositivo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, dispositivo)
 	assert.Equal(t, models.PlataformaWeb, dispositivo.Plataforma)
+}
+
+func TestPushService_RegistrarDispositivo_NuevoDispositivoAndroid(t *testing.T) {
+	fcmToken := "nuevo-token"
+	trabajadorId := int64(555)
+
+	service := NewPushService(&mockPushOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			return &mockPushQuerySeter{
+				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+					return &mockPushQuerySeter{
+						oneFn: func(container interface{}, cols ...string) error {
+							return orm.ErrNoRows
+						},
+					}
+				},
+			}
+		},
+		insertFn: func(md interface{}) (int64, error) {
+			disp := md.(*models.PushDispositivo)
+			assert.Equal(t, &fcmToken, disp.FcmToken)
+			assert.Equal(t, trabajadorId, disp.PkDocumentoTrabajador.PK_DOCUMENTO_TRABAJADOR)
+			return 1, nil
+		},
+	})
+
+	req := &models.RegistrarDispositivoRequest{
+		Plataforma:            models.PlataformaAndroid,
+		FcmToken:              &fcmToken,
+		PkDocumentoTrabajador: &trabajadorId,
+	}
+
+	dispositivo, err := service.RegistrarDispositivo(context.Background(), req)
+	assert.NoError(t, err)
+	assert.NotNil(t, dispositivo)
+	assert.Equal(t, models.PlataformaAndroid, dispositivo.Plataforma)
 }
 
 func TestPushService_RegistrarDispositivo_ActualizarExistentePorFcmToken(t *testing.T) {
@@ -1192,4 +1293,817 @@ func TestPushService_EnviarNotificacionDispositivo_PlataformaNoSoportada(t *test
 	assert.NotNil(t, detalle.ErrorCode)
 	assert.Equal(t, 400, *detalle.StatusCode)
 	assert.Equal(t, "PLATAFORMA_NO_SOPORTADA", *detalle.ErrorCode)
+}
+
+func TestPushService_EnviarNotificacion_SinDispositivos(t *testing.T) {
+	service := NewPushService(&mockPushOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			return &mockPushQuerySeter{
+				allFn: func(container interface{}, cols ...string) (int64, error) {
+					if dispositivos, ok := container.(*[]models.PushDispositivo); ok {
+						*dispositivos = nil
+					}
+					return 0, nil
+				},
+			}
+		},
+	})
+
+	req := &models.EnviarNotificacionRequest{
+		Remitente: models.RemitenteNotificacion{Tipo: models.RemitenteSistema},
+		Destinatarios: models.DestinatariosNotificacion{
+			Tipo: models.DestinatarioTodos,
+		},
+		Notificacion: models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"},
+	}
+
+	resp, err := service.EnviarNotificacion(req)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, resp.TotalDispositivos)
+	assert.Equal(t, 0, resp.EnviosExitosos)
+	assert.Equal(t, 0, resp.EnviosFallidos)
+	assert.Empty(t, resp.DetalleEnvios)
+	assert.Equal(t, string(models.DestinatarioTodos), resp.ResumenDestinatarios.TipoDestinatario)
+}
+
+func TestPushService_EnviarNotificacion_RemitenteInvalido(t *testing.T) {
+	service := NewPushService(&mockPushOrmer{})
+
+	req := &models.EnviarNotificacionRequest{
+		Remitente: models.RemitenteNotificacion{Tipo: models.RemitenteTrabajador},
+		Destinatarios: models.DestinatariosNotificacion{
+			Tipo: models.DestinatarioTodos,
+		},
+		Notificacion: models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"},
+	}
+
+	resp, err := service.EnviarNotificacion(req)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "remitente inválido")
+}
+
+func TestPushService_EnviarNotificacion_ErrorObteniendoDispositivos(t *testing.T) {
+	service := NewPushService(&mockPushOrmer{})
+
+	req := &models.EnviarNotificacionRequest{
+		Remitente: models.RemitenteNotificacion{Tipo: models.RemitenteSistema},
+		Destinatarios: models.DestinatariosNotificacion{
+			Tipo: models.DestinatarioCliente,
+		},
+		Notificacion: models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"},
+	}
+
+	resp, err := service.EnviarNotificacion(req)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "error obteniendo dispositivos")
+}
+
+func TestPushService_EnviarNotificacion_ConDispositivosExitoYFallo(t *testing.T) {
+	var inserted []*models.PushEnvio
+	endpoint := "https://push.example.com"
+	p256 := "p256"
+	auth := "auth"
+	clienteID := int64(101)
+	trabajadorID := int64(202)
+	otroTrabajador := int64(303)
+	fcmToken := "token-123"
+
+	service := NewPushService(&mockPushOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			return &mockPushQuerySeter{
+				allFn: func(container interface{}, cols ...string) (int64, error) {
+					if dispositivos, ok := container.(*[]models.PushDispositivo); ok {
+						*dispositivos = []models.PushDispositivo{
+							{
+								PkIdPushDispositivo:   1,
+								Plataforma:            models.PlataformaWeb,
+								Endpoint:              &endpoint,
+								P256dh:                &p256,
+								Auth:                  &auth,
+								PkDocumentoCliente:    &models.Cliente{PK_DOCUMENTO_CLIENTE: clienteID},
+								PkDocumentoTrabajador: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: trabajadorID},
+							},
+							{
+								PkIdPushDispositivo:   2,
+								Plataforma:            models.PlataformaAndroid,
+								FcmToken:              &fcmToken,
+								PkDocumentoTrabajador: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: otroTrabajador},
+							},
+						}
+					}
+					return 2, nil
+				},
+			}
+		},
+		insertFn: func(md interface{}) (int64, error) {
+			if envio, ok := md.(*models.PushEnvio); ok {
+				inserted = append(inserted, envio)
+			}
+			return 1, nil
+		},
+	})
+
+	t.Setenv("VAPID_PUBLIC_KEY", "public")
+	t.Setenv("VAPID_PRIVATE_KEY", "private")
+	t.Setenv("VAPID_SUBJECT", "mailto:test@example.com")
+	t.Setenv("FIREBASE_PROJECT_ID", "project-id")
+	t.Setenv("FCM_BEARER_TOKEN", "bearer-token")
+
+	originalSend := webpushSendNotificationWithContextFn
+	t.Cleanup(func() { webpushSendNotificationWithContextFn = originalSend })
+	webpushSendNotificationWithContextFn = func(ctx context.Context, payload []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusCreated, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}
+
+	originalHTTPDo := httpDoFn
+	t.Cleanup(func() { httpDoFn = originalHTTPDo })
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusInternalServerError, Body: io.NopCloser(strings.NewReader(`{"error":{"status":"PERMISSION_DENIED"}}`))}, nil
+	}
+
+	datos := map[string]string{"foo": "bar"}
+	datosBytes, _ := json.Marshal(datos)
+
+	req := &models.EnviarNotificacionRequest{
+		Remitente: models.RemitenteNotificacion{Tipo: models.RemitenteSistema},
+		Destinatarios: models.DestinatariosNotificacion{
+			Tipo: models.DestinatarioTodos,
+		},
+		Notificacion: models.ContenidoNotificacion{Titulo: "Promo", Mensaje: "Mensaje", Datos: datosBytes},
+	}
+
+	resp, err := service.EnviarNotificacion(req)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, resp.TotalDispositivos)
+	assert.Equal(t, 1, resp.EnviosExitosos)
+	assert.Equal(t, 1, resp.EnviosFallidos)
+	assert.Len(t, resp.DetalleEnvios, 2)
+	assert.Len(t, inserted, 2)
+	assert.Contains(t, resp.ResumenDestinatarios.ClientesNotificados, clienteID)
+	assert.Contains(t, resp.ResumenDestinatarios.TrabajadoresNotificados, trabajadorID)
+	assert.Contains(t, resp.ResumenDestinatarios.TrabajadoresNotificados, otroTrabajador)
+	assert.NotNil(t, resp.DetalleEnvios[0].DocumentoCliente)
+	assert.NotNil(t, resp.DetalleEnvios[0].DocumentoTrabajador)
+}
+
+func TestPushService_EnviarWebPush_CamposRequeridos(t *testing.T) {
+	service := &PushService{}
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	exito, status, codigo := service.enviarWebPush(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, 400, *status)
+	assert.Equal(t, "ENDPOINT_VACIO", *codigo)
+
+	endpoint := "https://push.example.com"
+	dispositivo.Endpoint = &endpoint
+	exito, status, codigo = service.enviarWebPush(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, "P256DH_VACIO", *codigo)
+
+	p256 := "p256"
+	dispositivo.P256dh = &p256
+	exito, status, codigo = service.enviarWebPush(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, "AUTH_VACIO", *codigo)
+
+	auth := "auth"
+	dispositivo.Auth = &auth
+	t.Setenv("VAPID_PUBLIC_KEY", "")
+	t.Setenv("VAPID_PRIVATE_KEY", "")
+	t.Setenv("VAPID_SUBJECT", "")
+	exito, status, codigo = service.enviarWebPush(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, 500, *status)
+	assert.Equal(t, "CONFIG_VAPID_FALTA", *codigo)
+}
+
+func TestPushService_EnviarWebPush_ErrorEnvio(t *testing.T) {
+	service := &PushService{}
+	endpoint := "https://push.example.com"
+	p256 := "p256"
+	auth := "auth"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaWeb, Endpoint: &endpoint, P256dh: &p256, Auth: &auth}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("VAPID_PUBLIC_KEY", "public")
+	t.Setenv("VAPID_PRIVATE_KEY", "private")
+	t.Setenv("VAPID_SUBJECT", "mailto:test@example.com")
+
+	originalSend := webpushSendNotificationWithContextFn
+	t.Cleanup(func() { webpushSendNotificationWithContextFn = originalSend })
+	webpushSendNotificationWithContextFn = func(ctx context.Context, payload []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
+		return nil, errors.New("send error")
+	}
+
+	exito, status, codigo := service.enviarWebPush(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, 500, *status)
+	assert.Equal(t, "ERROR_ENVIO_WEB_PUSH", *codigo)
+}
+
+func TestPushService_EnviarWebPush_StatusCodes(t *testing.T) {
+	endpoint := "https://push.example.com"
+	p256 := "p256"
+	auth := "auth"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaWeb, Endpoint: &endpoint, P256dh: &p256, Auth: &auth}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("VAPID_PUBLIC_KEY", "public")
+	t.Setenv("VAPID_PRIVATE_KEY", "private")
+	t.Setenv("VAPID_SUBJECT", "")
+
+	var mu sync.Mutex
+	updates := map[int]bool{}
+	var currentStatus int
+	service := &PushService{ormer: &mockPushOrmer{
+		readFn: func(md interface{}, cols ...string) error {
+			return nil
+		},
+		updateFn: func(md interface{}, cols ...string) (int64, error) {
+			mu.Lock()
+			defer mu.Unlock()
+			updates[currentStatus] = true
+			return 1, nil
+		},
+	}}
+
+	originalSend := webpushSendNotificationWithContextFn
+	t.Cleanup(func() { webpushSendNotificationWithContextFn = originalSend })
+
+	cases := []struct {
+		name          string
+		status        int
+		body          string
+		success       bool
+		expectedCode  string
+		expectNilCode bool
+	}{
+		{name: "success", status: http.StatusCreated, body: "", success: true, expectNilCode: true},
+		{name: "gone", status: http.StatusGone, body: "", expectedCode: "DISPOSITIVO_DESREGISTRADO"},
+		{name: "not_found", status: http.StatusNotFound, body: "", expectedCode: "ENDPOINT_INVALIDO"},
+		{name: "unauthorized", status: http.StatusUnauthorized, body: "", expectedCode: "ERROR_AUTH_VAPID"},
+		{name: "bad_request", status: http.StatusBadRequest, body: "detalle", expectedCode: "BAD_REQUEST"},
+		{name: "payload_large", status: http.StatusRequestEntityTooLarge, body: "", expectedCode: "PAYLOAD_TOO_LARGE"},
+		{name: "rate_limit", status: http.StatusTooManyRequests, body: "", expectedCode: "RATE_LIMIT"},
+		{name: "other", status: http.StatusInternalServerError, body: "error", expectedCode: "ERROR_HTTP_500"},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		currentStatus = tc.status
+		webpushSendNotificationWithContextFn = func(ctx context.Context, payload []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
+			return &http.Response{StatusCode: tc.status, Body: io.NopCloser(strings.NewReader(tc.body))}, nil
+		}
+
+		exito, status, codigo := service.enviarWebPush(dispositivo, notificacion)
+		if tc.success {
+			assert.True(t, exito, tc.name)
+			assert.Nil(t, codigo, tc.name)
+			assert.Equal(t, tc.status, *status)
+		} else {
+			assert.False(t, exito, tc.name)
+			assert.Equal(t, tc.status, *status, tc.name)
+			if tc.expectNilCode {
+				assert.Nil(t, codigo, tc.name)
+			} else {
+				assert.NotNil(t, codigo, tc.name)
+				assert.Equal(t, tc.expectedCode, *codigo, tc.name)
+			}
+		}
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.True(t, updates[http.StatusGone])
+	assert.True(t, updates[http.StatusNotFound])
+}
+
+func TestPushService_EnviarWebPush_DesactivarError(t *testing.T) {
+	endpoint := "https://push.example.com"
+	p256 := "p256"
+	auth := "auth"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 5, Plataforma: models.PlataformaWeb, Endpoint: &endpoint, P256dh: &p256, Auth: &auth}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("VAPID_PUBLIC_KEY", "public")
+	t.Setenv("VAPID_PRIVATE_KEY", "private")
+	t.Setenv("VAPID_SUBJECT", "subject")
+
+	service := &PushService{ormer: &mockPushOrmer{
+		readFn: func(md interface{}, cols ...string) error { return nil },
+		updateFn: func(md interface{}, cols ...string) (int64, error) {
+			return 0, assert.AnError
+		},
+	}}
+
+	originalSend := webpushSendNotificationWithContextFn
+	t.Cleanup(func() { webpushSendNotificationWithContextFn = originalSend })
+	webpushSendNotificationWithContextFn = func(ctx context.Context, payload []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusGone, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}
+
+	exito, status, codigo := service.enviarWebPush(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, http.StatusGone, *status)
+	assert.Equal(t, "DISPOSITIVO_DESREGISTRADO", *codigo)
+}
+
+func TestPushService_EnviarWebPush_ConfigFallback(t *testing.T) {
+	endpoint := "https://push.example.com"
+	p256 := "p256"
+	auth := "auth"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 9, Plataforma: models.PlataformaWeb, Endpoint: &endpoint, P256dh: &p256, Auth: &auth}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("VAPID_PUBLIC_KEY", "")
+	t.Setenv("VAPID_PRIVATE_KEY", "")
+	t.Setenv("VAPID_SUBJECT", "")
+
+	originalPub, _ := web.AppConfig.String("vapid_public_key")
+	originalPriv, _ := web.AppConfig.String("vapid_private_key")
+	originalSubject, _ := web.AppConfig.String("vapid_subject")
+	_ = web.AppConfig.Set("vapid_public_key", "cfg-public")
+	_ = web.AppConfig.Set("vapid_private_key", "cfg-private")
+	_ = web.AppConfig.Set("vapid_subject", "mailto:cfg@example.com")
+	t.Cleanup(func() {
+		_ = web.AppConfig.Set("vapid_public_key", originalPub)
+		_ = web.AppConfig.Set("vapid_private_key", originalPriv)
+		_ = web.AppConfig.Set("vapid_subject", originalSubject)
+	})
+
+	originalSend := webpushSendNotificationWithContextFn
+	t.Cleanup(func() { webpushSendNotificationWithContextFn = originalSend })
+	webpushSendNotificationWithContextFn = func(ctx context.Context, payload []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
+		assert.Equal(t, "cfg-public", options.VAPIDPublicKey)
+		assert.Equal(t, "cfg-private", options.VAPIDPrivateKey)
+		assert.Equal(t, "mailto:cfg@example.com", options.Subscriber)
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}
+
+	exito, status, codigo := (&PushService{}).enviarWebPush(dispositivo, notificacion)
+	assert.True(t, exito)
+	assert.Equal(t, http.StatusOK, *status)
+	assert.Nil(t, codigo)
+}
+
+func TestPushService_EnviarWebPush_ErrorSerializarPayload(t *testing.T) {
+	endpoint := "https://push.example.com"
+	p256 := "p256"
+	auth := "auth"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 10, Plataforma: models.PlataformaWeb, Endpoint: &endpoint, P256dh: &p256, Auth: &auth}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("VAPID_PUBLIC_KEY", "public")
+	t.Setenv("VAPID_PRIVATE_KEY", "private")
+	t.Setenv("VAPID_SUBJECT", "subject")
+
+	originalMarshal := jsonMarshalFn
+	t.Cleanup(func() { jsonMarshalFn = originalMarshal })
+	jsonMarshalFn = func(v interface{}) ([]byte, error) {
+		return nil, assert.AnError
+	}
+
+	exito, status, codigo := (&PushService{}).enviarWebPush(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, 500, *status)
+	assert.Equal(t, "ERROR_SERIALIZAR_PAYLOAD", *codigo)
+}
+
+func TestPushService_EnviarWebPush_EndpointInvalidoErrorDesactivando(t *testing.T) {
+	endpoint := "https://push.example.com"
+	p256 := "p256"
+	auth := "auth"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 11, Plataforma: models.PlataformaWeb, Endpoint: &endpoint, P256dh: &p256, Auth: &auth}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("VAPID_PUBLIC_KEY", "public")
+	t.Setenv("VAPID_PRIVATE_KEY", "private")
+	t.Setenv("VAPID_SUBJECT", "subject")
+
+	service := &PushService{ormer: &mockPushOrmer{
+		readFn: func(md interface{}, cols ...string) error { return nil },
+		updateFn: func(md interface{}, cols ...string) (int64, error) {
+			return 0, assert.AnError
+		},
+	}}
+
+	originalSend := webpushSendNotificationWithContextFn
+	t.Cleanup(func() { webpushSendNotificationWithContextFn = originalSend })
+	webpushSendNotificationWithContextFn = func(ctx context.Context, payload []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusNotFound, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}
+
+	exito, status, codigo := service.enviarWebPush(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, http.StatusNotFound, *status)
+	assert.Equal(t, "ENDPOINT_INVALIDO", *codigo)
+}
+
+func TestPushService_EnviarFCM_Success(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo", Datos: []byte(`{"foo":123}`)}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "project")
+	t.Setenv("FCM_BEARER_TOKEN", "bearer")
+
+	originalDo := httpDoFn
+	t.Cleanup(func() { httpDoFn = originalDo })
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		body, _ := io.ReadAll(req.Body)
+		assert.Contains(t, string(body), "\"token\":\"token\"")
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString("{}"))}, nil
+	}
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.True(t, exito)
+	assert.Equal(t, http.StatusOK, *status)
+	assert.Nil(t, codigo)
+}
+
+func TestPushService_EnviarFCM_HTTPError(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "project")
+	t.Setenv("FCM_BEARER_TOKEN", "bearer")
+
+	originalDo := httpDoFn
+	t.Cleanup(func() { httpDoFn = originalDo })
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return nil, errors.New("boom")
+	}
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, 500, *status)
+	assert.Equal(t, "FCM_HTTP_ERROR", *codigo)
+}
+
+func TestPushService_EnviarFCM_StatusError(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "project")
+	t.Setenv("FCM_BEARER_TOKEN", "bearer")
+
+	originalDo := httpDoFn
+	t.Cleanup(func() { httpDoFn = originalDo })
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusForbidden, Body: io.NopCloser(strings.NewReader(`{"error":{"status":"PERMISSION_DENIED"}}`))}, nil
+	}
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, http.StatusForbidden, *status)
+	assert.Equal(t, "PERMISSION_DENIED", *codigo)
+}
+
+func TestPushService_EnviarFCM_StatusErrorSinCodigo(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "project")
+	t.Setenv("FCM_BEARER_TOKEN", "bearer")
+
+	originalDo := httpDoFn
+	t.Cleanup(func() { httpDoFn = originalDo })
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusInternalServerError, Body: io.NopCloser(strings.NewReader(`{"error":{}}`))}, nil
+	}
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, http.StatusInternalServerError, *status)
+	assert.Equal(t, "FCM_ERROR", *codigo)
+}
+
+func TestPushService_EnviarFCM_FallbackBearer(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "project")
+	t.Setenv("FCM_BEARER_TOKEN", "")
+
+	originalADC := obtainFCMTokenWithADCFn
+	t.Cleanup(func() { obtainFCMTokenWithADCFn = originalADC })
+	obtainFCMTokenWithADCFn = func() (string, error) {
+		return "adc-token", nil
+	}
+
+	originalDo := httpDoFn
+	t.Cleanup(func() { httpDoFn = originalDo })
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		assert.Equal(t, "Bearer adc-token", req.Header.Get("Authorization"))
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("{}"))}, nil
+	}
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.True(t, exito)
+	assert.Equal(t, http.StatusOK, *status)
+	assert.Nil(t, codigo)
+}
+
+func TestPushService_EnviarFCM_DatosInvalidos(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo", Datos: []byte("{invalid")}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "project")
+	t.Setenv("FCM_BEARER_TOKEN", "bearer")
+
+	originalDo := httpDoFn
+	t.Cleanup(func() { httpDoFn = originalDo })
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		body, _ := io.ReadAll(req.Body)
+		assert.NotContains(t, string(body), "invalid")
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("{}"))}, nil
+	}
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.True(t, exito)
+	assert.Equal(t, http.StatusOK, *status)
+	assert.Nil(t, codigo)
+}
+
+func TestPushService_EnviarFCM_ProjectIDDesdeConfig(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "")
+	t.Setenv("FCM_BEARER_TOKEN", "bearer")
+
+	original, _ := web.AppConfig.String("firebase_project_id")
+	_ = web.AppConfig.Set("firebase_project_id", "cfg-project")
+	t.Cleanup(func() { _ = web.AppConfig.Set("firebase_project_id", original) })
+
+	originalDo := httpDoFn
+	t.Cleanup(func() { httpDoFn = originalDo })
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		assert.Contains(t, req.URL.String(), "cfg-project")
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("{}"))}, nil
+	}
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.True(t, exito)
+	assert.Equal(t, http.StatusOK, *status)
+	assert.Nil(t, codigo)
+}
+
+func TestPushService_EnviarFCM_ProjectIdFaltante(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "")
+	t.Setenv("FCM_BEARER_TOKEN", "bearer")
+
+	original, _ := web.AppConfig.String("firebase_project_id")
+	_ = web.AppConfig.Set("firebase_project_id", "")
+	t.Cleanup(func() { _ = web.AppConfig.Set("firebase_project_id", original) })
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, 500, *status)
+	assert.Equal(t, "CONFIG_FIREBASE_FALTA_PROJECT_ID", *codigo)
+}
+
+func TestPushService_EnviarFCM_FallbackAuthError(t *testing.T) {
+	service := &PushService{}
+	token := "token"
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: models.PlataformaAndroid, FcmToken: &token}
+	notificacion := &models.ContenidoNotificacion{Titulo: "Hola", Mensaje: "Mundo"}
+
+	t.Setenv("FIREBASE_PROJECT_ID", "project")
+	t.Setenv("FCM_BEARER_TOKEN", "")
+
+	originalADC := obtainFCMTokenWithADCFn
+	t.Cleanup(func() { obtainFCMTokenWithADCFn = originalADC })
+	obtainFCMTokenWithADCFn = func() (string, error) {
+		return "", assert.AnError
+	}
+
+	exito, status, codigo := service.enviarFCM(dispositivo, notificacion)
+	assert.False(t, exito)
+	assert.Equal(t, 500, *status)
+	assert.Equal(t, "AUTH_FCM_NO_CONFIGURADO", *codigo)
+}
+
+func TestPushService_ObtainFCMTokenWithADC_ADCSuccess(t *testing.T) {
+	originalFind := findDefaultCredentialsFn
+	originalToken := tokenSourceTokenFn
+	t.Cleanup(func() {
+		findDefaultCredentialsFn = originalFind
+		tokenSourceTokenFn = originalToken
+	})
+
+	tokenSourceTokenFn = func(ts oauth2.TokenSource) (*oauth2.Token, error) {
+		return &oauth2.Token{AccessToken: "adc-token"}, nil
+	}
+
+	findDefaultCredentialsFn = func(ctx context.Context, scopes ...string) (*oauthgoogle.Credentials, error) {
+		return &oauthgoogle.Credentials{TokenSource: staticTokenSource{}}, nil
+	}
+
+	token, err := obtainFCMTokenWithADC()
+	assert.NoError(t, err)
+	assert.Equal(t, "adc-token", token)
+}
+
+func TestPushService_ObtainFCMTokenWithADC_ADCFallbackMetadataSuccess(t *testing.T) {
+	originalFind := findDefaultCredentialsFn
+	originalDo := httpDoFn
+	originalNewRequest := httpNewRequestFn
+	originalClient := newHTTPClientFn
+	originalURL := metadataTokenURL
+	t.Cleanup(func() {
+		findDefaultCredentialsFn = originalFind
+		httpDoFn = originalDo
+		httpNewRequestFn = originalNewRequest
+		newHTTPClientFn = originalClient
+		metadataTokenURL = originalURL
+	})
+
+	findDefaultCredentialsFn = func(ctx context.Context, scopes ...string) (*oauthgoogle.Credentials, error) {
+		return &oauthgoogle.Credentials{TokenSource: staticTokenSource{token: nil, err: errors.New("no token")}}, nil
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"access_token":"meta-token"}`)
+	}))
+	defer server.Close()
+
+	metadataTokenURL = server.URL
+	newHTTPClientFn = func(timeout time.Duration) *http.Client { return server.Client() }
+	httpNewRequestFn = func(method, url string, body io.Reader) (*http.Request, error) {
+		return http.NewRequest(method, url, body)
+	}
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return server.Client().Do(req)
+	}
+
+	token, err := obtainFCMTokenWithADC()
+	assert.NoError(t, err)
+	assert.Equal(t, "meta-token", token)
+}
+
+func TestPushService_ObtainFCMTokenWithADC_MetadataHTTPError(t *testing.T) {
+	originalFind := findDefaultCredentialsFn
+	originalDo := httpDoFn
+	originalClient := newHTTPClientFn
+	originalURL := metadataTokenURL
+	t.Cleanup(func() {
+		findDefaultCredentialsFn = originalFind
+		httpDoFn = originalDo
+		newHTTPClientFn = originalClient
+		metadataTokenURL = originalURL
+	})
+
+	findDefaultCredentialsFn = func(ctx context.Context, scopes ...string) (*oauthgoogle.Credentials, error) {
+		return nil, errors.New("no adc")
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	metadataTokenURL = server.URL
+	newHTTPClientFn = func(timeout time.Duration) *http.Client { return server.Client() }
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return server.Client().Do(req)
+	}
+
+	token, err := obtainFCMTokenWithADC()
+	assert.Error(t, err)
+	assert.Empty(t, token)
+}
+
+func TestPushService_ObtainFCMTokenWithADC_MetadataDecodeError(t *testing.T) {
+	originalFind := findDefaultCredentialsFn
+	originalDo := httpDoFn
+	originalClient := newHTTPClientFn
+	originalURL := metadataTokenURL
+	t.Cleanup(func() {
+		findDefaultCredentialsFn = originalFind
+		httpDoFn = originalDo
+		newHTTPClientFn = originalClient
+		metadataTokenURL = originalURL
+	})
+
+	findDefaultCredentialsFn = func(ctx context.Context, scopes ...string) (*oauthgoogle.Credentials, error) {
+		return nil, errors.New("no adc")
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "no-json")
+	}))
+	defer server.Close()
+
+	metadataTokenURL = server.URL
+	newHTTPClientFn = func(timeout time.Duration) *http.Client { return server.Client() }
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return server.Client().Do(req)
+	}
+
+	token, err := obtainFCMTokenWithADC()
+	assert.Error(t, err)
+	assert.Empty(t, token)
+}
+
+func TestPushService_ObtainFCMTokenWithADC_MetadataEmptyToken(t *testing.T) {
+	originalFind := findDefaultCredentialsFn
+	originalDo := httpDoFn
+	originalClient := newHTTPClientFn
+	originalURL := metadataTokenURL
+	t.Cleanup(func() {
+		findDefaultCredentialsFn = originalFind
+		httpDoFn = originalDo
+		newHTTPClientFn = originalClient
+		metadataTokenURL = originalURL
+	})
+
+	findDefaultCredentialsFn = func(ctx context.Context, scopes ...string) (*oauthgoogle.Credentials, error) {
+		return nil, errors.New("no adc")
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"access_token":""}`)
+	}))
+	defer server.Close()
+
+	metadataTokenURL = server.URL
+	newHTTPClientFn = func(timeout time.Duration) *http.Client { return server.Client() }
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return server.Client().Do(req)
+	}
+
+	token, err := obtainFCMTokenWithADC()
+	assert.Error(t, err)
+	assert.Empty(t, token)
+}
+
+func TestPushService_ObtainFCMTokenWithADC_NewRequestError(t *testing.T) {
+	originalFind := findDefaultCredentialsFn
+	originalNewRequest := httpNewRequestFn
+	t.Cleanup(func() {
+		findDefaultCredentialsFn = originalFind
+		httpNewRequestFn = originalNewRequest
+	})
+
+	findDefaultCredentialsFn = func(ctx context.Context, scopes ...string) (*oauthgoogle.Credentials, error) {
+		return nil, errors.New("no adc")
+	}
+
+	httpNewRequestFn = func(method, url string, body io.Reader) (*http.Request, error) {
+		return nil, errors.New("new request error")
+	}
+
+	token, err := obtainFCMTokenWithADC()
+	assert.Error(t, err)
+	assert.Empty(t, token)
+}
+
+func TestPushService_ObtainFCMTokenWithADC_DoError(t *testing.T) {
+	originalFind := findDefaultCredentialsFn
+	originalDo := httpDoFn
+	originalClient := newHTTPClientFn
+	originalURL := metadataTokenURL
+	t.Cleanup(func() {
+		findDefaultCredentialsFn = originalFind
+		httpDoFn = originalDo
+		newHTTPClientFn = originalClient
+		metadataTokenURL = originalURL
+	})
+
+	findDefaultCredentialsFn = func(ctx context.Context, scopes ...string) (*oauthgoogle.Credentials, error) {
+		return nil, errors.New("no adc")
+	}
+
+	metadataTokenURL = "http://example.com"
+	newHTTPClientFn = func(timeout time.Duration) *http.Client { return &http.Client{Timeout: timeout} }
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return nil, errors.New("do error")
+	}
+
+	token, err := obtainFCMTokenWithADC()
+	assert.Error(t, err)
+	assert.Empty(t, token)
 }
