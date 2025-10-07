@@ -42,6 +42,7 @@ var (
 		}
 		return ts.Token()
 	}
+	// #nosec G101 -- Esta es la URL estándar pública del metadata server de GCP, no es una credencial
 	metadataTokenURL = "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token"
 	jsonMarshalFn    = json.Marshal
 	jsonUnmarshalFn  = json.Unmarshal
