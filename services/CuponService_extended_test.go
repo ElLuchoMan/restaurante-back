@@ -937,5 +937,3 @@ func TestCuponService_ValidarReglasNegocioCupon_ScopeGlobalConTargets(t *testing
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "GLOBAL")
 }
-
-// Tests adicionales para ValidarCupon y RedimirCupon ya están cubiertos en los tests existentes del servicio
