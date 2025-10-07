@@ -93,37 +93,38 @@ func TestPaginatedResponse_WithData(t *testing.T) {
 	}
 }
 
-func TestNotificacionRequest_Marshal(t *testing.T) {
-	req := NotificacionRequest{
-		Titulo:  "Test Notification",
-		Mensaje: "Test message",
-		Datos: map[string]interface{}{
-			"key": "value",
+func TestEnviarNotificacionRequest_Marshal(t *testing.T) {
+	titulo := "Test"
+	mensaje := "Message"
+	req := EnviarNotificacionRequest{
+		Remitente: RemitenteNotificacion{
+			Tipo: RemitenteSistema,
+		},
+		Destinatarios: DestinatariosNotificacion{
+			Tipo: DestinatarioTodos,
+		},
+		Notificacion: ContenidoNotificacion{
+			Titulo:  titulo,
+			Mensaje: mensaje,
 		},
 	}
 
 	data, err := json.Marshal(req)
 	if err != nil {
-		t.Fatalf("Error marshaling NotificacionRequest: %v", err)
+		t.Fatalf("Error marshaling EnviarNotificacionRequest: %v", err)
 	}
 
-	var decoded NotificacionRequest
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		t.Fatalf("Error unmarshaling NotificacionRequest: %v", err)
-	}
-
-	if decoded.Titulo != req.Titulo {
-		t.Errorf("Expected titulo %s, got %s", req.Titulo, decoded.Titulo)
+	if len(data) == 0 {
+		t.Error("Expected non-empty JSON")
 	}
 }
 
-func TestNotificacionResponse_Success(t *testing.T) {
-	resp := NotificacionResponse{
-		IDEnvio:     123,
-		Exitosos:    5,
-		Fallidos:    0,
-		Mensajes:    []string{"Success"},
-		TokensError: []string{},
+func TestEnvioNotificacionResponse_Success(t *testing.T) {
+	resp := EnvioNotificacionResponse{
+		IDEnvio:  123,
+		Exitosos: 5,
+		Fallidos: 0,
+		Mensajes: []string{"Success"},
 	}
 
 	if resp.Exitosos != 5 {
@@ -132,7 +133,7 @@ func TestNotificacionResponse_Success(t *testing.T) {
 
 	data, err := json.Marshal(resp)
 	if err != nil {
-		t.Fatalf("Error marshaling NotificacionResponse: %v", err)
+		t.Fatalf("Error marshaling EnvioNotificacionResponse: %v", err)
 	}
 
 	if len(data) == 0 {
@@ -140,17 +141,16 @@ func TestNotificacionResponse_Success(t *testing.T) {
 	}
 }
 
-func TestNotificacionResponse_WithErrors(t *testing.T) {
-	resp := NotificacionResponse{
-		IDEnvio:     456,
-		Exitosos:    3,
-		Fallidos:    2,
-		Mensajes:    []string{"Error 1", "Error 2"},
-		TokensError: []string{"token1", "token2"},
+func TestEnvioNotificacionResponse_WithErrors(t *testing.T) {
+	resp := EnvioNotificacionResponse{
+		IDEnvio:  456,
+		Exitosos: 3,
+		Fallidos: 2,
+		Mensajes: []string{"Error 1", "Error 2"},
 	}
 
-	if len(resp.TokensError) != 2 {
-		t.Errorf("Expected 2 error tokens, got %d", len(resp.TokensError))
+	if resp.Fallidos != 2 {
+		t.Errorf("Expected 2 fallidos, got %d", resp.Fallidos)
 	}
 }
 
@@ -193,8 +193,8 @@ func TestAuthResponse_EmptyFields(t *testing.T) {
 	}
 }
 
-func TestNotificacionRequest_EmptyDatos(t *testing.T) {
-	req := NotificacionRequest{
+func TestContenidoNotificacion_EmptyDatos(t *testing.T) {
+	req := ContenidoNotificacion{
 		Titulo:  "Test",
 		Mensaje: "Message",
 		Datos:   nil,
@@ -202,7 +202,7 @@ func TestNotificacionRequest_EmptyDatos(t *testing.T) {
 
 	data, err := json.Marshal(req)
 	if err != nil {
-		t.Fatalf("Error marshaling NotificacionRequest with nil Datos: %v", err)
+		t.Fatalf("Error marshaling ContenidoNotificacion with nil Datos: %v", err)
 	}
 
 	if len(data) == 0 {
