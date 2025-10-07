@@ -16,12 +16,39 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
+	"golang.org/x/oauth2"
 	oauthgoogle "golang.org/x/oauth2/google"
 )
 
 type PushService struct {
 	ormer orm.Ormer
 }
+
+var (
+	webpushSendNotificationWithContextFn = func(ctx context.Context, payload []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
+		return webpush.SendNotificationWithContext(ctx, payload, subscription, options)
+	}
+	newHTTPClientFn = func(timeout time.Duration) *http.Client {
+		return &http.Client{Timeout: timeout}
+	}
+	httpDoFn = func(client *http.Client, req *http.Request) (*http.Response, error) {
+		return client.Do(req)
+	}
+	httpNewRequestFn         = http.NewRequest
+	findDefaultCredentialsFn = oauthgoogle.FindDefaultCredentials
+	tokenSourceTokenFn       = func(ts oauth2.TokenSource) (*oauth2.Token, error) {
+		if ts == nil {
+			return nil, fmt.Errorf("token source nil")
+		}
+		return ts.Token()
+	}
+	metadataTokenURL = "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token"
+	jsonMarshalFn    = json.Marshal
+	jsonUnmarshalFn  = json.Unmarshal
+	jsonNewDecoderFn = func(r io.Reader) *json.Decoder { return json.NewDecoder(r) }
+)
+
+var obtainFCMTokenWithADCFn = obtainFCMTokenWithADC
 
 func NewPushService(ormer orm.Ormer) *PushService {
 	return &PushService{ormer: ormer}
@@ -480,14 +507,14 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 	// Agregar datos adicionales si existen
 	if len(notificacion.Datos) > 0 {
 		var datosMap map[string]interface{}
-		if err := json.Unmarshal(notificacion.Datos, &datosMap); err == nil {
+		if err := jsonUnmarshalFn(notificacion.Datos, &datosMap); err == nil {
 			if notif, ok := payload["notification"].(map[string]interface{}); ok {
 				notif["data"] = datosMap
 			}
 		}
 	}
 
-	payloadBytes, err := json.Marshal(payload)
+	payloadBytes, err := jsonMarshalFn(payload)
 	if err != nil {
 		logs.Error("[Web Push] Error al serializar payload: %v", err)
 		status := 500
@@ -516,7 +543,7 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	resp, err := webpush.SendNotificationWithContext(ctx, payloadBytes, subscription, options)
+	resp, err := webpushSendNotificationWithContextFn(ctx, payloadBytes, subscription, options)
 	if err != nil {
 		logs.Error("[Web Push] Error al enviar notificación al dispositivo %d: %v", dispositivo.PkIdPushDispositivo, err)
 		status := 500
@@ -621,7 +648,7 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 				}
 				// Intentar convertir datos arbitrarios a mapa de strings
 				var tmp map[string]interface{}
-				_ = json.Unmarshal(notificacion.Datos, &tmp)
+				_ = jsonUnmarshalFn(notificacion.Datos, &tmp)
 				out := map[string]string{}
 				for k, v := range tmp {
 					out[k] = fmt.Sprint(v)
@@ -648,7 +675,7 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 	if bearer == "" {
 		// Fallback: intentar obtener token con ADC (Application Default Credentials)
 		// Requiere que el entorno tenga GOOGLE_APPLICATION_CREDENTIALS o identidad GCE/GKE con permisos
-		token, adcErr := obtainFCMTokenWithADC()
+		token, adcErr := obtainFCMTokenWithADCFn()
 		if adcErr != nil || strings.TrimSpace(token) == "" {
 			status := 500
 			code := "AUTH_FCM_NO_CONFIGURADO"
@@ -659,13 +686,13 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 
 	url := fmt.Sprintf("https://fcm.googleapis.com/v1/projects/%s/messages:send", projectId)
 
-	reqBody, _ := json.Marshal(body)
-	httpReq, _ := http.NewRequest(http.MethodPost, url, strings.NewReader(string(reqBody)))
+	reqBody, _ := jsonMarshalFn(body)
+	httpReq, _ := httpNewRequestFn(http.MethodPost, url, strings.NewReader(string(reqBody)))
 	httpReq.Header.Set("Content-Type", "application/json; charset=utf-8")
 	httpReq.Header.Set("Authorization", "Bearer "+bearer)
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(httpReq)
+	client := newHTTPClientFn(10 * time.Second)
+	resp, err := httpDoFn(client, httpReq)
 	if err != nil {
 		status := 500
 		code := "FCM_HTTP_ERROR"
@@ -687,7 +714,7 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 			Message string `json:"message"`
 		} `json:"error"`
 	}
-	_ = json.NewDecoder(resp.Body).Decode(&respErr)
+	_ = jsonNewDecoderFn(resp.Body).Decode(&respErr)
 	errCode := respErr.Error.Status
 	if errCode == "" {
 		errCode = "FCM_ERROR"
@@ -703,22 +730,22 @@ func obtainFCMTokenWithADC() (string, error) {
 	// 1) Intentar ADC local/SA (gcloud, GOOGLE_APPLICATION_CREDENTIALS, Workload Identity, etc.)
 	ctx := context.Background()
 	const scope = "https://www.googleapis.com/auth/firebase.messaging"
-	creds, err := oauthgoogle.FindDefaultCredentials(ctx, scope)
+	creds, err := findDefaultCredentialsFn(ctx, scope)
 	if err == nil && creds != nil && creds.TokenSource != nil {
-		tok, tErr := creds.TokenSource.Token()
+		tok, tErr := tokenSourceTokenFn(creds.TokenSource)
 		if tErr == nil && tok != nil && strings.TrimSpace(tok.AccessToken) != "" {
 			return tok.AccessToken, nil
 		}
 	}
 
 	// 2) Fallback: metadata server (GCE/GKE)
-	client := &http.Client{Timeout: 2 * time.Second}
-	req, err := http.NewRequest(http.MethodGet, "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token", nil)
+	client := newHTTPClientFn(2 * time.Second)
+	req, err := httpNewRequestFn(http.MethodGet, metadataTokenURL, nil)
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Metadata-Flavor", "Google")
-	resp, err := client.Do(req)
+	resp, err := httpDoFn(client, req)
 	if err != nil {
 		return "", err
 	}
@@ -731,7 +758,7 @@ func obtainFCMTokenWithADC() (string, error) {
 		TokenType   string `json:"token_type"`
 		ExpiresIn   int    `json:"expires_in"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := jsonNewDecoderFn(resp.Body).Decode(&payload); err != nil {
 		return "", err
 	}
 	if strings.TrimSpace(payload.AccessToken) == "" {
