@@ -174,8 +174,8 @@ func (m *invalidSigningMethod) Verify(signingString, signature string, key inter
 	return jwt.ErrSignatureInvalid
 }
 
-func (m *invalidSigningMethod) Sign(signingString string, key interface{}) (string, error) {
-	return "", jwt.ErrInvalidKey
+func (m *invalidSigningMethod) Sign(signingString string, key interface{}) ([]byte, error) {
+	return nil, jwt.ErrInvalidKey
 }
 
 func (m *invalidSigningMethod) Alg() string {

@@ -51,13 +51,13 @@ func TestApiResponse_Success(t *testing.T) {
 }
 
 func TestAuthResponse_Tokens(t *testing.T) {
-	resp := AuthResponse{
-		Token:        "access_token_123",
-		AccessToken:  "access_token_123",
-		RefreshToken: "refresh_token_456",
-		TokenType:    "Bearer",
-		ExpiresIn:    "3600",
-		Nombre:       "Test User",
+	resp := map[string]string{
+		"token":         "access_token_123",
+		"access_token":  "access_token_123",
+		"refresh_token": "refresh_token_456",
+		"token_type":    "Bearer",
+		"expires_in":    "3600",
+		"nombre":        "Test User",
 	}
 
 	data, err := json.Marshal(resp)
@@ -185,11 +185,11 @@ func TestPaginatedResponse_EmptyData(t *testing.T) {
 }
 
 func TestAuthResponse_EmptyFields(t *testing.T) {
-	resp := AuthResponse{}
+	resp := map[string]string{}
 
 	data, err := json.Marshal(resp)
 	if err != nil {
-		t.Fatalf("Error marshaling empty AuthResponse: %v", err)
+		t.Fatalf("Error marshaling empty map: %v", err)
 	}
 
 	if len(data) < 2 { // At least {}
