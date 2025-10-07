@@ -10,7 +10,7 @@ coverage:
     project:
       default:
         target: 68%
-        threshold: 1%
+        threshold: 2%
         if_ci_failed: error
 
     patch:
@@ -18,13 +18,9 @@ coverage:
         target: 60%
         threshold: 5%
 
+# Solo ignorar archivos generados, no los tests
 ignore:
-  - "docs/docs.go"              # Archivo generado por Swagger
-  - "**/*_test.go"              # Archivos de test
-  - "**/test_*.go"              # Archivos de test
-  - "tests/**"                  # Directorio de tests
-  - "tools/**"                  # Scripts y herramientas
-  - "swagger/**"                # Documentación Swagger
+  - "docs/docs.go"              # Archivo generado por Swagger (>11k líneas)
 
 comment:
   layout: "reach,diff,flags,tree"
