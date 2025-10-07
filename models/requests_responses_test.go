@@ -119,38 +119,24 @@ func TestEnviarNotificacionRequest_Marshal(t *testing.T) {
 	}
 }
 
-func TestEnvioNotificacionResponse_Success(t *testing.T) {
-	resp := EnvioNotificacionResponse{
-		IDEnvio:  123,
-		Exitosos: 5,
-		Fallidos: 0,
-		Mensajes: []string{"Success"},
+func TestEnviarNotificacionResponse_Success(t *testing.T) {
+	resp := EnviarNotificacionResponse{
+		TotalDispositivos: 10,
+		EnviosExitosos:    8,
+		EnviosFallidos:    2,
 	}
 
-	if resp.Exitosos != 5 {
-		t.Errorf("Expected 5 exitosos, got %d", resp.Exitosos)
+	if resp.EnviosExitosos != 8 {
+		t.Errorf("Expected 8 exitosos, got %d", resp.EnviosExitosos)
 	}
 
 	data, err := json.Marshal(resp)
 	if err != nil {
-		t.Fatalf("Error marshaling EnvioNotificacionResponse: %v", err)
+		t.Fatalf("Error marshaling EnviarNotificacionResponse: %v", err)
 	}
 
 	if len(data) == 0 {
 		t.Error("Expected non-empty JSON")
-	}
-}
-
-func TestEnvioNotificacionResponse_WithErrors(t *testing.T) {
-	resp := EnvioNotificacionResponse{
-		IDEnvio:  456,
-		Exitosos: 3,
-		Fallidos: 2,
-		Mensajes: []string{"Error 1", "Error 2"},
-	}
-
-	if resp.Fallidos != 2 {
-		t.Errorf("Expected 2 fallidos, got %d", resp.Fallidos)
 	}
 }
 
