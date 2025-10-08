@@ -1,5 +1,7 @@
 # El fogón de María - Backend (Beego v2 + PostgreSQL)
 
+[![codecov](https://codecov.io/gh/ElLuchoMan/restaurante-back/graph/badge.svg?token=LMQFQMPOD7)](https://codecov.io/gh/ElLuchoMan/restaurante-back)
+
 ## Descripción
 API REST en Go para gestionar operaciones de "El fogón de María": clientes, pedidos, pagos, productos, reservas, nómina y más. Basada en Beego v2 con documentación Swagger.
 
