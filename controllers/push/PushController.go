@@ -20,6 +20,13 @@ var newPushService = func(o orm.Ormer) *services.PushService {
 	return services.NewPushService(o)
 }
 
+// Variables mockeables para ORM (usadas en funciones que requieren servicio)
+var ormProvider = defaultOrmProvider
+
+var pushServiceOrmBase = func() orm.Ormer { return ormProvider() }
+
+var pushServiceOrmFactory = func() orm.Ormer { return pushServiceOrmBase() }
+
 // Interfaces para testing
 type pushQuerySeter interface {
 	All(interface{}, ...string) (int64, error)
@@ -481,7 +488,7 @@ func (c *PushController) ActualizarUltimaVista() {
 		return
 	}
 
-	pushService := newPushService(orm.NewOrm())
+	pushService := newPushService(pushServiceOrmFactory())
 	err = pushService.ActualizarUltimaVista(c.Ctx.Request.Context(), id)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.visto.service_error", err, map[string]interface{}{"id": id})
@@ -626,7 +633,7 @@ func (c *PushController) EnviarNotificacion() {
 	}
 
 	// Crear servicio y enviar notificación
-	service := newPushService(orm.NewOrm())
+	service := newPushService(pushServiceOrmFactory())
 	response, err := service.EnviarNotificacion(&req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.enviar.service_error", err, map[string]interface{}{"titulo": req.Notificacion.Titulo})
@@ -786,7 +793,7 @@ func (c *PushController) RegistrarEnvio() {
 		return
 	}
 
-	pushService := newPushService(orm.NewOrm())
+	pushService := newPushService(pushServiceOrmFactory())
 	envio, err := pushService.RegistrarEnvio(c.Ctx.Request.Context(), &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.registrar_envio.service_error", err, map[string]interface{}{"proveedor": req.Proveedor})

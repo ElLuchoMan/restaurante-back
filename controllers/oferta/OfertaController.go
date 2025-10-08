@@ -79,6 +79,13 @@ var newOfertaService = func(o orm.Ormer) *services.OfertaService {
 	return services.NewOfertaService(o)
 }
 
+// Variables mockeables para ORM (usadas en funciones que requieren servicio)
+var ormProvider = defaultOrmProvider
+
+var ofertaServiceOrmBase = func() orm.Ormer { return ormProvider() }
+
+var ofertaServiceOrmFactory = func() orm.Ormer { return ofertaServiceOrmBase() }
+
 type OfertaController struct {
 	web.Controller
 }
@@ -705,7 +712,7 @@ func (c *OfertaController) ObtenerOfertasActivas() {
 		}
 	}
 
-	ofertaService := newOfertaService(orm.NewOrm())
+	ofertaService := newOfertaService(ofertaServiceOrmFactory())
 	ofertas, err := ofertaService.ObtenerOfertasActivas(c.Ctx.Request.Context(), restauranteId, fecha, hora, productoId)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.activas.service_error", err, map[string]interface{}{"restaurante_id": restauranteId})

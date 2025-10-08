@@ -86,6 +86,13 @@ var newCuponService = func(o orm.Ormer) *services.CuponService {
 	))
 }
 
+// Variables mockeables para ORM (usadas en ValidarCupon y RedimirCupon)
+var ormProvider = defaultOrmProvider
+
+var cupServiceOrmBase = func() orm.Ormer { return ormProvider() }
+
+var cuponServiceOrmFactory = func() orm.Ormer { return cupServiceOrmBase() }
+
 type CuponController struct {
 	web.Controller
 }
@@ -695,7 +702,7 @@ func (c *CuponController) ValidarCupon() {
 		return
 	}
 
-	cuponService := newCuponService(orm.NewOrm())
+	cuponService := newCuponService(cuponServiceOrmFactory())
 	response, err := cuponService.ValidarCupon(c.Ctx.Request.Context(), &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.validar.service_error", err, map[string]interface{}{"codigo": "validacion"})
@@ -747,7 +754,7 @@ func (c *CuponController) RedimirCupon() {
 		return
 	}
 
-	cuponService := newCuponService(nil)
+	cuponService := newCuponService(cuponServiceOrmFactory())
 	redencion, err := cuponService.RedimirCupon(c.Ctx.Request.Context(), codigo, &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.redimir.service_error", err, map[string]interface{}{"codigo": codigo})
