@@ -384,11 +384,6 @@ func TestOfertaDelete_Success(t *testing.T) {
 	mockOfertOrmer.AssertExpectations(t)
 }
 
-func TestOfertaObtenerOfertasActivas_Success(t *testing.T) {
-	t.Skip("TODO: ObtenerOfertasActivas requiere mockear el servicio completo - el servicio usa orm.NewOrm() internamente")
-	// Este test requiere refactorización más profunda del servicio
-}
-
 func TestOfertaAsociarProducto_Success(t *testing.T) {
 	controller, recorder, ctx := setupOfertaTest()
 

@@ -201,40 +201,6 @@ func TestPushGetAll_CountError(t *testing.T) {
 	mockPushQS.AssertExpectations(t)
 }
 
-func TestPushPost_Success(t *testing.T) {
-	t.Skip("TODO: Requiere refactorizar controller para inyectar PushService - services.NewPushService(orm.NewOrm()) no es mockeable")
-	controller, recorder, ctx := setupPushTest()
-
-	// Preparar request body usando el DTO correcto
-	endpoint := "https://test.endpoint.com"
-	p256dh := "test_p256dh"
-	auth := "test_auth"
-	docCliente := int64(123)
-	request := models.RegistrarDispositivoRequest{
-		Plataforma:         "WEB",
-		Endpoint:           &endpoint,
-		P256dh:             &p256dh,
-		Auth:               &auth,
-		PkDocumentoCliente: &docCliente,
-		SubscribedTopics:   []string{"promos", "novedades"},
-	}
-
-	body, _ := json.Marshal(request)
-	ctx.Request = httptest.NewRequest("POST", "/push/dispositivos", bytes.NewBuffer(body))
-	ctx.Request.Header.Set("Content-Type", "application/json")
-	ctx.Input.RequestBody = body
-
-	// Configurar mocks
-	mockPushOrm.On("Insert", mock.AnythingOfType("*models.PushDispositivo")).Return(int64(1), nil)
-
-	// Ejecutar
-	controller.Post()
-
-	// Verificar
-	assert.Equal(t, http.StatusCreated, recorder.Code)
-	mockPushOrm.AssertExpectations(t)
-}
-
 func TestPushPost_InvalidJSON(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
@@ -320,13 +286,6 @@ func TestPushGetById_NotFound(t *testing.T) {
 	mockPushOrm.AssertExpectations(t)
 }
 
-func TestPushPut_Success(t *testing.T) {
-	t.Skip("TODO: Requiere refactorizar controller para inyectar PushService completo - el servicio usa orm.NewOrm() internamente y accede a la BD")
-	// El servicio PushService.ActualizarEstadoDispositivo hace Read + Update en la BD
-	// Para testear esto sin BD, necesitaríamos mockear el servicio completo o refactorizar
-	// para que el servicio use el Ormer inyectado en lugar de crear uno nuevo
-}
-
 func TestPushDelete_Success(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
@@ -349,29 +308,6 @@ func TestPushDelete_Success(t *testing.T) {
 	mockPushOrm.AssertExpectations(t)
 }
 
-func TestPushActualizarUltimaVista_Success(t *testing.T) {
-	t.Skip("TODO: refactorizar controlador para inyectar servicio en lugar de crear ORM directamente")
-	controller, recorder, ctx := setupPushTest()
-
-	// Configurar parámetro ID
-	ctx.Input.SetParam(":id", "1")
-
-	// Configurar mocks
-	dispositivo := models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: "WEB"}
-	mockPushOrm.On("Read", mock.AnythingOfType("*models.PushDispositivo"), []string(nil)).Run(func(args mock.Arguments) {
-		arg := args.Get(0).(*models.PushDispositivo)
-		*arg = dispositivo
-	}).Return(nil)
-	mockPushOrm.On("Update", mock.AnythingOfType("*models.PushDispositivo"), []string{"last_seen_at"}).Return(int64(1), nil)
-
-	// Ejecutar
-	controller.ActualizarUltimaVista()
-
-	// Verificar
-	assert.Equal(t, http.StatusOK, recorder.Code)
-	mockPushOrm.AssertExpectations(t)
-}
-
 func TestPushActualizarUltimaVista_InvalidID(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
@@ -383,11 +319,6 @@ func TestPushActualizarUltimaVista_InvalidID(t *testing.T) {
 
 	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-}
-
-func TestPushActualizarTopics_Success(t *testing.T) {
-	t.Skip("TODO: Requiere refactorizar controller para inyectar PushService completo - el servicio usa orm.NewOrm() internamente y accede a la BD")
-	// El servicio PushService.ActualizarTopics hace Read + Update en la BD
 }
 
 func TestPushActualizarTopics_InvalidJSON(t *testing.T) {
@@ -405,11 +336,6 @@ func TestPushActualizarTopics_InvalidJSON(t *testing.T) {
 
 	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-}
-
-func TestPushEnviarNotificacion_Success(t *testing.T) {
-	t.Skip("TODO: Requiere refactorizar controller para inyectar PushService completo - el servicio usa orm.NewOrm() internamente y accede a la BD")
-	// El servicio PushService.EnviarNotificacion hace operaciones complejas con la BD
 }
 
 func TestPushEnviarNotificacion_InvalidJSON(t *testing.T) {
@@ -456,10 +382,6 @@ func TestPushListarEnvios_Success(t *testing.T) {
 	mockPushQS.AssertExpectations(t)
 }
 
-func TestPushRegistrarEnvio_Success(t *testing.T) {
-	t.Skip("TODO: Requiere refactorizar controller para inyectar PushService completo - el servicio usa orm.NewOrm() internamente y accede a la BD")
-}
-
 func TestPushRegistrarEnvio_InvalidJSON(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
@@ -472,9 +394,4 @@ func TestPushRegistrarEnvio_InvalidJSON(t *testing.T) {
 
 	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-}
-
-// Test para cobertura de las interfaces adaptadoras
-func TestPushAdapterInterfaces(t *testing.T) {
-	t.Skip("TODO: Test de adaptadores requiere ORM real")
 }

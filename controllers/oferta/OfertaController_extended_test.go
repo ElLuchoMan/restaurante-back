@@ -73,10 +73,6 @@ func TestOfertaPost_DatabaseError(t *testing.T) {
 	mockOfertOrmer.AssertExpectations(t)
 }
 
-func TestOfertaPost_InvalidScope(t *testing.T) {
-	t.Skip("Controller no valida scope antes de insertar - validación se hace en el servicio")
-}
-
 func TestOfertaPut_InvalidID(t *testing.T) {
 	controller, recorder, _ := setupOfertaTest()
 

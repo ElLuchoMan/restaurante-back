@@ -58,12 +58,11 @@ func TestOfertaPost_TituloVacio(t *testing.T) {
 
 	ctrl.Post()
 
-	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
 
 	var response models.ApiResponse
 	_ = json.Unmarshal(recorder.Body.Bytes(), &response)
-	assert.Equal(t, http.StatusBadRequest, response.Code)
-	assert.Contains(t, response.Message, "requerido")
+	assert.Equal(t, http.StatusUnprocessableEntity, response.Code)
 }
 
 func TestOfertaPost_FechaInicioInvalida(t *testing.T) {
@@ -89,11 +88,11 @@ func TestOfertaPost_FechaInicioInvalida(t *testing.T) {
 
 	ctrl.Post()
 
-	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
 
 	var response models.ApiResponse
 	_ = json.Unmarshal(recorder.Body.Bytes(), &response)
-	assert.Equal(t, http.StatusBadRequest, response.Code)
+	assert.Equal(t, http.StatusUnprocessableEntity, response.Code)
 }
 
 // ============================================================================

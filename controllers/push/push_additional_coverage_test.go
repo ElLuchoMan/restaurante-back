@@ -49,12 +49,6 @@ func TestActualizarUltimaVista_MissingID(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
-// TestActualizarUltimaVista_ParamID cubre el caso de ID en parámetro de ruta
-func TestActualizarUltimaVista_ParamID(t *testing.T) {
-	// Skip: Este test requiere servicio real o mocks complejos
-	t.Skip("Skipping: requires real service or complex mocking")
-}
-
 // TestActualizarTopics_InvalidID cubre el caso de ID inválido
 func TestActualizarTopics_InvalidID(t *testing.T) {
 	controller, recorder, _ := setupPushTest()
@@ -163,46 +157,4 @@ func TestRegistrarEnvio_InvalidJSON(t *testing.T) {
 
 	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-}
-
-// TestGetAll_WithFilters cubre GetAll con filtros
-func TestGetAll_WithFilters(t *testing.T) {
-	// Skip: Este test requiere mocks más complejos
-	t.Skip("Skipping: requires complex ORM mocking")
-}
-
-// TestGetAll_CountError cubre el caso de error al contar
-func TestGetAll_CountError(t *testing.T) {
-	// Skip: ya está cubierto en otros tests
-	t.Skip("Already covered in extended tests")
-}
-
-// TestPost_InsertError cubre el caso de error al insertar
-func TestPost_InsertError(t *testing.T) {
-	// Skip: requiere mocks más complejos
-	t.Skip("Skipping: requires complex ORM mocking")
-}
-
-// TestPut_UpdateError cubre el caso de error al actualizar
-func TestPut_UpdateError(t *testing.T) {
-	// Skip: requiere mocks más complejos
-	t.Skip("Skipping: requires complex ORM mocking")
-}
-
-// TestDelete_DeleteError cubre el caso de error al eliminar
-func TestDelete_DeleteError(t *testing.T) {
-	// Skip: requiere mocks más complejos
-	t.Skip("Skipping: requires complex ORM mocking")
-}
-
-// TestListarEnvios_WithFilters cubre ListarEnvios con filtros
-func TestListarEnvios_WithFilters(t *testing.T) {
-	// Skip: requiere mocks más complejos
-	t.Skip("Skipping: requires complex ORM mocking")
-}
-
-// TestListarEnvios_LimitExceedsMax cubre el caso de límite > 100
-func TestListarEnvios_LimitExceedsMax(t *testing.T) {
-	// Skip: requiere mocks más complejos
-	t.Skip("Skipping: requires complex ORM mocking")
 }

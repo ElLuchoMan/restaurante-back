@@ -508,57 +508,6 @@ func TestDelete_InvalidID(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
-func TestValidarCupon_Success(t *testing.T) {
-	t.Skip("TODO: Requiere refactorizar controller para inyectar CuponService completo - el servicio llama a orm.NewOrm() directamente")
-	controller, recorder, ctx := setupTest()
-
-	// Preparar request body
-	request := map[string]interface{}{
-		"codigo":    "TEST1",
-		"clienteId": 123,
-		"items": []map[string]interface{}{
-			{
-				"productoId": 1,
-				"cantidad":   2,
-				"precio":     10000,
-			},
-		},
-	}
-
-	body, _ := json.Marshal(request)
-	ctx.Request = httptest.NewRequest("POST", "/cupones/validar", bytes.NewBuffer(body))
-	ctx.Request.Header.Set("Content-Type", "application/json")
-	ctx.Input.RequestBody = body
-
-	// Configurar mock
-	cupon := models.Cupon{
-		PkIdCupon:      1,
-		Codigo:         "TEST1",
-		Scope:          "GLOBAL",
-		TipoDescuento:  "PORCENTAJE",
-		ValorDescuento: 10,
-		FechaInicio:    time.Now(),
-		FechaFin:       time.Now().AddDate(0, 1, 0),
-		Activo:         true,
-	}
-
-	mockOrmer.On("QueryTable", "cupon").Return(mockQS)
-	mockQS.On("Filter", "codigo", []interface{}{"TEST1"}).Return(mockQS)
-	mockQS.On("Filter", "activo", []interface{}{true}).Return(mockQS)
-	mockQS.On("One", mock.AnythingOfType("*models.Cupon")).Run(func(args mock.Arguments) {
-		arg := args.Get(0).(*models.Cupon)
-		*arg = cupon
-	}).Return(nil)
-
-	// Ejecutar
-	controller.ValidarCupon()
-
-	// Verificar
-	assert.Equal(t, http.StatusOK, recorder.Code)
-	mockOrmer.AssertExpectations(t)
-	mockQS.AssertExpectations(t)
-}
-
 func TestValidarCupon_InvalidJSON(t *testing.T) {
 	controller, recorder, ctx := setupTest()
 
@@ -571,54 +520,6 @@ func TestValidarCupon_InvalidJSON(t *testing.T) {
 
 	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-}
-
-func TestRedimirCupon_Success(t *testing.T) {
-	t.Skip("TODO: Requiere refactorizar controller para inyectar CuponService completo - el servicio llama a orm.NewOrm() directamente")
-	controller, recorder, ctx := setupTest()
-
-	// Configurar parámetro código
-	ctx.Input.SetParam(":codigo", "TEST1")
-
-	// Preparar request body
-	request := map[string]interface{}{
-		"clienteId": 123,
-		"pedidoId":  1,
-	}
-
-	body, _ := json.Marshal(request)
-	ctx.Request = httptest.NewRequest("POST", "/cupones/TEST1/redimir", bytes.NewBuffer(body))
-	ctx.Request.Header.Set("Content-Type", "application/json")
-	ctx.Input.RequestBody = body
-
-	// Configurar mocks
-	cupon := models.Cupon{
-		PkIdCupon:      1,
-		Codigo:         "TEST1",
-		Scope:          "GLOBAL",
-		TipoDescuento:  "PORCENTAJE",
-		ValorDescuento: 10,
-		FechaInicio:    time.Now(),
-		FechaFin:       time.Now().AddDate(0, 1, 0),
-		Activo:         true,
-	}
-
-	mockOrmer.On("QueryTable", "cupon").Return(mockQS)
-	mockQS.On("Filter", "codigo", []interface{}{"TEST1"}).Return(mockQS)
-	mockQS.On("Filter", "activo", []interface{}{true}).Return(mockQS)
-	mockQS.On("One", mock.AnythingOfType("*models.Cupon")).Run(func(args mock.Arguments) {
-		arg := args.Get(0).(*models.Cupon)
-		*arg = cupon
-	}).Return(nil)
-	mockOrmer.On("Insert", mock.AnythingOfType("*models.CuponRedencion")).Return(int64(1), nil)
-
-	// Ejecutar
-	controller.RedimirCupon()
-
-	// Verificar
-	assert.Equal(t, http.StatusCreated, recorder.Code)
-	mockOrmer.AssertExpectations(t)
-	mockQS.AssertExpectations(t)
 }
 
 func TestRedimirCupon_InvalidJSON(t *testing.T) {
@@ -668,56 +569,4 @@ func TestListarRedenciones_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	mockOrmer.AssertExpectations(t)
 	mockQS.AssertExpectations(t)
-}
-
-// Test para cobertura de las interfaces adaptadoras
-func TestAdapterInterfaces(t *testing.T) {
-	t.Skip("TODO: Test de adaptadores requiere refactorización")
-	// Test cupQSAdapter
-	adapter := &cupQSAdapter{}
-
-	// Estos métodos no hacen nada, solo para cobertura
-	result, err := adapter.All(nil)
-	assert.Equal(t, int64(0), result)
-	assert.Nil(t, err)
-
-	filterResult := adapter.Filter("test", "value")
-	assert.NotNil(t, filterResult)
-
-	orderResult := adapter.OrderBy("test")
-	assert.NotNil(t, orderResult)
-
-	limitResult := adapter.Limit(10)
-	assert.NotNil(t, limitResult)
-
-	offsetResult := adapter.Offset(5)
-	assert.NotNil(t, offsetResult)
-
-	count, err := adapter.Count()
-	assert.Equal(t, int64(0), count)
-	assert.Nil(t, err)
-
-	oneErr := adapter.One(nil)
-	assert.Nil(t, oneErr)
-
-	// Test cupOrmAdapter
-	ormAdapter := &cupOrmAdapter{}
-
-	qsResult := ormAdapter.QueryTable("test")
-	assert.NotNil(t, qsResult)
-
-	insertId, insertErr := ormAdapter.Insert(nil)
-	assert.Equal(t, int64(0), insertId)
-	assert.Nil(t, insertErr)
-
-	readErr := ormAdapter.Read(nil)
-	assert.Nil(t, readErr)
-
-	updateNum, updateErr := ormAdapter.Update(nil)
-	assert.Equal(t, int64(0), updateNum)
-	assert.Nil(t, updateErr)
-
-	deleteNum, deleteErr := ormAdapter.Delete(nil)
-	assert.Equal(t, int64(0), deleteNum)
-	assert.Nil(t, deleteErr)
 }

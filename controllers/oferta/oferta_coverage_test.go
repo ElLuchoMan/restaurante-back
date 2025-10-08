@@ -107,24 +107,6 @@ func TestObtenerOfertasActivas_HoraInvalida(t *testing.T) {
 	assert.Contains(t, response.Message, "HH:MM")
 }
 
-func TestObtenerOfertasActivas_ErrorDelServicio(t *testing.T) {
-	// Skip: El servicio de OfertaService tiene lógica compleja que requiere ORM real
-	// La cobertura de error del servicio ya está cubierta por los tests del servicio
-	t.Skip("Requiere ORM real - cubierto por tests de servicio OfertaService")
-}
-
-func TestObtenerOfertasActivas_Exitoso(t *testing.T) {
-	// Skip: El servicio de OfertaService tiene lógica compleja que requiere ORM real
-	// La cobertura del caso exitoso ya está cubierta por tests de integración
-	t.Skip("Requiere ORM real - cubierto por tests de integración")
-}
-
-func TestObtenerOfertasActivas_ConParametrosOpcionales(t *testing.T) {
-	// Skip: Requiere ORM real para que el servicio funcione correctamente
-	// El parsing de parámetros opcionales está cubierto implícitamente
-	t.Skip("Requiere ORM real - cubierto por tests de integración")
-}
-
 // ============================================================================
 // TESTS DE COBERTURA ADICIONAL
 // ============================================================================

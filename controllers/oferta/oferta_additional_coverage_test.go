@@ -88,27 +88,6 @@ func TestObtenerOfertasActivas_InvalidHora(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
-// TestObtenerOfertasActivas_InvalidProductoId cubre el caso de producto_id inválido
-func TestObtenerOfertasActivas_InvalidProductoId(t *testing.T) {
-	controller, recorder, _ := setupOfertaTest()
-
-	// Request con producto_id inválido (no se debería fallar, se ignora)
-	req := httptest.NewRequest("GET", "/ofertas/activas?restaurante_id=1&producto_id=invalid", nil)
-	ctx := context.NewContext()
-	ctx.Reset(recorder, req)
-	controller.Ctx = ctx
-	controller.Data = make(map[interface{}]interface{})
-
-	// Skip: Este test requiere servicio real
-	t.Skip("Skipping: requires real service or complex mocking")
-}
-
-// TestObtenerOfertasActivas_ServiceError cubre el caso de error del servicio
-func TestObtenerOfertasActivas_ServiceError(t *testing.T) {
-	// Skip: Este test requiere servicio real
-	t.Skip("Skipping: requires real service or complex mocking")
-}
-
 // TestAsociarProducto_InvalidJSON cubre el caso de JSON inválido
 func TestAsociarProducto_InvalidJSON(t *testing.T) {
 	controller, recorder, _ := setupOfertaTest()

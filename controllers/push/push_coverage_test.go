@@ -124,18 +124,6 @@ func TestEnviarNotificacion_MensajeFaltante(t *testing.T) {
 	assert.Contains(t, response.Message, "mensaje es requerido")
 }
 
-func TestEnviarNotificacion_ErrorDelServicio(t *testing.T) {
-	// Skip: El servicio de PushService tiene lógica compleja que requiere ORM real
-	// La cobertura de error del servicio ya está cubierta por los tests del servicio
-	t.Skip("Requiere ORM real - cubierto por tests de servicio PushService")
-}
-
-func TestEnviarNotificacion_Exitoso(t *testing.T) {
-	// Skip: El servicio de PushService tiene lógica compleja que requiere ORM real
-	// La cobertura del caso exitoso ya está cubierta por tests de integración
-	t.Skip("Requiere ORM real - cubierto por tests de integración")
-}
-
 // ============================================================================
 // TESTS PARA ActualizarUltimaVista
 // ============================================================================
@@ -159,16 +147,6 @@ func TestActualizarUltimaVista_IDInvalido(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, response.Code)
 	assert.Contains(t, response.Message, "ID inválido")
-}
-
-func TestActualizarUltimaVista_ErrorDelServicio(t *testing.T) {
-	// Skip: Requiere ORM real para que el servicio funcione correctamente
-	t.Skip("Requiere ORM real - cubierto por tests de servicio PushService")
-}
-
-func TestActualizarUltimaVista_Exitoso(t *testing.T) {
-	// Skip: Requiere ORM real para que el servicio funcione correctamente
-	t.Skip("Requiere ORM real - cubierto por tests de servicio PushService")
 }
 
 // ============================================================================
@@ -225,16 +203,6 @@ func TestRegistrarEnvio_ProveedorInvalido(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusUnprocessableEntity, response.Code)
 	assert.Contains(t, response.Message, "Proveedor no válido")
-}
-
-func TestRegistrarEnvio_ErrorDelServicio(t *testing.T) {
-	// Skip: Requiere ORM real para que el servicio funcione correctamente
-	t.Skip("Requiere ORM real - cubierto por tests de servicio PushService")
-}
-
-func TestRegistrarEnvio_Exitoso(t *testing.T) {
-	// Skip: Requiere ORM real para que el servicio funcione correctamente
-	t.Skip("Requiere ORM real - cubierto por tests de servicio PushService")
 }
 
 // ============================================================================

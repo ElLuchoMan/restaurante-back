@@ -35,12 +35,6 @@ func TestValidarCupon_BadJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
 
-// TestValidarCupon_ServiceError cubre el caso de error del servicio
-func TestValidarCupon_ServiceError(t *testing.T) {
-	// Skip this test - requires full service mock or real DB
-	t.Skip("Skipping: requires complex service mocking or real DB connection")
-}
-
 // TestRedimirCupon_BadJSON cubre el caso de JSON inválido en RedimirCupon
 func TestRedimirCupon_BadJSON(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/cupones/TEST/redimir", bytes.NewReader([]byte("invalid json")))
