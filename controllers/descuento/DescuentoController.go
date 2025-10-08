@@ -25,7 +25,7 @@ type descuentoOrmer interface {
 }
 
 type descOrmAdapter struct {
-        readFn func(interface{}, ...string) error
+	readFn func(interface{}, ...string) error
 }
 
 func (a descOrmAdapter) Read(v interface{}, cols ...string) error { return a.readFn(v, cols...) }
