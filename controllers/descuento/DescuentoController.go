@@ -1,6 +1,7 @@
 package descuento
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -12,69 +13,43 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+type descuentoService interface {
+	ObtenerDescuentosPedido(ctx context.Context, pedidoId int64) ([]*models.PedidoDescuentoAplicado, error)
+	ValidarExclusividadDescuento(ctx context.Context, pedidoId int64, cuponId *int64, ofertaId *int64) error
+	AplicarDescuento(ctx context.Context, pedidoId int64, req *models.AplicarDescuentoRequest) (*models.PedidoDescuentoAplicado, error)
+}
+
 // Interfaces para testing
-type descuentoQuerySeter interface {
-	All(interface{}, ...string) (int64, error)
-	Filter(string, ...interface{}) descuentoQuerySeter
-	OrderBy(...string) descuentoQuerySeter
-	Limit(int) descuentoQuerySeter
-	Offset(int64) descuentoQuerySeter
-	Count() (int64, error)
-	One(interface{}) error
-}
-
 type descuentoOrmer interface {
-	QueryTable(interface{}) descuentoQuerySeter
-	Insert(interface{}) (int64, error)
 	Read(interface{}, ...string) error
-	Update(interface{}, ...string) (int64, error)
-	Delete(interface{}, ...string) (int64, error)
 }
 
-type descQSAdapter struct{ qs orm.QuerySeter }
-
-func (a descQSAdapter) All(res interface{}, cols ...string) (int64, error) {
-	return a.qs.All(res, cols...)
-}
-func (a descQSAdapter) Filter(expr string, args ...interface{}) descuentoQuerySeter {
-	return descQSAdapter{qs: a.qs.Filter(expr, args...)}
-}
-func (a descQSAdapter) OrderBy(exprs ...string) descuentoQuerySeter {
-	return descQSAdapter{qs: a.qs.OrderBy(exprs...)}
-}
-func (a descQSAdapter) Limit(limit int) descuentoQuerySeter {
-	return descQSAdapter{qs: a.qs.Limit(limit)}
-}
-func (a descQSAdapter) Offset(offset int64) descuentoQuerySeter {
-	return descQSAdapter{qs: a.qs.Offset(offset)}
-}
-func (a descQSAdapter) Count() (int64, error) {
-	return a.qs.Count()
-}
-func (a descQSAdapter) One(container interface{}) error {
-	return a.qs.One(container)
+type descOrmAdapter struct {
+        readFn func(interface{}, ...string) error
 }
 
-type descOrmAdapter struct{ o orm.Ormer }
+func (a descOrmAdapter) Read(v interface{}, cols ...string) error { return a.readFn(v, cols...) }
 
-func (a descOrmAdapter) QueryTable(i interface{}) descuentoQuerySeter {
-	return descQSAdapter{qs: a.o.QueryTable(i)}
-}
-func (a descOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
-func (a descOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a descOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
-	return a.o.Update(v, cols...)
-}
-func (a descOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
-	return a.o.Delete(v, cols...)
-}
+var ormReadProvider = defaultOrmReadProvider
 
-var descOrmNew = func() descuentoOrmer { return descOrmAdapter{o: orm.NewOrm()} }
+var descBaseReadFunc = func() func(interface{}, ...string) error { return ormReadProvider() }
+
+var descReadFuncFactory = func() func(interface{}, ...string) error { return descBaseReadFunc() }
+
+var descOrmFactory = func() descuentoOrmer { return descOrmAdapter{readFn: descReadFuncFactory()} }
+
+var descOrmNew = func() descuentoOrmer { return descOrmFactory() }
 
 // Variable mockeable para tests
-var newDescuentoService = func(o orm.Ormer) *services.DescuentoService {
+var newDescuentoService = func(o orm.Ormer) descuentoService {
 	return services.NewDescuentoService(o)
 }
+
+var ormProvider = defaultOrmProvider
+
+var descServiceOrmBase = func() orm.Ormer { return ormProvider() }
+
+var descuentoServiceOrmFactory = func() orm.Ormer { return descServiceOrmBase() }
 
 type DescuentoController struct {
 	web.Controller
@@ -130,7 +105,7 @@ func (c *DescuentoController) GetAll() {
 		return
 	}
 
-	descuentoService := newDescuentoService(orm.NewOrm())
+	descuentoService := newDescuentoService(descuentoServiceOrmFactory())
 	descuentos, err := descuentoService.ObtenerDescuentosPedido(c.Ctx.Request.Context(), pedidoId)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "descuentos.getall.service_error", err, map[string]interface{}{"pedido_id": pedidoId})
@@ -204,7 +179,7 @@ func (c *DescuentoController) Post() {
 		return
 	}
 
-	descuentoService := newDescuentoService(orm.NewOrm())
+	descuentoService := newDescuentoService(descuentoServiceOrmFactory())
 
 	// Validar exclusividad antes de aplicar
 	err = descuentoService.ValidarExclusividadDescuento(c.Ctx.Request.Context(), pedidoId, req.PkIdCupon, req.PkIdOferta)
