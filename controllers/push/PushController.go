@@ -16,7 +16,7 @@ import (
 )
 
 // Variable mockeable para crear el servicio (testing)
-var newPushService = func(o orm.Ormer) *services.PushService {
+var newPushService = func(o orm.Ormer) services.PushServiceInterface {
 	return services.NewPushService(o)
 }
 
@@ -26,6 +26,9 @@ var ormProvider = defaultOrmProvider
 var pushServiceOrmBase = func() orm.Ormer { return ormProvider() }
 
 var pushServiceOrmFactory = func() orm.Ormer { return pushServiceOrmBase() }
+
+// Variable mockeable para el ORM usado en los métodos del servicio
+var newServiceOrm = func() orm.Ormer { return orm.NewOrm() }
 
 // Interfaces para testing
 type pushQuerySeter interface {
@@ -225,7 +228,7 @@ func (c *PushController) Post() {
 		return
 	}
 
-	pushService := newPushService(orm.NewOrm())
+	pushService := newPushService(newServiceOrm())
 	dispositivo, err := pushService.RegistrarDispositivo(c.Ctx.Request.Context(), &req)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.post.service_error", err, map[string]interface{}{"dispositivo": "registro"})
@@ -357,7 +360,7 @@ func (c *PushController) Put() {
 		return
 	}
 
-	pushService := newPushService(orm.NewOrm())
+	pushService := newPushService(newServiceOrm())
 	err = pushService.ActualizarEstadoDispositivo(c.Ctx.Request.Context(), id, req.Enabled)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.put.service_error", err, map[string]interface{}{"id": id})
@@ -559,7 +562,7 @@ func (c *PushController) ActualizarTopics() {
 		return
 	}
 
-	pushService := newPushService(orm.NewOrm())
+	pushService := newPushService(newServiceOrm())
 	err = pushService.ActualizarTopicsDispositivo(c.Ctx.Request.Context(), id, req.SubscribedTopics)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.topics.service_error", err, map[string]interface{}{"id": id})

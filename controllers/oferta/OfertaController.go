@@ -75,7 +75,7 @@ func (a ofertOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
 var ofertOrmNew = func() ofertaOrmer { return ofertOrmAdapter{o: orm.NewOrm()} }
 
 // Variable mockeable para crear el servicio
-var newOfertaService = func(o orm.Ormer) *services.OfertaService {
+var newOfertaService = func(o orm.Ormer) services.OfertaServiceInterface {
 	return services.NewOfertaService(o)
 }
 

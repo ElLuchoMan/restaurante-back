@@ -98,7 +98,7 @@ func init() {
 		return mockOfertOrmer
 	}
 	// Mockear el servicio - ValidarReglasNegocioOferta no usa el ORM, así que podemos pasar nil
-	newOfertaService = func(o orm.Ormer) *services.OfertaService {
+	newOfertaService = func(o orm.Ormer) services.OfertaServiceInterface {
 		return services.NewOfertaService(nil)
 	}
 }

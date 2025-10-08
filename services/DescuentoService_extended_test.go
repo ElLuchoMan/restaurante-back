@@ -781,5 +781,174 @@ func TestDescuentoService_ValidarExclusividadDescuento_CuponDuplicado_Error(t *t
 	assert.Contains(t, err.Error(), "error al verificar cupón duplicado")
 }
 
-// Tests con mocks complejos de filters anidados omitidos por ahora
-// TODO: Refactorizar DescuentoService con interfaces testables como CuponService para mejorar testabilidad
+func TestDescuentoService_ValidarExclusividadDescuento_CuponYaAplicado(t *testing.T) {
+	callCount := 0
+	service := NewDescuentoService(&mockDescuentoOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			callCount++
+			return &mockDescuentoQuerySeter{
+				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+					return &mockDescuentoQuerySeter{
+						filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+							return &mockDescuentoQuerySeter{
+								countFn: func() (int64, error) {
+									if callCount == 2 {
+										return 1, nil // Cupón ya aplicado
+									}
+									return 0, nil
+								},
+							}
+						},
+						countFn: func() (int64, error) {
+							return 0, nil // Primera verificación OK
+						},
+					}
+				},
+			}
+		},
+	})
+
+	cuponId := int64(1)
+	err := service.ValidarExclusividadDescuento(context.Background(), 1, &cuponId, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "este cupón ya ha sido aplicado a este pedido")
+}
+
+func TestDescuentoService_ValidarExclusividadDescuento_OfertaYaAplicada(t *testing.T) {
+	callCount := 0
+	service := NewDescuentoService(&mockDescuentoOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			callCount++
+			return &mockDescuentoQuerySeter{
+				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+					return &mockDescuentoQuerySeter{
+						filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+							return &mockDescuentoQuerySeter{
+								countFn: func() (int64, error) {
+									if callCount == 2 {
+										return 1, nil // Oferta ya aplicada
+									}
+									return 0, nil
+								},
+							}
+						},
+						countFn: func() (int64, error) {
+							return 0, nil // Primera verificación OK
+						},
+					}
+				},
+			}
+		},
+	})
+
+	ofertaId := int64(1)
+	err := service.ValidarExclusividadDescuento(context.Background(), 1, nil, &ofertaId)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "esta oferta ya ha sido aplicada a este pedido")
+}
+
+func TestDescuentoService_ValidarExclusividadDescuento_OfertaDuplicada_Error(t *testing.T) {
+	callCount := 0
+	service := NewDescuentoService(&mockDescuentoOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			callCount++
+			return &mockDescuentoQuerySeter{
+				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+					return &mockDescuentoQuerySeter{
+						filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+							return &mockDescuentoQuerySeter{
+								countFn: func() (int64, error) {
+									if callCount == 2 {
+										return 0, assert.AnError // Error en verificación de oferta
+									}
+									return 0, nil
+								},
+							}
+						},
+						countFn: func() (int64, error) {
+							return 0, nil
+						},
+					}
+				},
+			}
+		},
+	})
+
+	ofertaId := int64(1)
+	err := service.ValidarExclusividadDescuento(context.Background(), 1, nil, &ofertaId)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error al verificar oferta duplicada")
+}
+
+func TestDescuentoService_ValidarExclusividadDescuento_Exito_SinDescuentos(t *testing.T) {
+	service := NewDescuentoService(&mockDescuentoOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			return &mockDescuentoQuerySeter{
+				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+					return &mockDescuentoQuerySeter{
+						countFn: func() (int64, error) {
+							return 0, nil // No hay descuentos previos
+						},
+					}
+				},
+			}
+		},
+	})
+
+	err := service.ValidarExclusividadDescuento(context.Background(), 1, nil, nil)
+	assert.NoError(t, err)
+}
+
+func TestDescuentoService_ValidarExclusividadDescuento_Exito_ConCupon(t *testing.T) {
+	service := NewDescuentoService(&mockDescuentoOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			return &mockDescuentoQuerySeter{
+				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+					return &mockDescuentoQuerySeter{
+						filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+							return &mockDescuentoQuerySeter{
+								countFn: func() (int64, error) {
+									return 0, nil
+								},
+							}
+						},
+						countFn: func() (int64, error) {
+							return 0, nil
+						},
+					}
+				},
+			}
+		},
+	})
+
+	cuponId := int64(1)
+	err := service.ValidarExclusividadDescuento(context.Background(), 1, &cuponId, nil)
+	assert.NoError(t, err)
+}
+
+func TestDescuentoService_ValidarExclusividadDescuento_Exito_ConOferta(t *testing.T) {
+	service := NewDescuentoService(&mockDescuentoOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			return &mockDescuentoQuerySeter{
+				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+					return &mockDescuentoQuerySeter{
+						filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+							return &mockDescuentoQuerySeter{
+								countFn: func() (int64, error) {
+									return 0, nil
+								},
+							}
+						},
+						countFn: func() (int64, error) {
+							return 0, nil
+						},
+					}
+				},
+			}
+		},
+	})
+
+	ofertaId := int64(1)
+	err := service.ValidarExclusividadDescuento(context.Background(), 1, nil, &ofertaId)
+	assert.NoError(t, err)
+}
