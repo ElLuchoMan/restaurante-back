@@ -200,7 +200,8 @@ func (c *CambiosHorarioController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
-		horario.FECHA = parsedDate
+		// FECHA estable a mediodía UTC
+		horario.FECHA = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 12, 0, 0, 0, time.UTC)
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
 		c.Data["json"] = models.ApiResponse{
@@ -385,7 +386,7 @@ func (c *CambiosHorarioController) Put() {
 			_ = c.ServeJSON()
 			return
 		}
-		horario.FECHA = parsedDate
+		horario.FECHA = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 12, 0, 0, 0, time.UTC)
 	}
 
 	if abierto, ok := input["abierto"].(bool); ok {

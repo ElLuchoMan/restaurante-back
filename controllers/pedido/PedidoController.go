@@ -10,7 +10,7 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-var loadLocationPedido = time.LoadLocation
+// zona horaria no requerida: usamos UTC estable en creaciones
 
 type PedidoController struct {
 	web.Controller
@@ -160,18 +160,12 @@ func (c *PedidoController) Post() {
 		return
 	}
 
-	loc, errLoc := loadLocationPedido("America/Bogota")
-	if errLoc != nil {
-		logging.LogControllerError(c.Ctx, "pedidos.post.tz_error", errLoc, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(500)
-		c.Data["json"] = models.ApiResponse{Code: 500, Message: "No se pudo cargar zona horaria", Cause: errLoc.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	now := time.Now().In(loc)
+	// Zona horaria no requerida; usamos UTC estable
+	now := time.Now().UTC()
 
 	var pedido models.Pedido
-	pedido.FECHA = now
+	// FECHA al mediodía UTC del día actual; HORA al instante actual UTC (estables)
+	pedido.FECHA = time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC)
 	pedido.HORA = now
 	pedido.ESTADO_PEDIDO = models.EstadoPedidoIniciado
 

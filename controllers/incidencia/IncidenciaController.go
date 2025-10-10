@@ -208,7 +208,8 @@ func (c *IncidenciaController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
-		incidencia.FECHA = parsedDate
+		// Guardar fecha a mediodía UTC para estabilidad de calendario
+		incidencia.FECHA = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 12, 0, 0, 0, time.UTC)
 	} else {
 		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "fechaIncidencia"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -376,7 +377,7 @@ func (c *IncidenciaController) Put() {
 			_ = c.ServeJSON()
 			return
 		}
-		incidencia.FECHA = parsedDate
+		incidencia.FECHA = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 12, 0, 0, 0, time.UTC)
 	}
 
 	if monto, ok := input["monto"].(float64); ok {

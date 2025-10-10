@@ -66,11 +66,7 @@ func (c *PagoController) GetAll() {
 		return
 	}
 
-	for i := range pagos {
-		pagos[i].UPDATED_AT = pagos[i].UPDATED_AT.UTC()
-		pagos[i].FECHA = pagos[i].FECHA.UTC()
-		pagos[i].HORA = pagos[i].HORA.UTC()
-	}
+	// No aplicar conversiones aquí; el formateo se maneja en los modelos
 
 	fecha := c.GetString("fecha")
 	dia, _ := c.GetInt("dia")
@@ -284,8 +280,11 @@ func (c *PagoController) Post() {
 		updatedBy = &in.UpdatedBy
 	}
 
+	// Guardar fecha a mediodía UTC para evitar corrimientos de día
+	fechaMidUTC := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 12, 0, 0, 0, time.UTC)
+
 	pago := models.Pago{
-		FECHA:             fecha,
+		FECHA:             fechaMidUTC,
 		HORA:              hora,
 		MONTO:             in.Monto,
 		ESTADO_PAGO:       in.EstadoPago,
@@ -385,7 +384,7 @@ func (c *PagoController) Put() {
 			_ = c.ServeJSON()
 			return
 		}
-		pago.FECHA = parsedDate
+		pago.FECHA = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 12, 0, 0, 0, time.UTC)
 	}
 
 	if horaStr, ok := getStr("hora", "HORA"); ok {
