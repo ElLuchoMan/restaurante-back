@@ -595,7 +595,9 @@ func (c *TrabajadorController) Delete() {
 		return
 	}
 
-	fechaRetiro := time.Now().In(database.BogotaZone)
+	// Guardar FECHA_RETIRO como fecha estable (mediodía UTC) basada en la fecha actual de Bogotá
+	nowBogota := time.Now().In(database.BogotaZone)
+	fechaRetiro := time.Date(nowBogota.Year(), nowBogota.Month(), nowBogota.Day(), 12, 0, 0, 0, time.UTC)
 	trabajador.FECHA_RETIRO = &fechaRetiro
 
 	if _, err := o.Update(&trabajador, "FECHA_RETIRO"); err != nil {
