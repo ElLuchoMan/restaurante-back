@@ -27,29 +27,36 @@ func init() {
 }
 
 func (d Pago) MarshalJSON() ([]byte, error) {
-	type Alias Pago
-
 	// Cargar zona horaria de Bogotá
 	loc, err := time.LoadLocation("America/Bogota")
 	if err != nil {
-		// Fallback a UTC-5 si no se puede cargar
 		loc = time.FixedZone("UTC-5", -5*60*60)
 	}
 
-	// Convertir fechas a zona horaria de Bogotá antes de formatear
-	fechaBogota := d.FECHA.In(loc)
-	horaBogota := d.HORA.In(loc)
-	updatedBogota := d.UPDATED_AT.In(loc)
+	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
+	fechaStr := time.Date(d.FECHA.Year(), d.FECHA.Month(), d.FECHA.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+
+	// Para campos de tipo time: convertir a zona horaria de Bogotá
+	horaEnBogota := d.HORA.In(loc)
+	updatedAtEnBogota := d.UPDATED_AT.In(loc)
 
 	return json.Marshal(&struct {
-		FECHA      string `json:"fechaPago"`
-		HORA       string `json:"horaPago"`
-		UPDATED_AT string `json:"updatedAt"`
-		Alias
+		PK_ID_PAGO        int64       `json:"pagoId"`
+		FECHA             string      `json:"fechaPago"`
+		HORA              string      `json:"horaPago"`
+		MONTO             int64       `json:"monto"`
+		ESTADO_PAGO       EstadoPago  `json:"estadoPago"`
+		PK_ID_METODO_PAGO *MetodoPago `json:"metodoPagoId"`
+		UPDATED_AT        string      `json:"updatedAt"`
+		UPDATED_BY        *string     `json:"updatedBy,omitempty"`
 	}{
-		FECHA:      fechaBogota.Format("02-01-2006"),
-		HORA:       horaBogota.Format("15:04:05"),
-		UPDATED_AT: updatedBogota.Format("02-01-2006 15:04:05"),
-		Alias:      (Alias)(d),
+		PK_ID_PAGO:        d.PK_ID_PAGO,
+		FECHA:             fechaStr,
+		HORA:              horaEnBogota.Format("15:04:05"),
+		MONTO:             d.MONTO,
+		ESTADO_PAGO:       d.ESTADO_PAGO,
+		PK_ID_METODO_PAGO: d.PK_ID_METODO_PAGO,
+		UPDATED_AT:        updatedAtEnBogota.Format("02-01-2006 15:04:05"),
+		UPDATED_BY:        d.UPDATED_BY,
 	})
 }

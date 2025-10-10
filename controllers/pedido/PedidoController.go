@@ -478,36 +478,9 @@ WHERE p.pk_id_pedido = ?;
 		return
 	}
 
-	// Convertir fecha y hora a zona horaria de Bogotá
-	loc, errLoc := loadLocationPedido("America/Bogota")
-	if errLoc != nil {
-		loc = time.FixedZone("UTC-5", -5*60*60)
-	}
-
-	// Parsear fecha y hora originales (vienen en UTC desde PostgreSQL)
-	fechaParsed, errFecha := time.Parse("2006-01-02", details.Fecha)
-	horaParsed, errHora := time.Parse("15:04:05", details.Hora)
-
-	if errFecha == nil && errHora == nil {
-		// Crear timestamp completo en UTC con los valores originales
-		timestampUTC := time.Date(
-			fechaParsed.Year(),
-			fechaParsed.Month(),
-			fechaParsed.Day(),
-			horaParsed.Hour(),
-			horaParsed.Minute(),
-			horaParsed.Second(),
-			0,
-			time.UTC, // Los datos en BD están en UTC
-		)
-
-		// Convertir a zona horaria de Bogotá
-		timestampBogota := timestampUTC.In(loc)
-
-		// Actualizar los campos con los valores convertidos
-		details.Fecha = timestampBogota.Format("2006-01-02")
-		details.Hora = timestampBogota.Format("15:04:05")
-	}
+	// Los datos en BD ya están en zona horaria de Bogotá
+	// (porque la conexión PostgreSQL usa TimeZone=America/Bogota)
+	// No es necesario hacer conversión, solo formatear si es necesario
 
 	c.Data["json"] = models.ApiResponse{
 		Code:    200,

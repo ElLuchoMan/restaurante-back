@@ -1,1 +1,1 @@
-{"last_found_secrets": [{"name": "Generic High Entropy Secret - commit://staged/conf/app.conf", "match": "9d099c2173599c19d5e2186aa49d36bcc3498efe45be4d5cbf28c11261cb91e5"}]}
+{"last_found_secrets": [{"match": "cebd02dae7d46ce1d18a5299fb3c3e8f06e0eeb2f64c109badedba79f132743c", "name": "Generic High Entropy Secret - commit://staged/start-dev.ps1"}]}

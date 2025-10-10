@@ -44,29 +44,42 @@ func init() {
 }
 
 func (d Pedido) MarshalJSON() ([]byte, error) {
-	type Alias Pedido
-
 	// Cargar zona horaria de Bogotá
 	loc, err := time.LoadLocation("America/Bogota")
 	if err != nil {
-		// Fallback a UTC-5 si no se puede cargar
 		loc = time.FixedZone("UTC-5", -5*60*60)
 	}
 
-	// Convertir fechas a zona horaria de Bogotá antes de formatear
-	fechaBogota := d.FECHA.In(loc)
-	horaBogota := d.HORA.In(loc)
-	updatedBogota := d.UPDATED_AT.In(loc)
+	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
+	fechaStr := time.Date(d.FECHA.Year(), d.FECHA.Month(), d.FECHA.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+
+	// Para campos de tipo time: convertir a zona horaria de Bogotá
+	horaEnBogota := d.HORA.In(loc)
+	updatedAtEnBogota := d.UPDATED_AT.In(loc)
 
 	return json.Marshal(&struct {
-		FECHA      string `json:"fechaPedido"`
-		HORA       string `json:"horaPedido"`
-		UPDATED_AT string `json:"updatedAt"`
-		Alias
+		PK_ID_PEDIDO         int64        `json:"pedidoId"`
+		FECHA                string       `json:"fechaPedido"`
+		HORA                 string       `json:"horaPedido"`
+		DELIVERY             bool         `json:"delivery"`
+		ESTADO_PEDIDO        EstadoPedido `json:"estadoPedido"`
+		PK_ID_DOMICILIO      *Domicilio   `json:"domicilioId,omitempty"`
+		PK_ID_PAGO           *Pago        `json:"pagoId"`
+		PK_ID_RESTAURANTE    *Restaurante `json:"restauranteId"`
+		PK_DOCUMENTO_CLIENTE *Cliente     `json:"documentoCliente"`
+		UPDATED_AT           string       `json:"updatedAt"`
+		UPDATED_BY           *string      `json:"updatedBy,omitempty"`
 	}{
-		FECHA:      fechaBogota.Format("02-01-2006"),
-		HORA:       horaBogota.Format("15:04:05"),
-		UPDATED_AT: updatedBogota.Format("02-01-2006 15:04:05"),
-		Alias:      (Alias)(d),
+		PK_ID_PEDIDO:         d.PK_ID_PEDIDO,
+		FECHA:                fechaStr,
+		HORA:                 horaEnBogota.Format("15:04:05"),
+		DELIVERY:             d.DELIVERY,
+		ESTADO_PEDIDO:        d.ESTADO_PEDIDO,
+		PK_ID_DOMICILIO:      d.PK_ID_DOMICILIO,
+		PK_ID_PAGO:           d.PK_ID_PAGO,
+		PK_ID_RESTAURANTE:    d.PK_ID_RESTAURANTE,
+		PK_DOCUMENTO_CLIENTE: d.PK_DOCUMENTO_CLIENTE,
+		UPDATED_AT:           updatedAtEnBogota.Format("02-01-2006 15:04:05"),
+		UPDATED_BY:           d.UPDATED_BY,
 	})
 }

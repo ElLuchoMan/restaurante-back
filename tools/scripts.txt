@@ -13,6 +13,9 @@ powershell -ExecutionPolicy Bypass -File tools/cover.ps1 -Clean
 # Genera/actualiza la documentación Swagger en docs/ sin levantar el servidor
 swag init -g main.go -o docs
 
+#Levanta el servidor con variables de entorno
+.\start-dev.ps1 -downdoc=true -gendoc=true
+
 # Levanta la app con hot-reload y genera Swagger (bloquea la terminal)
 bee run -downdoc=true -gendoc=true
 

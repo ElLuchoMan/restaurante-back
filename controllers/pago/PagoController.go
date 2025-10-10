@@ -3,7 +3,6 @@ package pago
 import (
 	"encoding/json"
 	"net/http"
-	"restaurante/database"
 	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
@@ -163,9 +162,8 @@ func (c *PagoController) GetById() {
 		return
 	}
 
-	pago.FECHA = pago.FECHA.In(database.BogotaZone)
-	pago.UPDATED_AT = pago.UPDATED_AT.In(database.BogotaZone)
-	pago.HORA = pago.HORA.In(database.BogotaZone)
+	// Los datos ya están en zona horaria de Bogotá (conexión PostgreSQL con TimeZone=America/Bogota)
+	// No es necesario aplicar conversión
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{

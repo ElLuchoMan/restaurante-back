@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"restaurante/database"
 	"restaurante/logging"
 	"restaurante/models"
 	"time"
@@ -213,12 +212,8 @@ func (c *ReservaController) GetAll() {
 		return
 	}
 
-	for i := range reservas {
-		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
-		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
-		reservas[i].FECHA = reservas[i].FECHA.UTC()
-		reservas[i].HORA = reservas[i].HORA.UTC()
-	}
+	// Los datos ya están en zona horaria de Bogotá (conexión PostgreSQL con TimeZone=America/Bogota)
+	// No es necesario aplicar conversiones - el MarshalJSON se encarga del formateo
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -268,10 +263,8 @@ func (c *ReservaController) GetById() {
 		_ = c.ServeJSON()
 		return
 	}
-	reserva.FECHA = reserva.FECHA.In(database.BogotaZone)
-	reserva.CREATED_AT = reserva.CREATED_AT.In(database.BogotaZone)
-	reserva.UPDATED_AT = reserva.UPDATED_AT.In(database.BogotaZone)
-	reserva.HORA = reserva.HORA.UTC()
+	// Los datos ya están en zona horaria de Bogotá (conexión PostgreSQL con TimeZone=America/Bogota)
+	// No es necesario aplicar conversiones - el MarshalJSON se encarga del formateo
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -316,9 +309,12 @@ func (c *ReservaController) Post() {
 
 	var reserva models.Reserva
 
+	// Nota: ya no se requiere zona horaria aquí; se guardan valores normalizados
+
 	// Validar y procesar fecha
 	if fechaStr, ok := input["fechaReserva"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
+		// Parsear fecha en UTC (sin timezone) - PostgreSQL type(date) no tiene timezone
+		parsedDateUTC, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", err, map[string]interface{}{"fechaReserva": fechaStr, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -326,7 +322,10 @@ func (c *ReservaController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
-		reserva.FECHA = parsedDate
+		// Usar mediodía UTC para evitar cambios de día al convertir zonas
+		fechaMidUTC := time.Date(parsedDateUTC.Year(), parsedDateUTC.Month(), parsedDateUTC.Day(), 12, 0, 0, 0, time.UTC)
+		// fecha normalizada a mediodía UTC para evitar corrimientos de día
+		reserva.FECHA = fechaMidUTC
 	} else {
 		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "fechaReserva", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -337,7 +336,8 @@ func (c *ReservaController) Post() {
 
 	// Validar y procesar hora
 	if horaStr, ok := input["horaReserva"].(string); ok && horaStr != "" {
-		parsedHora, err := time.Parse("15:04:05", horaStr)
+		// Parsear hora en UTC (sin timezone) - PostgreSQL type(time) no tiene timezone
+		parsedHoraUTC, err := time.Parse("15:04:05", horaStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", err, map[string]interface{}{"horaReserva": horaStr, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -345,7 +345,8 @@ func (c *ReservaController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
-		reserva.HORA = parsedHora
+		// hora guardada en UTC
+		reserva.HORA = parsedHoraUTC
 	} else {
 		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "horaReserva", "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -417,6 +418,10 @@ func (c *ReservaController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
+
+	// valores tras insert
+
+	// opcional: relectura para validaciones internas (deshabilitado en prod)
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Reserva creada correctamente", Data: reserva}
@@ -610,12 +615,7 @@ func (c *ReservaController) GetByParameter() {
 		return
 	}
 
-	for i := range reservas {
-		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
-		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
-		reservas[i].FECHA = reservas[i].FECHA.UTC()
-		reservas[i].HORA = reservas[i].HORA.UTC()
-	}
+	// Los datos ya están en zona horaria de Bogotá - no aplicar conversiones
 
 	if len(reservas) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -715,14 +715,6 @@ func (c *ReservaController) GetByDocumento() {
 		}
 	}
 
-	// Ajustar zonas horarias
-	for i := range reservas {
-		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
-		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
-		reservas[i].FECHA = reservas[i].FECHA.UTC()
-		reservas[i].HORA = reservas[i].HORA.UTC()
-	}
-
 	if len(reservas) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
 		c.Data["json"] = models.ApiResponse{
@@ -804,13 +796,7 @@ func (c *ReservaController) GetByDocumentoCliente() {
 		return
 	}
 
-	// Ajustar zonas horarias
-	for i := range reservas {
-		reservas[i].CREATED_AT = reservas[i].CREATED_AT.In(database.BogotaZone)
-		reservas[i].UPDATED_AT = reservas[i].UPDATED_AT.In(database.BogotaZone)
-		reservas[i].FECHA = reservas[i].FECHA.UTC()
-		reservas[i].HORA = reservas[i].HORA.UTC()
-	}
+	// Los datos ya están en zona horaria de Bogotá - no aplicar conversiones
 
 	if len(reservas) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)

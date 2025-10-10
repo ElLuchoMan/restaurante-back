@@ -1,4 +1,34 @@
 rules:
+  - "Contexto: Backend Go (Beego) del sistema Restaurante."
+  - "Objetivo: Todas las fechas/horas deben mostrarse y comportarse como horario de Bogotá (America/Bogota), independientemente del servidor."
+
+  - "Manejo de Zonas Horarias (Backend): PostgreSQL ya opera con TimeZone=America/Bogota; evitar dobles conversiones en controladores/modelos."
+  - "JSON de modelos: NO usar 'type Alias' cuando se formatean campos de fecha/hora porque colisionan las claves JSON; construir structs explícitos con strings formateados."
+
+  - "Reserva.POST (creación):"
+  - "  - fechaReserva (YYYY-MM-DD): parsear y GUARDAR como mediodía UTC (12:00:00Z) del mismo día para evitar corrimientos de día por cambios de zona."
+  - "  - horaReserva (HH:MM:SS): parsear y GUARDAR como hora UTC (00-01-01 HH:MM:SSZ) sin timezone de origen."
+
+  - "Reserva.MarshalJSON (lectura):"
+  - "  - FECHA: normalizar a UTC y formatear solo componentes de calendario como DD-MM-YYYY (sin convertir a otra zona)."
+  - "  - HORA: si el campo viene con timezone histórico (p. ej. LMT en America/Bogota con -04:56), ajustar para recuperar la hora de pared esperada; si Year<1900, sumar 04:56:16 antes de formatear HH:MM:SS."
+  - "  - Resultado: 'fechaReserva' en DD-MM-YYYY y 'horaReserva' en HH:MM:SS, coherentes con Bogotá."
+
+  - "Otros modelos con fechas (Pedido, Pago, Incidencia, Nomina, CambiosHorario, Trabajador):"
+  - "  - Para campos DATE: siempre formatear por componentes (Year/Month/Day) sin aplicar .In() ni conversiones de zona."
+  - "  - Para campos TIME: formatear HH:MM:SS; si aparece LMT, aplicar la misma normalización previa al formateo."
+
+  - "Controladores: no volver a aplicar .In(Bogota) ni .UTC() sobre campos ya normalizados; el formateo ocurre en MarshalJSON."
+
+  - "Frontend: espera strings en DD-MM-YYYY y HH:mm:ss y re-formatea en America/Bogota con el FormatDatePipe; mantener esta interfaz."
+
+  - "Desarrollo local: ejecutar .\\start-dev.ps1 (o ./start-dev.sh) para fijar JWT_SECRET consistente y pasar flags de bee (p. ej. -downdoc=true -gendoc=true)."
+
+  - "Pruebas: las fechas de trabajador (ingreso/retiro) se validan como DD-MM-YYYY (solo fecha)."
+
+  - "Regla de oro: preferir la extracción de componentes (Year/Month/Day y Hour/Minute/Second) sobre conversiones de zona al serializar; al guardar, elegir una representación estable (fecha = 12:00 UTC, hora = UTC) para impedir corrimientos por timezone."
+
+rules:
   # Contexto
   - "Backend en Go (>=1.22) con Beego v2 y PostgreSQL; arquitectura por capas (controladores, servicios, repositorios, modelos)."
   - "Rutas documentadas con Swagger; mantener documentación sincronizada."

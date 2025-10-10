@@ -32,36 +32,48 @@ func init() {
 }
 
 func (d Trabajador) MarshalJSON() ([]byte, error) {
-	type Alias Trabajador
+	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
+	var fechaNacimientoStr *string
+	if d.FECHA_NACIMIENTO != nil {
+		str := time.Date(d.FECHA_NACIMIENTO.Year(), d.FECHA_NACIMIENTO.Month(), d.FECHA_NACIMIENTO.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+		fechaNacimientoStr = &str
+	}
 
-	// Cargar zona horaria de Bogotá
-	loc, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		// Fallback a UTC-5 si no se puede cargar
-		loc = time.FixedZone("UTC-5", -5*60*60)
+	fechaIngresoStr := time.Date(d.FECHA_INGRESO.Year(), d.FECHA_INGRESO.Month(), d.FECHA_INGRESO.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+
+	var fechaRetiroStr *string
+	if d.FECHA_RETIRO != nil {
+		str := time.Date(d.FECHA_RETIRO.Year(), d.FECHA_RETIRO.Month(), d.FECHA_RETIRO.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+		fechaRetiroStr = &str
 	}
 
 	return json.Marshal(&struct {
-		FECHA_NACIMIENTO *string `json:"fechaNacimiento,omitempty"`
-		FECHA_INGRESO    string  `json:"fechaIngreso"`
-		FECHA_RETIRO     *string `json:"fechaRetiro,omitempty"`
-		Alias
+		PK_DOCUMENTO_TRABAJADOR int64               `json:"documentoTrabajador"`
+		NOMBRE                  string              `json:"nombre"`
+		APELLIDO                string              `json:"apellido"`
+		SUELDO                  int64               `json:"sueldo"`
+		TELEFONO                *string             `json:"telefono,omitempty"`
+		FECHA_NACIMIENTO        *string             `json:"fechaNacimiento,omitempty"`
+		NUEVO                   bool                `json:"nuevo"`
+		ROL                     RolTrabajador       `json:"rol"`
+		FECHA_INGRESO           string              `json:"fechaIngreso"`
+		FECHA_RETIRO            *string             `json:"fechaRetiro,omitempty"`
+		PASSWORD                string              `json:"password"`
+		HORARIOS                []HorarioTrabajador `json:"horarios,omitempty"`
+		PK_ID_RESTAURANTE       *Restaurante        `json:"restauranteId,omitempty"`
 	}{
-		FECHA_NACIMIENTO: func() *string {
-			if d.FECHA_NACIMIENTO != nil {
-				str := d.FECHA_NACIMIENTO.In(loc).Format("02-01-2006")
-				return &str
-			}
-			return nil
-		}(),
-		FECHA_INGRESO: d.FECHA_INGRESO.In(loc).Format("02-01-2006 15:04:05"),
-		FECHA_RETIRO: func() *string {
-			if d.FECHA_RETIRO != nil {
-				str := d.FECHA_RETIRO.In(loc).Format("02-01-2006 15:04:05")
-				return &str
-			}
-			return nil
-		}(),
-		Alias: (Alias)(d),
+		PK_DOCUMENTO_TRABAJADOR: d.PK_DOCUMENTO_TRABAJADOR,
+		NOMBRE:                  d.NOMBRE,
+		APELLIDO:                d.APELLIDO,
+		SUELDO:                  d.SUELDO,
+		TELEFONO:                d.TELEFONO,
+		FECHA_NACIMIENTO:        fechaNacimientoStr,
+		NUEVO:                   d.NUEVO,
+		ROL:                     d.ROL,
+		FECHA_INGRESO:           fechaIngresoStr,
+		FECHA_RETIRO:            fechaRetiroStr,
+		PASSWORD:                d.PASSWORD,
+		HORARIOS:                d.HORARIOS,
+		PK_ID_RESTAURANTE:       d.PK_ID_RESTAURANTE,
 	})
 }

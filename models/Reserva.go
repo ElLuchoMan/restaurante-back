@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -31,22 +32,43 @@ func init() {
 }
 
 func (t Reserva) MarshalJSON() ([]byte, error) {
-	type Alias Reserva
+	// FECHA: normalizar a UTC para obtener el día de calendario correcto, sin efectos de zona
+	fechaUTC := t.FECHA.UTC()
+	fechaStr := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
 
-	// Cargar zona horaria de Bogotá
-	loc, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		// Fallback a UTC-5 si no se puede cargar
-		loc = time.FixedZone("UTC-5", -5*60*60)
+	// HORA: algunos timezones históricos (LMT) en America/Bogota afectan horas con año 0000
+	// Detectamos año antiguo y ajustamos con doble desfase LMT (~09:52:32) para recuperar hora de pared
+	horaAdj := t.HORA
+	if horaAdj.Year() < 1900 {
+		horaAdj = horaAdj.Add(9*time.Hour + 52*time.Minute + 32*time.Second)
 	}
+	horaStr := fmt.Sprintf("%02d:%02d:%02d", horaAdj.Hour(), horaAdj.Minute(), horaAdj.Second())
 
 	return json.Marshal(&struct {
-		FECHA string `json:"fechaReserva"`
-		HORA  string `json:"horaReserva"`
-		Alias
+		PK_ID_RESERVA     int64            `json:"reservaId"`
+		FECHA             string           `json:"fechaReserva"`
+		HORA              string           `json:"horaReserva"`
+		PERSONAS          int              `json:"personas"`
+		PK_ID_CONTACTO    *ReservaContacto `json:"contactoId"`
+		PK_ID_RESTAURANTE *Restaurante     `json:"restauranteId"`
+		ESTADO_RESERVA    *EstadoReserva   `json:"estadoReserva,omitempty"`
+		INDICACIONES      *string          `json:"indicaciones,omitempty"`
+		CREATED_AT        time.Time        `json:"createdAt"`
+		UPDATED_AT        time.Time        `json:"updatedAt"`
+		CREATED_BY        *string          `json:"createdBy,omitempty"`
+		UPDATED_BY        *string          `json:"updatedBy,omitempty"`
 	}{
-		FECHA: t.FECHA.In(loc).Format("02-01-2006"),
-		HORA:  t.HORA.In(loc).Format("15:04:05"),
-		Alias: (Alias)(t),
+		PK_ID_RESERVA:     t.PK_ID_RESERVA,
+		FECHA:             fechaStr,
+		HORA:              horaStr,
+		PERSONAS:          t.PERSONAS,
+		PK_ID_CONTACTO:    t.PK_ID_CONTACTO,
+		PK_ID_RESTAURANTE: t.PK_ID_RESTAURANTE,
+		ESTADO_RESERVA:    t.ESTADO_RESERVA,
+		INDICACIONES:      t.INDICACIONES,
+		CREATED_AT:        t.CREATED_AT,
+		UPDATED_AT:        t.UPDATED_AT,
+		CREATED_BY:        t.CREATED_BY,
+		UPDATED_BY:        t.UPDATED_BY,
 	})
 }

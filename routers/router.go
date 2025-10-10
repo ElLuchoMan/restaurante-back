@@ -124,6 +124,12 @@ func init() {
 			beego.NSRouter("/documento", &resv.ReservaController{}, "get:GetByDocumento"),
 		),
 
+		// Endpoints protegidos de reservas (POST, PUT, DELETE)
+		beego.NSNamespace("/reservas",
+			beego.NSBefore(loginc.ValidateToken),
+			beego.NSRouter("/", &resv.ReservaController{}, "post:Post;put:Put;delete:Delete"),
+		),
+
 		// Endpoints públicos de reserva_contacto (GET)
 		beego.NSNamespace("/reserva_contacto",
 			beego.NSRouter("/", &rc.ReservaContactoController{}, "get:GetAll"),

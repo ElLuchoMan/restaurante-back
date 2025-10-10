@@ -24,21 +24,19 @@ func init() {
 }
 
 func (t Nomina) MarshalJSON() ([]byte, error) {
-	type Alias Nomina
-
-	// Cargar zona horaria de Bogotá
-	loc, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		// Fallback a UTC-5 si no se puede cargar
-		loc = time.FixedZone("UTC-5", -5*60*60)
-	}
+	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
+	fechaStr := time.Date(t.FECHA.Year(), t.FECHA.Month(), t.FECHA.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
 
 	return json.Marshal(&struct {
-		FECHA string `json:"fechaNomina"`
-		Alias
+		PK_ID_NOMINA  int64        `json:"nominaId"`
+		FECHA         string       `json:"fechaNomina"`
+		MONTO         int64        `json:"monto"`
+		ESTADO_NOMINA EstadoNomina `json:"estadoNomina"`
 	}{
-		FECHA: t.FECHA.In(loc).Format("02-01-2006"),
-		Alias: (Alias)(t),
+		PK_ID_NOMINA:  t.PK_ID_NOMINA,
+		FECHA:         fechaStr,
+		MONTO:         t.MONTO,
+		ESTADO_NOMINA: t.ESTADO_NOMINA,
 	})
 }
 func (n *Nomina) UnmarshalJSON(data []byte) error {

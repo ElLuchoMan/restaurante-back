@@ -23,20 +23,35 @@ func init() {
 }
 
 func (t CambiosHorario) MarshalJSON() ([]byte, error) {
-	type Alias CambiosHorario
-
 	// Cargar zona horaria de Bogotá
 	loc, err := time.LoadLocation("America/Bogota")
 	if err != nil {
-		// Fallback a UTC-5 si no se puede cargar
 		loc = time.FixedZone("UTC-5", -5*60*60)
 	}
 
+	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
+	fechaStr := time.Date(t.FECHA.Year(), t.FECHA.Month(), t.FECHA.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+
+	var horaAperturaStr *string
+	if t.HORA_APERTURA != nil {
+		horaApertura := t.HORA_APERTURA.In(loc)
+		str := horaApertura.Format("15:04:05")
+		horaAperturaStr = &str
+	}
+
+	horaCierreEnBogota := t.HORA_CIERRE.In(loc)
+
 	return json.Marshal(&struct {
-		FECHA string `json:"fechaCambioHorario"`
-		Alias
+		PK_ID_CAMBIO_HORARIO int64   `json:"cambioHorarioId"`
+		FECHA                string  `json:"fechaCambioHorario"`
+		HORA_APERTURA        *string `json:"horaApertura,omitempty"`
+		HORA_CIERRE          string  `json:"horaCierre"`
+		ABIERTO              bool    `json:"abierto"`
 	}{
-		FECHA: t.FECHA.In(loc).Format("02-01-2006"),
-		Alias: (Alias)(t),
+		PK_ID_CAMBIO_HORARIO: t.PK_ID_CAMBIO_HORARIO,
+		FECHA:                fechaStr,
+		HORA_APERTURA:        horaAperturaStr,
+		HORA_CIERRE:          horaCierreEnBogota.Format("15:04:05"),
+		ABIERTO:              t.ABIERTO,
 	})
 }

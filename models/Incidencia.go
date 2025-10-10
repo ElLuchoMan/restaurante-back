@@ -25,20 +25,22 @@ func init() {
 }
 
 func (t Incidencia) MarshalJSON() ([]byte, error) {
-	type Alias Incidencia
-
-	// Cargar zona horaria de Bogotá
-	loc, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		// Fallback a UTC-5 si no se puede cargar
-		loc = time.FixedZone("UTC-5", -5*60*60)
-	}
+	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
+	fechaStr := time.Date(t.FECHA.Year(), t.FECHA.Month(), t.FECHA.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
 
 	return json.Marshal(&struct {
-		FECHA string `json:"fechaIncidencia"`
-		Alias
+		PK_ID_INCIDENCIA        int64       `json:"incidenciaId"`
+		FECHA                   string      `json:"fechaIncidencia"`
+		MONTO                   int64       `json:"monto"`
+		RESTA                   bool        `json:"resta"`
+		MOTIVO                  string      `json:"motivo"`
+		PK_DOCUMENTO_TRABAJADOR *Trabajador `json:"documentoTrabajador"`
 	}{
-		FECHA: t.FECHA.In(loc).Format("02-01-2006"),
-		Alias: (Alias)(t),
+		PK_ID_INCIDENCIA:        t.PK_ID_INCIDENCIA,
+		FECHA:                   fechaStr,
+		MONTO:                   t.MONTO,
+		RESTA:                   t.RESTA,
+		MOTIVO:                  t.MOTIVO,
+		PK_DOCUMENTO_TRABAJADOR: t.PK_DOCUMENTO_TRABAJADOR,
 	})
 }

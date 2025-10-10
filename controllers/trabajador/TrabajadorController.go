@@ -103,15 +103,7 @@ func (c *TrabajadorController) GetAll() {
 
 	for i := range trabajadores {
 		trabajadores[i].PASSWORD = ""
-		if trabajadores[i].FECHA_RETIRO != nil {
-			fechaRetiroUTC := trabajadores[i].FECHA_RETIRO.In(database.BogotaZone)
-			trabajadores[i].FECHA_RETIRO = &fechaRetiroUTC
-		}
-		if trabajadores[i].FECHA_NACIMIENTO != nil {
-			fechaNacimientoUTC := trabajadores[i].FECHA_NACIMIENTO.In(database.BogotaZone)
-			trabajadores[i].FECHA_NACIMIENTO = &fechaNacimientoUTC
-		}
-		trabajadores[i].FECHA_INGRESO = trabajadores[i].FECHA_INGRESO.In(database.BogotaZone)
+		// Los datos de fecha ya están en zona horaria de Bogotá - no aplicar conversiones
 		var horarios []models.HorarioTrabajador
 		if _, err := o.QueryTable(new(models.HorarioTrabajador)).
 			Filter("pk_documento_trabajador", trabajadores[i].PK_DOCUMENTO_TRABAJADOR).
