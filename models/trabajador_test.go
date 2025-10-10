@@ -7,9 +7,15 @@ import (
 )
 
 func TestTrabajadorMarshalJSON(t *testing.T) {
-	nacimiento := time.Date(1990, time.March, 1, 0, 0, 0, 0, time.UTC)
-	ingreso := time.Date(2023, time.February, 10, 9, 15, 30, 0, time.UTC)
-	retiro := time.Date(2024, time.April, 5, 18, 0, 0, 0, time.UTC)
+	// Cargar zona horaria de Bogotá para los tests
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		loc = time.FixedZone("UTC-5", -5*60*60)
+	}
+
+	nacimiento := time.Date(1990, time.March, 1, 0, 0, 0, 0, loc)
+	ingreso := time.Date(2023, time.February, 10, 9, 15, 30, 0, loc)
+	retiro := time.Date(2024, time.April, 5, 18, 0, 0, 0, loc)
 	tr := Trabajador{
 		FECHA_NACIMIENTO: &nacimiento,
 		FECHA_INGRESO:    ingreso,
@@ -55,7 +61,13 @@ func TestRolTrabajadorIsValid(t *testing.T) {
 }
 
 func TestTrabajadorMarshalJSONNil(t *testing.T) {
-	ingreso := time.Date(2023, time.February, 10, 9, 15, 30, 0, time.UTC)
+	// Cargar zona horaria de Bogotá para los tests
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		loc = time.FixedZone("UTC-5", -5*60*60)
+	}
+
+	ingreso := time.Date(2023, time.February, 10, 9, 15, 30, 0, loc)
 	tr := Trabajador{FECHA_INGRESO: ingreso}
 
 	b, err := json.Marshal(tr)

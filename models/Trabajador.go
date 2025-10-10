@@ -33,6 +33,14 @@ func init() {
 
 func (d Trabajador) MarshalJSON() ([]byte, error) {
 	type Alias Trabajador
+
+	// Cargar zona horaria de Bogotá
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		// Fallback a UTC-5 si no se puede cargar
+		loc = time.FixedZone("UTC-5", -5*60*60)
+	}
+
 	return json.Marshal(&struct {
 		FECHA_NACIMIENTO *string `json:"fechaNacimiento,omitempty"`
 		FECHA_INGRESO    string  `json:"fechaIngreso"`
@@ -41,15 +49,15 @@ func (d Trabajador) MarshalJSON() ([]byte, error) {
 	}{
 		FECHA_NACIMIENTO: func() *string {
 			if d.FECHA_NACIMIENTO != nil {
-				str := d.FECHA_NACIMIENTO.Format("02-01-2006")
+				str := d.FECHA_NACIMIENTO.In(loc).Format("02-01-2006")
 				return &str
 			}
 			return nil
 		}(),
-		FECHA_INGRESO: d.FECHA_INGRESO.Format("02-01-2006 15:04:05"),
+		FECHA_INGRESO: d.FECHA_INGRESO.In(loc).Format("02-01-2006 15:04:05"),
 		FECHA_RETIRO: func() *string {
 			if d.FECHA_RETIRO != nil {
-				str := d.FECHA_RETIRO.Format("02-01-2006 15:04:05")
+				str := d.FECHA_RETIRO.In(loc).Format("02-01-2006 15:04:05")
 				return &str
 			}
 			return nil

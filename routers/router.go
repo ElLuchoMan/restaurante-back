@@ -30,8 +30,16 @@ import (
 	trab "restaurante/controllers/trabajador"
 
 	beego "github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/context"
 	"github.com/beego/beego/v2/server/web/filter/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
+)
+
+// Constantes para métodos HTTP
+const (
+	httpMethodPost   = "POST"
+	httpMethodPut    = "PUT"
+	httpMethodDelete = "DELETE"
 )
 
 func init() {
@@ -43,6 +51,28 @@ func init() {
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"},
 		AllowCredentials: true,
 	}))
+
+	// Filtros para proteger operaciones de escritura (POST/PUT/DELETE requieren auth, GET es público)
+	beego.InsertFilter("/restaurante/v1/productos", beego.BeforeExec, func(ctx *context.Context) {
+		method := ctx.Input.Method()
+		if method == httpMethodPost || method == httpMethodPut || method == httpMethodDelete {
+			loginc.ValidateToken(ctx)
+		}
+	}, beego.WithReturnOnOutput(true))
+
+	beego.InsertFilter("/restaurante/v1/categorias", beego.BeforeExec, func(ctx *context.Context) {
+		method := ctx.Input.Method()
+		if method == httpMethodPost || method == httpMethodPut || method == httpMethodDelete {
+			loginc.ValidateToken(ctx)
+		}
+	}, beego.WithReturnOnOutput(true))
+
+	beego.InsertFilter("/restaurante/v1/subcategorias", beego.BeforeExec, func(ctx *context.Context) {
+		method := ctx.Input.Method()
+		if method == httpMethodPost || method == httpMethodPut || method == httpMethodDelete {
+			loginc.ValidateToken(ctx)
+		}
+	}, beego.WithReturnOnOutput(true))
 
 	// Configurar Swagger UI
 	beego.Handler("/swagger/*", httpSwagger.WrapHandler)
@@ -59,11 +89,9 @@ func init() {
 		beego.NSRouter("/productos-disponibles", &tel.TelemetriaController{}, "get:GetProductosDisponibles"),
 		beego.NSRouter("/ofertas/activas", &ofer.OfertaController{}, "get:ObtenerOfertasActivas"),
 
-		// Endpoints públicos de productos (GET)
-		beego.NSNamespace("/productos",
-			beego.NSRouter("/", &prod.ProductoController{}, "get:GetAll"),
-			beego.NSRouter("/search", &prod.ProductoController{}, "get:GetById"),
-		),
+		// Endpoints de productos - GET público, POST/PUT/DELETE protegidos por filtro
+		beego.NSRouter("/productos", &prod.ProductoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+		beego.NSRouter("/productos/search", &prod.ProductoController{}, "get:GetById"),
 
 		// Endpoints públicos de restaurantes (GET)
 		beego.NSNamespace("/restaurantes",
@@ -77,11 +105,9 @@ func init() {
 			beego.NSRouter("/search", &rdia.RestauranteDiaController{}, "get:GetById"),
 		),
 
-		// Endpoints públicos de subcategorias (GET)
-		beego.NSNamespace("/subcategorias",
-			beego.NSRouter("/", &subc.SubcategoriaController{}, "get:GetAll"),
-			beego.NSRouter("/search", &subc.SubcategoriaController{}, "get:GetById"),
-		),
+		// Endpoints de subcategorías - GET público, POST/PUT/DELETE protegidos por filtro
+		beego.NSRouter("/subcategorias", &subc.SubcategoriaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+		beego.NSRouter("/subcategorias/search", &subc.SubcategoriaController{}, "get:GetById"),
 
 		// Endpoints públicos de trabajadores (GET)
 		beego.NSNamespace("/trabajadores",
@@ -104,11 +130,9 @@ func init() {
 			beego.NSRouter("/search", &rc.ReservaContactoController{}, "get:GetById"),
 		),
 
-		// Endpoints públicos de categorias (GET)
-		beego.NSNamespace("/categorias",
-			beego.NSRouter("/", &cat.CategoriaController{}, "get:GetAll"),
-			beego.NSRouter("/search", &cat.CategoriaController{}, "get:GetById"),
-		),
+		// Endpoints de categorías - GET público, POST/PUT/DELETE protegidos por filtro
+		beego.NSRouter("/categorias", &cat.CategoriaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+		beego.NSRouter("/categorias/search", &cat.CategoriaController{}, "get:GetById"),
 
 		// Endpoints públicos de clientes (POST para registro)
 		beego.NSRouter("/clientes", &cli.ClienteController{}, "post:Post"),
@@ -242,18 +266,6 @@ func init() {
 		beego.NSNamespace("/descuentos",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/pedidos", &desc.DescuentoController{}, "get:GetAll;post:Post"),
-		),
-
-		// Endpoints protegidos de categorías (POST, PUT, DELETE)
-		beego.NSNamespace("/categorias",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &cat.CategoriaController{}, "post:Post;put:Put;delete:Delete"),
-		),
-
-		// Endpoints protegidos de subcategorías (POST, PUT, DELETE)
-		beego.NSNamespace("/subcategorias",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &subc.SubcategoriaController{}, "post:Post;put:Put;delete:Delete"),
 		),
 	)
 

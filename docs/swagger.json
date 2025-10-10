@@ -4498,7 +4498,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un pago existente a un pedido y actualiza su estado a \"TERMINADO\" y el pago a \"PAGADO\".",
+                "description": "Asigna un pago existente a un pedido. Por defecto actualiza el estado del pedido a \"TERMINADO\" y el pago a \"PAGADO\", pero esto se puede controlar con el parámetro cambiar_estado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4523,6 +4523,13 @@
                         "name": "pago_id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Si es true (defecto), cambia estado del pedido a TERMINADO y pago a PAGADO. Si es false, solo vincula el pago sin cambiar estados",
+                        "name": "cambiar_estado",
+                        "in": "query"
                     }
                 ],
                 "responses": {

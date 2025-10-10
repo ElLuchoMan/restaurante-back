@@ -7,7 +7,13 @@ import (
 )
 
 func TestReservaMarshalJSON(t *testing.T) {
-	fecha := time.Date(2024, time.September, 12, 0, 0, 0, 0, time.UTC)
+	// Cargar zona horaria de Bogotá para los tests
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		loc = time.FixedZone("UTC-5", -5*60*60)
+	}
+
+	fecha := time.Date(2024, time.September, 12, 0, 0, 0, 0, loc)
 	estado := EstadoReservaConfirmada
 	r := Reserva{FECHA: fecha, ESTADO_RESERVA: &estado}
 

@@ -7,8 +7,15 @@ import (
 )
 
 func TestPedidoMarshalJSON(t *testing.T) {
-	fecha := time.Date(2024, time.May, 1, 0, 0, 0, 0, time.UTC)
-	updated := time.Date(2024, time.May, 2, 12, 0, 0, 0, time.UTC)
+	// Cargar zona horaria de Bogotá para los tests
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		loc = time.FixedZone("UTC-5", -5*60*60)
+	}
+
+	// Crear fechas en zona horaria de Bogotá
+	fecha := time.Date(2024, time.May, 1, 0, 0, 0, 0, loc)
+	updated := time.Date(2024, time.May, 2, 12, 0, 0, 0, loc)
 	p := Pedido{FECHA: fecha, UPDATED_AT: updated}
 
 	b, err := json.Marshal(p)

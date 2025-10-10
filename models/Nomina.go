@@ -25,11 +25,19 @@ func init() {
 
 func (t Nomina) MarshalJSON() ([]byte, error) {
 	type Alias Nomina
+
+	// Cargar zona horaria de Bogotá
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		// Fallback a UTC-5 si no se puede cargar
+		loc = time.FixedZone("UTC-5", -5*60*60)
+	}
+
 	return json.Marshal(&struct {
 		FECHA string `json:"fechaNomina"`
 		Alias
 	}{
-		FECHA: t.FECHA.Format("02-01-2006"),
+		FECHA: t.FECHA.In(loc).Format("02-01-2006"),
 		Alias: (Alias)(t),
 	})
 }

@@ -4696,9 +4696,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Asigna un pago existente a un pedido. Por defecto actualiza el
-        estado del pedido a "TERMINADO" y el pago a "PAGADO", pero esto se puede controlar
-        con el parámetro cambiar_estado.
+      description: Asigna un pago existente a un pedido y actualiza su estado a "TERMINADO"
+        y el pago a "PAGADO".
       parameters:
       - description: ID del pedido
         in: query
@@ -4710,12 +4709,6 @@ paths:
         name: pago_id
         required: true
         type: integer
-      - default: true
-        description: Si es true (defecto), cambia estado del pedido a TERMINADO y
-          pago a PAGADO. Si es false, solo vincula el pago sin cambiar estados
-        in: query
-        name: cambiar_estado
-        type: boolean
       produces:
       - application/json
       responses:

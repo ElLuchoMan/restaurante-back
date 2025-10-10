@@ -158,6 +158,8 @@ func (c *ProductoController) Post() {
 	var producto models.Producto
 
 	contentType := c.Ctx.Input.Header("Content-Type")
+	logging.Logger().Info("productos.post.content_type", "contentType", contentType)
+
 	if strings.HasPrefix(strings.ToLower(contentType), "multipart/form-data") {
 		nombre := c.GetString("nombre")
 		descripcion := c.GetString("descripcion")
@@ -194,9 +196,20 @@ func (c *ProductoController) Post() {
 		}
 	} else {
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &producto); err != nil {
-			logging.LogControllerError(c.Ctx, "productos.post.bad_json", err, map[string]interface{}{"contentType": contentType})
+			bodyPreview := string(c.Ctx.Input.RequestBody)
+			if len(bodyPreview) > 200 {
+				bodyPreview = bodyPreview[:200] + "..."
+			}
+			logging.LogControllerError(c.Ctx, "productos.post.bad_json", err, map[string]interface{}{
+				"contentType": contentType,
+				"bodyPreview": bodyPreview,
+			})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
+			c.Data["json"] = models.ApiResponse{
+				Code:    http.StatusBadRequest,
+				Message: "Error al procesar los datos del producto. Si está enviando una imagen, asegúrese de que esté en formato base64 válido o use multipart/form-data.",
+				Cause:   err.Error(),
+			}
 			_ = c.ServeJSON()
 			return
 		}
@@ -276,6 +289,8 @@ func (c *ProductoController) Put() {
 		original := producto
 
 		contentType := c.Ctx.Input.Header("Content-Type")
+		logging.Logger().Info("productos.put.content_type", "id", id, "contentType", contentType)
+
 		if strings.HasPrefix(strings.ToLower(contentType), "multipart/form-data") {
 			if v := c.GetString("nombre"); v != "" {
 				producto.NOMBRE = v
@@ -316,9 +331,21 @@ func (c *ProductoController) Put() {
 		} else {
 			var input models.Producto
 			if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-				logging.LogControllerError(c.Ctx, "productos.put.bad_json", err, map[string]interface{}{"id": id})
+				bodyPreview := string(c.Ctx.Input.RequestBody)
+				if len(bodyPreview) > 200 {
+					bodyPreview = bodyPreview[:200] + "..."
+				}
+				logging.LogControllerError(c.Ctx, "productos.put.bad_json", err, map[string]interface{}{
+					"id":          id,
+					"contentType": contentType,
+					"bodyPreview": bodyPreview,
+				})
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
-				c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
+				c.Data["json"] = models.ApiResponse{
+					Code:    http.StatusBadRequest,
+					Message: "Error al procesar los datos del producto. Si está enviando una imagen, asegúrese de que esté en formato base64 válido o use multipart/form-data.",
+					Cause:   err.Error(),
+				}
 				_ = c.ServeJSON()
 				return
 			}
@@ -344,8 +371,8 @@ func (c *ProductoController) Put() {
 		}
 
 		if reflect.DeepEqual(producto, original) {
-			c.Ctx.Output.SetStatus(http.StatusNotModified)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusNotModified, Message: "No se realizaron cambios en el producto"}
+			c.Ctx.Output.SetStatus(http.StatusOK)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "No se realizaron cambios en el producto", Data: producto}
 			_ = c.ServeJSON()
 			return
 		}
@@ -464,6 +491,9 @@ func validateProducto(producto *models.Producto) error {
 	}
 	if producto.ESTADO_PRODUCTO != models.EstadoProductoDisponible && producto.ESTADO_PRODUCTO != models.EstadoProductoNoDisponible {
 		return fmt.Errorf("el campo 'estadoProducto' debe ser 'DISPONIBLE' o 'NO_DISPONIBLE'")
+	}
+	if producto.PK_ID_SUBCATEGORIA == nil || producto.PK_ID_SUBCATEGORIA.PK_ID_SUBCATEGORIA == 0 {
+		return fmt.Errorf("el campo 'subcategoriaId' es obligatorio")
 	}
 	return nil
 }

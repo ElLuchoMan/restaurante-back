@@ -49,7 +49,7 @@ func TestCategoria_GetById_BadRequest(t *testing.T) {
 
 func TestCategoria_GetById_NotFound(t *testing.T) {
 	orig := catOrmNew
-	catOrmNew = func() categoriaOrmer { return fakeCatOrm{readErr: errors.New("nf")} }
+	catOrmNew = func() categoriaOrmer { return fakeCatOrm{readErr: orm.ErrNoRows} }
 	t.Cleanup(func() { catOrmNew = orig })
 
 	r := httptest.NewRequest(http.MethodGet, "/categorias/search?id=1", nil)
@@ -61,8 +61,8 @@ func TestCategoria_GetById_NotFound(t *testing.T) {
 	c.Data = make(map[interface{}]interface{})
 
 	c.GetById()
-	if w.Code != http.StatusOK {
-		t.Fatalf("esperaba 200, got %d", w.Code)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("esperaba 404, got %d", w.Code)
 	}
 	var resp models.ApiResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
@@ -70,6 +70,25 @@ func TestCategoria_GetById_NotFound(t *testing.T) {
 	}
 	if resp.Code != http.StatusNotFound {
 		t.Fatalf("esperaba ApiCode 404, got %d", resp.Code)
+	}
+}
+
+func TestCategoria_GetById_ReadError(t *testing.T) {
+	orig := catOrmNew
+	catOrmNew = func() categoriaOrmer { return fakeCatOrm{readErr: errors.New("db error")} }
+	t.Cleanup(func() { catOrmNew = orig })
+
+	r := httptest.NewRequest(http.MethodGet, "/categorias/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &CategoriaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.GetById()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("esperaba 500, got %d", w.Code)
 	}
 }
 
@@ -120,7 +139,7 @@ func TestCategoria_Delete_BadRequest(t *testing.T) {
 
 func TestCategoria_Delete_NotFound(t *testing.T) {
 	orig := catOrmNew
-	catOrmNew = func() categoriaOrmer { return fakeCatOrm{delErr: errors.New("nf")} }
+	catOrmNew = func() categoriaOrmer { return fakeCatOrm{readErr: orm.ErrNoRows} }
 	t.Cleanup(func() { catOrmNew = orig })
 
 	r := httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
@@ -132,8 +151,8 @@ func TestCategoria_Delete_NotFound(t *testing.T) {
 	c.Data = make(map[interface{}]interface{})
 
 	c.Delete()
-	if w.Code != http.StatusOK {
-		t.Fatalf("esperaba 200, got %d", w.Code)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("esperaba 404, got %d", w.Code)
 	}
 	var resp models.ApiResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
@@ -141,6 +160,44 @@ func TestCategoria_Delete_NotFound(t *testing.T) {
 	}
 	if resp.Code != http.StatusNotFound {
 		t.Fatalf("esperaba ApiCode 404, got %d", resp.Code)
+	}
+}
+
+func TestCategoria_Delete_ReadError(t *testing.T) {
+	orig := catOrmNew
+	catOrmNew = func() categoriaOrmer { return fakeCatOrm{readErr: errors.New("db error")} }
+	t.Cleanup(func() { catOrmNew = orig })
+
+	r := httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &CategoriaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Delete()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("esperaba 500, got %d", w.Code)
+	}
+}
+
+func TestCategoria_Delete_DeleteError(t *testing.T) {
+	orig := catOrmNew
+	catOrmNew = func() categoriaOrmer { return fakeCatOrm{delErr: errors.New("db error")} }
+	t.Cleanup(func() { catOrmNew = orig })
+
+	r := httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &CategoriaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Delete()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("esperaba 500, got %d", w.Code)
 	}
 }
 

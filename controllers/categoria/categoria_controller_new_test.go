@@ -91,8 +91,8 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 	c.GetById()
 	var resp models.ApiResponse
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", resp.Code)
+	if w.Code != http.StatusNotFound || resp.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got http=%d json=%d", w.Code, resp.Code)
 	}
 
 	r = httptest.NewRequest(http.MethodPost, "/categorias", strings.NewReader("bad"))
@@ -131,8 +131,8 @@ func TestCategoriaController_FullCoverage(t *testing.T) {
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
 	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("put nf %d", w.Code)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("put nf expected 404, got %d", w.Code)
 	}
 
 	cat := models.Categoria{NOMBRE: "Cafe"}
@@ -184,6 +184,7 @@ type badOrmCat struct{ *catMockOrm }
 
 func (b badOrmCat) QueryTable(_ interface{}) categoriaQuerySeter     { return badQSCat{} }
 func (b badOrmCat) Insert(v interface{}) (int64, error)              { return 0, orm.ErrTxDone }
+func (b badOrmCat) Read(v interface{}, _ ...string) error            { return orm.ErrNoRows }
 func (b badOrmCat) Delete(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrNoRows }
 
 func TestCategoriaController_AllError_InsertError_DeleteNotFound(t *testing.T) {
@@ -224,8 +225,8 @@ func TestCategoriaController_AllError_InsertError_DeleteNotFound(t *testing.T) {
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
 	c.Delete()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
 	}
 }
 
@@ -235,7 +236,7 @@ func (m updErrOrm) QueryTable(_ interface{}) categoriaQuerySeter     { return m.
 func (m updErrOrm) Insert(v interface{}) (int64, error)              { return m.catMockOrm.Insert(v) }
 func (m updErrOrm) Read(v interface{}, _ ...string) error            { return nil }
 func (m updErrOrm) Update(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrTxDone }
-func (m updErrOrm) Delete(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrNoRows }
+func (m updErrOrm) Delete(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrTxDone }
 
 func TestCategoriaController_PutUpdateError(t *testing.T) {
 
@@ -253,6 +254,101 @@ func TestCategoriaController_PutUpdateError(t *testing.T) {
 	c.Ctx = ctx
 	c.Data = make(map[interface{}]interface{})
 	c.Put()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
+	}
+}
+
+type readErrOrm struct{ *catMockOrm }
+
+func (m readErrOrm) QueryTable(_ interface{}) categoriaQuerySeter     { return m.catMockOrm.qs }
+func (m readErrOrm) Insert(v interface{}) (int64, error)              { return m.catMockOrm.Insert(v) }
+func (m readErrOrm) Read(v interface{}, _ ...string) error            { return orm.ErrTxDone }
+func (m readErrOrm) Update(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrTxDone }
+func (m readErrOrm) Delete(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrTxDone }
+
+func TestCategoriaController_ReadErrors(t *testing.T) {
+	orig := catOrmNew
+	catOrmNew = func() categoriaOrmer { return readErrOrm{newCatMockOrm()} }
+	defer func() { catOrmNew = orig }()
+
+	// GetById con error de Read
+	r := httptest.NewRequest(http.MethodGet, "/categorias/search?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &CategoriaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.GetById()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("GetById expected 500, got %d", w.Code)
+	}
+
+	// Put con error de Read
+	body := `{"nombre":"Z"}`
+	r = httptest.NewRequest(http.MethodPut, "/categorias?id=1", strings.NewReader(body))
+	w = httptest.NewRecorder()
+	ctx = context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c = &CategoriaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Put()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("Put expected 500, got %d", w.Code)
+	}
+
+	// Delete con error de Read
+	r = httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
+	w = httptest.NewRecorder()
+	ctx = context.NewContext()
+	ctx.Reset(w, r)
+	c = &CategoriaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Delete()
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("Delete expected 500, got %d", w.Code)
+	}
+}
+
+type deleteErrOrm struct {
+	*catMockOrm
+	shouldRead bool
+}
+
+func (m *deleteErrOrm) QueryTable(_ interface{}) categoriaQuerySeter { return m.catMockOrm.qs }
+func (m *deleteErrOrm) Insert(v interface{}) (int64, error)          { return m.catMockOrm.Insert(v) }
+func (m *deleteErrOrm) Read(v interface{}, _ ...string) error {
+	if m.shouldRead {
+		return m.catMockOrm.Read(v)
+	}
+	return nil
+}
+func (m *deleteErrOrm) Update(v interface{}, _ ...string) (int64, error) {
+	return m.catMockOrm.Update(v)
+}
+func (m *deleteErrOrm) Delete(v interface{}, _ ...string) (int64, error) { return 0, orm.ErrTxDone }
+
+func TestCategoriaController_DeleteError(t *testing.T) {
+	m := newCatMockOrm()
+	cat := models.Categoria{NOMBRE: "Test"}
+	m.Insert(&cat)
+
+	orig := catOrmNew
+	catOrmNew = func() categoriaOrmer { return &deleteErrOrm{catMockOrm: m, shouldRead: true} }
+	defer func() { catOrmNew = orig }()
+
+	r := httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	c := &CategoriaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+	c.Delete()
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}

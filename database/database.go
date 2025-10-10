@@ -104,7 +104,7 @@ func InitDB() error {
 		sslMode = "disable"
 	}
 
-	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=%s TimeZone=UTC",
+	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=%s TimeZone=America/Bogota",
 		dbUser, dbPass, dbHost, dbPort, dbName, sslMode)
 
 	if err := registerDataBase("default", "postgres", connStr); err != nil {
