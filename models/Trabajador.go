@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -32,18 +33,21 @@ func init() {
 }
 
 func (d Trabajador) MarshalJSON() ([]byte, error) {
-	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
+	// FECHA: normalizar a UTC para obtener el día de calendario correcto, sin efectos de zona
 	var fechaNacimientoStr *string
 	if d.FECHA_NACIMIENTO != nil {
-		str := time.Date(d.FECHA_NACIMIENTO.Year(), d.FECHA_NACIMIENTO.Month(), d.FECHA_NACIMIENTO.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+		fechaUTC := d.FECHA_NACIMIENTO.UTC()
+		str := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
 		fechaNacimientoStr = &str
 	}
 
-	fechaIngresoStr := time.Date(d.FECHA_INGRESO.Year(), d.FECHA_INGRESO.Month(), d.FECHA_INGRESO.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+	fechaIngresoUTC := d.FECHA_INGRESO.UTC()
+	fechaIngresoStr := fmt.Sprintf("%02d-%02d-%04d", fechaIngresoUTC.Day(), int(fechaIngresoUTC.Month()), fechaIngresoUTC.Year())
 
 	var fechaRetiroStr *string
 	if d.FECHA_RETIRO != nil {
-		str := time.Date(d.FECHA_RETIRO.Year(), d.FECHA_RETIRO.Month(), d.FECHA_RETIRO.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+		fechaUTC := d.FECHA_RETIRO.UTC()
+		str := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
 		fechaRetiroStr = &str
 	}
 

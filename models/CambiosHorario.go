@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -23,23 +24,27 @@ func init() {
 }
 
 func (t CambiosHorario) MarshalJSON() ([]byte, error) {
-	// Cargar zona horaria de Bogotá
-	loc, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		loc = time.FixedZone("UTC-5", -5*60*60)
-	}
+	// FECHA: normalizar a UTC para obtener el día de calendario correcto, sin efectos de zona
+	fechaUTC := t.FECHA.UTC()
+	fechaStr := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
 
-	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
-	fechaStr := time.Date(t.FECHA.Year(), t.FECHA.Month(), t.FECHA.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
-
+	// HORA: algunos timezones históricos (LMT) en America/Bogota afectan horas con año 0000
+	// Detectamos año antiguo y ajustamos con doble desfase LMT (~09:52:32) para recuperar hora de pared
 	var horaAperturaStr *string
 	if t.HORA_APERTURA != nil {
-		horaApertura := t.HORA_APERTURA.In(loc)
-		str := horaApertura.Format("15:04:05")
+		horaAdj := *t.HORA_APERTURA
+		if horaAdj.Year() < 1900 {
+			horaAdj = horaAdj.Add(9*time.Hour + 52*time.Minute + 32*time.Second)
+		}
+		str := fmt.Sprintf("%02d:%02d:%02d", horaAdj.Hour(), horaAdj.Minute(), horaAdj.Second())
 		horaAperturaStr = &str
 	}
 
-	horaCierreEnBogota := t.HORA_CIERRE.In(loc)
+	horaCierreAdj := t.HORA_CIERRE
+	if horaCierreAdj.Year() < 1900 {
+		horaCierreAdj = horaCierreAdj.Add(9*time.Hour + 52*time.Minute + 32*time.Second)
+	}
+	horaCierreStr := fmt.Sprintf("%02d:%02d:%02d", horaCierreAdj.Hour(), horaCierreAdj.Minute(), horaCierreAdj.Second())
 
 	return json.Marshal(&struct {
 		PK_ID_CAMBIO_HORARIO int64   `json:"cambioHorarioId"`
@@ -51,7 +56,7 @@ func (t CambiosHorario) MarshalJSON() ([]byte, error) {
 		PK_ID_CAMBIO_HORARIO: t.PK_ID_CAMBIO_HORARIO,
 		FECHA:                fechaStr,
 		HORA_APERTURA:        horaAperturaStr,
-		HORA_CIERRE:          horaCierreEnBogota.Format("15:04:05"),
+		HORA_CIERRE:          horaCierreStr,
 		ABIERTO:              t.ABIERTO,
 	})
 }

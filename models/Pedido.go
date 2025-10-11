@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -44,17 +45,23 @@ func init() {
 }
 
 func (d Pedido) MarshalJSON() ([]byte, error) {
-	// Cargar zona horaria de Bogotá
+	// FECHA: normalizar a UTC para obtener el día de calendario correcto, sin efectos de zona
+	fechaUTC := d.FECHA.UTC()
+	fechaStr := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
+
+	// HORA: algunos timezones históricos (LMT) en America/Bogota afectan horas con año 0000
+	// Detectamos año antiguo y ajustamos con doble desfase LMT (~09:52:32) para recuperar hora de pared
+	horaAdj := d.HORA
+	if horaAdj.Year() < 1900 {
+		horaAdj = horaAdj.Add(9*time.Hour + 52*time.Minute + 32*time.Second)
+	}
+	horaStr := fmt.Sprintf("%02d:%02d:%02d", horaAdj.Hour(), horaAdj.Minute(), horaAdj.Second())
+
+	// UPDATED_AT: cargar zona horaria de Bogotá para timestamp
 	loc, err := time.LoadLocation("America/Bogota")
 	if err != nil {
 		loc = time.FixedZone("UTC-5", -5*60*60)
 	}
-
-	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
-	fechaStr := time.Date(d.FECHA.Year(), d.FECHA.Month(), d.FECHA.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
-
-	// Para campos de tipo time: convertir a zona horaria de Bogotá
-	horaEnBogota := d.HORA.In(loc)
 	updatedAtEnBogota := d.UPDATED_AT.In(loc)
 
 	return json.Marshal(&struct {
@@ -72,7 +79,7 @@ func (d Pedido) MarshalJSON() ([]byte, error) {
 	}{
 		PK_ID_PEDIDO:         d.PK_ID_PEDIDO,
 		FECHA:                fechaStr,
-		HORA:                 horaEnBogota.Format("15:04:05"),
+		HORA:                 horaStr,
 		DELIVERY:             d.DELIVERY,
 		ESTADO_PEDIDO:        d.ESTADO_PEDIDO,
 		PK_ID_DOMICILIO:      d.PK_ID_DOMICILIO,

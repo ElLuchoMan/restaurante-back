@@ -24,8 +24,9 @@ func init() {
 }
 
 func (t Nomina) MarshalJSON() ([]byte, error) {
-	// Para campos de tipo date: extraer SOLO año/mes/día sin importar timezone
-	fechaStr := time.Date(t.FECHA.Year(), t.FECHA.Month(), t.FECHA.Day(), 0, 0, 0, 0, time.UTC).Format("02-01-2006")
+	// FECHA: normalizar a UTC para obtener el día de calendario correcto, sin efectos de zona
+	fechaUTC := t.FECHA.UTC()
+	fechaStr := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
 
 	return json.Marshal(&struct {
 		PK_ID_NOMINA  int64        `json:"nominaId"`
