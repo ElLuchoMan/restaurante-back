@@ -113,6 +113,7 @@ func (c *HorarioTrabajadorController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
+	// Para este endpoint exigimos formato HH:MM:SS estrictamente
 	horaInicio, err1 := time.Parse("15:04:05", input.HoraInicio)
 	horaFin, err2 := time.Parse("15:04:05", input.HoraFin)
 	if err1 != nil || err2 != nil {
@@ -122,6 +123,7 @@ func (c *HorarioTrabajadorController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
+	// Normalizamos a la fecha base 0001-01-01 en UTC
 	horaInicio = time.Date(1, 1, 1, horaInicio.Hour(), horaInicio.Minute(), horaInicio.Second(), 0, time.UTC)
 	horaFin = time.Date(1, 1, 1, horaFin.Hour(), horaFin.Minute(), horaFin.Second(), 0, time.UTC)
 	validCandidate := &models.HorarioTrabajador{HORA_INICIO: horaInicio, HORA_FIN: horaFin}
@@ -202,7 +204,7 @@ func (c *HorarioTrabajadorController) Put() {
 		return
 	}
 	if input.HoraInicio != nil && *input.HoraInicio != "" {
-		if t, err := time.Parse("15:04:05", *input.HoraInicio); err == nil {
+		if t, err := models.ParseTimeToUTC(*input.HoraInicio); err == nil {
 			horario.HORA_INICIO = t
 		} else {
 			logging.LogControllerError(c.Ctx, "horario_trabajador.put.bad_time_format", nil, map[string]interface{}{"horaInicio": *input.HoraInicio})
@@ -213,7 +215,7 @@ func (c *HorarioTrabajadorController) Put() {
 		}
 	}
 	if input.HoraFin != nil && *input.HoraFin != "" {
-		if t, err := time.Parse("15:04:05", *input.HoraFin); err == nil {
+		if t, err := models.ParseTimeToUTC(*input.HoraFin); err == nil {
 			horario.HORA_FIN = t
 		} else {
 			logging.LogControllerError(c.Ctx, "horario_trabajador.put.bad_time_format", nil, map[string]interface{}{"horaFin": *input.HoraFin})
@@ -223,6 +225,7 @@ func (c *HorarioTrabajadorController) Put() {
 			return
 		}
 	}
+	// Normalizar ambas horas a fecha base para comparar solo por hora/min/seg
 	horario.HORA_INICIO = time.Date(1, 1, 1, horario.HORA_INICIO.Hour(), horario.HORA_INICIO.Minute(), horario.HORA_INICIO.Second(), 0, time.UTC)
 	horario.HORA_FIN = time.Date(1, 1, 1, horario.HORA_FIN.Hour(), horario.HORA_FIN.Minute(), horario.HORA_FIN.Second(), 0, time.UTC)
 	if !horario.ValidHours() {

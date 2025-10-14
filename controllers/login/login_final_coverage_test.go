@@ -9,10 +9,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Tests adicionales para completar LoginController al 100%
-
 func TestLoadJWTSecret_ProductionWithoutSecret(t *testing.T) {
-	// Guardar valores originales
+
 	origSecret := os.Getenv("JWT_SECRET")
 	origMode := web.BConfig.RunMode
 	defer func() {
@@ -20,22 +18,18 @@ func TestLoadJWTSecret_ProductionWithoutSecret(t *testing.T) {
 		web.BConfig.RunMode = origMode
 	}()
 
-	// Configurar como producción sin JWT_SECRET
 	os.Unsetenv("JWT_SECRET")
 	web.BConfig.RunMode = "prod"
 
-	// Este test verifica que NO entre en pánico durante los tests
-	// En producción real, el init() ya habrá cargado el secreto
 	defer func() {
 		if r := recover(); r != nil {
-			// Se espera pánico en producción sin secreto
+
 			if r != "JWT_SECRET no configurado" {
 				t.Errorf("Expected panic 'JWT_SECRET no configurado', got %v", r)
 			}
 		}
 	}()
 
-	// Intentar cargar sin secreto en modo prod debería generar pánico
 	secret := loadJWTSecret()
 	if secret == nil {
 		t.Error("Expected secret to be loaded")
@@ -43,7 +37,7 @@ func TestLoadJWTSecret_ProductionWithoutSecret(t *testing.T) {
 }
 
 func TestLoadJWTSecret_DevModeWithRandomGeneration(t *testing.T) {
-	// Guardar valores originales
+
 	origSecret := os.Getenv("JWT_SECRET")
 	origMode := web.BConfig.RunMode
 	defer func() {
@@ -51,7 +45,6 @@ func TestLoadJWTSecret_DevModeWithRandomGeneration(t *testing.T) {
 		web.BConfig.RunMode = origMode
 	}()
 
-	// Configurar como dev sin JWT_SECRET
 	os.Unsetenv("JWT_SECRET")
 	web.BConfig.RunMode = "dev"
 
@@ -60,18 +53,16 @@ func TestLoadJWTSecret_DevModeWithRandomGeneration(t *testing.T) {
 		t.Error("Expected secret to be generated")
 	}
 
-	// Verificar que sea el fallback en caso de error en random
 	if string(secret) != "dev-insecure-default" && len(secret) != 32 {
 		t.Errorf("Expected either fallback or 32-byte random secret, got %d bytes", len(secret))
 	}
 }
 
 func TestGenerateTokens_EmptyJWTSecret(t *testing.T) {
-	// Guardar secret original
+
 	origSecret := jwtSecret
 	defer func() { jwtSecret = origSecret }()
 
-	// Configurar secret vacío
 	jwtSecret = []byte{}
 
 	_, _, err := generateTokens(123456, "Cliente", "Test User")
@@ -85,7 +76,7 @@ func TestGenerateTokens_EmptyJWTSecret(t *testing.T) {
 }
 
 func TestGenerateTokens_SigningError(t *testing.T) {
-	// Guardar valores originales
+
 	origSecret := jwtSecret
 	origMethod := signingMethod
 	defer func() {
@@ -93,7 +84,6 @@ func TestGenerateTokens_SigningError(t *testing.T) {
 		signingMethod = origMethod
 	}()
 
-	// Configurar un método de firma inválido que causará error
 	jwtSecret = []byte("valid-secret-key")
 	signingMethod = &invalidSigningMethod{}
 
@@ -146,7 +136,7 @@ func TestClientIP_RemoteAddrWithoutPort(t *testing.T) {
 }
 
 func TestAllowLogin_RateLimitReset(t *testing.T) {
-	// Limpiar rate limiter
+
 	rlMutex.Lock()
 	loginRL = newRateLimiter()
 	rlMutex.Unlock()
@@ -154,20 +144,17 @@ func TestAllowLogin_RateLimitReset(t *testing.T) {
 	req := httptest.NewRequest("POST", "/login", nil)
 	req.RemoteAddr = "10.0.0.1:12345"
 
-	// Llenar el límite
 	for i := 0; i < loginMaxReq; i++ {
 		if !allowLogin(req) {
 			t.Fatalf("Expected request %d to be allowed", i+1)
 		}
 	}
 
-	// El siguiente debería ser bloqueado
 	if allowLogin(req) {
 		t.Error("Expected request to be rate limited")
 	}
 }
 
-// Mock de signing method inválido
 type invalidSigningMethod struct{}
 
 func (m *invalidSigningMethod) Verify(signingString string, signature []byte, key interface{}) error {

@@ -15,7 +15,6 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-// Interfaces para testing
 type ofertaQuerySeter interface {
 	All(interface{}, ...string) (int64, error)
 	Filter(string, ...interface{}) ofertaQuerySeter
@@ -74,12 +73,10 @@ func (a ofertOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
 
 var ofertOrmNew = func() ofertaOrmer { return ofertOrmAdapter{o: orm.NewOrm()} }
 
-// Variable mockeable para crear el servicio
 var newOfertaService = func(o orm.Ormer) services.OfertaServiceInterface {
 	return services.NewOfertaService(o)
 }
 
-// Variables mockeables para ORM (usadas en funciones que requieren servicio)
 var ormProvider = defaultOrmProvider
 
 var ofertaServiceOrmBase = func() orm.Ormer { return ormProvider() }
@@ -108,7 +105,6 @@ func (c *OfertaController) GetAll() {
 	o := ofertOrmNew()
 	qs := o.QueryTable("oferta")
 
-	// Aplicar filtros
 	if activo := c.GetString("activo"); activo != "" {
 		if activoBool, err := strconv.ParseBool(activo); err == nil {
 			qs = qs.Filter("activo", activoBool)
@@ -125,7 +121,6 @@ func (c *OfertaController) GetAll() {
 		qs = qs.Filter("titulo__icontains", titulo)
 	}
 
-	// Paginación
 	limit, _ := c.GetInt("limit", 20)
 	offset, _ := c.GetInt("offset", 0)
 
@@ -133,7 +128,6 @@ func (c *OfertaController) GetAll() {
 		limit = 100
 	}
 
-	// Contar total
 	total, err := qs.Count()
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.getall.count_error", err, nil)
@@ -147,7 +141,6 @@ func (c *OfertaController) GetAll() {
 		return
 	}
 
-	// Obtener datos
 	var ofertas []*models.Oferta
 	_, err = qs.OrderBy("-pk_id_oferta").Limit(limit).Offset(int64(offset)).All(&ofertas)
 	if err != nil {
@@ -207,7 +200,6 @@ func (c *OfertaController) Post() {
 		return
 	}
 
-	// Validar tipo de descuento
 	if !req.TipoDescuento.IsValid() {
 		logging.LogControllerError(c.Ctx, "ofertas.post.invalid_tipo_descuento", nil, map[string]interface{}{"tipoDescuento": req.TipoDescuento})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -219,8 +211,7 @@ func (c *OfertaController) Post() {
 		return
 	}
 
-	// Parsear fechas
-	fechaInicio, err := time.Parse("2006-01-02", req.FechaInicio)
+	fechaInicio, err := models.ParseDateToNoonUTC(req.FechaInicio)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.post.invalid_fecha_inicio", err, map[string]interface{}{"fechaInicio": req.FechaInicio})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -232,7 +223,7 @@ func (c *OfertaController) Post() {
 		return
 	}
 
-	fechaFin, err := time.Parse("2006-01-02", req.FechaFin)
+	fechaFin, err := models.ParseDateToNoonUTC(req.FechaFin)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.post.invalid_fecha_fin", err, map[string]interface{}{"fechaFin": req.FechaFin})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -244,7 +235,8 @@ func (c *OfertaController) Post() {
 		return
 	}
 
-	// Parsear horarios si están especificados
+	// ya normalizadas por helper: mediodía UTC
+
 	var horaInicio, horaFin *time.Time
 	if req.HoraInicio != nil {
 		if hora, err := time.Parse("15:04", *req.HoraInicio); err == nil {
@@ -276,7 +268,8 @@ func (c *OfertaController) Post() {
 		}
 	}
 
-	// Crear modelo
+	// ya normalizadas por helper: mediodía UTC
+
 	oferta := &models.Oferta{
 		Titulo:          req.Titulo,
 		TipoDescuento:   req.TipoDescuento,
@@ -290,9 +283,8 @@ func (c *OfertaController) Post() {
 		PkIdRestaurante: &models.Restaurante{PK_ID_RESTAURANTE: req.PkIdRestaurante},
 	}
 
-	// Validar reglas de negocio
 	o := ofertOrmNew()
-	ofertaService := newOfertaService(nil) // ValidarReglasNegocioOferta no usa el ORM
+	ofertaService := newOfertaService(nil)
 
 	if err := ofertaService.ValidarReglasNegocioOferta(oferta); err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.post.validation_error", err, map[string]interface{}{"titulo": req.Titulo})
@@ -306,7 +298,6 @@ func (c *OfertaController) Post() {
 		return
 	}
 
-	// Insertar en base de datos
 	_, err = o.Insert(oferta)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.post.insert_error", err, map[string]interface{}{"titulo": req.Titulo})
@@ -424,7 +415,6 @@ func (c *OfertaController) Put() {
 
 	o := ofertOrmNew()
 
-	// Verificar que la oferta existe
 	oferta := &models.Oferta{PkIdOferta: id}
 	err = o.Read(oferta)
 	if err != nil {
@@ -448,7 +438,6 @@ func (c *OfertaController) Put() {
 		return
 	}
 
-	// Validar tipo de descuento
 	if !req.TipoDescuento.IsValid() {
 		logging.LogControllerError(c.Ctx, "ofertas.put.invalid_tipo_descuento", nil, map[string]interface{}{"tipoDescuento": req.TipoDescuento, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -460,8 +449,7 @@ func (c *OfertaController) Put() {
 		return
 	}
 
-	// Parsear fechas
-	fechaInicio, err := time.Parse("2006-01-02", req.FechaInicio)
+	fechaInicio, err := models.ParseDateToNoonUTC(req.FechaInicio)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.put.invalid_fecha_inicio", err, map[string]interface{}{"fechaInicio": req.FechaInicio, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -473,7 +461,7 @@ func (c *OfertaController) Put() {
 		return
 	}
 
-	fechaFin, err := time.Parse("2006-01-02", req.FechaFin)
+	fechaFin, err := models.ParseDateToNoonUTC(req.FechaFin)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.put.invalid_fecha_fin", err, map[string]interface{}{"fechaFin": req.FechaFin, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -485,7 +473,6 @@ func (c *OfertaController) Put() {
 		return
 	}
 
-	// Parsear horarios si están especificados
 	var horaInicio, horaFin *time.Time
 	if req.HoraInicio != nil {
 		if hora, err := time.Parse("15:04", *req.HoraInicio); err == nil {
@@ -517,7 +504,6 @@ func (c *OfertaController) Put() {
 		}
 	}
 
-	// Actualizar campos
 	oferta.Titulo = req.Titulo
 	oferta.TipoDescuento = req.TipoDescuento
 	oferta.ValorDescuento = req.ValorDescuento
@@ -528,8 +514,7 @@ func (c *OfertaController) Put() {
 	oferta.HoraFin = horaFin
 	oferta.PkIdRestaurante = &models.Restaurante{PK_ID_RESTAURANTE: req.PkIdRestaurante}
 
-	// Validar reglas de negocio
-	ofertaService := newOfertaService(nil) // ValidarReglasNegocioOferta no usa el ORM
+	ofertaService := newOfertaService(nil)
 	if err := ofertaService.ValidarReglasNegocioOferta(oferta); err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.put.validation_error", err, map[string]interface{}{"titulo": req.Titulo, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -542,7 +527,6 @@ func (c *OfertaController) Put() {
 		return
 	}
 
-	// Actualizar en base de datos
 	_, err = o.Update(oferta)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.put.update_error", err, map[string]interface{}{"id": id})
@@ -622,7 +606,6 @@ func (c *OfertaController) Delete() {
 		return
 	}
 
-	// Desactivar oferta (borrado lógico)
 	oferta.Activo = false
 	_, err = o.Update(oferta, "Activo")
 	if err != nil {
@@ -644,8 +627,6 @@ func (c *OfertaController) Delete() {
 	}
 	_ = c.ServeJSON()
 }
-
-// Métodos adicionales específicos de ofertas
 
 // @Title ObtenerOfertasActivas
 // @Summary Obtener ofertas activas
@@ -775,7 +756,6 @@ func (c *OfertaController) AsociarProducto() {
 
 	o := ofertOrmNew()
 
-	// Verificar que la oferta existe
 	oferta := &models.Oferta{PkIdOferta: ofertaId}
 	err = o.Read(oferta)
 	if err != nil {
@@ -799,7 +779,6 @@ func (c *OfertaController) AsociarProducto() {
 		return
 	}
 
-	// Verificar que el producto existe
 	producto := &models.Producto{PK_ID_PRODUCTO: req.ProductoId}
 	err = o.Read(producto)
 	if err != nil {
@@ -823,7 +802,6 @@ func (c *OfertaController) AsociarProducto() {
 		return
 	}
 
-	// Crear la asociación
 	ofertaProducto := &models.OfertaProducto{
 		PkIdOferta:   oferta,
 		PkIdProducto: producto,
@@ -831,7 +809,7 @@ func (c *OfertaController) AsociarProducto() {
 
 	_, err = o.Insert(ofertaProducto)
 	if err != nil {
-		// Si ya existe la asociación, devolver conflicto
+
 		if fmt.Sprintf("%v", err) == "UNIQUE constraint failed" ||
 			fmt.Sprintf("%v", err) == "duplicate key value violates unique constraint" {
 			c.Ctx.Output.SetStatus(http.StatusConflict)
@@ -898,7 +876,6 @@ func (c *OfertaController) DesasociarProducto() {
 
 	o := ofertOrmNew()
 
-	// Buscar la asociación
 	ofertaProducto := &models.OfertaProducto{}
 	err = o.QueryTable("oferta_producto").
 		Filter("pk_id_oferta", ofertaId).
@@ -926,7 +903,6 @@ func (c *OfertaController) DesasociarProducto() {
 		return
 	}
 
-	// Eliminar la asociación
 	_, err = o.Delete(ofertaProducto)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.desasociar.delete_error", err, map[string]interface{}{"oferta_id": ofertaId, "producto_id": productoId})

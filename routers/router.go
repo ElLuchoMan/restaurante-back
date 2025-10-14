@@ -35,7 +35,6 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// Constantes para métodos HTTP
 const (
 	httpMethodPost   = "POST"
 	httpMethodPut    = "PUT"
@@ -43,7 +42,7 @@ const (
 )
 
 func init() {
-	// Configurar CORS para permitir conexiones del frontend
+
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -52,7 +51,6 @@ func init() {
 		AllowCredentials: true,
 	}))
 
-	// Filtros para proteger operaciones de escritura (POST/PUT/DELETE requieren auth, GET es público)
 	beego.InsertFilter("/restaurante/v1/productos", beego.BeforeExec, func(ctx *context.Context) {
 		method := ctx.Input.Method()
 		if method == httpMethodPost || method == httpMethodPut || method == httpMethodDelete {
@@ -74,48 +72,39 @@ func init() {
 		}
 	}, beego.WithReturnOnOutput(true))
 
-	// Configurar Swagger UI
 	beego.Handler("/swagger/*", httpSwagger.WrapHandler)
 
-	// Namespace principal consolidado
 	main := beego.NewNamespace("/restaurante/v1",
-		// Rutas de autenticación (públicas)
+
 		beego.NSRouter("/login", &loginc.LoginController{}, "post:Login"),
 		beego.NSRouter("/auth/refresh", &loginc.LoginController{}, "post:RefreshToken"),
 
-		// Endpoints públicos (sin autenticación)
 		beego.NSRouter("/productos-populares", &tel.TelemetriaController{}, "get:GetProductosPopulares"),
 		beego.NSRouter("/estados-pedidos", &tel.TelemetriaController{}, "get:GetEstadosPedidos"),
 		beego.NSRouter("/productos-disponibles", &tel.TelemetriaController{}, "get:GetProductosDisponibles"),
 		beego.NSRouter("/ofertas/activas", &ofer.OfertaController{}, "get:ObtenerOfertasActivas"),
 
-		// Endpoints de productos - GET público, POST/PUT/DELETE protegidos por filtro
 		beego.NSRouter("/productos", &prod.ProductoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		beego.NSRouter("/productos/search", &prod.ProductoController{}, "get:GetById"),
 
-		// Endpoints públicos de restaurantes (GET)
 		beego.NSNamespace("/restaurantes",
 			beego.NSRouter("/", &rest.RestauranteController{}, "get:GetAll"),
 			beego.NSRouter("/search", &rest.RestauranteController{}, "get:GetById"),
 		),
 
-		// Endpoints públicos de restaurante_dia (GET)
 		beego.NSNamespace("/restaurante_dia",
 			beego.NSRouter("/", &rdia.RestauranteDiaController{}, "get:GetAll"),
 			beego.NSRouter("/search", &rdia.RestauranteDiaController{}, "get:GetById"),
 		),
 
-		// Endpoints de subcategorías - GET público, POST/PUT/DELETE protegidos por filtro
 		beego.NSRouter("/subcategorias", &subc.SubcategoriaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		beego.NSRouter("/subcategorias/search", &subc.SubcategoriaController{}, "get:GetById"),
 
-		// Endpoints públicos de trabajadores (GET)
 		beego.NSNamespace("/trabajadores",
 			beego.NSRouter("/", &trab.TrabajadorController{}, "get:GetAll"),
 			beego.NSRouter("/search", &trab.TrabajadorController{}, "get:GetById"),
 		),
 
-		// Endpoints públicos de reservas (GET)
 		beego.NSNamespace("/reservas",
 			beego.NSRouter("/", &resv.ReservaController{}, "get:GetAll"),
 			beego.NSRouter("/search", &resv.ReservaController{}, "get:GetById"),
@@ -124,39 +113,32 @@ func init() {
 			beego.NSRouter("/documento", &resv.ReservaController{}, "get:GetByDocumento"),
 		),
 
-		// Endpoints protegidos de reservas (POST, PUT, DELETE)
 		beego.NSNamespace("/reservas",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &resv.ReservaController{}, "post:Post;put:Put;delete:Delete"),
 		),
 
-		// Endpoints públicos de reserva_contacto (GET)
 		beego.NSNamespace("/reserva_contacto",
 			beego.NSRouter("/", &rc.ReservaContactoController{}, "get:GetAll"),
 			beego.NSRouter("/search", &rc.ReservaContactoController{}, "get:GetById"),
 		),
 
-		// Endpoints de categorías - GET público, POST/PUT/DELETE protegidos por filtro
 		beego.NSRouter("/categorias", &cat.CategoriaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		beego.NSRouter("/categorias/search", &cat.CategoriaController{}, "get:GetById"),
 
-		// Endpoints públicos de clientes (POST para registro)
 		beego.NSRouter("/clientes", &cli.ClienteController{}, "post:Post"),
 
-		// Rutas protegidas (con autenticación)
 		beego.NSNamespace("/producto_pedido",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &ppd.ProductoPedidoController{}, "get:GetAll;post:Post;put:Update"),
 		),
 
-		// Endpoints protegidos de clientes (GET, PUT, DELETE)
 		beego.NSNamespace("/clientes",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &cli.ClienteController{}, "get:GetAll;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &cli.ClienteController{}, "get:GetById"),
 		),
 
-		// Resto de endpoints protegidos...
 		beego.NSNamespace("/precio_producto_hist",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &pph.PrecioProductoHistController{}, "get:GetAll"),
@@ -233,16 +215,15 @@ func init() {
 			beego.NSRouter("/products", &tel.TelemetriaController{}, "get:GetProducts"),
 			beego.NSRouter("/users", &tel.TelemetriaController{}, "get:GetUsers"),
 			beego.NSRouter("/time-analysis", &tel.TelemetriaController{}, "get:GetTimeAnalysis"),
-			// Nuevos endpoints de métricas avanzadas
+
 			beego.NSRouter("/rentabilidad", &tel.TelemetriaController{}, "get:GetRentabilidad"),
 			beego.NSRouter("/segmentacion", &tel.TelemetriaController{}, "get:GetSegmentacion"),
 			beego.NSRouter("/eficiencia", &tel.TelemetriaController{}, "get:GetEficiencia"),
-			// Endpoints adicionales de análisis
+
 			beego.NSRouter("/reservas-analisis", &tel.TelemetriaController{}, "get:GetReservasAnalisis"),
 			beego.NSRouter("/pedidos-analisis", &tel.TelemetriaController{}, "get:GetPedidosAnalisis"),
 		),
 
-		// Rutas de notificaciones, cupones y ofertas
 		beego.NSNamespace("/push",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/dispositivos", &push.PushController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
@@ -275,6 +256,5 @@ func init() {
 		),
 	)
 
-	// Registrar el namespace principal
 	beego.AddNamespace(main)
 }

@@ -13,7 +13,7 @@ import (
 )
 
 func TestPushController_Integration(t *testing.T) {
-	// Configurar Beego para tests
+
 	web.BConfig.RunMode = "test"
 
 	t.Run("RegistrarDispositivo - Web válido", func(t *testing.T) {
@@ -36,19 +36,16 @@ func TestPushController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Crear request HTTP
 		req := httptest.NewRequest("POST", "/restaurante/v1/push/dispositivos", bytes.NewBuffer(jsonData))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test_token")
 
-		// Verificar que el request se puede parsear
 		var parsedRequest models.RegistrarDispositivoRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
 		if err != nil {
 			t.Errorf("Error parsing request: %v", err)
 		}
 
-		// Verificar campos específicos de web
 		if parsedRequest.Plataforma != models.PlataformaWeb {
 			t.Errorf("Expected plataforma %s, got %s", models.PlataformaWeb, parsedRequest.Plataforma)
 		}
@@ -83,14 +80,12 @@ func TestPushController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Verificar que el request se puede parsear
 		var parsedRequest models.RegistrarDispositivoRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
 		if err != nil {
 			t.Errorf("Error parsing request: %v", err)
 		}
 
-		// Verificar campos específicos de Android
 		if parsedRequest.Plataforma != models.PlataformaAndroid {
 			t.Errorf("Expected plataforma %s, got %s", models.PlataformaAndroid, parsedRequest.Plataforma)
 		}
@@ -118,7 +113,6 @@ func TestPushController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Verificar que el request se puede parsear
 		var parsedRequest models.ActualizarEstadoDispositivoRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
 		if err != nil {
@@ -140,7 +134,6 @@ func TestPushController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Verificar que el request se puede parsear
 		var parsedRequest models.ActualizarTopicsRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
 		if err != nil {
@@ -180,7 +173,6 @@ func TestPushController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Verificar que el request se puede parsear
 		var parsedRequest models.RegistrarEnvioRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
 		if err != nil {
@@ -199,7 +191,6 @@ func TestPushController_Integration(t *testing.T) {
 			t.Errorf("Expected exito %v, got %v", request.Exito, parsedRequest.Exito)
 		}
 
-		// Verificar que los datos JSON se preservan
 		var parsedData map[string]interface{}
 		err = json.Unmarshal(parsedRequest.Data, &parsedData)
 		if err != nil {
@@ -235,24 +226,32 @@ func TestPushController_ResponseStructures(t *testing.T) {
 			t.Fatalf("Error marshaling response: %v", err)
 		}
 
-		// Verificar que se puede deserializar
-		var parsedResponse models.PushDispositivoResponse
+		var parsedResponse map[string]interface{}
 		err = json.Unmarshal(jsonData, &parsedResponse)
 		if err != nil {
 			t.Errorf("Error parsing response: %v", err)
 		}
 
-		// Verificar campos clave
-		if parsedResponse.PushDispositivoId != response.PushDispositivoId {
-			t.Errorf("Expected dispositivo ID %d, got %d", response.PushDispositivoId, parsedResponse.PushDispositivoId)
+		if int64(parsedResponse["pushDispositivoId"].(float64)) != response.PushDispositivoId {
+			t.Errorf("Expected dispositivo ID %d, got %v", response.PushDispositivoId, parsedResponse["pushDispositivoId"])
 		}
 
-		if parsedResponse.Plataforma != response.Plataforma {
-			t.Errorf("Expected plataforma %s, got %s", response.Plataforma, parsedResponse.Plataforma)
+		if parsedResponse["plataforma"].(string) != string(response.Plataforma) {
+			t.Errorf("Expected plataforma %s, got %v", response.Plataforma, parsedResponse["plataforma"])
 		}
 
-		if len(parsedResponse.SubscribedTopics) != len(response.SubscribedTopics) {
-			t.Errorf("Expected %d topics, got %d", len(response.SubscribedTopics), len(parsedResponse.SubscribedTopics))
+		topics := parsedResponse["subscribedTopics"].([]interface{})
+		if len(topics) != len(response.SubscribedTopics) {
+			t.Errorf("Expected %d topics, got %d", len(response.SubscribedTopics), len(topics))
+		}
+
+		if _, ok := parsedResponse["createdAt"].(string); !ok {
+			t.Errorf("createdAt debe ser string")
+		}
+		if v, ok := parsedResponse["lastSeenAt"]; ok && v != nil {
+			if _, ok2 := v.(string); !ok2 {
+				t.Errorf("lastSeenAt debe ser string cuando está presente")
+			}
 		}
 	})
 
@@ -278,32 +277,37 @@ func TestPushController_ResponseStructures(t *testing.T) {
 			t.Fatalf("Error marshaling response: %v", err)
 		}
 
-		// Verificar que se puede deserializar
-		var parsedResponse models.PushEnvioResponse
+		var parsedResponse map[string]interface{}
 		err = json.Unmarshal(jsonData, &parsedResponse)
 		if err != nil {
 			t.Errorf("Error parsing response: %v", err)
 		}
 
-		// Verificar campos clave
-		if parsedResponse.PushEnvioId != response.PushEnvioId {
-			t.Errorf("Expected envio ID %d, got %d", response.PushEnvioId, parsedResponse.PushEnvioId)
+		if int64(parsedResponse["pushEnvioId"].(float64)) != response.PushEnvioId {
+			t.Errorf("Expected envio ID %d, got %v", response.PushEnvioId, parsedResponse["pushEnvioId"])
 		}
 
-		if parsedResponse.Proveedor != response.Proveedor {
-			t.Errorf("Expected proveedor %s, got %s", response.Proveedor, parsedResponse.Proveedor)
+		if parsedResponse["proveedor"].(string) != string(response.Proveedor) {
+			t.Errorf("Expected proveedor %s, got %v", response.Proveedor, parsedResponse["proveedor"])
 		}
 
-		// Verificar que los datos JSON se preservan
 		var parsedData map[string]interface{}
-		err = json.Unmarshal(parsedResponse.Data, &parsedData)
-		if err != nil {
-			t.Errorf("Error parsing data JSON: %v", err)
+		if m, ok := parsedResponse["data"].(map[string]interface{}); ok {
+			parsedData = m
+		} else if s, ok := parsedResponse["data"].(string); ok {
+			if err = json.Unmarshal([]byte(s), &parsedData); err != nil {
+				t.Errorf("Error parsing data JSON: %v", err)
+			}
+		} else {
+			t.Errorf("data tiene tipo inesperado: %T", parsedResponse["data"])
+		}
+
+		if _, ok := parsedResponse["sentAt"].(string); !ok {
+			t.Errorf("sentAt debe ser string")
 		}
 	})
 }
 
-// Helper functions
 func stringPtr(s string) *string {
 	return &s
 }

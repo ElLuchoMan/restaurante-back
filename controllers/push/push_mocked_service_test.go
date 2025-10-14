@@ -18,10 +18,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// ============================================================================
-// MOCK DEL SERVICIO PUSH CON INTERFAZ
-// ============================================================================
-
 type MockPushServiceInterface struct {
 	mock.Mock
 }
@@ -70,12 +66,8 @@ func (m *MockPushServiceInterface) ValidarRegistroDispositivo(req *models.Regist
 	return args.Error(0)
 }
 
-// ============================================================================
-// TESTS CON SERVICIO MOCKEADO - POST (RegistrarDispositivo)
-// ============================================================================
-
 func TestPushPost_ConServicioMockeado_Exitoso(t *testing.T) {
-	// Guardar y restaurar funciones originales
+
 	originalNewPushService := newPushService
 	originalNewServiceOrm := newServiceOrm
 	defer func() {
@@ -83,7 +75,6 @@ func TestPushPost_ConServicioMockeado_Exitoso(t *testing.T) {
 		newServiceOrm = originalNewServiceOrm
 	}()
 
-	// Mock del servicio
 	mockService := new(MockPushServiceInterface)
 	expectedDispositivo := &models.PushDispositivo{
 		PkIdPushDispositivo: 123,
@@ -93,15 +84,13 @@ func TestPushPost_ConServicioMockeado_Exitoso(t *testing.T) {
 	mockService.On("RegistrarDispositivo", mock.Anything, mock.AnythingOfType("*models.RegistrarDispositivoRequest")).
 		Return(expectedDispositivo, nil)
 
-	// Reemplazar la función de creación del servicio
 	newPushService = func(o orm.Ormer) services.PushServiceInterface {
 		return mockService
 	}
 	newServiceOrm = func() orm.Ormer {
-		return nil // No se usa realmente
+		return nil
 	}
 
-	// Preparar el controller
 	ctrl := &PushController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
@@ -117,10 +106,8 @@ func TestPushPost_ConServicioMockeado_Exitoso(t *testing.T) {
 	ctx.Input.RequestBody = body
 	ctrl.Ctx = ctx
 
-	// Ejecutar
 	ctrl.Post()
 
-	// Verificaciones
 	assert.Equal(t, http.StatusCreated, recorder.Code)
 
 	var response models.ApiResponse
@@ -128,12 +115,11 @@ func TestPushPost_ConServicioMockeado_Exitoso(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, response.Code)
 	assert.Equal(t, "Dispositivo registrado exitosamente", response.Message)
 
-	// Verificar que el mock fue llamado
 	mockService.AssertExpectations(t)
 }
 
 func TestPushPost_ConServicioMockeado_ErrorDelServicio(t *testing.T) {
-	// Guardar y restaurar funciones originales
+
 	originalNewPushService := newPushService
 	originalNewServiceOrm := newServiceOrm
 	defer func() {
@@ -141,7 +127,6 @@ func TestPushPost_ConServicioMockeado_ErrorDelServicio(t *testing.T) {
 		newServiceOrm = originalNewServiceOrm
 	}()
 
-	// Mock del servicio que retorna error
 	mockService := new(MockPushServiceInterface)
 	mockService.On("RegistrarDispositivo", mock.Anything, mock.AnythingOfType("*models.RegistrarDispositivoRequest")).
 		Return(nil, errors.New("error de base de datos"))
@@ -170,7 +155,6 @@ func TestPushPost_ConServicioMockeado_ErrorDelServicio(t *testing.T) {
 
 	ctrl.Post()
 
-	// Debe retornar error
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 
 	var response models.ApiResponse
@@ -180,10 +164,6 @@ func TestPushPost_ConServicioMockeado_ErrorDelServicio(t *testing.T) {
 
 	mockService.AssertExpectations(t)
 }
-
-// ============================================================================
-// TESTS CON SERVICIO MOCKEADO - PUT (ActualizarEstado)
-// ============================================================================
 
 func TestPushPut_ConServicioMockeado_Exitoso(t *testing.T) {
 	originalNewPushService := newPushService
@@ -276,10 +256,6 @@ func TestPushPut_ConServicioMockeado_DispositivoNoEncontrado(t *testing.T) {
 	mockService.AssertExpectations(t)
 }
 
-// ============================================================================
-// TESTS CON SERVICIO MOCKEADO - ActualizarTopics
-// ============================================================================
-
 func TestPushActualizarTopics_ConServicioMockeado_Exitoso(t *testing.T) {
 	originalNewPushService := newPushService
 	originalNewServiceOrm := newServiceOrm
@@ -361,7 +337,6 @@ func TestPushActualizarTopics_ConServicioMockeado_ErrorDelServicio(t *testing.T)
 
 	ctrl.ActualizarTopics()
 
-	// Debe retornar OK con código 404 en el JSON (comportamiento actual del controller)
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
 	var response models.ApiResponse
@@ -370,10 +345,6 @@ func TestPushActualizarTopics_ConServicioMockeado_ErrorDelServicio(t *testing.T)
 
 	mockService.AssertExpectations(t)
 }
-
-// ============================================================================
-// TESTS CON SERVICIO MOCKEADO - ActualizarUltimaVista
-// ============================================================================
 
 func TestPushActualizarUltimaVista_ConServicioMockeado_Exitoso(t *testing.T) {
 	originalNewPushService := newPushService
@@ -484,7 +455,6 @@ func TestPushActualizarUltimaVista_ConServicioMockeado_ErrorDelServicio(t *testi
 
 	ctrl.ActualizarUltimaVista()
 
-	// El controller retorna OK con código 404 en el JSON (comportamiento actual)
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
 	var response models.ApiResponse
@@ -494,10 +464,6 @@ func TestPushActualizarUltimaVista_ConServicioMockeado_ErrorDelServicio(t *testi
 
 	mockService.AssertExpectations(t)
 }
-
-// ============================================================================
-// TESTS CON SERVICIO MOCKEADO - EnviarNotificacion
-// ============================================================================
 
 func TestPushEnviarNotificacion_ConServicioMockeado_Exitoso(t *testing.T) {
 	originalNewPushService := newPushService
@@ -659,10 +625,6 @@ func TestPushEnviarNotificacion_ConServicioMockeado_ErrorDelServicio(t *testing.
 	mockService.AssertExpectations(t)
 }
 
-// ============================================================================
-// TESTS CON SERVICIO MOCKEADO - RegistrarEnvio
-// ============================================================================
-
 func TestPushRegistrarEnvio_ConServicioMockeado_Exitoso(t *testing.T) {
 	originalNewPushService := newPushService
 	originalPushServiceOrmFactory := pushServiceOrmFactory
@@ -719,7 +681,6 @@ func TestPushRegistrarEnvio_ConServicioMockeado_ProveedorInvalido(t *testing.T) 
 	ctrl := &PushController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
-	// JSON con proveedor inválido como string
 	body := []byte(`{"pushDispositivoId":1,"proveedor":"INVALID","exito":true}`)
 
 	r := httptest.NewRequest(http.MethodPost, "/push/envios", bytes.NewReader(body))
@@ -786,10 +747,6 @@ func TestPushRegistrarEnvio_ConServicioMockeado_ErrorDelServicio(t *testing.T) {
 
 	mockService.AssertExpectations(t)
 }
-
-// ============================================================================
-// TESTS DE VALIDACIÓN ADICIONALES - Delete
-// ============================================================================
 
 func TestPushDelete_IDFaltante(t *testing.T) {
 	ctrl := &PushController{}

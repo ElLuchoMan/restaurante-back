@@ -371,8 +371,8 @@ func (c *ProductoController) Put() {
 		}
 
 		if reflect.DeepEqual(producto, original) {
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "No se realizaron cambios en el producto", Data: producto}
+			c.Ctx.Output.SetStatus(http.StatusNotModified)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusNotModified, Message: "No se realizaron cambios en el producto", Data: producto}
 			_ = c.ServeJSON()
 			return
 		}
@@ -492,9 +492,7 @@ func validateProducto(producto *models.Producto) error {
 	if producto.ESTADO_PRODUCTO != models.EstadoProductoDisponible && producto.ESTADO_PRODUCTO != models.EstadoProductoNoDisponible {
 		return fmt.Errorf("el campo 'estadoProducto' debe ser 'DISPONIBLE' o 'NO_DISPONIBLE'")
 	}
-	if producto.PK_ID_SUBCATEGORIA == nil || producto.PK_ID_SUBCATEGORIA.PK_ID_SUBCATEGORIA == 0 {
-		return fmt.Errorf("el campo 'subcategoriaId' es obligatorio")
-	}
+
 	return nil
 }
 

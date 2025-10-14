@@ -15,29 +15,25 @@ type PedidoDescuentoAplicado struct {
 	MontoDescuento      int64           `orm:"column(monto_descuento);type(bigint)" json:"montoDescuento"`
 	Detalle             string          `orm:"column(detalle);type(jsonb);null" json:"-"`
 	DetalleObj          json.RawMessage `orm:"-" json:"detalle,omitempty" swaggertype:"object"`
-	CreatedAt           time.Time       `orm:"column(created_at);type(timestamptz);auto_now_add" json:"createdAt"`
+	CreatedAt           time.Time       `orm:"column(created_at);type(timestamptz);auto_now_add" json:"createdAt" swaggertype:"string"`
 }
 
 func (p *PedidoDescuentoAplicado) TableName() string {
 	return "pedido_descuento_aplicado"
 }
 
-// BeforeInsert se ejecuta antes de insertar en la base de datos
 func (p *PedidoDescuentoAplicado) BeforeInsert() {
 	p.serializeDetalle()
 }
 
-// BeforeUpdate se ejecuta antes de actualizar en la base de datos
 func (p *PedidoDescuentoAplicado) BeforeUpdate() {
 	p.serializeDetalle()
 }
 
-// AfterLoad se ejecuta después de cargar desde la base de datos
 func (p *PedidoDescuentoAplicado) AfterLoad() {
 	p.deserializeDetalle()
 }
 
-// serializeDetalle convierte el objeto JSON a string para la base de datos
 func (p *PedidoDescuentoAplicado) serializeDetalle() {
 	if len(p.DetalleObj) == 0 {
 		p.Detalle = ""
@@ -46,7 +42,6 @@ func (p *PedidoDescuentoAplicado) serializeDetalle() {
 	p.Detalle = string(p.DetalleObj)
 }
 
-// deserializeDetalle convierte el string de la base de datos a objeto JSON
 func (p *PedidoDescuentoAplicado) deserializeDetalle() {
 	if p.Detalle == "" {
 		p.DetalleObj = nil
@@ -57,4 +52,27 @@ func (p *PedidoDescuentoAplicado) deserializeDetalle() {
 
 func init() {
 	orm.RegisterModel(new(PedidoDescuentoAplicado))
+}
+
+func (p PedidoDescuentoAplicado) MarshalJSON() ([]byte, error) {
+
+	createdAtStr := FormatTimestampBogota(p.CreatedAt)
+
+	return json.Marshal(&struct {
+		PkIdPedidoDescuento int64           `json:"pedidoDescuentoId"`
+		PkIdPedido          *Pedido         `json:"pedidoId" swaggertype:"integer"`
+		PkIdCupon           *Cupon          `json:"cuponId,omitempty" swaggertype:"integer"`
+		PkIdOferta          *Oferta         `json:"ofertaId,omitempty" swaggertype:"integer"`
+		MontoDescuento      int64           `json:"montoDescuento"`
+		DetalleObj          json.RawMessage `json:"detalle,omitempty" swaggertype:"object"`
+		CreatedAt           string          `json:"createdAt"`
+	}{
+		PkIdPedidoDescuento: p.PkIdPedidoDescuento,
+		PkIdPedido:          p.PkIdPedido,
+		PkIdCupon:           p.PkIdCupon,
+		PkIdOferta:          p.PkIdOferta,
+		MontoDescuento:      p.MontoDescuento,
+		DetalleObj:          p.DetalleObj,
+		CreatedAt:           createdAtStr,
+	})
 }

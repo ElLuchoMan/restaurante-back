@@ -112,10 +112,10 @@ func TestReservaPostInvalidJSON(t *testing.T) {
 
 func TestReservaPostInvalidDate(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
-	// Mockear funciones de contacto
+
 	ormNew = func() orm.Ormer { return nil }
 	queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
-		return orm.ErrNoRows // No encontrado, para que cree uno nuevo
+		return orm.ErrNoRows
 	}
 	insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
 		return 1, nil
@@ -151,10 +151,10 @@ func TestReservaPostInvalidDate(t *testing.T) {
 
 func TestReservaPostMissingHora(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
-	// Mockear funciones de contacto
+
 	ormNew = func() orm.Ormer { return nil }
 	queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
-		return orm.ErrNoRows // No encontrado, para que cree uno nuevo
+		return orm.ErrNoRows
 	}
 	insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
 		return 1, nil
@@ -339,7 +339,7 @@ func TestReservaGetByIdScenarios(t *testing.T) {
 
 func TestReservaPostMissingFecha(t *testing.T) {
 	t.Cleanup(resetReservaMocks)
-	// Mockear funciones de contacto
+
 	ormNew = func() orm.Ormer { return nil }
 	queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
 		return orm.ErrNoRows
@@ -481,9 +481,9 @@ func TestReservaPostInvalidRestaurante(t *testing.T) {
 func TestReservaPostInsertError(t *testing.T) {
 	ormNew = func() orm.Ormer { return nil }
 	insertReserva = func(o orm.Ormer, r *models.Reserva) (int64, error) { return 0, errors.New("db") }
-	// Mockear funciones de contacto
+
 	queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
-		return orm.ErrNoRows // No encontrado, para que cree uno nuevo
+		return orm.ErrNoRows
 	}
 	insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
 		return 1, nil
@@ -521,9 +521,9 @@ func TestReservaPostSuccess(t *testing.T) {
 		db = append(db, *r)
 		return 1, nil
 	}
-	// Mockear funciones de contacto
+
 	queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
-		return orm.ErrNoRows // No encontrado, para que cree uno nuevo
+		return orm.ErrNoRows
 	}
 	insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
 		return 1, nil

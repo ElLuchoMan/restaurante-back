@@ -7,13 +7,12 @@ import (
 )
 
 func TestPagoMarshalJSON(t *testing.T) {
-	// Cargar zona horaria de Bogotá para los tests
+
 	loc, err := time.LoadLocation("America/Bogota")
 	if err != nil {
 		loc = time.FixedZone("UTC-5", -5*60*60)
 	}
 
-	// Crear fechas en zona horaria de Bogotá
 	fecha := time.Date(2024, time.August, 16, 0, 0, 0, 0, loc)
 	updated := time.Date(2024, time.August, 17, 12, 30, 45, 0, loc)
 	p := Pago{
@@ -40,13 +39,12 @@ func TestPagoMarshalJSON(t *testing.T) {
 }
 
 func TestPagoMarshalJSONNilUpdatedBy(t *testing.T) {
-	// Cargar zona horaria de Bogotá para los tests
+
 	loc, err := time.LoadLocation("America/Bogota")
 	if err != nil {
 		loc = time.FixedZone("UTC-5", -5*60*60)
 	}
 
-	// Crear fechas en zona horaria de Bogotá
 	fecha := time.Date(2024, time.August, 16, 0, 0, 0, 0, loc)
 	updated := time.Date(2024, time.August, 17, 12, 30, 45, 0, loc)
 	p := Pago{

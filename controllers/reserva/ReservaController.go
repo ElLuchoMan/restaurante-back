@@ -50,12 +50,13 @@ var queryReservasByParam = func(o orm.Ormer, contactoID int64, fecha time.Time, 
 		qs = qs.Filter("PK_ID_CONTACTO", contactoID)
 	}
 	if useFecha {
-		qs = qs.Filter("FECHA", fecha)
+
+		dateStr := fecha.Format("2006-01-02")
+		qs = qs.Filter("FECHA__exact", dateStr)
 	}
 	return qs.All(reservas)
 }
 
-// queryReservasByDocumentoCliente busca reservas por documento de cliente
 var queryReservasByDocumentoCliente = func(o orm.Ormer, documentoCliente int64, fecha time.Time, useFecha bool, reservas *[]models.Reserva) (int64, error) {
 	qs := o.QueryTable(new(models.Reserva)).
 		RelatedSel("PK_ID_CONTACTO").
@@ -69,7 +70,6 @@ var queryReservasByDocumentoCliente = func(o orm.Ormer, documentoCliente int64, 
 	return qs.All(reservas)
 }
 
-// queryReservasByDocumentoContacto busca reservas por documento de contacto (usuarios no loggeados)
 var queryReservasByDocumentoContacto = func(o orm.Ormer, documentoContacto int64, fecha time.Time, useFecha bool, reservas *[]models.Reserva) (int64, error) {
 	qs := o.QueryTable(new(models.Reserva)).
 		RelatedSel("PK_ID_CONTACTO").
@@ -83,7 +83,6 @@ var queryReservasByDocumentoContacto = func(o orm.Ormer, documentoContacto int64
 	return qs.All(reservas)
 }
 
-// Funciones helper para manejo de ReservaContacto
 var insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
 	return o.Insert(rc)
 }
@@ -100,31 +99,26 @@ var readCliente = func(o orm.Ormer, c *models.Cliente) error {
 	return o.Read(c)
 }
 
-// createOrFindReservaContacto crea o busca un ReservaContacto basado en los datos proporcionados
 func createOrFindReservaContacto(o orm.Ormer, input map[string]interface{}) (*models.ReservaContacto, error) {
 	var contacto models.ReservaContacto
 
-	// Caso 1: Usuario no loggeado - usar documentoContacto
 	if docContacto, ok := input["documentoContacto"].(float64); ok {
 		documento := int64(docContacto)
 
-		// Buscar contacto existente por documento
 		err := queryReservaContactoByDocumento(o, documento, &contacto)
 		if err == nil {
-			// Contacto encontrado, retornarlo
+
 			return &contacto, nil
 		}
 		if err != orm.ErrNoRows {
-			// Error de base de datos
+
 			return nil, err
 		}
 
-		// Contacto no existe, crear uno nuevo
 		contacto = models.ReservaContacto{
 			DocumentoContacto: &documento,
 		}
 
-		// Obtener datos adicionales del input
 		if nombre, ok := input["nombreCompleto"].(string); ok && nombre != "" {
 			contacto.NombreCompleto = nombre
 		} else {
@@ -135,7 +129,6 @@ func createOrFindReservaContacto(o orm.Ormer, input map[string]interface{}) (*mo
 			contacto.Telefono = &telefono
 		}
 
-		// Insertar nuevo contacto
 		id, err := insertReservaContacto(o, &contacto)
 		if err != nil {
 			return nil, err
@@ -144,28 +137,24 @@ func createOrFindReservaContacto(o orm.Ormer, input map[string]interface{}) (*mo
 		return &contacto, nil
 	}
 
-	// Caso 2: Usuario loggeado - usar documentoCliente
 	if docCliente, ok := input["documentoCliente"].(float64); ok {
 		clienteDoc := int64(docCliente)
 
-		// Buscar contacto existente por cliente
 		err := queryReservaContactoByCliente(o, clienteDoc, &contacto)
 		if err == nil {
-			// Contacto encontrado, retornarlo
+
 			return &contacto, nil
 		}
 		if err != orm.ErrNoRows {
-			// Error de base de datos
+
 			return nil, err
 		}
 
-		// Contacto no existe, verificar que el cliente existe y crear contacto
 		cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: clienteDoc}
 		if err := readCliente(o, &cliente); err != nil {
 			return nil, fmt.Errorf("cliente no encontrado: %w", err)
 		}
 
-		// Crear nuevo contacto vinculado al cliente
 		contacto = models.ReservaContacto{
 			PKDocumentoCliente: &cliente,
 			NombreCompleto:     cliente.NOMBRE + " " + cliente.APELLIDO,
@@ -174,7 +163,6 @@ func createOrFindReservaContacto(o orm.Ormer, input map[string]interface{}) (*mo
 			contacto.Telefono = &cliente.TELEFONO
 		}
 
-		// Insertar nuevo contacto
 		id, err := insertReservaContacto(o, &contacto)
 		if err != nil {
 			return nil, err
@@ -211,9 +199,6 @@ func (c *ReservaController) GetAll() {
 		_ = c.ServeJSON()
 		return
 	}
-
-	// Los datos ya están en zona horaria de Bogotá (conexión PostgreSQL con TimeZone=America/Bogota)
-	// No es necesario aplicar conversiones - el MarshalJSON se encarga del formateo
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -263,8 +248,6 @@ func (c *ReservaController) GetById() {
 		_ = c.ServeJSON()
 		return
 	}
-	// Los datos ya están en zona horaria de Bogotá (conexión PostgreSQL con TimeZone=America/Bogota)
-	// No es necesario aplicar conversiones - el MarshalJSON se encarga del formateo
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
@@ -297,7 +280,6 @@ func (c *ReservaController) Post() {
 		return
 	}
 
-	// Crear o buscar el contacto de reserva
 	contacto, err := createOrFindReservaContacto(o, input)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "reservas.post.contacto_error", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
@@ -309,11 +291,8 @@ func (c *ReservaController) Post() {
 
 	var reserva models.Reserva
 
-	// Nota: ya no se requiere zona horaria aquí; se guardan valores normalizados
-
-	// Validar y procesar fecha
 	if fechaStr, ok := input["fechaReserva"].(string); ok && fechaStr != "" {
-		// Parsear fecha en UTC (sin timezone) - PostgreSQL type(date) no tiene timezone
+
 		parsedDateUTC, err := time.Parse("2006-01-02", fechaStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", err, map[string]interface{}{"fechaReserva": fechaStr, "body": string(c.Ctx.Input.RequestBody)})
@@ -322,9 +301,9 @@ func (c *ReservaController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
-		// Usar mediodía UTC para evitar cambios de día al convertir zonas
+
 		fechaMidUTC := time.Date(parsedDateUTC.Year(), parsedDateUTC.Month(), parsedDateUTC.Day(), 12, 0, 0, 0, time.UTC)
-		// fecha normalizada a mediodía UTC para evitar corrimientos de día
+
 		reserva.FECHA = fechaMidUTC
 	} else {
 		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "fechaReserva", "body": string(c.Ctx.Input.RequestBody)})
@@ -334,9 +313,8 @@ func (c *ReservaController) Post() {
 		return
 	}
 
-	// Validar y procesar hora
 	if horaStr, ok := input["horaReserva"].(string); ok && horaStr != "" {
-		// Parsear hora en UTC (sin timezone) - PostgreSQL type(time) no tiene timezone
+
 		parsedHoraUTC, err := time.Parse("15:04:05", horaStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", err, map[string]interface{}{"horaReserva": horaStr, "body": string(c.Ctx.Input.RequestBody)})
@@ -345,7 +323,7 @@ func (c *ReservaController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
-		// hora guardada en UTC
+
 		reserva.HORA = parsedHoraUTC
 	} else {
 		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "horaReserva", "body": string(c.Ctx.Input.RequestBody)})
@@ -355,7 +333,6 @@ func (c *ReservaController) Post() {
 		return
 	}
 
-	// Validar y procesar número de personas
 	if personas, ok := input["personas"].(float64); ok && personas > 0 {
 		reserva.PERSONAS = int(personas)
 	} else {
@@ -366,7 +343,6 @@ func (c *ReservaController) Post() {
 		return
 	}
 
-	// Procesar estado de reserva (opcional)
 	if estadoStr, ok := input["estadoReserva"].(string); ok && estadoStr != "" {
 		estado := models.EstadoReserva(estadoStr)
 		if !estadosPermitidos[estado] {
@@ -378,12 +354,11 @@ func (c *ReservaController) Post() {
 		}
 		reserva.ESTADO_RESERVA = &estado
 	} else {
-		// Estado por defecto
+
 		estadoDefault := models.EstadoReservaPendiente
 		reserva.ESTADO_RESERVA = &estadoDefault
 	}
 
-	// Procesar campos opcionales
 	if indicaciones, ok := input["indicaciones"].(string); ok && indicaciones != "" {
 		reserva.INDICACIONES = &indicaciones
 	}
@@ -391,7 +366,6 @@ func (c *ReservaController) Post() {
 		reserva.CREATED_BY = &createdBy
 	}
 
-	// Validar restaurante
 	if restauranteID, ok := input["restauranteId"].(float64); ok {
 		val := int64(restauranteID)
 		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
@@ -403,14 +377,11 @@ func (c *ReservaController) Post() {
 		return
 	}
 
-	// Asignar el contacto a la reserva
 	reserva.PK_ID_CONTACTO = contacto
 
-	// Establecer timestamps
 	reserva.CREATED_AT = time.Now().UTC()
 	reserva.UPDATED_AT = time.Time{}
 
-	// Insertar la reserva
 	if _, err := insertReserva(o, &reserva); err != nil {
 		logging.LogControllerError(c.Ctx, "reservas.post.insert_error", err, map[string]interface{}{"contactoId": contacto.PKIDContacto, "restauranteId": reserva.PK_ID_RESTAURANTE, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -418,10 +389,6 @@ func (c *ReservaController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
-
-	// valores tras insert
-
-	// opcional: relectura para validaciones internas (deshabilitado en prod)
 
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Reserva creada correctamente", Data: reserva}
@@ -451,7 +418,6 @@ func (c *ReservaController) Put() {
 		return
 	}
 
-	// Verificar que la reserva existe
 	reserva := models.Reserva{PK_ID_RESERVA: id}
 	if err := readReserva(o, &reserva); err != nil {
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -469,7 +435,6 @@ func (c *ReservaController) Put() {
 		return
 	}
 
-	// Manejar contacto si se proporciona (opcional para updates)
 	if _, hasDocContacto := input["documentoContacto"]; hasDocContacto {
 		contacto, err := createOrFindReservaContacto(o, input)
 		if err != nil {
@@ -492,10 +457,10 @@ func (c *ReservaController) Put() {
 		reserva.PK_ID_CONTACTO = contacto
 	}
 
-	// Actualizar campos opcionales
 	if fechaStr, ok := input["fechaReserva"].(string); ok && fechaStr != "" {
 		if parsed, err := time.Parse("2006-01-02", fechaStr); err == nil {
-			reserva.FECHA = parsed
+
+			reserva.FECHA = time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 12, 0, 0, 0, time.UTC)
 		} else {
 			logging.LogControllerError(c.Ctx, "reservas.put.validation_error", err, map[string]interface{}{"id": id, "fechaReserva": fechaStr, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -547,10 +512,8 @@ func (c *ReservaController) Put() {
 		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
 	}
 
-	// Actualizar timestamp
 	reserva.UPDATED_AT = time.Now().UTC()
 
-	// Guardar cambios
 	if _, err := updateReserva(o, &reserva); err != nil {
 		logging.LogControllerError(c.Ctx, "reservas.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -588,6 +551,7 @@ func (c *ReservaController) GetByParameter() {
 	useFecha := false
 	if fechaReserva != "" {
 		var err error
+
 		parsedDate, err = time.Parse("2006-01-02", fechaReserva)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "reservas.parameter.validation_error", err, map[string]interface{}{"fecha": fechaReserva})
@@ -614,8 +578,6 @@ func (c *ReservaController) GetByParameter() {
 		_ = c.ServeJSON()
 		return
 	}
-
-	// Los datos ya están en zona horaria de Bogotá - no aplicar conversiones
 
 	if len(reservas) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)
@@ -685,7 +647,6 @@ func (c *ReservaController) GetByDocumento() {
 		useFecha = true
 	}
 
-	// Intentar primero como cliente registrado
 	count, err := queryReservasByDocumentoCliente(o, documento, parsedDate, useFecha, &reservas)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "reservas.documento.db_error_cliente", err, map[string]interface{}{"documento": documento, "fecha": fechaReserva})
@@ -699,7 +660,6 @@ func (c *ReservaController) GetByDocumento() {
 		return
 	}
 
-	// Si no encontró reservas como cliente, intentar como contacto no registrado
 	if count == 0 {
 		_, err = queryReservasByDocumentoContacto(o, documento, parsedDate, useFecha, &reservas)
 		if err != nil {
@@ -795,8 +755,6 @@ func (c *ReservaController) GetByDocumentoCliente() {
 		_ = c.ServeJSON()
 		return
 	}
-
-	// Los datos ya están en zona horaria de Bogotá - no aplicar conversiones
 
 	if len(reservas) == 0 {
 		c.Ctx.Output.SetStatus(http.StatusOK)

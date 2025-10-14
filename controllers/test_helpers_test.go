@@ -10,7 +10,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// TestHelper proporciona utilidades para tests de controladores
 type TestHelper struct {
 	t *testing.T
 }
@@ -19,7 +18,6 @@ func NewTestHelper(t *testing.T) *TestHelper {
 	return &TestHelper{t: t}
 }
 
-// CreateTestContext crea un contexto de prueba para Beego
 func (h *TestHelper) CreateTestContext(method, url string, body interface{}) (*context.Context, *httptest.ResponseRecorder) {
 	var reqBody []byte
 	var err error
@@ -36,19 +34,16 @@ func (h *TestHelper) CreateTestContext(method, url string, body interface{}) (*c
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	// Simular token JWT válido
 	req.Header.Set("Authorization", "Bearer valid_test_token")
 
 	recorder := httptest.NewRecorder()
 
-	// Usar context.NewContext() y Reset() para inicializar correctamente
 	ctx := context.NewContext()
 	ctx.Reset(recorder, req)
 
 	return ctx, recorder
 }
 
-// ParseJSONResponse parsea la respuesta JSON
 func (h *TestHelper) ParseJSONResponse(recorder *httptest.ResponseRecorder, target interface{}) {
 	if recorder.Body.Len() == 0 {
 		h.t.Fatal("Empty response body")
@@ -60,14 +55,12 @@ func (h *TestHelper) ParseJSONResponse(recorder *httptest.ResponseRecorder, targ
 	}
 }
 
-// AssertStatusCode verifica el código de estado HTTP
 func (h *TestHelper) AssertStatusCode(recorder *httptest.ResponseRecorder, expected int) {
 	if recorder.Code != expected {
 		h.t.Errorf("Expected status code %d, got %d\nBody: %s", expected, recorder.Code, recorder.Body.String())
 	}
 }
 
-// AssertJSONField verifica que un campo JSON tenga el valor esperado
 func (h *TestHelper) AssertJSONField(recorder *httptest.ResponseRecorder, field string, expected interface{}) {
 	var response map[string]interface{}
 	h.ParseJSONResponse(recorder, &response)
@@ -83,7 +76,6 @@ func (h *TestHelper) AssertJSONField(recorder *httptest.ResponseRecorder, field 
 	}
 }
 
-// MockController proporciona funcionalidad base para mocks de controladores
 type MockController struct {
 	web.Controller
 	TestContext *context.Context
@@ -94,14 +86,12 @@ func (c *MockController) Init(ctx *context.Context, controllerName, actionName s
 	c.TestContext = ctx
 }
 
-// SetPathParam simula un parámetro de ruta
 func (c *MockController) SetPathParam(key, value string) {
 	if c.TestContext != nil && c.TestContext.Input != nil {
 		c.TestContext.Input.SetParam(key, value)
 	}
 }
 
-// SetQueryParam simula un parámetro de query
 func (c *MockController) SetQueryParam(key, value string) {
 	if c.TestContext != nil && c.TestContext.Request != nil {
 		q := c.TestContext.Request.URL.Query()
@@ -110,7 +100,6 @@ func (c *MockController) SetQueryParam(key, value string) {
 	}
 }
 
-// Helper functions para crear punteros
 func stringPtr(s string) *string {
 	return &s
 }

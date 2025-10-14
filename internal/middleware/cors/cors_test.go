@@ -103,14 +103,13 @@ func TestIsAllowedOrigin(t *testing.T) {
 func TestCORS_NoOriginHeader(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/restaurante/v1/login", nil)
-	// No se establece el header Origin
 
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
 	CORS()(ctx)
 
 	resp := w.Result()
-	// No debe haber headers CORS si no hay Origin
+
 	if resp.Header.Get("Access-Control-Allow-Origin") != "" {
 		t.Fatalf("should not have A-C-Allow-Origin when no Origin header")
 	}
@@ -126,7 +125,7 @@ func TestCORS_UnallowedOrigin(t *testing.T) {
 	CORS()(ctx)
 
 	resp := w.Result()
-	// No debe permitir origenes no autorizados
+
 	if resp.Header.Get("Access-Control-Allow-Origin") == "http://evil.com" {
 		t.Fatalf("should not allow unauthorized origin")
 	}
@@ -142,8 +141,7 @@ func TestCORS_CaseInsensitiveOrigin(t *testing.T) {
 	CORS()(ctx)
 
 	resp := w.Result()
-	// El origen en mayúsculas se normaliza a minúsculas y coincide con "http://localhost"
-	// El header devuelto es el origen original tal como vino
+
 	if resp.Header.Get("Access-Control-Allow-Origin") != "HTTP://LOCALHOST" && resp.Header.Get("Access-Control-Allow-Origin") != "http://localhost" {
 		t.Fatalf("should allow case-insensitive origin, got: %q", resp.Header.Get("Access-Control-Allow-Origin"))
 	}

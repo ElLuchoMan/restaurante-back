@@ -1,6 +1,5 @@
 package models
 
-// DashboardData representa los datos del dashboard general de telemetría
 type DashboardData struct {
 	TotalPedidos        int64   `json:"totalPedidos"`
 	TotalIngresos       int64   `json:"totalIngresos"`
@@ -10,7 +9,6 @@ type DashboardData struct {
 	IngresosHoy         int64   `json:"ingresosHoy"`
 }
 
-// SalesData representa los datos de análisis de ventas
 type SalesData struct {
 	VentasPorMetodoPago   []VentaPorMetodo   `json:"ventasPorMetodoPago"`
 	TendenciaVentas       []VentaPorFecha    `json:"tendenciaVentas"`
@@ -35,7 +33,6 @@ type EstadisticasVentas struct {
 	TicketPromedio       float64 `json:"ticketPromedio"`
 }
 
-// ProductsData representa los datos de análisis de productos
 type ProductsData struct {
 	ProductosMasVendidos   []ProductoVendido     `json:"productosMasVendidos"`
 	ProductosMenosVendidos []ProductoVendido     `json:"productosMenosVendidos"`
@@ -57,7 +54,6 @@ type EstadisticasProductos struct {
 	ProductoConMenosVentas string `json:"productoConMenosVentas"`
 }
 
-// UsersData representa los datos de análisis de usuarios
 type UsersData struct {
 	UsuariosFrecuentes   []UsuarioFrecuente   `json:"usuariosFrecuentes"`
 	UsuariosInactivos    []UsuarioInactivo    `json:"usuariosInactivos"`
@@ -86,7 +82,6 @@ type EstadisticasUsuarios struct {
 	PromedioGastoPorCliente float64 `json:"promedioGastoPorCliente"`
 }
 
-// TimeAnalysisData representa los datos de análisis temporal
 type TimeAnalysisData struct {
 	VentasPorHora      []VentaPorHora      `json:"ventasPorHora"`
 	VentasPorDiaSemana []VentaPorDiaSemana `json:"ventasPorDiaSemana"`
@@ -111,9 +106,6 @@ type VentaPorMes struct {
 	Cantidad int64  `json:"cantidad"`
 }
 
-// === MÉTRICAS AVANZADAS ===
-
-// RentabilidadData representa el análisis de rentabilidad
 type RentabilidadData struct {
 	ProductosRentables       []ProductoRentabilidad   `json:"productosRentables"`
 	ProductosMenosRentables  []ProductoRentabilidad   `json:"productosMenosRentables"`
@@ -126,8 +118,8 @@ type ProductoRentabilidad struct {
 	PrecioVenta     int64   `json:"precioVenta"`
 	CantidadVendida int64   `json:"cantidadVendida"`
 	IngresoTotal    int64   `json:"ingresoTotal"`
-	MargenGanancia  float64 `json:"margenGanancia"` // Porcentaje de ganancia
-	GananciaTotal   int64   `json:"gananciaTotal"`  // Ganancia total en pesos
+	MargenGanancia  float64 `json:"margenGanancia"`
+	GananciaTotal   int64   `json:"gananciaTotal"`
 }
 
 type EstadisticasRentabilidad struct {
@@ -138,7 +130,6 @@ type EstadisticasRentabilidad struct {
 	TotalIngresos         int64   `json:"totalIngresos"`
 }
 
-// SegmentacionData representa el análisis de segmentación de clientes
 type SegmentacionData struct {
 	ClientesVIP              []ClienteSegmento        `json:"clientesVIP"`
 	ClientesRegulares        []ClienteSegmento        `json:"clientesRegulares"`
@@ -156,7 +147,7 @@ type ClienteSegmento struct {
 	UltimoPedido     string  `json:"ultimoPedido"`
 	DiasSinPedir     int     `json:"diasSinPedir"`
 	Segmento         string  `json:"segmento"`
-	ValorVida        int64   `json:"valorVida"` // CLV estimado
+	ValorVida        int64   `json:"valorVida"`
 }
 
 type EstadisticasSegmentacion struct {
@@ -169,7 +160,6 @@ type EstadisticasSegmentacion struct {
 	PorcentajeVIP            float64 `json:"porcentajeVIP"`
 }
 
-// EficienciaData representa el análisis de eficiencia de entregas
 type EficienciaData struct {
 	TiemposEntrega          []TiempoEntrega         `json:"tiemposEntrega"`
 	RendimientoTrabajadores []RendimientoTrabajador `json:"rendimientoTrabajadores"`
@@ -182,7 +172,7 @@ type TiempoEntrega struct {
 	Cliente            string `json:"cliente"`
 	FechaPedido        string `json:"fechaPedido"`
 	HoraPedido         string `json:"horaPedido"`
-	TiempoPreparacion  int    `json:"tiempoPreparacion"` // en minutos
+	TiempoPreparacion  int    `json:"tiempoPreparacion"`
 	EstadoPedido       string `json:"estadoPedido"`
 	TrabajadorAsignado string `json:"trabajadorAsignado"`
 }
@@ -192,7 +182,7 @@ type RendimientoTrabajador struct {
 	NombreTrabajador       string  `json:"nombreTrabajador"`
 	PedidosAtendidos       int64   `json:"pedidosAtendidos"`
 	TiempoPromedioAtencion float64 `json:"tiempoPromedioAtencion"`
-	EficienciaScore        float64 `json:"eficienciaScore"` // 1-10
+	EficienciaScore        float64 `json:"eficienciaScore"`
 	HorasTrabajadas        float64 `json:"horasTrabajadas"`
 }
 
@@ -200,8 +190,8 @@ type EficienciaPorHora struct {
 	Hora               string  `json:"hora"`
 	PedidosRecibidos   int64   `json:"pedidosRecibidos"`
 	TiempoPromedioPrep float64 `json:"tiempoPromedioPrep"`
-	CapacidadUtilizada float64 `json:"capacidadUtilizada"` // Porcentaje
-	NivelEficiencia    string  `json:"nivelEficiencia"`    // Alto, Medio, Bajo
+	CapacidadUtilizada float64 `json:"capacidadUtilizada"`
+	NivelEficiencia    string  `json:"nivelEficiencia"`
 }
 
 type EstadisticasEficiencia struct {
@@ -213,9 +203,6 @@ type EstadisticasEficiencia struct {
 	PedidosPendientes      int64   `json:"pedidosPendientes"`
 }
 
-// === ANÁLISIS DE RESERVAS ===
-
-// ReservasAnalisisData representa el análisis de reservas por días y horas
 type ReservasAnalisisData struct {
 	ReservasPorDia       []ReservaPorDia       `json:"reservasPorDia"`
 	ReservasPorHora      []ReservaPorHora      `json:"reservasPorHora"`
@@ -255,9 +242,6 @@ type EstadisticasReservas struct {
 	TasaCompletamiento         float64 `json:"tasaCompletamiento"`
 }
 
-// === ANÁLISIS DE PEDIDOS ===
-
-// PedidosAnalisisData representa el análisis de pedidos por días y horas
 type PedidosAnalisisData struct {
 	PedidosPorDia       []PedidoPorDia       `json:"pedidosPorDia"`
 	PedidosPorHora      []PedidoPorHora      `json:"pedidosPorHora"`

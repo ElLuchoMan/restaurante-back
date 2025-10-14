@@ -13,10 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ============================================================================
-// TESTS ADICIONALES - Post (Validaciones)
-// ============================================================================
-
 func TestOfertaPost_JSONInvalido(t *testing.T) {
 	ctrl := &OfertaController{}
 	ctrl.Data = make(map[interface{}]interface{})
@@ -69,7 +65,6 @@ func TestOfertaPost_FechaInicioInvalida(t *testing.T) {
 	ctrl := &OfertaController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
-	// JSON raw para enviar fecha inválida como string
 	body := []byte(`{
 		"titulo": "Test Oferta",
 		"tipo_descuento": "PORCENTAJE",
@@ -94,10 +89,6 @@ func TestOfertaPost_FechaInicioInvalida(t *testing.T) {
 	_ = json.Unmarshal(recorder.Body.Bytes(), &response)
 	assert.Equal(t, http.StatusUnprocessableEntity, response.Code)
 }
-
-// ============================================================================
-// TESTS ADICIONALES - Put (Validaciones)
-// ============================================================================
 
 func TestOfertaPut_IDFaltante(t *testing.T) {
 	ctrl := &OfertaController{}
@@ -174,10 +165,6 @@ func TestOfertaPut_JSONInvalido(t *testing.T) {
 	assert.Contains(t, response.Message, "JSON")
 }
 
-// ============================================================================
-// TESTS ADICIONALES - Delete (Validaciones)
-// ============================================================================
-
 func TestOfertaDelete_IDFaltante(t *testing.T) {
 	ctrl := &OfertaController{}
 	ctrl.Data = make(map[interface{}]interface{})
@@ -237,10 +224,6 @@ func TestOfertaDelete_IDCero(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, response.Code)
 	assert.Contains(t, response.Message, "ID")
 }
-
-// ============================================================================
-// TESTS ADICIONALES - GetById (Validaciones)
-// ============================================================================
 
 func TestOfertaGetById_IDFaltante(t *testing.T) {
 	ctrl := &OfertaController{}

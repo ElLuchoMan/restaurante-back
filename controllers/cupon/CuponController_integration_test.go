@@ -12,11 +12,11 @@ import (
 )
 
 func TestCuponController_Integration(t *testing.T) {
-	// Configurar Beego para tests
+
 	web.BConfig.RunMode = "test"
 
 	t.Run("CrearCupon - Request válido", func(t *testing.T) {
-		// Preparar request
+
 		request := &models.CrearCuponRequest{
 			Codigo:         "CUPON_TEST_001",
 			Scope:          models.CuponScopeGlobal,
@@ -31,13 +31,9 @@ func TestCuponController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Crear request HTTP
 		req := httptest.NewRequest("POST", "/restaurante/v1/cupones/", bytes.NewBuffer(jsonData))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test_token")
-
-		// Ejecutar request (esto sería manejado por Beego en un entorno real)
-		// Por ahora, solo verificamos que la estructura del request es válida
 
 		var parsedRequest models.CrearCuponRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
@@ -45,7 +41,6 @@ func TestCuponController_Integration(t *testing.T) {
 			t.Errorf("Error parsing request: %v", err)
 		}
 
-		// Verificar campos del request
 		if parsedRequest.Codigo != request.Codigo {
 			t.Errorf("Expected codigo %s, got %s", request.Codigo, parsedRequest.Codigo)
 		}
@@ -58,19 +53,15 @@ func TestCuponController_Integration(t *testing.T) {
 			t.Errorf("Expected valor descuento %d, got %d", request.ValorDescuento, parsedRequest.ValorDescuento)
 		}
 
-		// En un test real, aquí verificaríamos la respuesta HTTP
-		// w.Code == 201 para creación exitosa
-		// w.Code == 400 para request inválido
-		// w.Code == 422 para violación de reglas de negocio
 	})
 
 	t.Run("CrearCupon - Request inválido", func(t *testing.T) {
-		// Request con porcentaje inválido
+
 		request := &models.CrearCuponRequest{
 			Codigo:         "CUPON_INVALID",
 			Scope:          models.CuponScopeGlobal,
 			TipoDescuento:  models.TipoDescuentoPorcentaje,
-			ValorDescuento: 150, // Inválido: > 100
+			ValorDescuento: 150,
 			FechaInicio:    "2024-01-15",
 			FechaFin:       "2024-01-22",
 		}
@@ -80,19 +71,16 @@ func TestCuponController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Verificar que el request se puede parsear
 		var parsedRequest models.CrearCuponRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
 		if err != nil {
 			t.Errorf("Error parsing request: %v", err)
 		}
 
-		// Verificar que el valor inválido se preserva
 		if parsedRequest.ValorDescuento != 150 {
 			t.Errorf("Expected valor descuento 150, got %d", parsedRequest.ValorDescuento)
 		}
 
-		// En un test real con validación, esto debería retornar 422
 	})
 
 	t.Run("ValidarCupon - Request válido", func(t *testing.T) {
@@ -110,14 +98,12 @@ func TestCuponController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Verificar que el request se puede parsear correctamente
 		var parsedRequest models.ValidarCuponRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
 		if err != nil {
 			t.Errorf("Error parsing request: %v", err)
 		}
 
-		// Verificar campos
 		if parsedRequest.Codigo != request.Codigo {
 			t.Errorf("Expected codigo %s, got %s", request.Codigo, parsedRequest.Codigo)
 		}
@@ -130,7 +116,6 @@ func TestCuponController_Integration(t *testing.T) {
 			t.Errorf("Expected %d items, got %d", len(request.Items), len(parsedRequest.Items))
 		}
 
-		// Verificar items
 		for i, item := range parsedRequest.Items {
 			expectedItem := request.Items[i]
 			if item.ProductoId != expectedItem.ProductoId {
@@ -156,14 +141,12 @@ func TestCuponController_Integration(t *testing.T) {
 			t.Fatalf("Error marshaling request: %v", err)
 		}
 
-		// Verificar que el request se puede parsear correctamente
 		var parsedRequest models.RedimirCuponRequest
 		err = json.Unmarshal(jsonData, &parsedRequest)
 		if err != nil {
 			t.Errorf("Error parsing request: %v", err)
 		}
 
-		// Verificar campos
 		if parsedRequest.ClienteId != request.ClienteId {
 			t.Errorf("Expected cliente ID %d, got %d", request.ClienteId, parsedRequest.ClienteId)
 		}
@@ -188,14 +171,12 @@ func TestCuponController_ResponseStructures(t *testing.T) {
 			t.Fatalf("Error marshaling response: %v", err)
 		}
 
-		// Verificar que se puede deserializar
 		var parsedResponse models.ValidarCuponResponse
 		err = json.Unmarshal(jsonData, &parsedResponse)
 		if err != nil {
 			t.Errorf("Error parsing response: %v", err)
 		}
 
-		// Verificar campos
 		if parsedResponse.Aplicable != response.Aplicable {
 			t.Errorf("Expected aplicable %v, got %v", response.Aplicable, parsedResponse.Aplicable)
 		}
@@ -210,7 +191,6 @@ func TestCuponController_ResponseStructures(t *testing.T) {
 	})
 }
 
-// Helper function
 func testInt64Ptr(i int64) *int64 {
 	return &i
 }

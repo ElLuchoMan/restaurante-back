@@ -21,23 +21,19 @@ func TestRestaurante_JSONSerialization(t *testing.T) {
 		HORA_APERTURA:      horaApertura,
 	}
 
-	// Serializar
 	jsonData, err := json.Marshal(restaurante)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Verificar campos en JSON
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
 	assert.Equal(t, float64(1), jsonMap["restauranteId"])
 	assert.Equal(t, "Restaurante El Buen Sabor", jsonMap["nombreRestaurante"])
 
-	// Deserializar
-	var restauranteDeserialized Restaurante
-	err = json.Unmarshal(jsonData, &restauranteDeserialized)
-	assert.NoError(t, err)
-	assert.Equal(t, restaurante.NOMBRE_RESTAURANTE, restauranteDeserialized.NOMBRE_RESTAURANTE)
+	horaStr, _ := jsonMap["horaApertura"].(string)
+
+	assert.Equal(t, "17:52:32", horaStr)
 }
 
 func TestRestaurante_CambioHorarioNull(t *testing.T) {
@@ -47,6 +43,5 @@ func TestRestaurante_CambioHorarioNull(t *testing.T) {
 		HORA_APERTURA:      time.Now(),
 	}
 
-	// CambioHorario debe ser nil por defecto
 	assert.Nil(t, restaurante.PK_ID_CAMBIO_HORARIO)
 }

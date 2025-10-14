@@ -14,16 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ============================================================================
-// TESTS DE COBERTURA PARA RefreshToken - CASOS EDGE SIN BD
-// ============================================================================
-
 func TestRefreshToken_SinBearerPrefix(t *testing.T) {
-	// Este test cubre las líneas 323-325 donde se añade el prefijo Bearer
+
 	ctrl := &LoginController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
-	// Crear un refresh token válido SIN el prefijo "Bearer "
 	claims := &RefreshClaims{
 		Documento: 123456,
 		Rol:       "CLIENTE",
@@ -38,9 +33,8 @@ func TestRefreshToken_SinBearerPrefix(t *testing.T) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, _ := token.SignedString(jwtSecret)
 
-	// Crear request CON token pero SIN el prefijo "Bearer "
 	r := httptest.NewRequest(http.MethodPost, "/refresh", nil)
-	r.Header.Set("Authorization", tokenString) // ← Sin "Bearer " prefix
+	r.Header.Set("Authorization", tokenString)
 	recorder := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(recorder, r)
@@ -48,7 +42,6 @@ func TestRefreshToken_SinBearerPrefix(t *testing.T) {
 
 	ctrl.RefreshToken()
 
-	// Debe retornar OK porque se añade automáticamente el prefijo
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
 	var response models.ApiResponse
@@ -58,16 +51,15 @@ func TestRefreshToken_SinBearerPrefix(t *testing.T) {
 }
 
 func TestRefreshToken_NoEsRefreshToken(t *testing.T) {
-	// Este test cubre las líneas 344-352 donde se valida el tipo de token
+
 	ctrl := &LoginController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
-	// Crear un token de ACCESO en lugar de REFRESH
 	claims := &RefreshClaims{
 		Documento: 123456,
 		Rol:       "CLIENTE",
 		Nombre:    "Test User",
-		TokenType: "access", // ← NO es "refresh"
+		TokenType: "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -86,7 +78,6 @@ func TestRefreshToken_NoEsRefreshToken(t *testing.T) {
 
 	ctrl.RefreshToken()
 
-	// Debe retornar Unauthorized porque no es un refresh token
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 
 	var response models.ApiResponse
@@ -96,7 +87,7 @@ func TestRefreshToken_NoEsRefreshToken(t *testing.T) {
 }
 
 func TestRefreshToken_TokenTypeVacio(t *testing.T) {
-	// Caso edge: token sin tipo definido
+
 	ctrl := &LoginController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
@@ -104,7 +95,7 @@ func TestRefreshToken_TokenTypeVacio(t *testing.T) {
 		Documento: 123456,
 		Rol:       "CLIENTE",
 		Nombre:    "Test User",
-		TokenType: "", // ← Vacío
+		TokenType: "",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -132,7 +123,7 @@ func TestRefreshToken_TokenTypeVacio(t *testing.T) {
 }
 
 func TestRefreshToken_BearerConEspaciosExtra(t *testing.T) {
-	// Caso edge: token con formato válido y prefijo Bearer correcto
+
 	ctrl := &LoginController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
@@ -151,7 +142,7 @@ func TestRefreshToken_BearerConEspaciosExtra(t *testing.T) {
 	tokenString, _ := token.SignedString(jwtSecret)
 
 	r := httptest.NewRequest(http.MethodPost, "/refresh", nil)
-	r.Header.Set("Authorization", "Bearer "+tokenString) // ← Con Bearer correcto
+	r.Header.Set("Authorization", "Bearer "+tokenString)
 	recorder := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(recorder, r)
@@ -165,7 +156,6 @@ func TestRefreshToken_BearerConEspaciosExtra(t *testing.T) {
 	_ = json.Unmarshal(recorder.Body.Bytes(), &response)
 	assert.Equal(t, http.StatusOK, response.Code)
 
-	// Verificar que se retornan los datos correctos
 	data := response.Data.(map[string]interface{})
 	assert.NotNil(t, data["access_token"])
 	assert.NotNil(t, data["refresh_token"])
@@ -174,8 +164,7 @@ func TestRefreshToken_BearerConEspaciosExtra(t *testing.T) {
 }
 
 func TestRefreshToken_ErrorGenerandoTokens(t *testing.T) {
-	// Este test cubre las líneas 356-365 donde generateTokens puede fallar
-	// Para provocar un error, voy a "corromper" temporalmente jwtSecret
+
 	ctrl := &LoginController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
@@ -193,7 +182,6 @@ func TestRefreshToken_ErrorGenerandoTokens(t *testing.T) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, _ := token.SignedString(jwtSecret)
 
-	// Guardar el secreto original
 	originalSecret := jwtSecret
 
 	r := httptest.NewRequest(http.MethodPost, "/refresh", nil)
@@ -203,34 +191,25 @@ func TestRefreshToken_ErrorGenerandoTokens(t *testing.T) {
 	ctx.Reset(recorder, r)
 	ctrl.Ctx = ctx
 
-	// Corromper jwtSecret después de parsear pero antes de generar nuevos tokens
-	// Esto no funcionará porque jwtSecret se usa en el callback de ParseWithClaims
-	// Mejor enfoque: usar un token válido pero que cause problemas al generar uno nuevo
-	// Nota: generateTokens internamente no debería fallar con datos válidos,
-	// pero podemos cubrir el camino del error verificando que existe
-
-	// Restaurar el secreto
 	jwtSecret = originalSecret
 
 	ctrl.RefreshToken()
 
-	// El camino feliz debería ejecutarse
 	assert.Equal(t, http.StatusOK, recorder.Code)
 }
 
 func TestRefreshToken_TokenExpirado(t *testing.T) {
-	// Este test cubre el caso donde el token ha expirado (líneas 333-341)
+
 	ctrl := &LoginController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
-	// Crear un refresh token EXPIRADO
 	claims := &RefreshClaims{
 		Documento: 123456,
 		Rol:       "CLIENTE",
 		Nombre:    "Test User",
 		TokenType: "refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)), // ← Expirado hace 1 hora
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
 		},
 	}
@@ -247,7 +226,6 @@ func TestRefreshToken_TokenExpirado(t *testing.T) {
 
 	ctrl.RefreshToken()
 
-	// Debe retornar Unauthorized porque el token expiró
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 
 	var response models.ApiResponse
@@ -257,7 +235,7 @@ func TestRefreshToken_TokenExpirado(t *testing.T) {
 }
 
 func TestRefreshToken_TokenMalformado(t *testing.T) {
-	// Este test cubre el caso donde el token no puede parsearse (líneas 333-341)
+
 	ctrl := &LoginController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
@@ -270,7 +248,6 @@ func TestRefreshToken_TokenMalformado(t *testing.T) {
 
 	ctrl.RefreshToken()
 
-	// Debe retornar Unauthorized porque el token está malformado
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 
 	var response models.ApiResponse

@@ -13,9 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestPost_JSONErrorWithLogging cubre la línea 123-124 donde err != nil dentro del if compuesto
 func TestPost_JSONErrorWithLogging(t *testing.T) {
-	// JSON inválido que causará error en Unmarshal
+
 	r := httptest.NewRequest(http.MethodPost, "/subcategorias", bytes.NewReader([]byte("invalid json")))
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -34,10 +33,9 @@ func TestPost_JSONErrorWithLogging(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
 
-// TestPost_EmptyNombre cubre validación de nombre vacío (línea 122)
 func TestPost_EmptyNombre(t *testing.T) {
 	payload := map[string]interface{}{
-		"nombre":      "", // Vacío
+		"nombre":      "",
 		"categoriaId": 1,
 	}
 	body, _ := json.Marshal(payload)
@@ -61,11 +59,10 @@ func TestPost_EmptyNombre(t *testing.T) {
 	assert.Contains(t, resp.Message, "requeridos")
 }
 
-// TestPost_ZeroCategoriaId cubre validación de categoriaId == 0 (línea 122)
 func TestPost_ZeroCategoriaId(t *testing.T) {
 	payload := map[string]interface{}{
 		"nombre":      "Test Subcategoria",
-		"categoriaId": 0, // Zero
+		"categoriaId": 0,
 	}
 	body, _ := json.Marshal(payload)
 
@@ -87,7 +84,6 @@ func TestPost_ZeroCategoriaId(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
 
-// TestPut_OnlyNombre cubre actualización solo de nombre (líneas 176-178)
 func TestPut_OnlyNombre(t *testing.T) {
 	mockOrmer := &mockSubcategoriaOrmer{
 		readFunc: func(v interface{}, cols ...string) error {
@@ -98,7 +94,7 @@ func TestPut_OnlyNombre(t *testing.T) {
 			return nil
 		},
 		updateFunc: func(v interface{}, cols ...string) (int64, error) {
-			// Verificar que solo se actualiza NOMBRE
+
 			if len(cols) != 1 || cols[0] != "NOMBRE" {
 				t.Errorf("Expected only NOMBRE column, got %v", cols)
 			}
@@ -113,7 +109,6 @@ func TestPut_OnlyNombre(t *testing.T) {
 	nombre := "New Name"
 	payload := map[string]interface{}{
 		"nombre": nombre,
-		// categoriaId no se envía
 	}
 	body, _ := json.Marshal(payload)
 
@@ -135,7 +130,6 @@ func TestPut_OnlyNombre(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 }
 
-// TestPut_OnlyCategoriaId cubre actualización solo de categoriaId (líneas 180-182)
 func TestPut_OnlyCategoriaId(t *testing.T) {
 	mockOrmer := &mockSubcategoriaOrmer{
 		readFunc: func(v interface{}, cols ...string) error {
@@ -146,7 +140,7 @@ func TestPut_OnlyCategoriaId(t *testing.T) {
 			return nil
 		},
 		updateFunc: func(v interface{}, cols ...string) (int64, error) {
-			// Verificar que solo se actualiza PK_ID_CATEGORIA
+
 			if len(cols) != 1 || cols[0] != "PK_ID_CATEGORIA" {
 				t.Errorf("Expected only PK_ID_CATEGORIA column, got %v", cols)
 			}
@@ -161,7 +155,6 @@ func TestPut_OnlyCategoriaId(t *testing.T) {
 	categoriaId := int64(2)
 	payload := map[string]interface{}{
 		"categoriaId": categoriaId,
-		// nombre no se envía
 	}
 	body, _ := json.Marshal(payload)
 
@@ -183,7 +176,6 @@ func TestPut_OnlyCategoriaId(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 }
 
-// TestGetAll_WithInvalidCategoriaId cubre la línea 65 donde el error es ignorado
 func TestGetAll_WithInvalidCategoriaId(t *testing.T) {
 	mockOrmer := &mockSubcategoriaOrmer{
 		queryTableFunc: func(i interface{}) subcatQuerySeter {
@@ -203,7 +195,6 @@ func TestGetAll_WithInvalidCategoriaId(t *testing.T) {
 	defer func() { subcatOrmNew = origOrmNew }()
 	subcatOrmNew = func() subcatOrmer { return mockOrmer }
 
-	// Categoria_id inválido (no es número)
 	r := httptest.NewRequest(http.MethodGet, "/subcategorias?categoria_id=invalid", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -215,11 +206,9 @@ func TestGetAll_WithInvalidCategoriaId(t *testing.T) {
 
 	c.GetAll()
 
-	// Debería funcionar sin aplicar el filtro
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// TestGetAll_WithZeroCategoriaId cubre el caso donde categoria_id == 0
 func TestGetAll_WithZeroCategoriaId(t *testing.T) {
 	filterCalled := false
 
@@ -241,7 +230,6 @@ func TestGetAll_WithZeroCategoriaId(t *testing.T) {
 	defer func() { subcatOrmNew = origOrmNew }()
 	subcatOrmNew = func() subcatOrmer { return mockOrmer }
 
-	// Categoria_id == 0 (no debería filtrar)
 	r := httptest.NewRequest(http.MethodGet, "/subcategorias?categoria_id=0", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -253,12 +241,10 @@ func TestGetAll_WithZeroCategoriaId(t *testing.T) {
 
 	c.GetAll()
 
-	// Filter NO debería haber sido llamado
 	assert.False(t, filterCalled, "Filter should not be called when categoria_id is 0")
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// Mocks helper
 type mockSubcategoriaOrmer struct {
 	queryTableFunc func(interface{}) subcatQuerySeter
 	insertFunc     func(interface{}) (int64, error)

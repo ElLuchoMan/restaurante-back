@@ -2,7 +2,6 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -33,21 +32,18 @@ func init() {
 }
 
 func (d Trabajador) MarshalJSON() ([]byte, error) {
-	// FECHA: normalizar a UTC para obtener el día de calendario correcto, sin efectos de zona
+
 	var fechaNacimientoStr *string
 	if d.FECHA_NACIMIENTO != nil {
-		fechaUTC := d.FECHA_NACIMIENTO.UTC()
-		str := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
+		str := FormatDateUTC(*d.FECHA_NACIMIENTO)
 		fechaNacimientoStr = &str
 	}
 
-	fechaIngresoUTC := d.FECHA_INGRESO.UTC()
-	fechaIngresoStr := fmt.Sprintf("%02d-%02d-%04d", fechaIngresoUTC.Day(), int(fechaIngresoUTC.Month()), fechaIngresoUTC.Year())
+	fechaIngresoStr := FormatDateUTC(d.FECHA_INGRESO)
 
 	var fechaRetiroStr *string
 	if d.FECHA_RETIRO != nil {
-		fechaUTC := d.FECHA_RETIRO.UTC()
-		str := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
+		str := FormatDateUTC(*d.FECHA_RETIRO)
 		fechaRetiroStr = &str
 	}
 

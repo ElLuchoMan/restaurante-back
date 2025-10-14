@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"restaurante/database"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -14,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Mock para OfertaService
 type mockOfertaOrmer struct {
 	queryTableFn func(string) orm.QuerySeter
 }
@@ -28,7 +28,6 @@ func (m *mockOfertaOrmer) QueryTable(ptrStructOrTableName interface{}) orm.Query
 	return &mockOfertaQuerySeter{}
 }
 
-// Implementar métodos restantes de orm.Ormer
 func (m *mockOfertaOrmer) Read(interface{}, ...string) error          { return orm.ErrNoRows }
 func (m *mockOfertaOrmer) ReadForUpdate(interface{}, ...string) error { return orm.ErrNoRows }
 func (m *mockOfertaOrmer) ReadOrCreate(interface{}, string, ...string) (bool, int64, error) {
@@ -122,7 +121,6 @@ func (m *mockOfertaQuerySeter) All(container interface{}, cols ...string) (int64
 	return 0, nil
 }
 
-// Implementar métodos restantes de orm.QuerySeter
 func (m *mockOfertaQuerySeter) Limit(interface{}, ...interface{}) orm.QuerySeter { return m }
 func (m *mockOfertaQuerySeter) Offset(interface{}) orm.QuerySeter                { return m }
 func (m *mockOfertaQuerySeter) OrderBy(...string) orm.QuerySeter                 { return m }
@@ -161,7 +159,6 @@ func (m *mockOfertaQuerySeter) IgnoreIndex(...string) orm.QuerySeter            
 func (m *mockOfertaQuerySeter) RelatedSel(...interface{}) orm.QuerySeter           { return m }
 func (m *mockOfertaQuerySeter) Count() (int64, error)                              { return 0, nil }
 
-// Métodos con contexto
 func (m *mockOfertaQuerySeter) OneWithCtx(context.Context, interface{}, ...string) error {
 	return m.One(nil)
 }
@@ -189,8 +186,6 @@ func (m *mockOfertaQuerySeter) PrepareInsertWithCtx(context.Context) (orm.Insert
 	return nil, nil
 }
 
-// Tests para ValidarReglasNegocioOferta - Casos de horarios
-
 func TestOfertaService_ValidarReglasNegocioOferta_HorarioIncompletoSoloInicio(t *testing.T) {
 	service := &OfertaService{}
 
@@ -206,7 +201,7 @@ func TestOfertaService_ValidarReglasNegocioOferta_HorarioIncompletoSoloInicio(t 
 		FechaFin:        fechaFin,
 		PkIdRestaurante: restaurante,
 		HoraInicio:      &horaInicio,
-		HoraFin:         nil, // Sin hora fin
+		HoraFin:         nil,
 	}
 
 	err := service.ValidarReglasNegocioOferta(oferta)
@@ -229,7 +224,7 @@ func TestOfertaService_ValidarReglasNegocioOferta_HorarioIncompletoSoloFin(t *te
 		FechaFin:        fechaFin,
 		PkIdRestaurante: restaurante,
 		HoraInicio:      nil,
-		HoraFin:         &horaFin, // Sin hora inicio
+		HoraFin:         &horaFin,
 	}
 
 	err := service.ValidarReglasNegocioOferta(oferta)
@@ -244,7 +239,7 @@ func TestOfertaService_ValidarReglasNegocioOferta_HorarioFinAntes(t *testing.T) 
 	fechaFin, _ := time.Parse("2006-01-02", "2025-12-31")
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
 	horaInicio := time.Date(2025, 1, 1, 20, 0, 0, 0, time.UTC)
-	horaFin := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC) // Antes que inicio
+	horaFin := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)
 
 	oferta := &models.Oferta{
 		TipoDescuento:   models.TipoDescuentoPorcentaje,
@@ -268,7 +263,7 @@ func TestOfertaService_ValidarReglasNegocioOferta_HorarioIgual(t *testing.T) {
 	fechaFin, _ := time.Parse("2006-01-02", "2025-12-31")
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
 	horaInicio := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)
-	horaFin := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC) // Igual
+	horaFin := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)
 
 	oferta := &models.Oferta{
 		TipoDescuento:   models.TipoDescuentoPorcentaje,
@@ -307,8 +302,6 @@ func TestOfertaService_ValidarReglasNegocioOferta_HorarioValido(t *testing.T) {
 	err := service.ValidarReglasNegocioOferta(oferta)
 	assert.NoError(t, err)
 }
-
-// Tests para ValidarReglasNegocioOferta - Días de la semana
 
 func TestOfertaService_ValidarReglasNegocioOferta_DiaInvalido(t *testing.T) {
 	service := &OfertaService{}
@@ -353,17 +346,12 @@ func TestOfertaService_ValidarReglasNegocioOferta_DiasValidos(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// Tests para obtenerDiaSemanaEspanol - Caso default
-
 func TestOfertaService_ObtenerDiaSemanaEspanol_Default(t *testing.T) {
 	service := &OfertaService{}
 
-	// Usar un valor inválido de Weekday (fuera de rango 0-6)
 	result := service.obtenerDiaSemanaEspanol(time.Weekday(99))
 	assert.Equal(t, "", result)
 }
-
-// Tests para CalcularDescuentoOferta
 
 func TestOfertaService_CalcularDescuentoOferta_ErrorObtenerProductos(t *testing.T) {
 	service := NewOfertaService(&mockOfertaOrmer{
@@ -420,16 +408,16 @@ func TestOfertaService_CalcularDescuentoOferta_Porcentaje(t *testing.T) {
 	oferta := &models.Oferta{
 		PkIdOferta:     1,
 		TipoDescuento:  models.TipoDescuentoPorcentaje,
-		ValorDescuento: 20, // 20%
+		ValorDescuento: 20,
 	}
 
 	items := []models.ValidarCuponItemRequest{
-		{ProductoId: 1, Precio: 10000, Cantidad: 2}, // 20000 total
+		{ProductoId: 1, Precio: 10000, Cantidad: 2},
 	}
 
 	descuento, err := service.CalcularDescuentoOferta(oferta, items)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(4000), descuento) // 20% de 20000
+	assert.Equal(t, int64(4000), descuento)
 }
 
 func TestOfertaService_CalcularDescuentoOferta_Monto(t *testing.T) {
@@ -460,7 +448,7 @@ func TestOfertaService_CalcularDescuentoOferta_Monto(t *testing.T) {
 	}
 
 	items := []models.ValidarCuponItemRequest{
-		{ProductoId: 1, Precio: 10000, Cantidad: 2}, // 20000 total
+		{ProductoId: 1, Precio: 10000, Cantidad: 2},
 	}
 
 	descuento, err := service.CalcularDescuentoOferta(oferta, items)
@@ -492,16 +480,16 @@ func TestOfertaService_CalcularDescuentoOferta_MontoMayorQueTotal(t *testing.T) 
 	oferta := &models.Oferta{
 		PkIdOferta:     1,
 		TipoDescuento:  models.TipoDescuentoMonto,
-		ValorDescuento: 25000, // Mayor que el total
+		ValorDescuento: 25000,
 	}
 
 	items := []models.ValidarCuponItemRequest{
-		{ProductoId: 1, Precio: 5000, Cantidad: 2}, // 10000 total
+		{ProductoId: 1, Precio: 5000, Cantidad: 2},
 	}
 
 	descuento, err := service.CalcularDescuentoOferta(oferta, items)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(10000), descuento) // No puede ser mayor que el total
+	assert.Equal(t, int64(10000), descuento)
 }
 
 func TestOfertaService_CalcularDescuentoOferta_TipoInvalido(t *testing.T) {
@@ -548,43 +536,12 @@ func TestOfertaService_CalcularDescuentoOferta_ProductoNoEnOferta(t *testing.T) 
 					return &mockOfertaQuerySeter{
 						allFn: func(container interface{}, cols ...string) (int64, error) {
 							if ofertaProds, ok := container.(*[]*models.OfertaProducto); ok {
-								producto := &models.Producto{PK_ID_PRODUCTO: 999} // Otro producto
+								producto := &models.Producto{PK_ID_PRODUCTO: 999}
 								*ofertaProds = []*models.OfertaProducto{
 									{PkIdProducto: producto},
 								}
 							}
 							return 1, nil
-						},
-					}
-				},
-			}
-		},
-	})
-
-	oferta := &models.Oferta{
-		PkIdOferta:     1,
-		TipoDescuento:  models.TipoDescuentoPorcentaje,
-		ValorDescuento: 20,
-	}
-
-	items := []models.ValidarCuponItemRequest{
-		{ProductoId: 1, Precio: 10000, Cantidad: 2}, // Producto no en oferta
-	}
-
-	descuento, err := service.CalcularDescuentoOferta(oferta, items)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), descuento) // Sin productos aplicables, descuento = 0
-}
-
-func TestOfertaService_CalcularDescuentoOferta_SinProductosEnOferta(t *testing.T) {
-	service := NewOfertaService(&mockOfertaOrmer{
-		queryTableFn: func(tableName string) orm.QuerySeter {
-			return &mockOfertaQuerySeter{
-				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
-					return &mockOfertaQuerySeter{
-						allFn: func(container interface{}, cols ...string) (int64, error) {
-							// Sin productos en oferta
-							return 0, nil
 						},
 					}
 				},
@@ -607,7 +564,36 @@ func TestOfertaService_CalcularDescuentoOferta_SinProductosEnOferta(t *testing.T
 	assert.Equal(t, int64(0), descuento)
 }
 
-// Tests para ObtenerOfertasActivas
+func TestOfertaService_CalcularDescuentoOferta_SinProductosEnOferta(t *testing.T) {
+	service := NewOfertaService(&mockOfertaOrmer{
+		queryTableFn: func(tableName string) orm.QuerySeter {
+			return &mockOfertaQuerySeter{
+				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
+					return &mockOfertaQuerySeter{
+						allFn: func(container interface{}, cols ...string) (int64, error) {
+
+							return 0, nil
+						},
+					}
+				},
+			}
+		},
+	})
+
+	oferta := &models.Oferta{
+		PkIdOferta:     1,
+		TipoDescuento:  models.TipoDescuentoPorcentaje,
+		ValorDescuento: 20,
+	}
+
+	items := []models.ValidarCuponItemRequest{
+		{ProductoId: 1, Precio: 10000, Cantidad: 2},
+	}
+
+	descuento, err := service.CalcularDescuentoOferta(oferta, items)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), descuento)
+}
 
 func TestOfertaService_ObtenerOfertasActivas_ErrorObtenerOfertas(t *testing.T) {
 	service := NewOfertaService(&mockOfertaOrmer{
@@ -637,7 +623,7 @@ func TestOfertaService_ObtenerOfertasActivas_SinOfertas(t *testing.T) {
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockOfertaQuerySeter{
 						allFn: func(container interface{}, cols ...string) (int64, error) {
-							// Sin ofertas
+
 							return 0, nil
 						},
 					}
@@ -652,6 +638,10 @@ func TestOfertaService_ObtenerOfertasActivas_SinOfertas(t *testing.T) {
 }
 
 func TestOfertaService_ObtenerOfertasActivas_OfertaSimple(t *testing.T) {
+	// Simular servidor en UTC para validar independencia de zona
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	fechaInicio := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	fechaFin := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
@@ -661,7 +651,7 @@ func TestOfertaService_ObtenerOfertasActivas_OfertaSimple(t *testing.T) {
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			callCount++
 			if callCount == 1 {
-				// Primera llamada: obtener ofertas
+
 				return &mockOfertaQuerySeter{
 					filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 						return &mockOfertaQuerySeter{
@@ -686,7 +676,7 @@ func TestOfertaService_ObtenerOfertasActivas_OfertaSimple(t *testing.T) {
 					},
 				}
 			}
-			// Segunda llamada: obtener productos
+
 			return &mockOfertaQuerySeter{
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockOfertaQuerySeter{
@@ -715,19 +705,21 @@ func TestOfertaService_ObtenerOfertasActivas_OfertaSimple(t *testing.T) {
 }
 
 func TestOfertaService_ObtenerOfertasActivas_FiltradoPorDiaSemana(t *testing.T) {
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	fechaInicio := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	fechaFin := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
 
-	// Fecha de consulta: Lunes
-	fechaConsulta := time.Date(2025, 10, 6, 0, 0, 0, 0, time.UTC) // Lunes
+	fechaConsulta := time.Date(2025, 10, 6, 0, 0, 0, 0, time.UTC)
 
 	callCount := 0
 	service := NewOfertaService(&mockOfertaOrmer{
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			callCount++
 			if callCount == 1 {
-				// Primera llamada: obtener ofertas (2 ofertas: una válida para Lunes, otra para Martes)
+
 				return &mockOfertaQuerySeter{
 					filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 						return &mockOfertaQuerySeter{
@@ -764,7 +756,7 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorDiaSemana(t *testing.T) 
 					},
 				}
 			}
-			// Segunda llamada: obtener productos (para oferta 1)
+
 			return &mockOfertaQuerySeter{
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockOfertaQuerySeter{
@@ -790,13 +782,15 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorDiaSemana(t *testing.T) 
 }
 
 func TestOfertaService_ObtenerOfertasActivas_FiltradoPorHorario(t *testing.T) {
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	fechaInicio := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	fechaFin := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
 	horaInicio := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)
 	horaFin := time.Date(2025, 1, 1, 20, 0, 0, 0, time.UTC)
 
-	// Hora de consulta dentro del rango (15:00)
 	horaConsultaValida := time.Date(2025, 1, 1, 15, 0, 0, 0, time.UTC)
 
 	callCount := 0
@@ -804,7 +798,7 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorHorario(t *testing.T) {
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			callCount++
 			if callCount == 1 {
-				// Primera llamada: obtener ofertas con horario
+
 				return &mockOfertaQuerySeter{
 					filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 						return &mockOfertaQuerySeter{
@@ -831,7 +825,7 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorHorario(t *testing.T) {
 					},
 				}
 			}
-			// Segunda llamada: obtener productos
+
 			return &mockOfertaQuerySeter{
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockOfertaQuerySeter{
@@ -857,13 +851,15 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorHorario(t *testing.T) {
 }
 
 func TestOfertaService_ObtenerOfertasActivas_FiltradoPorHorarioFueraDerango(t *testing.T) {
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	fechaInicio := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	fechaFin := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
 	horaInicio := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)
 	horaFin := time.Date(2025, 1, 1, 20, 0, 0, 0, time.UTC)
 
-	// Hora de consulta fuera del rango (antes: 08:00)
 	horaConsultaInvalida := time.Date(2025, 1, 1, 8, 0, 0, 0, time.UTC)
 
 	service := NewOfertaService(&mockOfertaOrmer{
@@ -898,17 +894,19 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorHorarioFueraDerango(t *t
 
 	ofertas, err := service.ObtenerOfertasActivas(context.Background(), 1, nil, &horaConsultaInvalida, nil)
 	assert.NoError(t, err)
-	assert.Empty(t, ofertas) // Filtrada por horario
+	assert.Empty(t, ofertas)
 }
 
 func TestOfertaService_ObtenerOfertasActivas_FiltradoPorHorarioDespues(t *testing.T) {
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	fechaInicio := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	fechaFin := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
 	horaInicio := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)
 	horaFin := time.Date(2025, 1, 1, 20, 0, 0, 0, time.UTC)
 
-	// Hora de consulta fuera del rango (después: 22:00)
 	horaConsultaInvalida := time.Date(2025, 1, 1, 22, 0, 0, 0, time.UTC)
 
 	service := NewOfertaService(&mockOfertaOrmer{
@@ -943,10 +941,13 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorHorarioDespues(t *testin
 
 	ofertas, err := service.ObtenerOfertasActivas(context.Background(), 1, nil, &horaConsultaInvalida, nil)
 	assert.NoError(t, err)
-	assert.Empty(t, ofertas) // Filtrada por horario
+	assert.Empty(t, ofertas)
 }
 
 func TestOfertaService_ObtenerOfertasActivas_ErrorObtenerProductos(t *testing.T) {
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	fechaInicio := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	fechaFin := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
@@ -956,7 +957,7 @@ func TestOfertaService_ObtenerOfertasActivas_ErrorObtenerProductos(t *testing.T)
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			callCount++
 			if callCount == 1 {
-				// Primera llamada: obtener ofertas
+
 				return &mockOfertaQuerySeter{
 					filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 						return &mockOfertaQuerySeter{
@@ -981,7 +982,7 @@ func TestOfertaService_ObtenerOfertasActivas_ErrorObtenerProductos(t *testing.T)
 					},
 				}
 			}
-			// Segunda llamada: error al obtener productos
+
 			return &mockOfertaQuerySeter{
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockOfertaQuerySeter{
@@ -1001,6 +1002,9 @@ func TestOfertaService_ObtenerOfertasActivas_ErrorObtenerProductos(t *testing.T)
 }
 
 func TestOfertaService_ObtenerOfertasActivas_FiltradoPorProducto(t *testing.T) {
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	fechaInicio := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	fechaFin := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
@@ -1011,7 +1015,7 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorProducto(t *testing.T) {
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			callCount++
 			if callCount == 1 {
-				// Primera llamada: obtener ofertas
+
 				return &mockOfertaQuerySeter{
 					filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 						return &mockOfertaQuerySeter{
@@ -1036,7 +1040,7 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorProducto(t *testing.T) {
 					},
 				}
 			}
-			// Segunda llamada: obtener productos (incluye el producto filtrado)
+
 			return &mockOfertaQuerySeter{
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockOfertaQuerySeter{
@@ -1062,17 +1066,20 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorProducto(t *testing.T) {
 }
 
 func TestOfertaService_ObtenerOfertasActivas_FiltradoPorProductoNoEnOferta(t *testing.T) {
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	fechaInicio := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	fechaFin := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	restaurante := &models.Restaurante{PK_ID_RESTAURANTE: 1}
-	productoIdFiltro := int64(999) // Producto no en oferta
+	productoIdFiltro := int64(999)
 
 	callCount := 0
 	service := NewOfertaService(&mockOfertaOrmer{
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			callCount++
 			if callCount == 1 {
-				// Primera llamada: obtener ofertas
+
 				return &mockOfertaQuerySeter{
 					filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 						return &mockOfertaQuerySeter{
@@ -1097,7 +1104,7 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorProductoNoEnOferta(t *te
 					},
 				}
 			}
-			// Segunda llamada: obtener productos (producto diferente)
+
 			return &mockOfertaQuerySeter{
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockOfertaQuerySeter{
@@ -1118,5 +1125,5 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorProductoNoEnOferta(t *te
 
 	ofertas, err := service.ObtenerOfertasActivas(context.Background(), 1, nil, nil, &productoIdFiltro)
 	assert.NoError(t, err)
-	assert.Empty(t, ofertas) // Filtrada porque producto no está en oferta
+	assert.Empty(t, ofertas)
 }

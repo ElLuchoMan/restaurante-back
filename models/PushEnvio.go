@@ -16,29 +16,25 @@ type PushEnvio struct {
 	Exito               bool             `orm:"column(exito);type(boolean)" json:"exito"`
 	StatusCode          *int             `orm:"column(status_code);type(integer);null" json:"statusCode,omitempty"`
 	ErrorCode           *string          `orm:"column(error_code);type(text);null" json:"errorCode,omitempty"`
-	SentAt              time.Time        `orm:"column(sent_at);type(timestamptz)" json:"sentAt"`
+	SentAt              time.Time        `orm:"column(sent_at);type(timestamptz)" json:"sentAt" swaggertype:"string"`
 }
 
 func (p *PushEnvio) TableName() string {
 	return "push_envio"
 }
 
-// BeforeInsert se ejecuta antes de insertar en la base de datos
 func (p *PushEnvio) BeforeInsert() {
 	p.serializeData()
 }
 
-// BeforeUpdate se ejecuta antes de actualizar en la base de datos
 func (p *PushEnvio) BeforeUpdate() {
 	p.serializeData()
 }
 
-// AfterLoad se ejecuta después de cargar desde la base de datos
 func (p *PushEnvio) AfterLoad() {
 	p.deserializeData()
 }
 
-// serializeData convierte el objeto JSON a string para la base de datos
 func (p *PushEnvio) serializeData() {
 	if len(p.DataObj) == 0 {
 		p.Data = ""
@@ -47,7 +43,6 @@ func (p *PushEnvio) serializeData() {
 	p.Data = string(p.DataObj)
 }
 
-// deserializeData convierte el string de la base de datos a objeto JSON
 func (p *PushEnvio) deserializeData() {
 	if p.Data == "" {
 		p.DataObj = nil
@@ -58,4 +53,29 @@ func (p *PushEnvio) deserializeData() {
 
 func init() {
 	orm.RegisterModel(new(PushEnvio))
+}
+
+func (p PushEnvio) MarshalJSON() ([]byte, error) {
+
+	sentAtStr := FormatTimestampBogota(p.SentAt)
+
+	return json.Marshal(&struct {
+		PkIdPushEnvio       int64            `json:"pushEnvioId"`
+		PkIdPushDispositivo *PushDispositivo `json:"pushDispositivoId" swaggertype:"integer"`
+		Proveedor           ProveedorPush    `json:"proveedor"`
+		Data                json.RawMessage  `json:"data,omitempty" swaggertype:"object"`
+		Exito               bool             `json:"exito"`
+		StatusCode          *int             `json:"statusCode,omitempty"`
+		ErrorCode           *string          `json:"errorCode,omitempty"`
+		SentAt              string           `json:"sentAt"`
+	}{
+		PkIdPushEnvio:       p.PkIdPushEnvio,
+		PkIdPushDispositivo: p.PkIdPushDispositivo,
+		Proveedor:           p.Proveedor,
+		Data:                p.DataObj,
+		Exito:               p.Exito,
+		StatusCode:          p.StatusCode,
+		ErrorCode:           p.ErrorCode,
+		SentAt:              sentAtStr,
+	})
 }

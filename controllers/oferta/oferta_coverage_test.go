@@ -14,10 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ============================================================================
-// TESTS PARA ObtenerOfertasActivas
-// ============================================================================
-
 func TestObtenerOfertasActivas_RestauranteIdInvalido(t *testing.T) {
 	ctrl := &OfertaController{}
 	ctrl.Data = make(map[interface{}]interface{})
@@ -107,10 +103,6 @@ func TestObtenerOfertasActivas_HoraInvalida(t *testing.T) {
 	assert.Contains(t, response.Message, "HH:MM")
 }
 
-// ============================================================================
-// TESTS DE COBERTURA ADICIONAL
-// ============================================================================
-
 func TestOfertaServiceOrmFactory_Coverage(t *testing.T) {
 	originalOrmProvider := ormProvider
 	defer func() { ormProvider = originalOrmProvider }()
@@ -140,15 +132,3 @@ func TestOfertaServiceOrmBase_Coverage(t *testing.T) {
 	assert.Nil(t, result)
 	assert.True(t, called, "ormProvider debe ser llamado")
 }
-
-// ============================================================================
-// NOTAS:
-// Estos tests cubren los casos críticos de ObtenerOfertasActivas:
-// - restaurante_id inválido o ausente ✓
-// - fecha inválida ✓
-// - hora inválida ✓
-// - parámetros opcionales (fecha, hora, producto_id) ✓
-//
-// Con el patrón de DI implementado, podemos mockear el ORM sin tocar la BD.
-// Los servicios tienen alta cobertura, así que la lógica crítica está testeada.
-// ============================================================================

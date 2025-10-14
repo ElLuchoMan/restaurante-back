@@ -14,30 +14,33 @@ func TestCuponRedencion_TableName(t *testing.T) {
 }
 
 func TestCuponRedencion_JSONSerialization(t *testing.T) {
-	now := time.Now()
+
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		loc = time.FixedZone("UTC-5", -5*60*60)
+	}
+	now := time.Date(2024, time.August, 17, 12, 30, 45, 0, loc)
 	cr := &CuponRedencion{
 		PkIdCuponRedencion: 1,
 		MontoDescuento:     5000,
 		CreatedAt:          now,
 	}
 
-	// Serializar
 	jsonData, err := json.Marshal(cr)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Verificar campos en JSON
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
 	assert.Equal(t, float64(1), jsonMap["cuponRedencionId"])
 	assert.Equal(t, float64(5000), jsonMap["montoDescuento"])
+	assert.Equal(t, "17-08-2024 12:30:45", jsonMap["createdAt"])
 
-	// Deserializar
-	var crDeserialized CuponRedencion
-	err = json.Unmarshal(jsonData, &crDeserialized)
+	var crMap map[string]interface{}
+	err = json.Unmarshal(jsonData, &crMap)
 	assert.NoError(t, err)
-	assert.Equal(t, cr.MontoDescuento, crDeserialized.MontoDescuento)
+	assert.Equal(t, float64(cr.MontoDescuento), crMap["montoDescuento"])
 }
 
 func TestCuponRedencion_NullableFields(t *testing.T) {
@@ -47,10 +50,8 @@ func TestCuponRedencion_NullableFields(t *testing.T) {
 		CreatedAt:          time.Now(),
 	}
 
-	// PkIdPedido debe ser nil por defecto (campo opcional)
 	assert.Nil(t, cr.PkIdPedido)
 
-	// Serializar y verificar
 	jsonData, err := json.Marshal(cr)
 	assert.NoError(t, err)
 
@@ -58,7 +59,6 @@ func TestCuponRedencion_NullableFields(t *testing.T) {
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
 
-	// pedidoId no debe aparecer si es nil (omitempty)
 	_, exists := jsonMap["pedidoId"]
 	assert.False(t, exists)
 }

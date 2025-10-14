@@ -30,12 +30,11 @@ func init() {
 	appInit()
 }
 
-// loadEnvFile carga variables de entorno desde .env si existe (solo para desarrollo local)
 func loadEnvFile() {
-	// Intentar cargar .env solo si no estamos en CI
+
 	if os.Getenv("CI") != "true" && os.Getenv("SKIP_WEB_RUN") != "1" {
 		if err := godotenv.Load(); err != nil {
-			// No es error crítico si no existe .env, puede usar variables del sistema o config file
+
 			log.Printf("Info: no se encontró archivo .env, usando variables de entorno del sistema o configuración: %v\n", err)
 		} else {
 			log.Println("Variables de entorno cargadas desde .env")
@@ -123,7 +122,6 @@ func setStaticHeaders(ctx *context.Context) { setStaticHeadersFn(ctx) }
 
 var webRun = web.Run
 
-// Variables para health checks (inyección de dependencias para testing)
 type sqlPinger interface {
 	Ping() error
 }
@@ -148,28 +146,23 @@ var getSQLPinger = func() (sqlPinger, error) {
 // @name Authorization
 // @Security BearerAuth
 func main() {
-	// Configurar timezone
+
 	database.InitTimezone()
 
-	// Configurar headers estáticos
 	web.InsertFilter("*", web.BeforeStatic, setStaticHeaders)
 
-	// Registrar health check endpoints
 	web.Router("/healthz", &HealthController{}, "get:Healthz")
 	web.Router("/readyz", &HealthController{}, "get:Readyz")
 
-	// Iniciar cron job si no está deshabilitado
 	if os.Getenv("SKIP_CRON") != "1" {
 		go generarNominaAutomatica()
 	}
 
-	// Ejecutar aplicación si no está deshabilitado
 	if os.Getenv("SKIP_WEB_RUN") != "1" {
 		webRun()
 	}
 }
 
-// HealthController maneja los endpoints de health check
 type HealthController struct {
 	web.Controller
 }

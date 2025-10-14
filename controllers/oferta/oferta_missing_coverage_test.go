@@ -14,10 +14,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// ============================================================================
-// TESTS PARA MEJORAR COBERTURA DE POST
-// ============================================================================
-
 func TestOfertaPost_HoraInicioInvalida(t *testing.T) {
 	ctrl := &OfertaController{}
 	ctrl.Data = make(map[interface{}]interface{})
@@ -117,10 +113,6 @@ func TestOfertaPost_FechaFinInvalida(t *testing.T) {
 	assert.Contains(t, response.Message, "Fecha de fin inválida")
 }
 
-// ============================================================================
-// TESTS PARA MEJORAR COBERTURA DE PUT
-// ============================================================================
-
 func TestOfertaPut_TipoDescuentoInvalido(t *testing.T) {
 	controller, recorder, _ := setupOfertaTest()
 
@@ -129,7 +121,6 @@ func TestOfertaPut_TipoDescuentoInvalido(t *testing.T) {
 		Titulo:     "Oferta Existente",
 	}
 
-	// Configurar mock para que la oferta exista
 	mockOfertOrmer.On("Read", mock.AnythingOfType("*models.Oferta"), []string(nil)).Run(func(args mock.Arguments) {
 		arg := args.Get(0).(*models.Oferta)
 		*arg = *oferta
@@ -170,7 +161,6 @@ func TestOfertaPut_FechaInicioInvalida(t *testing.T) {
 		Titulo:     "Oferta Existente",
 	}
 
-	// Configurar mock para que la oferta exista
 	mockOfertOrmer.On("Read", mock.AnythingOfType("*models.Oferta"), []string(nil)).Run(func(args mock.Arguments) {
 		arg := args.Get(0).(*models.Oferta)
 		*arg = *oferta
@@ -211,7 +201,6 @@ func TestOfertaPut_FechaFinInvalida(t *testing.T) {
 		Titulo:     "Oferta Existente",
 	}
 
-	// Configurar mock para que la oferta exista
 	mockOfertOrmer.On("Read", mock.AnythingOfType("*models.Oferta"), []string(nil)).Run(func(args mock.Arguments) {
 		arg := args.Get(0).(*models.Oferta)
 		*arg = *oferta
@@ -252,7 +241,6 @@ func TestOfertaPut_HoraInicioInvalida(t *testing.T) {
 		Titulo:     "Oferta Existente",
 	}
 
-	// Configurar mock para que la oferta exista
 	mockOfertOrmer.On("Read", mock.AnythingOfType("*models.Oferta"), []string(nil)).Run(func(args mock.Arguments) {
 		arg := args.Get(0).(*models.Oferta)
 		*arg = *oferta
@@ -295,7 +283,6 @@ func TestOfertaPut_HoraFinInvalida(t *testing.T) {
 		Titulo:     "Oferta Existente",
 	}
 
-	// Configurar mock para que la oferta exista
 	mockOfertOrmer.On("Read", mock.AnythingOfType("*models.Oferta"), []string(nil)).Run(func(args mock.Arguments) {
 		arg := args.Get(0).(*models.Oferta)
 		*arg = *oferta
@@ -335,7 +322,6 @@ func TestOfertaPut_HoraFinInvalida(t *testing.T) {
 func TestOfertaPut_ReadErrorInternal(t *testing.T) {
 	controller, recorder, _ := setupOfertaTest()
 
-	// Configurar mock para simular error de base de datos (no ErrNoRows)
 	mockOfertOrmer.On("Read", mock.AnythingOfType("*models.Oferta"), []string(nil)).Return(assert.AnError)
 
 	req := models.CrearOfertaRequest{

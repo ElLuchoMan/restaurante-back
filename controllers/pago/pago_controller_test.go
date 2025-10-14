@@ -243,6 +243,29 @@ func TestPagoPostSuccess(t *testing.T) {
 	}
 }
 
+func TestPagoPostSuccessHourWithoutSeconds(t *testing.T) {
+	body := `{"estadoPago":"PAGADO","fechaPago":"2024-01-01","horaPago":"10:00","metodoPagoId":1,"monto":1000}`
+	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+
+	orig := pagoNewOrm
+	pagoNewOrm = func() ormer { return fakeOrmer{insert: func(interface{}) (int64, error) { return 1, nil }} }
+	defer func() { pagoNewOrm = orig }()
+
+	c := PagoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d", w.Code)
+	}
+}
+
 func TestPagoPostMissingMonto(t *testing.T) {
 	body := `{"fechaPago":"2024-01-01","horaPago":"10:00:00","estadoPago":"PAGADO","metodoPagoId":1}`
 	r := httptest.NewRequest(http.MethodPost, "/pagos", strings.NewReader(body))

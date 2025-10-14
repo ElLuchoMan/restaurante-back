@@ -18,19 +18,16 @@ func TestCategoria_JSONSerialization(t *testing.T) {
 		NOMBRE:          "Bebidas",
 	}
 
-	// Serializar
 	jsonData, err := json.Marshal(categoria)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Verificar campos en JSON
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
 	assert.Equal(t, float64(1), jsonMap["categoriaId"])
 	assert.Equal(t, "Bebidas", jsonMap["nombre"])
 
-	// Deserializar
 	var categoriaDeserialized Categoria
 	err = json.Unmarshal(jsonData, &categoriaDeserialized)
 	assert.NoError(t, err)

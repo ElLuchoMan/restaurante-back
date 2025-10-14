@@ -19,7 +19,6 @@ type descuentoService interface {
 	AplicarDescuento(ctx context.Context, pedidoId int64, req *models.AplicarDescuentoRequest) (*models.PedidoDescuentoAplicado, error)
 }
 
-// Interfaces para testing
 type descuentoOrmer interface {
 	Read(interface{}, ...string) error
 }
@@ -40,7 +39,6 @@ var descOrmFactory = func() descuentoOrmer { return descOrmAdapter{readFn: descR
 
 var descOrmNew = func() descuentoOrmer { return descOrmFactory() }
 
-// Variable mockeable para tests
 var newDescuentoService = func(o orm.Ormer) descuentoService {
 	return services.NewDescuentoService(o)
 }
@@ -81,7 +79,6 @@ func (c *DescuentoController) GetAll() {
 
 	o := descOrmNew()
 
-	// Verificar que el pedido existe
 	pedido := &models.Pedido{PK_ID_PEDIDO: pedidoId}
 	err = o.Read(pedido)
 	if err != nil {
@@ -167,7 +164,6 @@ func (c *DescuentoController) Post() {
 		return
 	}
 
-	// Validar que se especifique exactamente uno de cupón o oferta
 	if (req.PkIdCupon == nil && req.PkIdOferta == nil) || (req.PkIdCupon != nil && req.PkIdOferta != nil) {
 		logging.LogControllerError(c.Ctx, "descuentos.post.invalid_request", nil, map[string]interface{}{"pedido_id": pedidoId, "cupon": req.PkIdCupon, "oferta": req.PkIdOferta})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -181,7 +177,6 @@ func (c *DescuentoController) Post() {
 
 	descuentoService := newDescuentoService(descuentoServiceOrmFactory())
 
-	// Validar exclusividad antes de aplicar
 	err = descuentoService.ValidarExclusividadDescuento(c.Ctx.Request.Context(), pedidoId, req.PkIdCupon, req.PkIdOferta)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "descuentos.post.exclusivity_error", err, map[string]interface{}{"pedido_id": pedidoId})
@@ -198,7 +193,6 @@ func (c *DescuentoController) Post() {
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "descuentos.post.service_error", err, map[string]interface{}{"pedido_id": pedidoId})
 
-		// Determinar el tipo de error
 		errorMsg := err.Error()
 		switch errorMsg {
 		case "pedido no encontrado":

@@ -18,10 +18,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// ============================================================================
-// MOCK DEL SERVICIO OFERTA CON INTERFAZ
-// ============================================================================
-
 type MockOfertaServiceInterface struct {
 	mock.Mock
 }
@@ -44,12 +40,8 @@ func (m *MockOfertaServiceInterface) CalcularDescuentoOferta(oferta *models.Ofer
 	return args.Get(0).(int64), args.Error(1)
 }
 
-// ============================================================================
-// TESTS CON SERVICIO MOCKEADO - ObtenerOfertasActivas
-// ============================================================================
-
 func TestOfertaObtenerOfertasActivas_ConServicioMockeado_Exitoso(t *testing.T) {
-	// Guardar y restaurar funciones originales
+
 	originalNewOfertaService := newOfertaService
 	originalOfertaServiceOrmFactory := ofertaServiceOrmFactory
 	defer func() {
@@ -57,7 +49,6 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_Exitoso(t *testing.T) {
 		ofertaServiceOrmFactory = originalOfertaServiceOrmFactory
 	}()
 
-	// Mock del servicio
 	mockService := new(MockOfertaServiceInterface)
 	expectedOfertas := []*models.OfertaActivaResponse{
 		{
@@ -68,15 +59,13 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_Exitoso(t *testing.T) {
 	mockService.On("ObtenerOfertasActivas", mock.Anything, int64(1), mock.Anything, mock.Anything, mock.Anything).
 		Return(expectedOfertas, nil)
 
-	// Reemplazar la función de creación del servicio
 	newOfertaService = func(o orm.Ormer) services.OfertaServiceInterface {
 		return mockService
 	}
 	ofertaServiceOrmFactory = func() orm.Ormer {
-		return nil // No se usa realmente
+		return nil
 	}
 
-	// Preparar el controller
 	ctrl := &OfertaController{}
 	ctrl.Data = make(map[interface{}]interface{})
 
@@ -86,10 +75,8 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_Exitoso(t *testing.T) {
 	ctx.Reset(recorder, r)
 	ctrl.Ctx = ctx
 
-	// Ejecutar
 	ctrl.ObtenerOfertasActivas()
 
-	// Verificaciones
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
 	var response models.ApiResponse
@@ -97,7 +84,6 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_Exitoso(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.Code)
 	assert.Equal(t, "Ofertas activas obtenidas exitosamente", response.Message)
 
-	// Verificar que el mock fue llamado
 	mockService.AssertExpectations(t)
 }
 
@@ -182,10 +168,7 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_HoraInvalida(t *testing
 }
 
 func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ProductoIdInvalido(t *testing.T) {
-	// El producto_id inválido es simplemente ignorado (no causa error), así que este test verifica
-	// que la petición sigue adelante y el servicio es llamado con producto_id = nil
 
-	// Guardar y restaurar funciones originales
 	originalNewOfertaService := newOfertaService
 	originalOfertaServiceOrmFactory := ofertaServiceOrmFactory
 	defer func() {
@@ -193,7 +176,6 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ProductoIdInvalido(t *t
 		ofertaServiceOrmFactory = originalOfertaServiceOrmFactory
 	}()
 
-	// Mock del servicio que debe ser llamado con producto_id = nil
 	mockService := new(MockOfertaServiceInterface)
 	mockService.On("ObtenerOfertasActivas", mock.Anything, int64(1), mock.Anything, mock.Anything, (*int64)(nil)).
 		Return([]*models.OfertaActivaResponse{}, nil)
@@ -216,7 +198,6 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ProductoIdInvalido(t *t
 
 	ctrl.ObtenerOfertasActivas()
 
-	// Debe procesar exitosamente (producto_id inválido es ignorado)
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
 	var response models.ApiResponse
@@ -227,7 +208,7 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ProductoIdInvalido(t *t
 }
 
 func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ErrorDelServicio(t *testing.T) {
-	// Guardar y restaurar funciones originales
+
 	originalNewOfertaService := newOfertaService
 	originalOfertaServiceOrmFactory := ofertaServiceOrmFactory
 	defer func() {
@@ -235,7 +216,6 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ErrorDelServicio(t *tes
 		ofertaServiceOrmFactory = originalOfertaServiceOrmFactory
 	}()
 
-	// Mock del servicio que retorna error
 	mockService := new(MockOfertaServiceInterface)
 	mockService.On("ObtenerOfertasActivas", mock.Anything, int64(1), mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, errors.New("error de base de datos"))
@@ -258,7 +238,6 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ErrorDelServicio(t *tes
 
 	ctrl.ObtenerOfertasActivas()
 
-	// Debe retornar error interno
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 
 	var response models.ApiResponse
@@ -270,7 +249,7 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ErrorDelServicio(t *tes
 }
 
 func TestOfertaObtenerOfertasActivas_ConServicioMockeado_SinResultados(t *testing.T) {
-	// Guardar y restaurar funciones originales
+
 	originalNewOfertaService := newOfertaService
 	originalOfertaServiceOrmFactory := ofertaServiceOrmFactory
 	defer func() {
@@ -278,7 +257,6 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_SinResultados(t *testin
 		ofertaServiceOrmFactory = originalOfertaServiceOrmFactory
 	}()
 
-	// Mock del servicio que retorna lista vacía
 	mockService := new(MockOfertaServiceInterface)
 	mockService.On("ObtenerOfertasActivas", mock.Anything, int64(1), mock.Anything, mock.Anything, mock.Anything).
 		Return([]*models.OfertaActivaResponse{}, nil)
@@ -301,7 +279,6 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_SinResultados(t *testin
 
 	ctrl.ObtenerOfertasActivas()
 
-	// Debe retornar OK con lista vacía
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
 	var response models.ApiResponse

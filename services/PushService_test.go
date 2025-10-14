@@ -8,10 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Tests básicos para PushService sin mocks complejos
-
 func TestNewPushService(t *testing.T) {
-	// Test simple sin mock
+
 	service := NewPushService(nil)
 	assert.NotNil(t, service)
 }
@@ -80,7 +78,6 @@ func TestPushService_ValidarRegistroDispositivo_SinClienteNiTrabajador(t *testin
 		Endpoint:   &endpoint,
 		P256dh:     &p256dh,
 		Auth:       &auth,
-		// Sin cliente ni trabajador
 	}
 
 	err := service.ValidarRegistroDispositivo(req)
@@ -103,7 +100,7 @@ func TestPushService_ValidarRegistroDispositivo_AmbosClienteYTrabajador(t *testi
 		P256dh:                &p256dh,
 		Auth:                  &auth,
 		PkDocumentoCliente:    &clienteId,
-		PkDocumentoTrabajador: &trabajadorId, // Ambos especificados
+		PkDocumentoTrabajador: &trabajadorId,
 	}
 
 	err := service.ValidarRegistroDispositivo(req)
@@ -120,7 +117,7 @@ func TestPushService_ValidarRegistroDispositivo_WebSinEndpoint(t *testing.T) {
 
 	req := &models.RegistrarDispositivoRequest{
 		Plataforma: models.PlataformaWeb,
-		// Endpoint: nil, // Sin endpoint
+
 		P256dh:             &p256dh,
 		Auth:               &auth,
 		PkDocumentoCliente: &clienteId,
@@ -145,7 +142,7 @@ func TestPushService_ValidarRegistroDispositivo_WebConFcmToken(t *testing.T) {
 		Endpoint:           &endpoint,
 		P256dh:             &p256dh,
 		Auth:               &auth,
-		FcmToken:           &fcmToken, // No debería tener FCM token
+		FcmToken:           &fcmToken,
 		PkDocumentoCliente: &clienteId,
 	}
 
@@ -161,7 +158,7 @@ func TestPushService_ValidarRegistroDispositivo_AndroidSinFcmToken(t *testing.T)
 
 	req := &models.RegistrarDispositivoRequest{
 		Plataforma: models.PlataformaAndroid,
-		// FcmToken: nil, // Sin FCM token
+
 		PkDocumentoTrabajador: &trabajadorId,
 	}
 
@@ -179,7 +176,7 @@ func TestPushService_ValidarRegistroDispositivo_AndroidConEndpoint(t *testing.T)
 
 	req := &models.RegistrarDispositivoRequest{
 		Plataforma:            models.PlataformaAndroid,
-		Endpoint:              &endpoint, // No debería tener endpoint
+		Endpoint:              &endpoint,
 		FcmToken:              &fcmToken,
 		PkDocumentoTrabajador: &trabajadorId,
 	}
@@ -195,7 +192,7 @@ func TestPushService_ValidarRegistroDispositivo_PlataformaInvalida(t *testing.T)
 	clienteId := int64(123)
 
 	req := &models.RegistrarDispositivoRequest{
-		Plataforma:         "INVALIDA", // Plataforma inválida
+		Plataforma:         "INVALIDA",
 		PkDocumentoCliente: &clienteId,
 	}
 
@@ -204,36 +201,31 @@ func TestPushService_ValidarRegistroDispositivo_PlataformaInvalida(t *testing.T)
 	assert.Contains(t, err.Error(), "plataforma no válida")
 }
 
-// Test básico para verificar que el servicio se puede instanciar
 func TestPushService_BasicInstantiation(t *testing.T) {
 	service := &PushService{}
 	assert.NotNil(t, service)
 }
 
-// Test para verificar que el constructor funciona correctamente
 func TestPushService_Constructor(t *testing.T) {
 	service := NewPushService(nil)
 	assert.NotNil(t, service)
-	assert.Nil(t, service.ormer) // ormer debería ser nil
+	assert.Nil(t, service.ormer)
 }
 
-// Nuevos tests para tipos de destinatarios CLIENTES y TRABAJADORES
 func TestTipoDestinatario_Plurales_Constantes(t *testing.T) {
 	assert.Equal(t, models.TipoDestinatario("CLIENTES"), models.DestinatarioClientes)
 	assert.Equal(t, models.TipoDestinatario("TRABAJADORES"), models.DestinatarioTrabajadores)
 }
 
-// Test para verificar múltiples instancias
 func TestPushService_MultipleInstances(t *testing.T) {
 	service1 := NewPushService(nil)
 	service2 := NewPushService(nil)
 
 	assert.NotNil(t, service1)
 	assert.NotNil(t, service2)
-	assert.NotSame(t, service1, service2) // Deben ser punteros diferentes
+	assert.NotSame(t, service1, service2)
 }
 
-// Test de cobertura completa de ValidarRegistroDispositivo
 func TestPushService_ValidarRegistroDispositivo_CompleteCoverage(t *testing.T) {
 	service := &PushService{}
 
@@ -325,12 +317,10 @@ func TestPushService_ValidarRegistroDispositivo_CompleteCoverage(t *testing.T) {
 	}
 }
 
-// Helper functions
 func int64Ptr(i int64) *int64 {
 	return &i
 }
 
-// Tests para validación de Web Push
 func TestPushService_ValidarCredencialesWebPush(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -399,9 +389,7 @@ func TestPushService_ValidarCredencialesWebPush(t *testing.T) {
 			exito, statusCode, errorCode := service.enviarWebPush(dispositivo, notificacion)
 
 			if tt.expectValid {
-				// Este test fallará porque no tenemos servidor de prueba,
-				// pero valida que la función intente enviar
-				// En un test real, necesitarías mockear la librería webpush
+
 				assert.NotNil(t, statusCode)
 				assert.NotNil(t, errorCode)
 			} else {
@@ -416,9 +404,8 @@ func TestPushService_ValidarCredencialesWebPush(t *testing.T) {
 	}
 }
 
-// Test para verificar que se construye correctamente el payload Web Push
 func TestPushService_WebPush_PayloadConstruction(t *testing.T) {
-	// Este test verifica que la función no falla en la construcción del payload
+
 	service := &PushService{}
 
 	tests := []struct {
@@ -450,43 +437,37 @@ func TestPushService_WebPush_PayloadConstruction(t *testing.T) {
 				Mensaje: "Test",
 				Datos:   []byte(`{invalid json}`),
 			},
-			shouldWork: true, // Debería continuar aunque el JSON sea inválido
+			shouldWork: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Dispositivo con credenciales válidas pero endpoint ficticio
+
 			dispositivo := &models.PushDispositivo{
 				PkIdPushDispositivo: 1,
 				Plataforma:          models.PlataformaWeb,
 				Endpoint:            stringPtr("https://fcm.googleapis.com/fcm/send/test"),
-				P256dh:              stringPtr("BJsj63kz85uTJXJKnKvXUtvOd8e4qV_7"), // Clave válida de ejemplo
-				Auth:                stringPtr("k8JV6sjdbLA_UEZjn6m8Yw"),           // Auth válida de ejemplo
+				P256dh:              stringPtr("BJsj63kz85uTJXJKnKvXUtvOd8e4qV_7"),
+				Auth:                stringPtr("k8JV6sjdbLA_UEZjn6m8Yw"),
 			}
 
-			// Intentar enviar (fallará porque no hay servidor real, pero valida la construcción del payload)
 			exito, statusCode, errorCode := service.enviarWebPush(dispositivo, tt.notificacion)
 
-			// Esperamos que falle en el envío real, pero no en la construcción
-			// Si llegamos a obtener un código de error relacionado con VAPID o conexión,
-			// significa que el payload se construyó correctamente
 			assert.NotNil(t, statusCode)
 			assert.NotNil(t, errorCode)
-			// El error debería ser de configuración VAPID o de red, no de construcción de payload
+
 			if errorCode != nil {
 				assert.NotEqual(t, "ERROR_SERIALIZAR_PAYLOAD", *errorCode)
 			}
 
-			// No debería ser éxito porque no hay servidor real
 			if tt.shouldWork {
-				assert.False(t, exito) // Fallará en la red, no en la construcción
+				assert.False(t, exito)
 			}
 		})
 	}
 }
 
-// Test para verificar el proveedor correcto según la plataforma
 func TestPushService_ObtenerProveedor(t *testing.T) {
 	service := &PushService{}
 
@@ -520,9 +501,8 @@ func TestPushService_ObtenerProveedor(t *testing.T) {
 	}
 }
 
-// Test para verificar que los códigos de error HTTP se manejan correctamente
 func TestPushService_WebPush_CodigosHTTP(t *testing.T) {
-	// Este test documenta qué códigos HTTP esperamos manejar
+
 	expectedCodes := map[int]string{
 		200: "OK - Éxito",
 		201: "Created - Éxito",
@@ -542,10 +522,8 @@ func TestPushService_WebPush_CodigosHTTP(t *testing.T) {
 	}
 }
 
-// Test para verificar que el timeout está configurado
 func TestPushService_WebPush_TimeoutConfigured(t *testing.T) {
-	// Este test verifica conceptualmente que se usa un timeout
-	// En la implementación real, el timeout está en 10 segundos
-	expectedTimeout := 10 // segundos
+
+	expectedTimeout := 10
 	assert.Equal(t, 10, expectedTimeout)
 }

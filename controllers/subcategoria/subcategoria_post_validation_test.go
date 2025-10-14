@@ -11,7 +11,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// TestSubcategoriaController_Post_EmptyNombre verifica que se rechace un POST con nombre vacío
 func TestSubcategoriaController_Post_EmptyNombre(t *testing.T) {
 	m := newSubMockOrm()
 	orig := subcatOrmNew
@@ -44,7 +43,6 @@ func TestSubcategoriaController_Post_EmptyNombre(t *testing.T) {
 	}
 }
 
-// TestSubcategoriaController_Post_ZeroCategoriaId verifica que se rechace un POST con categoriaId=0
 func TestSubcategoriaController_Post_ZeroCategoriaId(t *testing.T) {
 	m := newSubMockOrm()
 	orig := subcatOrmNew
@@ -77,7 +75,6 @@ func TestSubcategoriaController_Post_ZeroCategoriaId(t *testing.T) {
 	}
 }
 
-// TestSubcategoriaController_Post_MissingCategoriaId verifica que se rechace un POST sin categoriaId
 func TestSubcategoriaController_Post_MissingCategoriaId(t *testing.T) {
 	m := newSubMockOrm()
 	orig := subcatOrmNew

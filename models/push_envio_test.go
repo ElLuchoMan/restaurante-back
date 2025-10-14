@@ -22,7 +22,6 @@ func TestPushEnvio_SerializeData(t *testing.T) {
 
 	pe.serializeData()
 
-	// Verificar que Data contiene el JSON como string
 	assert.NotEmpty(t, pe.Data)
 	assert.Contains(t, pe.Data, "title")
 	assert.Contains(t, pe.Data, "Test")
@@ -35,7 +34,6 @@ func TestPushEnvio_SerializeData_Empty(t *testing.T) {
 
 	pe.serializeData()
 
-	// Data debe estar vacío
 	assert.Equal(t, "", pe.Data)
 }
 
@@ -46,7 +44,6 @@ func TestPushEnvio_DeserializeData(t *testing.T) {
 
 	pe.deserializeData()
 
-	// Verificar que DataObj contiene el JSON
 	assert.NotNil(t, pe.DataObj)
 	assert.Contains(t, string(pe.DataObj), "title")
 	assert.Contains(t, string(pe.DataObj), "Notification")
@@ -59,7 +56,6 @@ func TestPushEnvio_DeserializeData_Empty(t *testing.T) {
 
 	pe.deserializeData()
 
-	// DataObj debe ser nil
 	assert.Nil(t, pe.DataObj)
 }
 
@@ -71,7 +67,6 @@ func TestPushEnvio_BeforeInsert(t *testing.T) {
 
 	pe.BeforeInsert()
 
-	// Verificar que se serializó
 	assert.NotEmpty(t, pe.Data)
 	assert.Contains(t, pe.Data, "test")
 }
@@ -84,7 +79,6 @@ func TestPushEnvio_BeforeUpdate(t *testing.T) {
 
 	pe.BeforeUpdate()
 
-	// Verificar que se serializó
 	assert.NotEmpty(t, pe.Data)
 	assert.Contains(t, pe.Data, "updated")
 }
@@ -96,7 +90,6 @@ func TestPushEnvio_AfterLoad(t *testing.T) {
 
 	pe.AfterLoad()
 
-	// Verificar que se deserializó
 	assert.NotNil(t, pe.DataObj)
 	assert.Contains(t, string(pe.DataObj), "loaded")
 }
@@ -116,12 +109,10 @@ func TestPushEnvio_JSONSerialization(t *testing.T) {
 		SentAt:        time.Now(),
 	}
 
-	// Serializar
 	jsonData, err := json.Marshal(pe)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Verificar campos en JSON
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
@@ -130,7 +121,6 @@ func TestPushEnvio_JSONSerialization(t *testing.T) {
 	assert.Equal(t, true, jsonMap["exito"])
 	assert.Equal(t, float64(200), jsonMap["statusCode"])
 
-	// Verificar que data está como objeto (no string)
 	data, exists := jsonMap["data"]
 	assert.True(t, exists)
 	assert.NotNil(t, data)
@@ -144,11 +134,9 @@ func TestPushEnvio_NullableFields(t *testing.T) {
 		SentAt:        time.Now(),
 	}
 
-	// StatusCode y ErrorCode pueden ser nil
 	assert.Nil(t, pe.StatusCode)
 	assert.Nil(t, pe.ErrorCode)
 
-	// Serializar y verificar
 	jsonData, err := json.Marshal(pe)
 	assert.NoError(t, err)
 
@@ -156,7 +144,6 @@ func TestPushEnvio_NullableFields(t *testing.T) {
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
 
-	// statusCode no debe aparecer si es nil (omitempty)
 	_, exists := jsonMap["statusCode"]
 	assert.False(t, exists)
 }

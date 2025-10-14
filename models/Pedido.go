@@ -2,7 +2,6 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -18,7 +17,7 @@ type Pedido struct {
 	PK_ID_PAGO           *Pago        `orm:"column(pk_id_pago);rel(fk);null" json:"pagoId" swaggertype:"integer"`
 	PK_ID_RESTAURANTE    *Restaurante `orm:"column(pk_id_restaurante);rel(fk);null" json:"restauranteId" swaggertype:"integer"`
 	PK_DOCUMENTO_CLIENTE *Cliente     `orm:"column(pk_documento_cliente);rel(fk);null" json:"documentoCliente" swaggertype:"integer"`
-	UPDATED_AT           time.Time    `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt"`
+	UPDATED_AT           time.Time    `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt" swaggertype:"string"`
 	UPDATED_BY           *string      `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 }
 
@@ -45,24 +44,12 @@ func init() {
 }
 
 func (d Pedido) MarshalJSON() ([]byte, error) {
-	// FECHA: normalizar a UTC para obtener el día de calendario correcto, sin efectos de zona
-	fechaUTC := d.FECHA.UTC()
-	fechaStr := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
 
-	// HORA: algunos timezones históricos (LMT) en America/Bogota afectan horas con año 0000
-	// Detectamos año antiguo y ajustamos con doble desfase LMT (~09:52:32) para recuperar hora de pared
-	horaAdj := d.HORA
-	if horaAdj.Year() < 1900 {
-		horaAdj = horaAdj.Add(9*time.Hour + 52*time.Minute + 32*time.Second)
-	}
-	horaStr := fmt.Sprintf("%02d:%02d:%02d", horaAdj.Hour(), horaAdj.Minute(), horaAdj.Second())
+	fechaStr := FormatDateUTC(d.FECHA)
 
-	// UPDATED_AT: cargar zona horaria de Bogotá para timestamp
-	loc, err := time.LoadLocation("America/Bogota")
-	if err != nil {
-		loc = time.FixedZone("UTC-5", -5*60*60)
-	}
-	updatedAtEnBogota := d.UPDATED_AT.In(loc)
+	horaStr := FormatTimeWithLMT(d.HORA)
+
+	updatedAtStr := FormatTimestampBogota(d.UPDATED_AT)
 
 	return json.Marshal(&struct {
 		PK_ID_PEDIDO         int64        `json:"pedidoId"`
@@ -86,7 +73,7 @@ func (d Pedido) MarshalJSON() ([]byte, error) {
 		PK_ID_PAGO:           d.PK_ID_PAGO,
 		PK_ID_RESTAURANTE:    d.PK_ID_RESTAURANTE,
 		PK_DOCUMENTO_CLIENTE: d.PK_DOCUMENTO_CLIENTE,
-		UPDATED_AT:           updatedAtEnBogota.Format("02-01-2006 15:04:05"),
+		UPDATED_AT:           updatedAtStr,
 		UPDATED_BY:           d.UPDATED_BY,
 	})
 }

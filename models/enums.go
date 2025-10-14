@@ -95,8 +95,6 @@ func (e EstadoControlNomina) IsValid() bool {
 	return false
 }
 
-// Nuevos enums para notificaciones, cupones y ofertas
-
 type PlataformaNotificacion string
 
 const (

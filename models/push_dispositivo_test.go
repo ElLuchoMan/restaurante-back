@@ -21,7 +21,6 @@ func TestPushDispositivo_SerializeSubscribedTopics(t *testing.T) {
 
 	pd.serializeSubscribedTopics()
 
-	// Verificar que se serializó como array de PostgreSQL
 	assert.NotEmpty(t, pd.SubscribedTopics)
 	assert.Contains(t, pd.SubscribedTopics, "ofertas")
 	assert.Contains(t, pd.SubscribedTopics, "noticias")
@@ -46,7 +45,6 @@ func TestPushDispositivo_SerializeSubscribedTopics_WithQuotes(t *testing.T) {
 
 	pd.serializeSubscribedTopics()
 
-	// Verificar que las comillas se escaparon correctamente
 	assert.NotEmpty(t, pd.SubscribedTopics)
 	assert.Contains(t, pd.SubscribedTopics, `""`)
 }
@@ -105,7 +103,6 @@ func TestPushDispositivo_DeserializeSubscribedTopics_JSONFallback(t *testing.T) 
 
 	pd.deserializeSubscribedTopics()
 
-	// Debe usar fallback de JSON
 	assert.Equal(t, 2, len(pd.SubscribedTopicsArray))
 	assert.Equal(t, "ofertas", pd.SubscribedTopicsArray[0])
 	assert.Equal(t, "noticias", pd.SubscribedTopicsArray[1])
@@ -118,7 +115,6 @@ func TestPushDispositivo_BeforeInsert(t *testing.T) {
 
 	pd.BeforeInsert()
 
-	// Verificar que se serializó
 	assert.NotEmpty(t, pd.SubscribedTopics)
 	assert.Contains(t, pd.SubscribedTopics, "topic1")
 }
@@ -130,7 +126,6 @@ func TestPushDispositivo_BeforeUpdate(t *testing.T) {
 
 	pd.BeforeUpdate()
 
-	// Verificar que se serializó
 	assert.NotEmpty(t, pd.SubscribedTopics)
 	assert.Contains(t, pd.SubscribedTopics, "updated1")
 }
@@ -142,7 +137,6 @@ func TestPushDispositivo_AfterLoad(t *testing.T) {
 
 	pd.AfterLoad()
 
-	// Verificar que se deserializó
 	assert.Equal(t, 2, len(pd.SubscribedTopicsArray))
 	assert.Equal(t, "loaded1", pd.SubscribedTopicsArray[0])
 }
@@ -158,12 +152,10 @@ func TestPushDispositivo_JSONSerialization(t *testing.T) {
 		CreatedAt:             time.Now(),
 	}
 
-	// Serializar
 	jsonData, err := json.Marshal(pd)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Verificar campos en JSON
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
@@ -171,7 +163,6 @@ func TestPushDispositivo_JSONSerialization(t *testing.T) {
 	assert.Equal(t, "WEB", jsonMap["plataforma"])
 	assert.Equal(t, true, jsonMap["enabled"])
 
-	// Verificar que subscribedTopics está como array
 	topics, ok := jsonMap["subscribedTopics"].([]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, 2, len(topics))

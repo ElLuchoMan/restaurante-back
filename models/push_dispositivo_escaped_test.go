@@ -6,14 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ============================================================================
-// TEST DE COBERTURA PARA deserializeSubscribedTopics
-// Caso específico: comillas escapadas (línea 88)
-// ============================================================================
-
 func TestPushDispositivo_DeserializeSubscribedTopics_ConComillasEscapadas(t *testing.T) {
-	// Este test cubre la línea 88 donde se desescapan las comillas dobles
-	// Formato PostgreSQL con comillas escapadas: {"topic ""quoted"""}
+
 	pd := &PushDispositivo{
 		SubscribedTopics: `{"topic ""with quotes""","normal"}`,
 	}
@@ -27,9 +21,9 @@ func TestPushDispositivo_DeserializeSubscribedTopics_ConComillasEscapadas(t *tes
 }
 
 func TestPushDispositivo_DeserializeSubscribedTopics_SoloComillasEscapadas(t *testing.T) {
-	// Test adicional para asegurar cobertura completa del unescape
+
 	pd := &PushDispositivo{
-		SubscribedTopics: `{""""}`, // Solo comillas dobles escapadas
+		SubscribedTopics: `{""""}`,
 	}
 
 	pd.deserializeSubscribedTopics()
@@ -40,7 +34,7 @@ func TestPushDispositivo_DeserializeSubscribedTopics_SoloComillasEscapadas(t *te
 }
 
 func TestPushDispositivo_DeserializeSubscribedTopics_MultiplesComillasEscapadas(t *testing.T) {
-	// Test para múltiples comillas escapadas consecutivas
+
 	pd := &PushDispositivo{
 		SubscribedTopics: `{"text""with""""multiple""quotes"}`,
 	}
@@ -53,7 +47,7 @@ func TestPushDispositivo_DeserializeSubscribedTopics_MultiplesComillasEscapadas(
 }
 
 func TestPushDispositivo_DeserializeSubscribedTopics_SinComillas(t *testing.T) {
-	// Test para valores sin comillas (línea 90, caso else implícito)
+
 	pd := &PushDispositivo{
 		SubscribedTopics: `{topic_sin_comillas,otro_topic}`,
 	}
@@ -67,7 +61,7 @@ func TestPushDispositivo_DeserializeSubscribedTopics_SinComillas(t *testing.T) {
 }
 
 func TestPushDispositivo_DeserializeSubscribedTopics_MixtoComillasYSin(t *testing.T) {
-	// Test con mezcla de valores con y sin comillas
+
 	pd := &PushDispositivo{
 		SubscribedTopics: `{"con_comillas",sin_comillas,"otro ""escaped"""}`,
 	}

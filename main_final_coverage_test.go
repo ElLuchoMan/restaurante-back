@@ -10,10 +10,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Tests adicionales para completar main.go al 100%
-
 func TestLoadEnvFile_InCI(t *testing.T) {
-	// Simular entorno de CI
+
 	origCI := os.Getenv("CI")
 	origSkip := os.Getenv("SKIP_WEB_RUN")
 	defer func() {
@@ -32,9 +30,8 @@ func TestLoadEnvFile_InCI(t *testing.T) {
 	os.Setenv("CI", "true")
 	os.Unsetenv("SKIP_WEB_RUN")
 
-	// No debería intentar cargar .env en CI
 	loadEnvFile()
-	// Si llegamos aquí sin error, está bien
+
 }
 
 func TestLoadEnvFile_WithSkipWebRun(t *testing.T) {
@@ -56,9 +53,8 @@ func TestLoadEnvFile_WithSkipWebRun(t *testing.T) {
 	os.Unsetenv("CI")
 	os.Setenv("SKIP_WEB_RUN", "1")
 
-	// No debería intentar cargar .env cuando SKIP_WEB_RUN=1
 	loadEnvFile()
-	// Si llegamos aquí sin error, está bien
+
 }
 
 func TestLoadEnvFile_FileNotFound(t *testing.T) {
@@ -83,13 +79,11 @@ func TestLoadEnvFile_FileNotFound(t *testing.T) {
 	os.Unsetenv("CI")
 	os.Unsetenv("SKIP_WEB_RUN")
 
-	// Cambiar a directorio temporal sin .env
 	tmpDir := os.TempDir()
 	os.Chdir(tmpDir)
 
-	// Debería manejar el error gracefully
 	loadEnvFile()
-	// Si llegamos aquí sin pánico, está bien
+
 }
 
 func TestLoadEnvFile_Success(t *testing.T) {
@@ -115,7 +109,6 @@ func TestLoadEnvFile_Success(t *testing.T) {
 	os.Unsetenv("CI")
 	os.Unsetenv("SKIP_WEB_RUN")
 
-	// Crear un .env temporal
 	tmpDir := os.TempDir()
 	os.Chdir(tmpDir)
 
@@ -123,10 +116,8 @@ func TestLoadEnvFile_Success(t *testing.T) {
 	os.WriteFile(".env", []byte(envContent), 0644)
 	defer os.Remove(".env")
 
-	// Debería cargar el archivo exitosamente
 	loadEnvFile()
 
-	// Verificar que la variable se cargó (godotenv la carga al env)
 	if err := godotenv.Load(); err == nil {
 		testVar := os.Getenv("TEST_VAR")
 		if testVar != "test_value" {
@@ -136,7 +127,7 @@ func TestLoadEnvFile_Success(t *testing.T) {
 }
 
 func TestSetStaticHeadersFn_Coverage(t *testing.T) {
-	// Test para cubrir la función wrapper
+
 	origFn := setStaticHeadersFn
 	defer func() { setStaticHeadersFn = origFn }()
 
@@ -172,7 +163,7 @@ func TestOrmRawExec_NilOrmer(t *testing.T) {
 }
 
 func TestOrmRawExec_NilRawSeter(t *testing.T) {
-	// Test con un ormer que retorna nil RawSeter
+
 	mockOrm := &nilRawOrmer2{}
 	result, err := ormRawExec(mockOrm, "SELECT 1")
 	if err != nil {
@@ -183,7 +174,6 @@ func TestOrmRawExec_NilRawSeter(t *testing.T) {
 	}
 }
 
-// Mock de ormer que retorna nil RawSeter
 type nilRawOrmer2 struct {
 	orm.Ormer
 }
@@ -196,7 +186,6 @@ func TestGetSQLPinger_NilDB(t *testing.T) {
 	origGetter := dbGetter
 	defer func() { dbGetter = origGetter }()
 
-	// Mockear dbGetter para retornar nil
 	dbGetter = func() (*sql.DB, error) {
 		return nil, nil
 	}

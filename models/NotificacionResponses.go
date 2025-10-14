@@ -5,14 +5,12 @@ import (
 	"time"
 )
 
-// Responses para validación de cupones
 type ValidarCuponResponse struct {
 	Aplicable      bool    `json:"aplicable"`
 	MontoDescuento int64   `json:"montoDescuento"`
 	Motivo         *string `json:"motivo,omitempty"`
 }
 
-// Responses para ofertas activas
 type OfertaActivaResponse struct {
 	OfertaId       int64         `json:"ofertaId"`
 	Titulo         string        `json:"titulo"`
@@ -21,7 +19,6 @@ type OfertaActivaResponse struct {
 	ProductosIds   []int64       `json:"productosIds"`
 }
 
-// Response genérica para listas paginadas
 type PaginatedResponse struct {
 	Data       interface{} `json:"data"`
 	Total      int64       `json:"total"`
@@ -30,20 +27,17 @@ type PaginatedResponse struct {
 	TotalPages int         `json:"totalPages"`
 }
 
-// Response para errores de validación
 type ValidationErrorResponse struct {
 	Message string                 `json:"message"`
 	Errors  map[string]interface{} `json:"errors,omitempty"`
 }
 
-// Response para conflictos
 type ConflictErrorResponse struct {
 	Message string      `json:"message"`
 	Code    string      `json:"code"`
 	Details interface{} `json:"details,omitempty"`
 }
 
-// Response para dispositivos con información adicional
 type PushDispositivoResponse struct {
 	PushDispositivoId   int64                  `json:"pushDispositivoId"`
 	Plataforma          PlataformaNotificacion `json:"plataforma"`
@@ -60,7 +54,43 @@ type PushDispositivoResponse struct {
 	LastSeenAt          *time.Time             `json:"lastSeenAt,omitempty"`
 }
 
-// Response para envíos con información adicional
+func (p PushDispositivoResponse) MarshalJSON() ([]byte, error) {
+	var lastSeenStr *string
+	if p.LastSeenAt != nil {
+		s := FormatTimestampBogota(*p.LastSeenAt)
+		lastSeenStr = &s
+	}
+	return json.Marshal(&struct {
+		PushDispositivoId   int64                  `json:"pushDispositivoId"`
+		Plataforma          PlataformaNotificacion `json:"plataforma"`
+		Endpoint            *string                `json:"endpoint,omitempty"`
+		FcmToken            *string                `json:"fcmToken,omitempty"`
+		Enabled             bool                   `json:"enabled"`
+		Locale              *string                `json:"locale,omitempty"`
+		TimeZone            *string                `json:"timeZone,omitempty"`
+		AppVersion          *string                `json:"appVersion,omitempty"`
+		SubscribedTopics    []string               `json:"subscribedTopics"`
+		DocumentoCliente    *int64                 `json:"documentoCliente,omitempty"`
+		DocumentoTrabajador *int64                 `json:"documentoTrabajador,omitempty"`
+		CreatedAt           string                 `json:"createdAt"`
+		LastSeenAt          *string                `json:"lastSeenAt,omitempty"`
+	}{
+		PushDispositivoId:   p.PushDispositivoId,
+		Plataforma:          p.Plataforma,
+		Endpoint:            p.Endpoint,
+		FcmToken:            p.FcmToken,
+		Enabled:             p.Enabled,
+		Locale:              p.Locale,
+		TimeZone:            p.TimeZone,
+		AppVersion:          p.AppVersion,
+		SubscribedTopics:    p.SubscribedTopics,
+		DocumentoCliente:    p.DocumentoCliente,
+		DocumentoTrabajador: p.DocumentoTrabajador,
+		CreatedAt:           FormatTimestampBogota(p.CreatedAt),
+		LastSeenAt:          lastSeenStr,
+	})
+}
+
 type PushEnvioResponse struct {
 	PushEnvioId       int64           `json:"pushEnvioId"`
 	PushDispositivoId int64           `json:"pushDispositivoId"`
@@ -72,7 +102,28 @@ type PushEnvioResponse struct {
 	SentAt            time.Time       `json:"sentAt"`
 }
 
-// Response para cupones con información adicional
+func (p PushEnvioResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		PushEnvioId       int64           `json:"pushEnvioId"`
+		PushDispositivoId int64           `json:"pushDispositivoId"`
+		Proveedor         ProveedorPush   `json:"proveedor"`
+		Data              json.RawMessage `json:"data,omitempty" swaggertype:"object"`
+		Exito             bool            `json:"exito"`
+		StatusCode        *int            `json:"statusCode,omitempty"`
+		ErrorCode         *string         `json:"errorCode,omitempty"`
+		SentAt            string          `json:"sentAt"`
+	}{
+		PushEnvioId:       p.PushEnvioId,
+		PushDispositivoId: p.PushDispositivoId,
+		Proveedor:         p.Proveedor,
+		Data:              p.Data,
+		Exito:             p.Exito,
+		StatusCode:        p.StatusCode,
+		ErrorCode:         p.ErrorCode,
+		SentAt:            FormatTimestampBogota(p.SentAt),
+	})
+}
+
 type CuponResponse struct {
 	CuponId          int64         `json:"cuponId"`
 	Codigo           string        `json:"codigo"`
@@ -91,7 +142,6 @@ type CuponResponse struct {
 	UsosActuales     int           `json:"usosActuales"`
 }
 
-// Response para ofertas con información adicional
 type OfertaResponse struct {
 	OfertaId       int64         `json:"ofertaId"`
 	Titulo         string        `json:"titulo"`
@@ -107,7 +157,6 @@ type OfertaResponse struct {
 	ProductosIds   []int64       `json:"productosIds"`
 }
 
-// Respuesta del envío de notificación
 type EnviarNotificacionResponse struct {
 	TotalDispositivos    int                        `json:"totalDispositivos"`
 	EnviosExitosos       int                        `json:"enviosExitosos"`
@@ -116,7 +165,6 @@ type EnviarNotificacionResponse struct {
 	ResumenDestinatarios ResumenDestinatarios       `json:"resumenDestinatarios"`
 }
 
-// Detalle de cada envío individual
 type DetalleEnvioNotificacion struct {
 	PushDispositivoId   int64   `json:"pushDispositivoId"`
 	Plataforma          string  `json:"plataforma"`
@@ -127,7 +175,6 @@ type DetalleEnvioNotificacion struct {
 	DocumentoTrabajador *int64  `json:"documentoTrabajador,omitempty"`
 }
 
-// Resumen de destinatarios
 type ResumenDestinatarios struct {
 	TipoDestinatario        string   `json:"tipoDestinatario"`
 	ClientesNotificados     []int64  `json:"clientesNotificados,omitempty"`

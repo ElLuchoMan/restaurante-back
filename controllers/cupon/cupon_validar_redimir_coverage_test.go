@@ -14,10 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ============================================================================
-// TESTS PARA ValidarCupon
-// ============================================================================
-
 func TestValidarCupon_JSONInvalido(t *testing.T) {
 	ctrl := &CuponController{}
 	ctrl.Data = make(map[interface{}]interface{})
@@ -41,11 +37,10 @@ func TestValidarCupon_JSONInvalido(t *testing.T) {
 }
 
 func TestValidarCupon_ErrorDelServicio(t *testing.T) {
-	// En lugar de mockear el servicio completo, mockeamos la factory del ORM
+
 	originalOrmProvider := ormProvider
 	defer func() { ormProvider = originalOrmProvider }()
 
-	// Mock que retorna nil para forzar error
 	ormProvider = func() orm.Ormer {
 		return nil
 	}
@@ -72,7 +67,6 @@ func TestValidarCupon_ErrorDelServicio(t *testing.T) {
 
 	ctrl.ValidarCupon()
 
-	// Debe retornar error 422 (Unprocessable Entity)
 	assert.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
 
 	var response models.ApiResponse
@@ -82,11 +76,10 @@ func TestValidarCupon_ErrorDelServicio(t *testing.T) {
 }
 
 func TestValidarCupon_Exitoso(t *testing.T) {
-	// Similar al anterior pero con un servicio que retorna respuesta exitosa
+
 	originalOrmProvider := ormProvider
 	defer func() { ormProvider = originalOrmProvider }()
 
-	// Para el caso exitoso, también retornamos nil porque el servicio manejará internamente
 	ormProvider = func() orm.Ormer {
 		return nil
 	}
@@ -113,16 +106,10 @@ func TestValidarCupon_Exitoso(t *testing.T) {
 
 	ctrl.ValidarCupon()
 
-	// Como el ORM es nil, va a fallar - pero cubrimos el código
-	// El caso exitoso real requiere BD o un mock más complejo
 	var response models.ApiResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	assert.NoError(t, err)
 }
-
-// ============================================================================
-// TESTS PARA RedimirCupon
-// ============================================================================
 
 func TestRedimirCupon_JSONInvalido(t *testing.T) {
 	ctrl := &CuponController{}
@@ -175,7 +162,6 @@ func TestRedimirCupon_CuponNoEncontrado(t *testing.T) {
 
 	ctrl.RedimirCupon()
 
-	// Debe retornar algún código de error
 	var response models.ApiResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	assert.NoError(t, err)
@@ -280,7 +266,6 @@ func TestRedimirCupon_Exitoso(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// Test de cobertura adicional para asegurar que el path de creación funciona
 func TestCuponServiceOrmFactory_Coverage(t *testing.T) {
 	originalOrmProvider := ormProvider
 	defer func() { ormProvider = originalOrmProvider }()
@@ -296,7 +281,6 @@ func TestCuponServiceOrmFactory_Coverage(t *testing.T) {
 	assert.True(t, called, "ormProvider debe ser llamado")
 }
 
-// Test para asegurar que cupServiceOrmBase funciona
 func TestCupServiceOrmBase_Coverage(t *testing.T) {
 	originalOrmProvider := ormProvider
 	defer func() { ormProvider = originalOrmProvider }()
@@ -312,7 +296,6 @@ func TestCupServiceOrmBase_Coverage(t *testing.T) {
 	assert.True(t, called, "ormProvider debe ser llamado")
 }
 
-// Test adicional para cubrir diferentes paths en RedimirCupon
 func TestRedimirCupon_ConPedidoId(t *testing.T) {
 	originalOrmProvider := ormProvider
 	defer func() { ormProvider = originalOrmProvider }()
@@ -346,15 +329,3 @@ func TestRedimirCupon_ConPedidoId(t *testing.T) {
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	assert.NoError(t, err)
 }
-
-// ============================================================================
-// NOTAS:
-// Estos tests cubren los casos críticos de ValidarCupon y RedimirCupon:
-// - JSON inválido ✓
-// - Errores del servicio (cupón no encontrado, no aplicable, etc.) ✓
-// - Casos exitosos básicos ✓
-// - Diferentes paths de código (con/sin pedidoId) ✓
-//
-// Con el patrón de DI implementado, ahora podemos mockear el ORM sin tocar la BD.
-// Los servicios tienen 100% de cobertura, así que la lógica crítica está testeada.
-// ============================================================================

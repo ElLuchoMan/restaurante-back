@@ -7,7 +7,6 @@ import (
 	"restaurante/models"
 )
 
-// Test para validaciones de cupones - lógica de negocio pura
 func TestCuponValidations(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -52,7 +51,7 @@ func TestCuponValidations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Validar tipo de descuento y valor
+
 			if tt.tipoDescuento == models.TipoDescuentoPorcentaje {
 				if tt.valor < 1 || tt.valor > 100 {
 					if !tt.wantErr {
@@ -69,7 +68,6 @@ func TestCuponValidations(t *testing.T) {
 				}
 			}
 
-			// Validar fechas
 			if tt.fechaFin.Before(tt.fechaInicio) {
 				if !tt.wantErr {
 					t.Error("Expected error for invalid dates")
@@ -77,7 +75,6 @@ func TestCuponValidations(t *testing.T) {
 				return
 			}
 
-			// Si llegamos aquí y esperábamos un error, falló la validación
 			if tt.wantErr {
 				t.Error("Expected validation error but none occurred")
 			}
@@ -85,7 +82,6 @@ func TestCuponValidations(t *testing.T) {
 	}
 }
 
-// Test para validaciones de dispositivos push
 func TestPushDeviceValidations(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -126,7 +122,7 @@ func TestPushDeviceValidations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Validar que exactamente uno de cliente o trabajador esté especificado
+
 			if (tt.cliente == nil && tt.trabajador == nil) || (tt.cliente != nil && tt.trabajador != nil) {
 				if !tt.wantErr {
 					t.Error("Expected error for invalid client/worker specification")
@@ -134,7 +130,6 @@ func TestPushDeviceValidations(t *testing.T) {
 				return
 			}
 
-			// Validar coherencia entre plataforma y campos requeridos
 			switch tt.plataforma {
 			case models.PlataformaWeb:
 				if tt.endpoint == nil || tt.p256dh == nil || tt.auth == nil {
@@ -164,7 +159,6 @@ func TestPushDeviceValidations(t *testing.T) {
 				}
 			}
 
-			// Si llegamos aquí y esperábamos un error, falló la validación
 			if tt.wantErr {
 				t.Error("Expected validation error but none occurred")
 			}
@@ -172,7 +166,6 @@ func TestPushDeviceValidations(t *testing.T) {
 	}
 }
 
-// Helper functions
 func stringPtr(s string) *string {
 	return &s
 }

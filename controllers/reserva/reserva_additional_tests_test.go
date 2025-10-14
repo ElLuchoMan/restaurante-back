@@ -14,10 +14,8 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Tests adicionales para ReservaController - aumentar cobertura al 75%+
-
 func TestReservaGetAll_Success(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/reservas", nil)
@@ -26,7 +24,6 @@ func TestReservaGetAll_Success(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "GetAll", nil)
 
-	// Mock
 	origQueryAll := queryAllReservas
 	defer func() { queryAllReservas = origQueryAll }()
 
@@ -45,21 +42,18 @@ func TestReservaGetAll_Success(t *testing.T) {
 		return int64(len(mockReservas)), nil
 	}
 
-	// Execute
 	controller.GetAll()
 
-	// Verify
 	if recorder.Code != 200 {
 		t.Errorf("Expected status 200, got %d", recorder.Code)
 	}
 }
 
 func TestReservaPost_MissingDocumentos(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
-	// Body sin documentoContacto ni documentoCliente
 	body := map[string]interface{}{
 		"fecha":          "2025-01-20",
 		"hora":           "19:00:00",
@@ -76,22 +70,15 @@ func TestReservaPost_MissingDocumentos(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Post", nil)
 
-	// Execute
 	controller.Post()
 
-	// Verify - debería retornar error por falta de documento
 	if recorder.Code == 201 {
 		t.Errorf("Expected error status, got 201")
 	}
 }
 
-// Tests de Put con estado requieren refactorización del controller para ser testeables
-// Los siguientes tests fueron removidos por tener mocks incompletos:
-// - TestReservaPut_UpdateEstado
-// - TestReservaPut_InvalidEstado
-
 func TestReservaGetByDocumento_WithFecha(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/reservas/documento?documento=123456&fecha=2025-01-20", nil)
@@ -102,7 +89,6 @@ func TestReservaGetByDocumento_WithFecha(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "GetByDocumento", nil)
 
-	// Mock
 	origQueryByCliente := queryReservasByDocumentoCliente
 	defer func() { queryReservasByDocumentoCliente = origQueryByCliente }()
 
@@ -111,17 +97,15 @@ func TestReservaGetByDocumento_WithFecha(t *testing.T) {
 		return 1, nil
 	}
 
-	// Execute
 	controller.GetByDocumento()
 
-	// Verify
 	if recorder.Code != 200 {
 		t.Errorf("Expected status 200, got %d", recorder.Code)
 	}
 }
 
 func TestReservaDelete_Success(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("DELETE", "/reservas?id=1", nil)
@@ -131,7 +115,6 @@ func TestReservaDelete_Success(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Delete", nil)
 
-	// Mock
 	origRead := readReserva
 	origUpdate := updateReserva
 	defer func() {
@@ -153,17 +136,15 @@ func TestReservaDelete_Success(t *testing.T) {
 		return 1, nil
 	}
 
-	// Execute
 	controller.Delete()
 
-	// Verify
 	if recorder.Code != 200 {
 		t.Errorf("Expected status 200, got %d", recorder.Code)
 	}
 }
 
 func TestCreateOrFindReservaContacto_NewContactoNoLoggeado(t *testing.T) {
-	// Mock
+
 	origQueryByDoc := queryReservaContactoByDocumento
 	origInsert := insertReservaContacto
 	defer func() {
@@ -179,7 +160,6 @@ func TestCreateOrFindReservaContacto_NewContactoNoLoggeado(t *testing.T) {
 		return 123, nil
 	}
 
-	// Execute
 	input := map[string]interface{}{
 		"documentoContacto": float64(987654321),
 		"nombreCompleto":    "Test User",
@@ -188,7 +168,6 @@ func TestCreateOrFindReservaContacto_NewContactoNoLoggeado(t *testing.T) {
 
 	contacto, err := createOrFindReservaContacto(nil, input)
 
-	// Verify
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -201,7 +180,7 @@ func TestCreateOrFindReservaContacto_NewContactoNoLoggeado(t *testing.T) {
 }
 
 func TestCreateOrFindReservaContacto_MissingNombreCompleto(t *testing.T) {
-	// Mock
+
 	origQueryByDoc := queryReservaContactoByDocumento
 	defer func() { queryReservaContactoByDocumento = origQueryByDoc }()
 
@@ -209,15 +188,12 @@ func TestCreateOrFindReservaContacto_MissingNombreCompleto(t *testing.T) {
 		return orm.ErrNoRows
 	}
 
-	// Execute
 	input := map[string]interface{}{
 		"documentoContacto": float64(987654321),
-		// nombreCompleto faltante
 	}
 
 	contacto, err := createOrFindReservaContacto(nil, input)
 
-	// Verify
 	if err == nil {
 		t.Error("Expected error for missing nombreCompleto")
 	}

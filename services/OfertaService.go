@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"restaurante/database"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -19,9 +20,17 @@ func NewOfertaService(ormer orm.Ormer) *OfertaService {
 	return &OfertaService{ormer: ormer}
 }
 
-// ObtenerOfertasActivas obtiene las ofertas activas según los criterios especificados
 func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId int64, fecha *time.Time, hora *time.Time, productoId *int64) ([]*models.OfertaActivaResponse, error) {
-	now := time.Now()
+	// Asegurar zona Bogotá incluso si no fue inicializada en tests
+	loc := database.BogotaZone
+	if loc == nil {
+		if l, err := time.LoadLocation("America/Bogota"); err == nil {
+			loc = l
+		} else {
+			loc = time.FixedZone("UTC-5", -5*60*60)
+		}
+	}
+	now := time.Now().In(loc)
 	fechaConsulta := now
 	horaConsulta := now
 
@@ -32,13 +41,10 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 		horaConsulta = *hora
 	}
 
-	// Obtener día de la semana en español
 	diaSemana := s.obtenerDiaSemanaEspanol(fechaConsulta.Weekday())
 
-	// Query base para ofertas activas
 	qs := s.ormer.QueryTable("oferta").Filter("activo", true).Filter("pk_id_restaurante", restauranteId)
 
-	// Filtrar por fecha
 	qs = qs.Filter("fecha_inicio__lte", fechaConsulta).Filter("fecha_fin__gte", fechaConsulta)
 
 	var ofertas []*models.Oferta
@@ -50,7 +56,7 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 	var ofertasActivas []*models.OfertaActivaResponse
 
 	for _, oferta := range ofertas {
-		// Verificar día de la semana si está especificado
+
 		if len(oferta.DiasSemanaArray) > 0 {
 			diaValido := false
 			for _, dia := range oferta.DiasSemanaArray {
@@ -64,7 +70,6 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 			}
 		}
 
-		// Verificar horario si está especificado
 		if oferta.HoraInicio != nil && oferta.HoraFin != nil {
 			horaOfertaInicio := time.Date(0, 1, 1, oferta.HoraInicio.Hour(), oferta.HoraInicio.Minute(), oferta.HoraInicio.Second(), 0, time.UTC)
 			horaOfertaFin := time.Date(0, 1, 1, oferta.HoraFin.Hour(), oferta.HoraFin.Minute(), oferta.HoraFin.Second(), 0, time.UTC)
@@ -75,13 +80,11 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 			}
 		}
 
-		// Obtener productos asociados a la oferta
 		productosIds, err := s.obtenerProductosOferta(oferta.PkIdOferta)
 		if err != nil {
 			return nil, fmt.Errorf("error al obtener productos de la oferta %d: %w", oferta.PkIdOferta, err)
 		}
 
-		// Si se especifica un producto, verificar que esté en la oferta
 		if productoId != nil {
 			productoEnOferta := false
 			for _, pid := range productosIds {
@@ -109,9 +112,8 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 	return ofertasActivas, nil
 }
 
-// ValidarReglasNegocioOferta valida las reglas de negocio al crear/actualizar una oferta
 func (s *OfertaService) ValidarReglasNegocioOferta(oferta *models.Oferta) error {
-	// Validar tipo de descuento y valor
+
 	switch oferta.TipoDescuento {
 	case models.TipoDescuentoPorcentaje:
 		if oferta.ValorDescuento < 1 || oferta.ValorDescuento > 100 {
@@ -123,12 +125,10 @@ func (s *OfertaService) ValidarReglasNegocioOferta(oferta *models.Oferta) error 
 		}
 	}
 
-	// Validar fechas
 	if oferta.FechaFin.Before(oferta.FechaInicio) {
 		return fmt.Errorf("la fecha de fin debe ser posterior a la fecha de inicio")
 	}
 
-	// Validar horarios si están especificados
 	if (oferta.HoraInicio != nil && oferta.HoraFin == nil) || (oferta.HoraInicio == nil && oferta.HoraFin != nil) {
 		return fmt.Errorf("si se especifica horario, debe incluir tanto hora de inicio como hora de fin")
 	}
@@ -142,7 +142,6 @@ func (s *OfertaService) ValidarReglasNegocioOferta(oferta *models.Oferta) error 
 		}
 	}
 
-	// Validar días de la semana si están especificados
 	if len(oferta.DiasSemana) > 0 {
 		diasValidos := map[string]bool{
 			string(models.DiaLunes):     true,
@@ -164,15 +163,13 @@ func (s *OfertaService) ValidarReglasNegocioOferta(oferta *models.Oferta) error 
 	return nil
 }
 
-// CalcularDescuentoOferta calcula el descuento de una oferta para un conjunto de productos
 func (s *OfertaService) CalcularDescuentoOferta(oferta *models.Oferta, items []models.ValidarCuponItemRequest) (int64, error) {
-	// Obtener productos de la oferta
+
 	productosOferta, err := s.obtenerProductosOferta(oferta.PkIdOferta)
 	if err != nil {
 		return 0, fmt.Errorf("error al obtener productos de la oferta: %w", err)
 	}
 
-	// Calcular monto aplicable (solo productos que están en la oferta)
 	var montoAplicable int64
 	for _, item := range items {
 		for _, prodId := range productosOferta {
@@ -187,7 +184,6 @@ func (s *OfertaService) CalcularDescuentoOferta(oferta *models.Oferta, items []m
 		return 0, nil
 	}
 
-	// Calcular descuento según el tipo
 	switch oferta.TipoDescuento {
 	case models.TipoDescuentoPorcentaje:
 		return (montoAplicable * oferta.ValorDescuento) / 100, nil
@@ -201,7 +197,6 @@ func (s *OfertaService) CalcularDescuentoOferta(oferta *models.Oferta, items []m
 	return 0, nil
 }
 
-// obtenerProductosOferta obtiene los IDs de productos asociados a una oferta
 func (s *OfertaService) obtenerProductosOferta(ofertaId int64) ([]int64, error) {
 	var ofertaProductos []*models.OfertaProducto
 	_, err := s.ormer.QueryTable("oferta_producto").Filter("pk_id_oferta", ofertaId).All(&ofertaProductos)
@@ -219,7 +214,6 @@ func (s *OfertaService) obtenerProductosOferta(ofertaId int64) ([]int64, error) 
 	return productosIds, nil
 }
 
-// obtenerDiaSemanaEspanol convierte time.Weekday a string en español
 func (s *OfertaService) obtenerDiaSemanaEspanol(weekday time.Weekday) string {
 	switch weekday {
 	case time.Monday:

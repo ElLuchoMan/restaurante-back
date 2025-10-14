@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
 	"restaurante/logging"
 	"restaurante/models"
@@ -14,7 +13,6 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-// Interfaces para testing
 type cuponQuerySeter interface {
 	All(interface{}, ...string) (int64, error)
 	Filter(string, ...interface{}) cuponQuerySeter
@@ -73,7 +71,6 @@ func (a cupOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
 
 var cupOrmNew = func() cuponOrmer { return cupOrmAdapter{o: orm.NewOrm()} }
 
-// Variable mockeable para tests
 var newCuponService = func(o orm.Ormer) *services.CuponService {
 	if o == nil {
 		return services.NewCuponService(nil)
@@ -86,7 +83,6 @@ var newCuponService = func(o orm.Ormer) *services.CuponService {
 	))
 }
 
-// Variables mockeables para ORM (usadas en ValidarCupon y RedimirCupon)
 var ormProvider = defaultOrmProvider
 
 var cupServiceOrmBase = func() orm.Ormer { return ormProvider() }
@@ -117,7 +113,6 @@ func (c *CuponController) GetAll() {
 	o := cupOrmNew()
 	qs := o.QueryTable("cupon")
 
-	// Aplicar filtros
 	if activo := c.GetString("activo"); activo != "" {
 		if activoBool, err := strconv.ParseBool(activo); err == nil {
 			qs = qs.Filter("activo", activoBool)
@@ -133,18 +128,17 @@ func (c *CuponController) GetAll() {
 	}
 
 	if fechaDesde := c.GetString("fecha_desde"); fechaDesde != "" {
-		if fecha, err := time.Parse("2006-01-02", fechaDesde); err == nil {
+		if fecha, err := models.ParseDateToNoonUTC(fechaDesde); err == nil {
 			qs = qs.Filter("fecha_inicio__gte", fecha)
 		}
 	}
 
 	if fechaHasta := c.GetString("fecha_hasta"); fechaHasta != "" {
-		if fecha, err := time.Parse("2006-01-02", fechaHasta); err == nil {
+		if fecha, err := models.ParseDateToNoonUTC(fechaHasta); err == nil {
 			qs = qs.Filter("fecha_fin__lte", fecha)
 		}
 	}
 
-	// Paginación
 	limit, _ := c.GetInt("limit", 20)
 	offset, _ := c.GetInt("offset", 0)
 
@@ -152,7 +146,6 @@ func (c *CuponController) GetAll() {
 		limit = 100
 	}
 
-	// Contar total
 	total, err := qs.Count()
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.getall.count_error", err, nil)
@@ -166,7 +159,6 @@ func (c *CuponController) GetAll() {
 		return
 	}
 
-	// Obtener datos
 	var cupones []*models.Cupon
 	_, err = qs.OrderBy("-pk_id_cupon").Limit(limit).Offset(int64(offset)).All(&cupones)
 	if err != nil {
@@ -226,7 +218,6 @@ func (c *CuponController) Post() {
 		return
 	}
 
-	// Validar enums
 	if !req.Scope.IsValid() {
 		logging.LogControllerError(c.Ctx, "cupones.post.invalid_scope", nil, map[string]interface{}{"scope": req.Scope})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -249,8 +240,7 @@ func (c *CuponController) Post() {
 		return
 	}
 
-	// Parsear fechas
-	fechaInicio, err := time.Parse("2006-01-02", req.FechaInicio)
+	fechaInicio, err := models.ParseDateToNoonUTC(req.FechaInicio)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.post.invalid_fecha_inicio", err, map[string]interface{}{"fechaInicio": req.FechaInicio})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -262,7 +252,7 @@ func (c *CuponController) Post() {
 		return
 	}
 
-	fechaFin, err := time.Parse("2006-01-02", req.FechaFin)
+	fechaFin, err := models.ParseDateToNoonUTC(req.FechaFin)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.post.invalid_fecha_fin", err, map[string]interface{}{"fechaFin": req.FechaFin})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -274,7 +264,8 @@ func (c *CuponController) Post() {
 		return
 	}
 
-	// Crear modelo
+	// ya normalizadas por helper a mediodía UTC
+
 	cupon := &models.Cupon{
 		Codigo:           req.Codigo,
 		Scope:            req.Scope,
@@ -288,7 +279,6 @@ func (c *CuponController) Post() {
 		Activo:           true,
 	}
 
-	// Asignar relaciones según el scope
 	if req.PkIdProducto != nil {
 		cupon.PkIdProducto = &models.Producto{PK_ID_PRODUCTO: *req.PkIdProducto}
 	}
@@ -299,9 +289,8 @@ func (c *CuponController) Post() {
 		cupon.PkDocumentoCliente = &models.Cliente{PK_DOCUMENTO_CLIENTE: *req.PkDocumentoCliente}
 	}
 
-	// Validar reglas de negocio
 	o := cupOrmNew()
-	// ValidarReglasNegocioCupon no usa el ORM, así que podemos pasar nil
+
 	cuponService := newCuponService(nil)
 
 	if err := cuponService.ValidarReglasNegocioCupon(cupon); err != nil {
@@ -316,7 +305,6 @@ func (c *CuponController) Post() {
 		return
 	}
 
-	// Insertar en base de datos
 	_, err = o.Insert(cupon)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.post.insert_error", err, map[string]interface{}{"codigo": req.Codigo})
@@ -364,13 +352,12 @@ func (c *CuponController) GetById() {
 	o := cupOrmNew()
 	cupon := &models.Cupon{}
 
-	// Intentar buscar por ID primero
 	if id, err := strconv.ParseInt(idOrCodigo, 10, 64); err == nil {
 		cupon.PkIdCupon = id
 		err = o.Read(cupon)
 		if err != nil {
 			if err == orm.ErrNoRows {
-				// No encontrado por ID, resetear para buscar por código
+
 				cupon.PkIdCupon = 0
 			} else {
 				logging.LogControllerError(c.Ctx, "cupones.getbyid.read_error", err, map[string]interface{}{"id": id})
@@ -386,7 +373,6 @@ func (c *CuponController) GetById() {
 		}
 	}
 
-	// Si no se encontró por ID, buscar por código
 	if cupon.PkIdCupon == 0 {
 		err := o.QueryTable("cupon").Filter("codigo", idOrCodigo).One(cupon)
 		if err != nil {
@@ -460,7 +446,6 @@ func (c *CuponController) Put() {
 
 	o := cupOrmNew()
 
-	// Verificar que el cupón existe
 	cupon := &models.Cupon{PkIdCupon: id}
 	err = o.Read(cupon)
 	if err != nil {
@@ -484,7 +469,6 @@ func (c *CuponController) Put() {
 		return
 	}
 
-	// Validar enums
 	if !req.Scope.IsValid() {
 		logging.LogControllerError(c.Ctx, "cupones.put.invalid_scope", nil, map[string]interface{}{"scope": req.Scope, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -507,8 +491,7 @@ func (c *CuponController) Put() {
 		return
 	}
 
-	// Parsear fechas
-	fechaInicio, err := time.Parse("2006-01-02", req.FechaInicio)
+	fechaInicio, err := models.ParseDateToNoonUTC(req.FechaInicio)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.put.invalid_fecha_inicio", err, map[string]interface{}{"fechaInicio": req.FechaInicio, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -520,7 +503,7 @@ func (c *CuponController) Put() {
 		return
 	}
 
-	fechaFin, err := time.Parse("2006-01-02", req.FechaFin)
+	fechaFin, err := models.ParseDateToNoonUTC(req.FechaFin)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.put.invalid_fecha_fin", err, map[string]interface{}{"fechaFin": req.FechaFin, "id": id})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -532,7 +515,8 @@ func (c *CuponController) Put() {
 		return
 	}
 
-	// Actualizar campos
+	// ya normalizadas por helper a mediodía UTC
+
 	cupon.Codigo = req.Codigo
 	cupon.Scope = req.Scope
 	cupon.TipoDescuento = req.TipoDescuento
@@ -543,12 +527,10 @@ func (c *CuponController) Put() {
 	cupon.FechaInicio = fechaInicio
 	cupon.FechaFin = fechaFin
 
-	// Limpiar relaciones anteriores
 	cupon.PkIdProducto = nil
 	cupon.PkIdCategoria = nil
 	cupon.PkDocumentoCliente = nil
 
-	// Asignar nuevas relaciones según el scope
 	if req.PkIdProducto != nil {
 		cupon.PkIdProducto = &models.Producto{PK_ID_PRODUCTO: *req.PkIdProducto}
 	}
@@ -559,7 +541,6 @@ func (c *CuponController) Put() {
 		cupon.PkDocumentoCliente = &models.Cliente{PK_DOCUMENTO_CLIENTE: *req.PkDocumentoCliente}
 	}
 
-	// Validar reglas de negocio
 	cuponService := newCuponService(nil)
 	if err := cuponService.ValidarReglasNegocioCupon(cupon); err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.put.validation_error", err, map[string]interface{}{"codigo": req.Codigo, "id": id})
@@ -573,7 +554,6 @@ func (c *CuponController) Put() {
 		return
 	}
 
-	// Actualizar en base de datos
 	_, err = o.Update(cupon)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.put.update_error", err, map[string]interface{}{"id": id})
@@ -653,7 +633,6 @@ func (c *CuponController) Delete() {
 		return
 	}
 
-	// Desactivar cupón (borrado lógico)
 	cupon.Activo = false
 	_, err = o.Update(cupon, "Activo")
 	if err != nil {
@@ -675,8 +654,6 @@ func (c *CuponController) Delete() {
 	}
 	_ = c.ServeJSON()
 }
-
-// Métodos adicionales específicos de cupones
 
 // @Title ValidarCupon
 // @Summary Validar cupón
@@ -759,7 +736,6 @@ func (c *CuponController) RedimirCupon() {
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.redimir.service_error", err, map[string]interface{}{"codigo": codigo})
 
-		// Determinar el tipo de error
 		errorMsg := err.Error()
 		switch errorMsg {
 		case "cupón no encontrado":
@@ -813,15 +789,14 @@ func (c *CuponController) ListarRedenciones() {
 	o := cupOrmNew()
 	qs := o.QueryTable("cupon_redencion")
 
-	// Aplicar filtros
 	if cuponCodigo := c.GetString("cupon_codigo"); cuponCodigo != "" {
-		// Buscar el cupón por código primero
+
 		cupon := &models.Cupon{}
 		err := o.QueryTable("cupon").Filter("codigo", cuponCodigo).One(cupon)
 		if err == nil {
 			qs = qs.Filter("pk_id_cupon", cupon.PkIdCupon)
 		} else {
-			// Si no se encuentra el cupón, no hay redenciones
+
 			response := models.PaginatedResponse{
 				Data:       []*models.CuponRedencion{},
 				Total:      0,
@@ -852,7 +827,6 @@ func (c *CuponController) ListarRedenciones() {
 		}
 	}
 
-	// Paginación
 	limit, _ := c.GetInt("limit", 20)
 	offset, _ := c.GetInt("offset", 0)
 
@@ -860,7 +834,6 @@ func (c *CuponController) ListarRedenciones() {
 		limit = 100
 	}
 
-	// Contar total
 	total, err := qs.Count()
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.redenciones.count_error", err, nil)
@@ -874,7 +847,6 @@ func (c *CuponController) ListarRedenciones() {
 		return
 	}
 
-	// Obtener datos
 	var redenciones []*models.CuponRedencion
 	_, err = qs.OrderBy("-created_at").Limit(limit).Offset(int64(offset)).All(&redenciones)
 	if err != nil {

@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// Mock para pushQuerySeter
 type mockPushQuerySeter struct {
 	mock.Mock
 }
@@ -57,7 +56,6 @@ func (m *mockPushQuerySeter) One(container interface{}) error {
 	return args.Error(0)
 }
 
-// Mock para pushOrmer
 type mockPushOrmer struct {
 	mock.Mock
 }
@@ -87,35 +85,28 @@ func (m *mockPushOrmer) Delete(md interface{}, cols ...string) (int64, error) {
 	return args.Get(0).(int64), args.Error(1)
 }
 
-// Variables globales para mocks
 var mockPushOrm *mockPushOrmer
 var mockPushQS *mockPushQuerySeter
 
-// Override de las funciones de creación
 func init() {
 	pushOrmNew = func() pushOrmer {
 		return mockPushOrm
 	}
-	// Mockear el servicio - para tests que no requieren servicio real
-	// Los tests que necesiten servicio real deben sobreescribir esto
+
 }
 
 func setupPushTest() (*PushController, *httptest.ResponseRecorder, *context.Context) {
-	// Reset mocks
+
 	mockPushOrm = &mockPushOrmer{}
 	mockPushQS = &mockPushQuerySeter{}
 
-	// Crear controller
 	controller := &PushController{}
 	controller.Controller = web.Controller{}
 
-	// Crear response recorder
 	recorder := httptest.NewRecorder()
 
-	// Crear request
 	req := httptest.NewRequest("GET", "/", nil)
 
-	// Crear contexto usando la forma correcta
 	ctx := context.NewContext()
 	ctx.Reset(recorder, req)
 
@@ -128,7 +119,6 @@ func setupPushTest() (*PushController, *httptest.ResponseRecorder, *context.Cont
 func TestPushGetAll_Success(t *testing.T) {
 	controller, recorder, _ := setupPushTest()
 
-	// Configurar mocks
 	cliente := &models.Cliente{PK_DOCUMENTO_CLIENTE: 123}
 	trabajador := &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: 456}
 	dispositivos := []*models.PushDispositivo{
@@ -146,10 +136,8 @@ func TestPushGetAll_Success(t *testing.T) {
 		*arg = dispositivos
 	}).Return(int64(2), nil)
 
-	// Ejecutar
 	controller.GetAll()
 
-	// Verificar
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	mockPushOrm.AssertExpectations(t)
 	mockPushQS.AssertExpectations(t)
@@ -158,14 +146,12 @@ func TestPushGetAll_Success(t *testing.T) {
 func TestPushGetAll_WithFilters(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Configurar query parameters
 	ctx.Input.SetParam("cliente_id", "123")
 	ctx.Input.SetParam("trabajador_id", "456")
 	ctx.Input.SetParam("plataforma", "WEB")
 	ctx.Input.SetParam("limit", "10")
 	ctx.Input.SetParam("offset", "5")
 
-	// Configurar mocks
 	mockPushOrm.On("QueryTable", "push_dispositivo").Return(mockPushQS)
 	mockPushQS.On("Filter", "pk_documento_cliente", []interface{}{int64(123)}).Return(mockPushQS)
 	mockPushQS.On("Filter", "pk_documento_trabajador", []interface{}{int64(456)}).Return(mockPushQS)
@@ -176,10 +162,8 @@ func TestPushGetAll_WithFilters(t *testing.T) {
 	mockPushQS.On("Offset", int64(5)).Return(mockPushQS)
 	mockPushQS.On("All", mock.AnythingOfType("*[]*models.PushDispositivo"), []string(nil)).Return(int64(1), nil)
 
-	// Ejecutar
 	controller.GetAll()
 
-	// Verificar
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	mockPushOrm.AssertExpectations(t)
 	mockPushQS.AssertExpectations(t)
@@ -188,14 +172,11 @@ func TestPushGetAll_WithFilters(t *testing.T) {
 func TestPushGetAll_CountError(t *testing.T) {
 	controller, recorder, _ := setupPushTest()
 
-	// Configurar mocks
 	mockPushOrm.On("QueryTable", "push_dispositivo").Return(mockPushQS)
 	mockPushQS.On("Count").Return(int64(0), fmt.Errorf("database error"))
 
-	// Ejecutar
 	controller.GetAll()
 
-	// Verificar
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	mockPushOrm.AssertExpectations(t)
 	mockPushQS.AssertExpectations(t)
@@ -204,23 +185,19 @@ func TestPushGetAll_CountError(t *testing.T) {
 func TestPushPost_InvalidJSON(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Request con JSON inválido
 	ctx.Request = httptest.NewRequest("POST", "/push/dispositivos", bytes.NewBuffer([]byte("invalid json")))
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
-	// Ejecutar
 	controller.Post()
 
-	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
 func TestPushPost_ValidationError(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Dispositivo con datos inválidos
 	dispositivo := models.PushDispositivo{
-		Plataforma: "INVALID", // Plataforma inválida
+		Plataforma: "INVALID",
 		Enabled:    true,
 	}
 
@@ -228,30 +205,24 @@ func TestPushPost_ValidationError(t *testing.T) {
 	ctx.Request = httptest.NewRequest("POST", "/push/dispositivos", bytes.NewBuffer(body))
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
-	// Ejecutar
 	controller.Post()
 
-	// Verificar
 	assert.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
 }
 
 func TestPushGetById_Success(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Configurar parámetro ID
 	ctx.Input.SetParam(":id", "1")
 
-	// Configurar mock
 	dispositivo := models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: "WEB", Enabled: true}
 	mockPushOrm.On("Read", mock.AnythingOfType("*models.PushDispositivo"), []string(nil)).Run(func(args mock.Arguments) {
 		arg := args.Get(0).(*models.PushDispositivo)
 		*arg = dispositivo
 	}).Return(nil)
 
-	// Ejecutar
 	controller.GetById()
 
-	// Verificar
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	mockPushOrm.AssertExpectations(t)
 }
@@ -259,29 +230,22 @@ func TestPushGetById_Success(t *testing.T) {
 func TestPushGetById_InvalidID(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// ID inválido
 	ctx.Input.SetParam(":id", "invalid")
 
-	// Ejecutar
 	controller.GetById()
 
-	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
 func TestPushGetById_NotFound(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Configurar parámetro ID usando query string
 	ctx.Request = httptest.NewRequest("GET", "/push/dispositivos/search?id=999", nil)
 
-	// Configurar mock para no encontrado (usar orm.ErrNoRows)
 	mockPushOrm.On("Read", mock.AnythingOfType("*models.PushDispositivo"), []string(nil)).Return(orm.ErrNoRows)
 
-	// Ejecutar
 	controller.GetById()
 
-	// Verificar
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	mockPushOrm.AssertExpectations(t)
 }
@@ -289,10 +253,8 @@ func TestPushGetById_NotFound(t *testing.T) {
 func TestPushDelete_Success(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Configurar parámetro ID
 	ctx.Input.SetParam(":id", "1")
 
-	// Configurar mocks
 	dispositivo := models.PushDispositivo{PkIdPushDispositivo: 1, Plataforma: "WEB"}
 	mockPushOrm.On("Read", mock.AnythingOfType("*models.PushDispositivo"), []string(nil)).Run(func(args mock.Arguments) {
 		arg := args.Get(0).(*models.PushDispositivo)
@@ -300,10 +262,8 @@ func TestPushDelete_Success(t *testing.T) {
 	}).Return(nil)
 	mockPushOrm.On("Delete", mock.AnythingOfType("*models.PushDispositivo"), []string(nil)).Return(int64(1), nil)
 
-	// Ejecutar
 	controller.Delete()
 
-	// Verificar
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	mockPushOrm.AssertExpectations(t)
 }
@@ -311,51 +271,40 @@ func TestPushDelete_Success(t *testing.T) {
 func TestPushActualizarUltimaVista_InvalidID(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// ID inválido
 	ctx.Input.SetParam(":id", "invalid")
 
-	// Ejecutar
 	controller.ActualizarUltimaVista()
 
-	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
 func TestPushActualizarTopics_InvalidJSON(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Configurar parámetro ID
 	ctx.Input.SetParam(":id", "1")
 
-	// Request con JSON inválido
 	ctx.Request = httptest.NewRequest("PATCH", "/push/dispositivos/1/topics", bytes.NewBuffer([]byte("invalid json")))
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
-	// Ejecutar
 	controller.ActualizarTopics()
 
-	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
 func TestPushEnviarNotificacion_InvalidJSON(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Request con JSON inválido
 	ctx.Request = httptest.NewRequest("POST", "/push/enviar", bytes.NewBuffer([]byte("invalid json")))
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
-	// Ejecutar
 	controller.EnviarNotificacion()
 
-	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
 func TestPushListarEnvios_Success(t *testing.T) {
 	controller, recorder, _ := setupPushTest()
 
-	// Configurar mocks
 	dispositivo1 := &models.PushDispositivo{PkIdPushDispositivo: 1}
 	dispositivo2 := &models.PushDispositivo{PkIdPushDispositivo: 2}
 	envios := []*models.PushEnvio{
@@ -373,10 +322,8 @@ func TestPushListarEnvios_Success(t *testing.T) {
 		*arg = envios
 	}).Return(int64(2), nil)
 
-	// Ejecutar
 	controller.ListarEnvios()
 
-	// Verificar
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	mockPushOrm.AssertExpectations(t)
 	mockPushQS.AssertExpectations(t)
@@ -385,13 +332,10 @@ func TestPushListarEnvios_Success(t *testing.T) {
 func TestPushRegistrarEnvio_InvalidJSON(t *testing.T) {
 	controller, recorder, ctx := setupPushTest()
 
-	// Request con JSON inválido
 	ctx.Request = httptest.NewRequest("POST", "/push/envios", bytes.NewBuffer([]byte("invalid json")))
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
-	// Ejecutar
 	controller.RegistrarEnvio()
 
-	// Verificar
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }

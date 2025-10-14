@@ -4,13 +4,10 @@ import (
 	"testing"
 )
 
-// TestPushOrmAdapter_Simple_Coverage cubre los métodos del adapter de ORM con llamadas simples
 func TestPushOrmAdapter_Simple_Coverage(t *testing.T) {
-	// Crear un adapter con un mock nil-safe
+
 	a := pushOrmAdapter{o: nil}
 
-	// Simplemente ejecutar los métodos para cubrir las líneas
-	// Los métodos fallarán con panic, pero lo recuperamos
 	defer func() { _ = recover() }()
 
 	_, _ = a.Insert(nil)
@@ -20,12 +17,10 @@ func TestPushOrmAdapter_Simple_Coverage(t *testing.T) {
 	_ = a.QueryTable(nil)
 }
 
-// TestPushQSAdapter_Simple_Coverage cubre los métodos del adapter de QuerySeter
 func TestPushQSAdapter_Simple_Coverage(t *testing.T) {
-	// Crear un adapter con un mock nil-safe
+
 	a := pushQSAdapter{qs: nil}
 
-	// Simplemente ejecutar los métodos para cubrir las líneas
 	defer func() { _ = recover() }()
 
 	_, _ = a.All(nil)

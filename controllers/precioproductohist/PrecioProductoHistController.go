@@ -44,7 +44,7 @@ WHERE 1=1`
 		args = append(args, pid)
 	}
 	if f := c.GetString("fecha"); f != "" {
-		if d, err := time.Parse("2006-01-02", f); err == nil {
+		if d, err := models.ParseDateToNoonUTC(f); err == nil {
 			query += " AND pph.fecha_vigencia = ?"
 			args = append(args, d)
 		} else {
@@ -68,12 +68,15 @@ WHERE 1=1`
 	}
 
 	resp := make([]map[string]interface{}, 0, len(rows))
+
 	for _, r := range rows {
+		fechaUTC := r.Fecha.UTC()
+		fechaStr := fechaUTC.Format("02-01-2006")
 		resp = append(resp, map[string]interface{}{
 			"nombre":         r.Nombre,
 			"estadoProducto": r.Estado,
 			"precio":         r.Precio,
-			"fechaVigencia":  r.Fecha,
+			"fechaVigencia":  fechaStr,
 		})
 	}
 
@@ -114,11 +117,13 @@ WHERE pph.pk_id_precio_hist = ?`
 		_ = c.ServeJSON()
 		return
 	}
+	fechaUTC := row.Fecha.UTC()
+	fechaStr := fechaUTC.Format("02-01-2006")
 	resp := map[string]interface{}{
 		"nombre":         row.Nombre,
 		"estadoProducto": row.Estado,
 		"precio":         row.Precio,
-		"fechaVigencia":  row.Fecha,
+		"fechaVigencia":  fechaStr,
 	}
 	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Historial encontrado", Data: resp}
 	_ = c.ServeJSON()

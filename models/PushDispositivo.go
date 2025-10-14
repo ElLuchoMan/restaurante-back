@@ -24,78 +24,116 @@ type PushDispositivo struct {
 	SubscribedTopicsArray []string               `orm:"-" json:"subscribedTopics" swaggertype:"array,string"`
 	PkDocumentoCliente    *Cliente               `orm:"column(pk_documento_cliente);rel(fk);null" json:"documentoCliente,omitempty" swaggertype:"integer"`
 	PkDocumentoTrabajador *Trabajador            `orm:"column(pk_documento_trabajador);rel(fk);null" json:"documentoTrabajador,omitempty" swaggertype:"integer"`
-	CreatedAt             time.Time              `orm:"column(created_at);type(timestamptz);auto_now_add" json:"createdAt"`
-	LastSeenAt            *time.Time             `orm:"column(last_seen_at);type(timestamptz);null" json:"lastSeenAt,omitempty"`
+	CreatedAt             time.Time              `orm:"column(created_at);type(timestamptz);auto_now_add" json:"createdAt" swaggertype:"string"`
+	LastSeenAt            *time.Time             `orm:"column(last_seen_at);type(timestamptz);null" json:"lastSeenAt,omitempty" swaggertype:"string"`
 }
 
 func (p *PushDispositivo) TableName() string {
 	return "push_dispositivo"
 }
 
-// BeforeInsert se ejecuta antes de insertar en la base de datos
 func (p *PushDispositivo) BeforeInsert() {
 	p.serializeSubscribedTopics()
 }
 
-// BeforeUpdate se ejecuta antes de actualizar en la base de datos
 func (p *PushDispositivo) BeforeUpdate() {
 	p.serializeSubscribedTopics()
 }
 
-// AfterLoad se ejecuta después de cargar desde la base de datos
 func (p *PushDispositivo) AfterLoad() {
 	p.deserializeSubscribedTopics()
 }
 
-// serializeSubscribedTopics convierte el array a string para la base de datos
 func (p *PushDispositivo) serializeSubscribedTopics() {
 	if len(p.SubscribedTopicsArray) == 0 {
-		p.SubscribedTopics = "" // String vacío para PostgreSQL
+		p.SubscribedTopics = ""
 		return
 	}
-	// Crear array de PostgreSQL manualmente
+
 	topics := make([]string, len(p.SubscribedTopicsArray))
 	for i, topic := range p.SubscribedTopicsArray {
-		// Escapar comillas dobles para PostgreSQL array
+
 		escapedTopic := strings.ReplaceAll(topic, `"`, `""`)
 		topics[i] = `"` + escapedTopic + `"`
 	}
 	p.SubscribedTopics = "{" + strings.Join(topics, ",") + "}"
 }
 
-// deserializeSubscribedTopics convierte el string de la base de datos a array
 func (p *PushDispositivo) deserializeSubscribedTopics() {
 	if p.SubscribedTopics == "" || p.SubscribedTopics == "{}" {
 		p.SubscribedTopicsArray = []string{}
 		return
 	}
 
-	// Parsear array de PostgreSQL manualmente
 	if strings.HasPrefix(p.SubscribedTopics, "{") && strings.HasSuffix(p.SubscribedTopics, "}") {
-		content := p.SubscribedTopics[1 : len(p.SubscribedTopics)-1] // Remover { }
+		content := p.SubscribedTopics[1 : len(p.SubscribedTopics)-1]
 		if content == "" {
 			p.SubscribedTopicsArray = []string{}
 			return
 		}
 
-		// Dividir por comas y limpiar comillas
 		parts := strings.Split(content, ",")
 		p.SubscribedTopicsArray = make([]string, len(parts))
 		for i, part := range parts {
 			part = strings.TrimSpace(part)
 			if strings.HasPrefix(part, `"`) && strings.HasSuffix(part, `"`) {
-				part = part[1 : len(part)-1]               // Remover comillas
-				part = strings.ReplaceAll(part, `""`, `"`) // Desescapar comillas dobles
+				part = part[1 : len(part)-1]
+				part = strings.ReplaceAll(part, `""`, `"`)
 			}
 			p.SubscribedTopicsArray[i] = part
 		}
 		return
 	}
 
-	// Fallback: intentar como JSON
 	_ = json.Unmarshal([]byte(p.SubscribedTopics), &p.SubscribedTopicsArray)
 }
 
 func init() {
 	orm.RegisterModel(new(PushDispositivo))
+}
+
+func (p PushDispositivo) MarshalJSON() ([]byte, error) {
+
+	createdAtStr := FormatTimestampBogota(p.CreatedAt)
+	var lastSeenStr *string
+	if p.LastSeenAt != nil {
+		s := FormatTimestampBogota(*p.LastSeenAt)
+		lastSeenStr = &s
+	}
+
+	return json.Marshal(&struct {
+		PkIdPushDispositivo   int64                  `json:"pushDispositivoId"`
+		Plataforma            PlataformaNotificacion `json:"plataforma"`
+		Endpoint              *string                `json:"endpoint,omitempty"`
+		P256dh                *string                `json:"p256dh,omitempty"`
+		Auth                  *string                `json:"auth,omitempty"`
+		FcmToken              *string                `json:"fcmToken,omitempty"`
+		Enabled               bool                   `json:"enabled"`
+		Locale                *string                `json:"locale,omitempty"`
+		TimeZone              *string                `json:"timeZone,omitempty"`
+		AppVersion            *string                `json:"appVersion,omitempty"`
+		UserAgent             *string                `json:"userAgent,omitempty"`
+		SubscribedTopicsArray []string               `json:"subscribedTopics" swaggertype:"array,string"`
+		PkDocumentoCliente    *Cliente               `json:"documentoCliente,omitempty" swaggertype:"integer"`
+		PkDocumentoTrabajador *Trabajador            `json:"documentoTrabajador,omitempty" swaggertype:"integer"`
+		CreatedAt             string                 `json:"createdAt"`
+		LastSeenAt            *string                `json:"lastSeenAt,omitempty"`
+	}{
+		PkIdPushDispositivo:   p.PkIdPushDispositivo,
+		Plataforma:            p.Plataforma,
+		Endpoint:              p.Endpoint,
+		P256dh:                p.P256dh,
+		Auth:                  p.Auth,
+		FcmToken:              p.FcmToken,
+		Enabled:               p.Enabled,
+		Locale:                p.Locale,
+		TimeZone:              p.TimeZone,
+		AppVersion:            p.AppVersion,
+		UserAgent:             p.UserAgent,
+		SubscribedTopicsArray: p.SubscribedTopicsArray,
+		PkDocumentoCliente:    p.PkDocumentoCliente,
+		PkDocumentoTrabajador: p.PkDocumentoTrabajador,
+		CreatedAt:             createdAtStr,
+		LastSeenAt:            lastSeenStr,
+	})
 }

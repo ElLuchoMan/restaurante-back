@@ -9,7 +9,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// ormFailRead simula un error diferente a ErrNoRows en Read
 type ormFailRead struct{}
 
 func (ormFailRead) QueryTable(interface{}) subcatQuerySeter { return nil }
@@ -20,7 +19,6 @@ func (ormFailRead) Read(interface{}, ...string) error {
 func (ormFailRead) Update(interface{}, ...string) (int64, error) { return 0, nil }
 func (ormFailRead) Delete(interface{}, ...string) (int64, error) { return 0, nil }
 
-// TestSubcategoriaController_GetById_DBError cubre el caso donde Read falla con error != ErrNoRows
 func TestSubcategoriaController_GetById_DBError(t *testing.T) {
 	orig := subcatOrmNew
 	subcatOrmNew = func() subcatOrmer { return ormFailRead{} }
@@ -36,7 +34,6 @@ func TestSubcategoriaController_GetById_DBError(t *testing.T) {
 	c.Data = make(map[interface{}]interface{})
 	c.GetById()
 
-	// El controller devuelve OK pero con código 404 en el JSON
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected HTTP status %d, got %d", http.StatusOK, w.Code)
 	}

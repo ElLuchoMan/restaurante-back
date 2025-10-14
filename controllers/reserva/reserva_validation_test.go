@@ -12,10 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ============================================================================
-// TESTS DE VALIDACIÓN - GetByDocumento
-// ============================================================================
-
 func TestReservaGetByDocumento_DocumentoFaltante(t *testing.T) {
 	ctrl := &ReservaController{}
 	ctrl.Data = make(map[interface{}]interface{})
@@ -75,10 +71,6 @@ func TestReservaGetByDocumento_FechaInvalida(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, response.Code)
 	assert.Contains(t, response.Message, "fecha")
 }
-
-// ============================================================================
-// TESTS DE VALIDACIÓN - GetByDocumentoCliente
-// ============================================================================
 
 func TestReservaGetByDocumentoCliente_DocumentoFaltante(t *testing.T) {
 	ctrl := &ReservaController{}

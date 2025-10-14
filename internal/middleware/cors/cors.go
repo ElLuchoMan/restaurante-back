@@ -27,7 +27,6 @@ func CORS() func(*context.Context) {
 	return func(ctx *context.Context) {
 		origin := strings.ToLower(ctx.Input.Header("Origin"))
 
-		// Backward-compatible behavior based on env and run mode
 		runMode := web.BConfig.RunMode
 		allowedOriginsEnv := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
 		allowAll := (runMode != "prod" && allowedOriginsEnv == "")

@@ -27,7 +27,6 @@ import (
 	oauthgoogle "golang.org/x/oauth2/google"
 )
 
-// Mocks para PushService
 type mockPushOrmer struct {
 	readFn       func(interface{}, ...string) error
 	insertFn     func(interface{}) (int64, error)
@@ -65,7 +64,6 @@ func (m *mockPushOrmer) QueryTable(ptrStructOrTableName interface{}) orm.QuerySe
 	return &mockPushQuerySeter{}
 }
 
-// Implementar métodos restantes de orm.Ormer
 func (m *mockPushOrmer) ReadForUpdate(interface{}, ...string) error { return orm.ErrNoRows }
 func (m *mockPushOrmer) ReadOrCreate(interface{}, string, ...string) (bool, int64, error) {
 	return false, 0, nil
@@ -166,7 +164,6 @@ func (m *mockPushQuerySeter) All(container interface{}, cols ...string) (int64, 
 	return 0, nil
 }
 
-// Implementar métodos restantes de orm.QuerySeter
 func (m *mockPushQuerySeter) Limit(interface{}, ...interface{}) orm.QuerySeter { return m }
 func (m *mockPushQuerySeter) Offset(interface{}) orm.QuerySeter                { return m }
 func (m *mockPushQuerySeter) OrderBy(...string) orm.QuerySeter                 { return m }
@@ -204,7 +201,6 @@ func (m *mockPushQuerySeter) IgnoreIndex(...string) orm.QuerySeter              
 func (m *mockPushQuerySeter) RelatedSel(...interface{}) orm.QuerySeter           { return m }
 func (m *mockPushQuerySeter) Count() (int64, error)                              { return 0, nil }
 
-// Métodos con contexto
 func (m *mockPushQuerySeter) OneWithCtx(context.Context, interface{}, ...string) error {
 	return m.One(nil)
 }
@@ -240,8 +236,6 @@ func (m *mockPushQuerySeter) DeleteWithCtx(context.Context) (int64, error) { ret
 func (m *mockPushQuerySeter) PrepareInsertWithCtx(context.Context) (orm.Inserter, error) {
 	return nil, nil
 }
-
-// Tests para ActualizarUltimaVista
 
 func TestPushService_ActualizarUltimaVista_Success(t *testing.T) {
 	service := NewPushService(&mockPushOrmer{
@@ -299,8 +293,6 @@ func TestPushService_ActualizarUltimaVista_ErrorActualizacion(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error al actualizar última vista")
 }
-
-// Tests para ActualizarEstadoDispositivo
 
 func TestPushService_ActualizarEstadoDispositivo_Habilitar(t *testing.T) {
 	service := NewPushService(&mockPushOrmer{
@@ -373,8 +365,6 @@ func TestPushService_ActualizarEstadoDispositivo_ErrorLecturaGeneral(t *testing.
 	assert.Contains(t, err.Error(), "error al buscar dispositivo")
 }
 
-// Tests para ActualizarTopicsDispositivo
-
 func TestPushService_ActualizarTopicsDispositivo_Success(t *testing.T) {
 	service := NewPushService(&mockPushOrmer{
 		readFn: func(md interface{}, cols ...string) error {
@@ -429,8 +419,6 @@ func TestPushService_ActualizarTopicsDispositivo_ErrorLecturaGeneral(t *testing.
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error al buscar dispositivo")
 }
-
-// Tests para RegistrarEnvio
 
 func TestPushService_RegistrarEnvio_Success(t *testing.T) {
 	service := NewPushService(&mockPushOrmer{
@@ -534,16 +522,12 @@ func TestPushService_RegistrarEnvio_ErrorLecturaGeneral(t *testing.T) {
 	assert.Contains(t, err.Error(), "error al buscar dispositivo")
 }
 
-// Tests para obtenerProveedor - Caso default
-
 func TestPushService_ObtenerProveedor_Default(t *testing.T) {
 	service := &PushService{}
 
 	proveedor := service.obtenerProveedor("PLATAFORMA_INVALIDA")
-	assert.Equal(t, models.ProveedorWebPush, proveedor) // Default
+	assert.Equal(t, models.ProveedorWebPush, proveedor)
 }
-
-// Tests para obtenerDispositivosDestinatarios
 
 func TestPushService_ObtenerDispositivosDestinatarios_Todos(t *testing.T) {
 	service := NewPushService(&mockPushOrmer{
@@ -580,7 +564,7 @@ func TestPushService_ObtenerDispositivosDestinatarios_Cliente_SinDocumento(t *te
 
 	destinatarios := &models.DestinatariosNotificacion{
 		Tipo:             models.DestinatarioCliente,
-		DocumentoCliente: nil, // Falta documento
+		DocumentoCliente: nil,
 	}
 
 	dispositivos, err := service.obtenerDispositivosDestinatarios(destinatarios)
@@ -594,7 +578,7 @@ func TestPushService_ObtenerDispositivosDestinatarios_Trabajador_SinDocumento(t 
 
 	destinatarios := &models.DestinatariosNotificacion{
 		Tipo:                models.DestinatarioTrabajador,
-		DocumentoTrabajador: nil, // Falta documento
+		DocumentoTrabajador: nil,
 	}
 
 	dispositivos, err := service.obtenerDispositivosDestinatarios(destinatarios)
@@ -608,7 +592,7 @@ func TestPushService_ObtenerDispositivosDestinatarios_Topic_SinTopic(t *testing.
 
 	destinatarios := &models.DestinatariosNotificacion{
 		Tipo:  models.DestinatarioTopic,
-		Topic: nil, // Falta topic
+		Topic: nil,
 	}
 
 	dispositivos, err := service.obtenerDispositivosDestinatarios(destinatarios)
@@ -630,8 +614,6 @@ func TestPushService_ObtenerDispositivosDestinatarios_TipoInvalido(t *testing.T)
 	assert.Contains(t, err.Error(), "tipo de destinatario no válido")
 }
 
-// Tests para validarRemitente
-
 func TestPushService_ValidarRemitente_SistemaValido(t *testing.T) {
 	service := NewPushService(&mockPushOrmer{})
 
@@ -648,7 +630,7 @@ func TestPushService_ValidarRemitente_TrabajadorSinDocumento(t *testing.T) {
 
 	remitente := &models.RemitenteNotificacion{
 		Tipo:                models.RemitenteTrabajador,
-		DocumentoTrabajador: nil, // Falta documento
+		DocumentoTrabajador: nil,
 	}
 
 	err := service.validarRemitente(remitente)
@@ -689,7 +671,7 @@ func TestPushService_ValidarRemitente_TrabajadorValido(t *testing.T) {
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockPushQuerySeter{
 						oneFn: func(container interface{}, cols ...string) error {
-							// Trabajador encontrado
+
 							return nil
 						},
 					}
@@ -707,8 +689,6 @@ func TestPushService_ValidarRemitente_TrabajadorValido(t *testing.T) {
 	err := service.validarRemitente(remitente)
 	assert.NoError(t, err)
 }
-
-// Tests para enviarFCM - Casos de error básicos
 
 func TestPushService_EnviarFCM_TokenVacio(t *testing.T) {
 	service := &PushService{}
@@ -754,12 +734,9 @@ func TestPushService_EnviarFCM_TokenNil(t *testing.T) {
 	assert.Equal(t, "FCM_TOKEN_VACIO", *errorCode)
 }
 
-// Tests para RegistrarDispositivo
-
 func TestPushService_RegistrarDispositivo_ErrorValidacion(t *testing.T) {
 	service := NewPushService(&mockPushOrmer{})
 
-	// Request sin cliente ni trabajador
 	req := &models.RegistrarDispositivoRequest{
 		Plataforma: models.PlataformaWeb,
 	}
@@ -777,7 +754,7 @@ func TestPushService_RegistrarDispositivo_NuevoDispositivo(t *testing.T) {
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockPushQuerySeter{
 						oneFn: func(container interface{}, cols ...string) error {
-							return orm.ErrNoRows // No existe
+							return orm.ErrNoRows
 						},
 					}
 				},
@@ -857,7 +834,7 @@ func TestPushService_RegistrarDispositivo_ActualizarExistentePorFcmToken(t *test
 								disp.FcmToken = &fcmToken
 								disp.Enabled = false
 							}
-							return nil // Dispositivo encontrado
+							return nil
 						},
 					}
 				},
@@ -880,7 +857,7 @@ func TestPushService_RegistrarDispositivo_ActualizarExistentePorFcmToken(t *test
 	assert.NoError(t, err)
 	assert.NotNil(t, dispositivo)
 	assert.Equal(t, int64(1), dispositivo.PkIdPushDispositivo)
-	assert.True(t, dispositivo.Enabled) // Debe reactivarse
+	assert.True(t, dispositivo.Enabled)
 }
 
 func TestPushService_RegistrarDispositivo_ActualizarExistentePorEndpoint(t *testing.T) {
@@ -896,7 +873,7 @@ func TestPushService_RegistrarDispositivo_ActualizarExistentePorEndpoint(t *test
 								disp.PkIdPushDispositivo = 2
 								disp.Endpoint = &endpoint
 							}
-							return nil // Dispositivo encontrado
+							return nil
 						},
 					}
 				},
@@ -970,7 +947,7 @@ func TestPushService_RegistrarDispositivo_ErrorInsert(t *testing.T) {
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockPushQuerySeter{
 						oneFn: func(container interface{}, cols ...string) error {
-							return orm.ErrNoRows // No existe
+							return orm.ErrNoRows
 						},
 					}
 				},
@@ -999,8 +976,6 @@ func TestPushService_RegistrarDispositivo_ErrorInsert(t *testing.T) {
 	assert.Nil(t, dispositivo)
 	assert.Contains(t, err.Error(), "error al registrar dispositivo")
 }
-
-// Tests para obtenerDispositivosDestinatarios - Casos faltantes
 
 func TestPushService_ObtenerDispositivosDestinatarios_Cliente(t *testing.T) {
 	clienteId := int64(123)
@@ -1157,8 +1132,6 @@ func TestPushService_ObtenerDispositivosDestinatarios_Topic(t *testing.T) {
 	assert.Len(t, dispositivos, 1)
 }
 
-// Tests para crearResumenDestinatarios
-
 func TestPushService_CrearResumenDestinatarios_Clientes(t *testing.T) {
 	service := &PushService{}
 
@@ -1172,12 +1145,12 @@ func TestPushService_CrearResumenDestinatarios_Clientes(t *testing.T) {
 	dispositivos := []models.PushDispositivo{
 		{PkIdPushDispositivo: 1, PkDocumentoCliente: &cliente1},
 		{PkIdPushDispositivo: 2, PkDocumentoCliente: &cliente2},
-		{PkIdPushDispositivo: 3, PkDocumentoCliente: &cliente1}, // Duplicado
+		{PkIdPushDispositivo: 3, PkDocumentoCliente: &cliente1},
 	}
 
 	resumen := service.crearResumenDestinatarios(destinatarios, dispositivos)
 	assert.Equal(t, string(models.DestinatarioClientes), resumen.TipoDestinatario)
-	assert.Len(t, resumen.ClientesNotificados, 2) // Sin duplicados
+	assert.Len(t, resumen.ClientesNotificados, 2)
 }
 
 func TestPushService_CrearResumenDestinatarios_Trabajadores(t *testing.T) {
@@ -1220,8 +1193,6 @@ func TestPushService_CrearResumenDestinatarios_Topic(t *testing.T) {
 	assert.Equal(t, "ofertas", resumen.TopicsNotificados[0])
 }
 
-// Tests para registrarEnvioNotificacion
-
 func TestPushService_RegistrarEnvioNotificacion_Success(t *testing.T) {
 	service := NewPushService(&mockPushOrmer{
 		insertFn: func(md interface{}) (int64, error) {
@@ -1245,7 +1216,6 @@ func TestPushService_RegistrarEnvioNotificacion_Success(t *testing.T) {
 	statusCode := 200
 	service.registrarEnvioNotificacion(dispositivo, notificacion, true, &statusCode, nil)
 
-	// No hay assert porque la función no retorna error, pero valida que no panic
 }
 
 func TestPushService_RegistrarEnvioNotificacion_ConDatos(t *testing.T) {
@@ -1271,8 +1241,6 @@ func TestPushService_RegistrarEnvioNotificacion_ConDatos(t *testing.T) {
 	statusCode := 200
 	service.registrarEnvioNotificacion(dispositivo, notificacion, true, &statusCode, nil)
 }
-
-// Tests para enviarNotificacionDispositivo
 
 func TestPushService_EnviarNotificacionDispositivo_PlataformaNoSoportada(t *testing.T) {
 	service := &PushService{ormer: &mockPushOrmer{}}

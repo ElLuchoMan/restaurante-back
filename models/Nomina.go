@@ -24,9 +24,8 @@ func init() {
 }
 
 func (t Nomina) MarshalJSON() ([]byte, error) {
-	// FECHA: normalizar a UTC para obtener el día de calendario correcto, sin efectos de zona
-	fechaUTC := t.FECHA.UTC()
-	fechaStr := fmt.Sprintf("%02d-%02d-%04d", fechaUTC.Day(), int(fechaUTC.Month()), fechaUTC.Year())
+
+	fechaStr := FormatDateUTC(t.FECHA)
 
 	return json.Marshal(&struct {
 		PK_ID_NOMINA  int64        `json:"nominaId"`
@@ -52,7 +51,7 @@ func (n *Nomina) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if aux.FECHA != "" {
-		t, err := time.Parse("2006-01-02", aux.FECHA)
+		t, err := ParseDateToNoonUTC(aux.FECHA)
 		if err != nil {
 			return fmt.Errorf("fechaNomina debe tener formato YYYY-MM-DD: %w", err)
 		}

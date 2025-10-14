@@ -11,12 +11,19 @@ rules:
 
   - "Reserva.MarshalJSON (lectura):"
   - "  - FECHA: normalizar a UTC y formatear solo componentes de calendario como DD-MM-YYYY (sin convertir a otra zona)."
-  - "  - HORA: si el campo viene con timezone histórico (p. ej. LMT en America/Bogota con -04:56), ajustar para recuperar la hora de pared esperada; si Year<1900, sumar 04:56:16 antes de formatear HH:MM:SS."
+  - "  - HORA: si el campo viene con timezone histórico (p. ej. LMT en America/Bogota), ajustar para recuperar la hora de pared; si Year<1900, sumar ~09:52:32 (doble desfase LMT) antes de formatear HH:MM:SS."
   - "  - Resultado: 'fechaReserva' en DD-MM-YYYY y 'horaReserva' en HH:MM:SS, coherentes con Bogotá."
+
+  - "Criterio de referencia (Reserva y Pedido):"
+  - "  - DATE: extraer componentes con t.FECHA.UTC() y formatear DD-MM-YYYY (sin .In())."
+  - "  - TIME: formatear HH:MM:SS a partir de Hour/Minute/Second; si Year<1900, aplicar ajuste ~09:52:32 para neutralizar LMT antes de formatear."
+  - "  - TIMESTAMPTZ (createdAt/updatedAt): serializar como string 'DD-MM-YYYY HH:MM:SS' en America/Bogota (sin dobles conversiones)."
+  - "  - Controladores: no aplicar .In(Bogota) ni .UTC() sobre valores ya normalizados; todo el formateo ocurre en MarshalJSON."
 
   - "Otros modelos con fechas (Pedido, Pago, Incidencia, Nomina, CambiosHorario, Trabajador):"
   - "  - Para campos DATE: siempre formatear por componentes (Year/Month/Day) sin aplicar .In() ni conversiones de zona."
-  - "  - Para campos TIME: formatear HH:MM:SS; si aparece LMT, aplicar la misma normalización previa al formateo."
+  - "  - Para campos TIME: formatear HH:MM:SS; si Year<1900 (caso LMT), aplicar ajuste ~09:52:32 antes del formateo."
+  - "  - Para campos TIMESTAMPTZ: serializar como 'DD-MM-YYYY HH:MM:SS' en America/Bogota."
 
   - "Controladores: no volver a aplicar .In(Bogota) ni .UTC() sobre campos ya normalizados; el formateo ocurre en MarshalJSON."
 

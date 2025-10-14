@@ -7,8 +7,6 @@ import (
 	"restaurante/models"
 )
 
-// Tests de validaciones de negocio sin dependencias del ORM
-
 func TestCuponValidations(t *testing.T) {
 	service := &CuponService{}
 
@@ -203,12 +201,12 @@ func TestCalcularDescuento(t *testing.T) {
 			cupon: &models.Cupon{
 				Scope:          models.CuponScopeGlobal,
 				TipoDescuento:  models.TipoDescuentoPorcentaje,
-				ValorDescuento: 10, // 10%
+				ValorDescuento: 10,
 			},
 			montoTotal:          20000,
 			items:               []models.ValidarCuponItemRequest{},
 			productosAplicables: []int64{},
-			expected:            2000, // 10% de 20000
+			expected:            2000,
 		},
 		{
 			name: "Descuento por monto fijo global",
@@ -232,7 +230,7 @@ func TestCalcularDescuento(t *testing.T) {
 			montoTotal:          20000,
 			items:               []models.ValidarCuponItemRequest{},
 			productosAplicables: []int64{},
-			expected:            20000, // No puede ser mayor al total
+			expected:            20000,
 		},
 	}
 
@@ -272,7 +270,6 @@ func TestDiaSemanaConversion(t *testing.T) {
 	}
 }
 
-// Helper functions
 func testStringPtr(s string) *string {
 	return &s
 }

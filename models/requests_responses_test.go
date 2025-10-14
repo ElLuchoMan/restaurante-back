@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-// Tests para structs de Request/Response simples
-
 func TestLoginRequest_Marshal(t *testing.T) {
 	req := LoginRequest{
 		Documento: 123456789,
@@ -174,7 +172,7 @@ func TestAuthResponse_EmptyFields(t *testing.T) {
 		t.Fatalf("Error marshaling empty map: %v", err)
 	}
 
-	if len(data) < 2 { // At least {}
+	if len(data) < 2 {
 		t.Error("Expected valid JSON for empty struct")
 	}
 }

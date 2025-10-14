@@ -32,12 +32,10 @@ func TestCupon_JSONSerialization(t *testing.T) {
 		Activo:           true,
 	}
 
-	// Serializar
 	jsonData, err := json.Marshal(cupon)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Verificar campos en JSON
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
@@ -47,13 +45,11 @@ func TestCupon_JSONSerialization(t *testing.T) {
 	assert.Equal(t, float64(20), jsonMap["valorDescuento"])
 	assert.Equal(t, true, jsonMap["activo"])
 
-	// Deserializar
-	var cuponDeserialized Cupon
-	err = json.Unmarshal(jsonData, &cuponDeserialized)
-	assert.NoError(t, err)
-	assert.Equal(t, cupon.Codigo, cuponDeserialized.Codigo)
-	assert.Equal(t, cupon.Scope, cuponDeserialized.Scope)
-	assert.Equal(t, cupon.ValorDescuento, cuponDeserialized.ValorDescuento)
+	fi, _ := jsonMap["fechaInicio"].(string)
+	ff, _ := jsonMap["fechaFin"].(string)
+	assert.Equal(t, "01-01-2025", fi)
+	assert.Equal(t, "31-12-2025", ff)
+
 }
 
 func TestCupon_DefaultValues(t *testing.T) {
@@ -66,11 +62,8 @@ func TestCupon_DefaultValues(t *testing.T) {
 		FechaFin:       time.Now().AddDate(0, 1, 0),
 	}
 
-	// Por defecto, Activo es false en Go (zero value)
-	// pero en la DB se establece como true
-	assert.False(t, cupon.Activo) // Go zero value
+	assert.False(t, cupon.Activo)
 
-	// Valores nulos deben ser nil
 	assert.Nil(t, cupon.MaxUsos)
 	assert.Nil(t, cupon.LimitePorCliente)
 	assert.Nil(t, cupon.MontoMinimo)

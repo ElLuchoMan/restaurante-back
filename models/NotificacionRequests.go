@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 )
 
-// Requests para Push Dispositivos
 type RegistrarDispositivoRequest struct {
 	Plataforma            PlataformaNotificacion `json:"plataforma" valid:"required"`
 	Endpoint              *string                `json:"endpoint,omitempty"`
@@ -28,7 +27,6 @@ type ActualizarTopicsRequest struct {
 	SubscribedTopics []string `json:"subscribedTopics" valid:"required" swaggertype:"array,string"`
 }
 
-// Requests para Push Envíos
 type RegistrarEnvioRequest struct {
 	PkIdPushDispositivo int64           `json:"pushDispositivoId" valid:"required"`
 	Proveedor           ProveedorPush   `json:"proveedor" valid:"required"`
@@ -38,7 +36,6 @@ type RegistrarEnvioRequest struct {
 	ErrorCode           *string         `json:"errorCode,omitempty"`
 }
 
-// Requests para Cupones
 type CrearCuponRequest struct {
 	Codigo             string        `json:"codigo" valid:"required,length(3|50)"`
 	Scope              CuponScope    `json:"scope" valid:"required"`
@@ -72,7 +69,6 @@ type RedimirCuponRequest struct {
 	PedidoId  *int64 `json:"pedidoId,omitempty"`
 }
 
-// Requests para Ofertas
 type CrearOfertaRequest struct {
 	Titulo          string        `json:"titulo" valid:"required,length(3|100)"`
 	TipoDescuento   TipoDescuento `json:"tipoDescuento" valid:"required"`
@@ -89,7 +85,6 @@ type AsociarProductoOfertaRequest struct {
 	ProductoId int64 `json:"productoId" valid:"required"`
 }
 
-// Requests para Pedido Descuento Aplicado
 type AplicarDescuentoRequest struct {
 	PkIdCupon      *int64          `json:"cuponId,omitempty"`
 	PkIdOferta     *int64          `json:"ofertaId,omitempty"`
@@ -97,7 +92,6 @@ type AplicarDescuentoRequest struct {
 	Detalle        json.RawMessage `json:"detalle,omitempty" swaggertype:"object"`
 }
 
-// Tipos para el remitente de notificaciones
 type TipoRemitente string
 
 const (
@@ -105,7 +99,6 @@ const (
 	RemitenteSistema    TipoRemitente = "SISTEMA"
 )
 
-// Tipos para destinatarios de notificaciones
 type TipoDestinatario string
 
 const (
@@ -117,14 +110,12 @@ const (
 	DestinatarioTrabajadores TipoDestinatario = "TRABAJADORES"
 )
 
-// Estructura del remitente
 type RemitenteNotificacion struct {
 	Tipo                TipoRemitente `json:"tipo" valid:"required,in(TRABAJADOR|SISTEMA)"`
 	DocumentoTrabajador *int64        `json:"documentoTrabajador,omitempty"`
 	Nombre              *string       `json:"nombre,omitempty"`
 }
 
-// Estructura de destinatarios
 type DestinatariosNotificacion struct {
 	Tipo                TipoDestinatario `json:"tipo" valid:"required,in(TODOS|CLIENTE|TRABAJADOR|TOPIC|CLIENTES|TRABAJADORES)"`
 	DocumentoCliente    *int64           `json:"documentoCliente,omitempty"`
@@ -132,14 +123,12 @@ type DestinatariosNotificacion struct {
 	Topic               *string          `json:"topic,omitempty"`
 }
 
-// Estructura de la notificación
 type ContenidoNotificacion struct {
 	Titulo  string          `json:"titulo" valid:"required,length(1|100)"`
 	Mensaje string          `json:"mensaje" valid:"required,length(1|500)"`
 	Datos   json.RawMessage `json:"datos,omitempty" swaggertype:"object"`
 }
 
-// Request para enviar notificación
 type EnviarNotificacionRequest struct {
 	Remitente     RemitenteNotificacion     `json:"remitente" valid:"required"`
 	Destinatarios DestinatariosNotificacion `json:"destinatarios" valid:"required"`

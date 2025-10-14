@@ -137,7 +137,7 @@ func (c *NominaController) Post() {
 	}
 	if input.FECHA.IsZero() {
 		now := time.Now()
-		// FECHA estable a mediodía UTC
+
 		input.FECHA = time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC)
 	}
 

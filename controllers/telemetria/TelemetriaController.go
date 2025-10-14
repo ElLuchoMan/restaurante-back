@@ -17,10 +17,8 @@ type TelemetriaController struct {
 	web.Controller
 }
 
-// Usamos los Claims del paquete login para mantener consistencia
 type Claims = loginc.Claims
 
-// TimeFilter representa los filtros de tiempo disponibles
 type TimeFilter string
 
 const (
@@ -35,13 +33,11 @@ const (
 	FilterDateRange   TimeFilter = "rango_fechas"
 )
 
-// Constantes para horarios por defecto
 const (
 	DefaultStartTime = "00:00:00"
 	DefaultEndTime   = "23:59:59"
 )
 
-// getTimeRange retorna las fechas de inicio y fin basadas en el filtro
 func getTimeRange(filter TimeFilter) (startDate, endDate string) {
 	now := time.Now()
 
@@ -65,11 +61,11 @@ func getTimeRange(filter TimeFilter) (startDate, endDate string) {
 		startDate = now.AddDate(-1, 0, 0).Format("2006-01-02")
 		endDate = now.Format("2006-01-02")
 	case FilterHistoric:
-		// Para histórico, usamos una fecha muy antigua
+
 		startDate = "1900-01-01"
 		endDate = now.Format("2006-01-02")
 	default:
-		// Por defecto, último mes
+
 		startDate = now.AddDate(0, -1, 0).Format("2006-01-02")
 		endDate = now.Format("2006-01-02")
 	}
@@ -77,7 +73,6 @@ func getTimeRange(filter TimeFilter) (startDate, endDate string) {
 	return startDate, endDate
 }
 
-// buildDateFilter construye la condición SQL para filtrar por fechas
 func buildDateFilter(startDate, endDate string) string {
 	if startDate == endDate {
 		return fmt.Sprintf("pe.fecha = '%s'", startDate)
@@ -85,14 +80,13 @@ func buildDateFilter(startDate, endDate string) string {
 	return fmt.Sprintf("pe.fecha >= '%s' AND pe.fecha <= '%s'", startDate, endDate)
 }
 
-// getAdvancedTimeRange maneja filtros avanzados con parámetros adicionales
 func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, horaInicio, horaFin string) (startDate, endDate, startTime, endTime string) {
 	now := time.Now()
 
 	switch filter {
 	case FilterMonthYear:
 		if mes != "" && año != "" {
-			// Parsear mes y año
+
 			mesInt := 1
 			añoInt := now.Year()
 
@@ -103,21 +97,19 @@ func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, h
 				añoInt = a
 			}
 
-			// Primer día del mes
 			startDate = fmt.Sprintf("%04d-%02d-01", añoInt, mesInt)
 
-			// Último día del mes
 			firstOfNextMonth := time.Date(añoInt, time.Month(mesInt+1), 1, 0, 0, 0, 0, time.UTC)
 			lastOfMonth := firstOfNextMonth.AddDate(0, 0, -1)
 			endDate = lastOfMonth.Format("2006-01-02")
 		} else {
-			// Default al mes actual
+
 			startDate = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
 			endDate = now.Format("2006-01-02")
 		}
 	case FilterDateRange:
 		if fechaInicio != "" && fechaFin != "" {
-			// Validar formato de fechas
+
 			if _, err := time.Parse("2006-01-02", fechaInicio); err == nil {
 				startDate = fechaInicio
 			} else {
@@ -130,16 +122,15 @@ func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, h
 				endDate = now.Format("2006-01-02")
 			}
 		} else {
-			// Default al último mes
+
 			startDate = now.AddDate(0, -1, 0).Format("2006-01-02")
 			endDate = now.Format("2006-01-02")
 		}
 	default:
-		// Usar filtros estándar
+
 		startDate, endDate = getTimeRange(filter)
 	}
 
-	// Manejar filtros de hora
 	if horaInicio != "" {
 		if _, err := time.Parse("15:04:05", horaInicio); err == nil {
 			startTime = horaInicio
@@ -167,7 +158,6 @@ func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, h
 	return startDate, endDate, startTime, endTime
 }
 
-// buildAdvancedDateFilter construye condición SQL con filtros de fecha y hora
 func buildAdvancedDateFilter(startDate, endDate, startTime, endTime string) string {
 	return buildAdvancedDateFilterWithField("pe.fecha", startDate, endDate, startTime, endTime)
 }
@@ -178,7 +168,7 @@ func buildAdvancedDateFilterWithField(dateField, startDate, endDate, startTime, 
 	}
 
 	if startTime != DefaultStartTime || endTime != DefaultEndTime {
-		// Incluir filtros de hora
+
 		return fmt.Sprintf("(%s::date > '%s' OR (%s::date = '%s' AND %s::time >= '%s')) AND (%s::date < '%s' OR (%s::date = '%s' AND %s::time <= '%s'))",
 			dateField, startDate, dateField, startDate, dateField, startTime, dateField, endDate, dateField, endDate, dateField, endTime)
 	}
@@ -186,9 +176,8 @@ func buildAdvancedDateFilterWithField(dateField, startDate, endDate, startTime, 
 	return fmt.Sprintf("%s::date >= '%s' AND %s::date <= '%s'", dateField, startDate, dateField, endDate)
 }
 
-// parseFilterParams extrae y procesa los parámetros de filtro de tiempo
 func parseFilterParams(c *web.Controller) (startDate, endDate, startTime, endTime string) {
-	// Obtener parámetros
+
 	periodo := c.GetString("periodo", "ultimo_mes")
 	mes := c.GetString("mes")
 	año := c.GetString("año")
@@ -197,7 +186,6 @@ func parseFilterParams(c *web.Controller) (startDate, endDate, startTime, endTim
 	horaInicio := c.GetString("hora_inicio")
 	horaFin := c.GetString("hora_fin")
 
-	// Determinar el tipo de filtro
 	var timeFilter TimeFilter
 	if mes != "" || año != "" {
 		timeFilter = FilterMonthYear
@@ -207,13 +195,11 @@ func parseFilterParams(c *web.Controller) (startDate, endDate, startTime, endTim
 		timeFilter = TimeFilter(periodo)
 	}
 
-	// Obtener rango de fechas y tiempos
 	startDate, endDate, startTime, endTime = getAdvancedTimeRange(timeFilter, mes, año, fechaInicio, fechaFin, horaInicio, horaFin)
 
 	return startDate, endDate, startTime, endTime
 }
 
-// validateAdminRole valida que el usuario tenga rol de administrador
 func (c *TelemetriaController) validateAdminRole() (*Claims, bool) {
 	authHeader := c.Ctx.Input.Header("Authorization")
 	if authHeader == "" {
@@ -231,7 +217,6 @@ func (c *TelemetriaController) validateAdminRole() (*Claims, bool) {
 	}
 	tokenString := authHeader[len("Bearer "):]
 
-	// Usar la función del LoginController para parsear el token
 	claims, err := loginc.ParseTokenClaims(tokenString)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusUnauthorized)
@@ -244,7 +229,6 @@ func (c *TelemetriaController) validateAdminRole() (*Claims, bool) {
 		return nil, false
 	}
 
-	// Validar que sea administrador
 	if claims.Rol != string(models.RolAdministrador) {
 		c.Ctx.Output.SetStatus(http.StatusForbidden)
 		c.Data["json"] = models.ApiResponse{
@@ -283,7 +267,6 @@ func (c *TelemetriaController) GetDashboard() {
 		return
 	}
 
-	// Obtener parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -291,7 +274,6 @@ func (c *TelemetriaController) GetDashboard() {
 
 	var dashboardData models.DashboardData
 
-	// Total de pedidos en el período
 	var totalPedidos int64
 	err := o.Raw(fmt.Sprintf("SELECT COUNT(*) FROM pedido pe WHERE %s", dateFilter)).QueryRow(&totalPedidos)
 	if err != nil {
@@ -306,7 +288,6 @@ func (c *TelemetriaController) GetDashboard() {
 	}
 	dashboardData.TotalPedidos = totalPedidos
 
-	// Total de ingresos en el período
 	var totalIngresos int64
 	err = o.Raw(fmt.Sprintf(`
 		SELECT COALESCE(SUM(p.monto), 0)
@@ -326,7 +307,6 @@ func (c *TelemetriaController) GetDashboard() {
 	}
 	dashboardData.TotalIngresos = totalIngresos
 
-	// Total de usuarios (clientes) que hicieron pedidos en el período
 	var totalUsuarios int64
 	err = o.Raw(fmt.Sprintf(`
 		SELECT COUNT(DISTINCT pe.pk_documento_cliente)
@@ -345,12 +325,10 @@ func (c *TelemetriaController) GetDashboard() {
 	}
 	dashboardData.TotalUsuarios = totalUsuarios
 
-	// Promedio de venta por pedido en el período
 	if totalPedidos > 0 {
 		dashboardData.PromedioVentaPedido = float64(totalIngresos) / float64(totalPedidos)
 	}
 
-	// Pedidos de hoy (siempre del día actual)
 	today := time.Now().Format("2006-01-02")
 	pedidosHoy, err := o.QueryTable("pedido").Filter("fecha", today).Count()
 	if err != nil {
@@ -365,7 +343,6 @@ func (c *TelemetriaController) GetDashboard() {
 	}
 	dashboardData.PedidosHoy = pedidosHoy
 
-	// Ingresos de hoy (siempre del día actual)
 	var ingresosHoy int64
 	err = o.Raw(`
 		SELECT COALESCE(SUM(p.monto), 0)
@@ -419,7 +396,6 @@ func (c *TelemetriaController) GetSales() {
 		return
 	}
 
-	// Obtener parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -427,7 +403,6 @@ func (c *TelemetriaController) GetSales() {
 
 	var salesData models.SalesData
 
-	// Ventas por método de pago en el período
 	var ventasPorMetodo []models.VentaPorMetodo
 	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
@@ -453,7 +428,6 @@ func (c *TelemetriaController) GetSales() {
 	}
 	salesData.VentasPorMetodoPago = ventasPorMetodo
 
-	// Tendencia de ventas por fecha en el período
 	var tendenciaVentas []models.VentaPorFecha
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -478,7 +452,6 @@ func (c *TelemetriaController) GetSales() {
 	}
 	salesData.TendenciaVentas = tendenciaVentas
 
-	// Estadísticas generales del período
 	var estadisticas models.EstadisticasVentas
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -547,14 +520,12 @@ func (c *TelemetriaController) GetProducts() {
 		return
 	}
 
-	// Obtener límite de la query string
 	limitStr := c.GetString("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		limit = 10
 	}
 
-	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -562,7 +533,6 @@ func (c *TelemetriaController) GetProducts() {
 
 	var productsData models.ProductsData
 
-	// Productos más vendidos en el período
 	var productosMasVendidos []models.ProductoVendido
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -593,7 +563,6 @@ func (c *TelemetriaController) GetProducts() {
 	}
 	productsData.ProductosMasVendidos = productosMasVendidos
 
-	// Productos menos vendidos en el período
 	var productosMenosVendidos []models.ProductoVendido
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -624,7 +593,6 @@ func (c *TelemetriaController) GetProducts() {
 	}
 	productsData.ProductosMenosVendidos = productosMenosVendidos
 
-	// Estadísticas de productos
 	var estadisticas models.EstadisticasProductos
 	totalProductosActivos, err := o.QueryTable("producto").Filter("estado_producto", "DISPONIBLE").Count()
 	if err != nil {
@@ -639,12 +607,10 @@ func (c *TelemetriaController) GetProducts() {
 	}
 	estadisticas.TotalProductosActivos = totalProductosActivos
 
-	// Producto con más ventas
 	if len(productosMasVendidos) > 0 {
 		estadisticas.ProductoConMasVentas = productosMasVendidos[0].NombreProducto
 	}
 
-	// Producto con menos ventas
 	if len(productosMenosVendidos) > 0 {
 		estadisticas.ProductoConMenosVentas = productosMenosVendidos[0].NombreProducto
 	}
@@ -686,14 +652,12 @@ func (c *TelemetriaController) GetUsers() {
 		return
 	}
 
-	// Obtener límite de la query string
 	limitStr := c.GetString("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		limit = 10
 	}
 
-	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -701,7 +665,6 @@ func (c *TelemetriaController) GetUsers() {
 
 	var usersData models.UsersData
 
-	// Usuarios frecuentes (con más pedidos en el período)
 	var usuariosFrecuentes []models.UsuarioFrecuente
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -731,7 +694,6 @@ func (c *TelemetriaController) GetUsers() {
 	}
 	usersData.UsuariosFrecuentes = usuariosFrecuentes
 
-	// Usuarios inactivos (con pocos pedidos o sin pedidos en el período)
 	var usuariosInactivos []models.UsuarioInactivo
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -758,10 +720,8 @@ func (c *TelemetriaController) GetUsers() {
 	}
 	usersData.UsuariosInactivos = usuariosInactivos
 
-	// Estadísticas de usuarios
 	var estadisticas models.EstadisticasUsuarios
 
-	// Total de clientes
 	totalClientes, err := o.QueryTable("cliente").Count()
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -775,7 +735,6 @@ func (c *TelemetriaController) GetUsers() {
 	}
 	estadisticas.TotalClientes = totalClientes
 
-	// Clientes activos (con pedidos en los últimos 30 días)
 	err = o.Raw(`
 		SELECT COUNT(DISTINCT pe.pk_documento_cliente)
 		FROM pedido pe
@@ -795,7 +754,6 @@ func (c *TelemetriaController) GetUsers() {
 
 	estadisticas.ClientesInactivos = totalClientes - estadisticas.ClientesActivos
 
-	// Promedio de gasto por cliente
 	err = o.Raw(`
 		SELECT COALESCE(AVG(cliente_gasto.total_gastado), 0)
 		FROM (
@@ -855,7 +813,6 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 		return
 	}
 
-	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -863,7 +820,6 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 
 	var timeData models.TimeAnalysisData
 
-	// Ventas por hora del día en el período
 	var ventasPorHora []models.VentaPorHora
 	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
@@ -888,7 +844,6 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 	}
 	timeData.VentasPorHora = ventasPorHora
 
-	// Ventas por día de la semana en el período
 	var ventasPorDiaSemana []models.VentaPorDiaSemana
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -921,7 +876,6 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 	}
 	timeData.VentasPorDiaSemana = ventasPorDiaSemana
 
-	// Ventas por mes en el período
 	var ventasPorMes []models.VentaPorMes
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -955,8 +909,6 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 	_ = c.ServeJSON()
 }
 
-// === NUEVOS ENDPOINTS PARA MÉTRICAS AVANZADAS ===
-
 // @Title GetRentabilidad
 // @Summary Análisis de Rentabilidad por Producto
 // @Description Obtiene análisis detallado de rentabilidad de productos: margen de ganancia, productos más y menos rentables del período seleccionado.
@@ -983,14 +935,12 @@ func (c *TelemetriaController) GetRentabilidad() {
 		return
 	}
 
-	// Obtener límite de la query string
 	limitStr := c.GetString("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		limit = 10
 	}
 
-	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -998,7 +948,6 @@ func (c *TelemetriaController) GetRentabilidad() {
 
 	var rentabilidadData models.RentabilidadData
 
-	// Productos más rentables (asumiendo 70% de margen como ejemplo)
 	var productosRentables []models.ProductoRentabilidad
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1033,7 +982,6 @@ func (c *TelemetriaController) GetRentabilidad() {
 	}
 	rentabilidadData.ProductosRentables = productosRentables
 
-	// Productos menos rentables
 	var productosMenosRentables []models.ProductoRentabilidad
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1077,7 +1025,6 @@ func (c *TelemetriaController) GetRentabilidad() {
 	}
 	rentabilidadData.ProductosMenosRentables = productosMenosRentables
 
-	// Estadísticas de rentabilidad
 	var estadisticas models.EstadisticasRentabilidad
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1111,7 +1058,6 @@ func (c *TelemetriaController) GetRentabilidad() {
 		return
 	}
 
-	// Obtener producto más y menos rentable
 	if len(productosRentables) > 0 {
 		estadisticas.ProductoMasRentable = productosRentables[0].NombreProducto
 	}
@@ -1156,14 +1102,12 @@ func (c *TelemetriaController) GetSegmentacion() {
 		return
 	}
 
-	// Obtener límite de la query string
 	limitStr := c.GetString("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		limit = 10
 	}
 
-	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -1171,7 +1115,6 @@ func (c *TelemetriaController) GetSegmentacion() {
 
 	var segmentacionData models.SegmentacionData
 
-	// Clientes VIP (más de 5 pedidos y más de $50,000 gastados)
 	var clientesVIP []models.ClienteSegmento
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1209,7 +1152,6 @@ func (c *TelemetriaController) GetSegmentacion() {
 	}
 	segmentacionData.ClientesVIP = clientesVIP
 
-	// Clientes Regulares (2-5 pedidos)
 	var clientesRegulares []models.ClienteSegmento
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1247,7 +1189,6 @@ func (c *TelemetriaController) GetSegmentacion() {
 	}
 	segmentacionData.ClientesRegulares = clientesRegulares
 
-	// Clientes Ocasionales (1 pedido)
 	var clientesOcasionales []models.ClienteSegmento
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1285,7 +1226,6 @@ func (c *TelemetriaController) GetSegmentacion() {
 	}
 	segmentacionData.ClientesOcasionales = clientesOcasionales
 
-	// Clientes Nuevos (sin pedidos en el período)
 	var clientesNuevos []models.ClienteSegmento
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1318,7 +1258,6 @@ func (c *TelemetriaController) GetSegmentacion() {
 	}
 	segmentacionData.ClientesNuevos = clientesNuevos
 
-	// Estadísticas de segmentación
 	var estadisticas models.EstadisticasSegmentacion
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1358,7 +1297,6 @@ func (c *TelemetriaController) GetSegmentacion() {
 		return
 	}
 
-	// Calcular porcentaje VIP
 	totalClientes := estadisticas.TotalClientesVIP + estadisticas.TotalClientesRegulares +
 		estadisticas.TotalClientesOcasionales + estadisticas.TotalClientesNuevos
 	if totalClientes > 0 {
@@ -1402,14 +1340,12 @@ func (c *TelemetriaController) GetEficiencia() {
 		return
 	}
 
-	// Obtener límite de la query string
 	limitStr := c.GetString("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		limit = 10
 	}
 
-	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -1417,7 +1353,6 @@ func (c *TelemetriaController) GetEficiencia() {
 
 	var eficienciaData models.EficienciaData
 
-	// Tiempos de entrega (simulamos tiempo de preparación basado en la diferencia de horas)
 	var tiemposEntrega []models.TiempoEntrega
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1453,7 +1388,6 @@ func (c *TelemetriaController) GetEficiencia() {
 	}
 	eficienciaData.TiemposEntrega = tiemposEntrega
 
-	// Rendimiento de trabajadores (basado en domicilios asignados)
 	var rendimientoTrabajadores []models.RendimientoTrabajador
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1497,7 +1431,6 @@ func (c *TelemetriaController) GetEficiencia() {
 	}
 	eficienciaData.RendimientoTrabajadores = rendimientoTrabajadores
 
-	// Análisis por hora
 	var analisisPorHora []models.EficienciaPorHora
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1538,7 +1471,6 @@ func (c *TelemetriaController) GetEficiencia() {
 	}
 	eficienciaData.AnalisisPorHora = analisisPorHora
 
-	// Estadísticas generales de eficiencia
 	var estadisticas models.EstadisticasEficiencia
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1562,7 +1494,6 @@ func (c *TelemetriaController) GetEficiencia() {
 		return
 	}
 
-	// Obtener hora más y menos eficiente
 	if len(analisisPorHora) > 0 {
 		maxEficiencia := 0.0
 		minEficiencia := 100.0
@@ -1577,7 +1508,6 @@ func (c *TelemetriaController) GetEficiencia() {
 			}
 		}
 
-		// Calcular capacidad promedio de uso
 		totalCapacidad := 0.0
 		for _, hora := range analisisPorHora {
 			totalCapacidad += hora.CapacidadUtilizada
@@ -1587,7 +1517,6 @@ func (c *TelemetriaController) GetEficiencia() {
 		}
 	}
 
-	// Obtener trabajador más eficiente
 	if len(rendimientoTrabajadores) > 0 {
 		estadisticas.TrabajadorMasEficiente = rendimientoTrabajadores[0].NombreTrabajador
 	}
@@ -1629,14 +1558,12 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 		return
 	}
 
-	// Obtener límite de la query string
 	limitStr := c.GetString("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		limit = 10
 	}
 
-	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilterWithField("r.fecha", startDate, endDate, startTime, endTime)
 
@@ -1644,7 +1571,6 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 
 	var reservasData models.ReservasAnalisisData
 
-	// Reservas por día
 	var reservasPorDia []models.ReservaPorDia
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1675,7 +1601,6 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 	}
 	reservasData.ReservasPorDia = reservasPorDia
 
-	// Reservas por hora
 	var reservasPorHora []models.ReservaPorHora
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1706,7 +1631,6 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 	}
 	reservasData.ReservasPorHora = reservasPorHora
 
-	// Reservas por día de la semana
 	var reservasPorDiaSemana []models.ReservaPorDiaSemana
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1744,7 +1668,6 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 	}
 	reservasData.ReservasPorDiaSemana = reservasPorDiaSemana
 
-	// Estadísticas de reservas
 	var estadisticas models.EstadisticasReservas
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1769,7 +1692,6 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 		return
 	}
 
-	// Obtener día y hora con más reservas
 	if len(reservasPorDia) > 0 {
 		estadisticas.DiaMasReservas = reservasPorDia[0].Fecha
 	}
@@ -1814,14 +1736,12 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 		return
 	}
 
-	// Obtener límite de la query string
 	limitStr := c.GetString("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		limit = 10
 	}
 
-	// Parsear parámetros de filtro
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
 
@@ -1829,7 +1749,6 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 
 	var pedidosData models.PedidosAnalisisData
 
-	// Pedidos por día
 	var pedidosPorDia []models.PedidoPorDia
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1861,7 +1780,6 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	}
 	pedidosData.PedidosPorDia = pedidosPorDia
 
-	// Pedidos por hora
 	var pedidosPorHora []models.PedidoPorHora
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1893,7 +1811,6 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	}
 	pedidosData.PedidosPorHora = pedidosPorHora
 
-	// Pedidos por día de la semana
 	var pedidosPorDiaSemana []models.PedidoPorDiaSemana
 	_, err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1932,7 +1849,6 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	}
 	pedidosData.PedidosPorDiaSemana = pedidosPorDiaSemana
 
-	// Estadísticas de pedidos
 	var estadisticas models.EstadisticasPedidos
 	err = o.Raw(fmt.Sprintf(`
 		SELECT
@@ -1958,7 +1874,6 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 		return
 	}
 
-	// Obtener día y hora con más pedidos
 	if len(pedidosPorDia) > 0 {
 		estadisticas.DiaMasPedidos = pedidosPorDia[0].Fecha
 	}
@@ -1977,7 +1892,6 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	_ = c.ServeJSON()
 }
 
-// ProductosPopularesData estructura para productos más vendidos (público)
 type ProductosPopularesData struct {
 	ProductosPopulares []models.ProductoVendido `json:"productosPopulares"`
 }
@@ -1991,7 +1905,6 @@ type ProductosPopularesData struct {
 func (c *TelemetriaController) GetEstadosPedidos() {
 	o := orm.NewOrm()
 
-	// Consulta para contar pedidos por estado
 	type EstadoCount struct {
 		Estado string `json:"estado"`
 		Count  int64  `json:"count"`
@@ -2018,19 +1931,17 @@ func (c *TelemetriaController) GetEstadosPedidos() {
 		return
 	}
 
-	// Convertir a mapa para respuesta más clara
 	estadosMap := make(map[string]int64)
 	var noFinalizados int64 = 0
 
 	for _, estado := range estados {
 		estadosMap[estado.Estado] = estado.Count
-		// Contar pedidos no finalizados (no TERMINADO ni CANCELADO)
+
 		if estado.Estado != "TERMINADO" && estado.Estado != "CANCELADO" {
 			noFinalizados += estado.Count
 		}
 	}
 
-	// Agregar el total de no finalizados
 	estadosMap["NO_FINALIZADOS"] = noFinalizados
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -2051,8 +1962,8 @@ func (c *TelemetriaController) GetEstadosPedidos() {
 // @Failure 500 {object} models.ApiResponse
 // @router /productos-populares [get]
 func (c *TelemetriaController) GetProductosPopulares() {
-	// Obtener parámetros de consulta
-	limitStr := c.GetString("limit", "4") // Default 4 productos
+
+	limitStr := c.GetString("limit", "4")
 	periodoStr := c.GetString("periodo", "ultimo_mes")
 
 	limit, err := strconv.Atoi(limitStr)
@@ -2066,7 +1977,6 @@ func (c *TelemetriaController) GetProductosPopulares() {
 
 	o := orm.NewOrm()
 
-	// Consulta para productos más vendidos
 	var productosMasVendidos []models.ProductoVendido
 	sql := fmt.Sprintf(`
 		SELECT

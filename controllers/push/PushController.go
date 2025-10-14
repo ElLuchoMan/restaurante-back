@@ -15,22 +15,18 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-// Variable mockeable para crear el servicio (testing)
 var newPushService = func(o orm.Ormer) services.PushServiceInterface {
 	return services.NewPushService(o)
 }
 
-// Variables mockeables para ORM (usadas en funciones que requieren servicio)
 var ormProvider = defaultOrmProvider
 
 var pushServiceOrmBase = func() orm.Ormer { return ormProvider() }
 
 var pushServiceOrmFactory = func() orm.Ormer { return pushServiceOrmBase() }
 
-// Variable mockeable para el ORM usado en los métodos del servicio
 var newServiceOrm = func() orm.Ormer { return orm.NewOrm() }
 
-// Interfaces para testing
 type pushQuerySeter interface {
 	All(interface{}, ...string) (int64, error)
 	Filter(string, ...interface{}) pushQuerySeter
@@ -111,7 +107,6 @@ func (c *PushController) GetAll() {
 	o := pushOrmNew()
 	qs := o.QueryTable("push_dispositivo")
 
-	// Aplicar filtros
 	if clienteId := c.GetString("cliente_id"); clienteId != "" {
 		if id, err := strconv.ParseInt(clienteId, 10, 64); err == nil {
 			qs = qs.Filter("pk_documento_cliente", id)
@@ -128,7 +123,6 @@ func (c *PushController) GetAll() {
 		qs = qs.Filter("plataforma", plataforma)
 	}
 
-	// Paginación
 	limit, _ := c.GetInt("limit", 20)
 	offset, _ := c.GetInt("offset", 0)
 
@@ -136,7 +130,6 @@ func (c *PushController) GetAll() {
 		limit = 100
 	}
 
-	// Contar total
 	total, err := qs.Count()
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.getall.count_error", err, nil)
@@ -150,7 +143,6 @@ func (c *PushController) GetAll() {
 		return
 	}
 
-	// Obtener datos
 	var dispositivos []*models.PushDispositivo
 	_, err = qs.OrderBy("-created_at").Limit(limit).Offset(int64(offset)).All(&dispositivos)
 	if err != nil {
@@ -198,7 +190,7 @@ func (c *PushController) GetAll() {
 // @Router /push/dispositivos [post]
 func (c *PushController) Post() {
 	var req models.RegistrarDispositivoRequest
-	// Fallback: si RequestBody está vacío (tests), leer del body del request
+
 	body := c.Ctx.Input.RequestBody
 	if len(body) == 0 && c.Ctx.Request != nil && c.Ctx.Request.Body != nil {
 		b, _ := io.ReadAll(c.Ctx.Request.Body)
@@ -216,7 +208,6 @@ func (c *PushController) Post() {
 		return
 	}
 
-	// Validar plataforma
 	if !req.Plataforma.IsValid() {
 		logging.LogControllerError(c.Ctx, "push.post.invalid_plataforma", nil, map[string]interface{}{"plataforma": req.Plataforma})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
@@ -263,7 +254,7 @@ func (c *PushController) Post() {
 func (c *PushController) GetById() {
 	id, err := c.GetInt64("id")
 	if err != nil || id == 0 {
-		// Fallback a parámetro de ruta :id
+
 		if sid := c.Ctx.Input.Param(":id"); sid != "" {
 			if v, convErr := strconv.ParseInt(sid, 10, 64); convErr == nil {
 				id = v
@@ -436,7 +427,6 @@ func (c *PushController) Delete() {
 		return
 	}
 
-	// Eliminar dispositivo
 	_, err = o.Delete(dispositivo)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.delete.delete_error", err, map[string]interface{}{"id": id})
@@ -457,8 +447,6 @@ func (c *PushController) Delete() {
 	}
 	_ = c.ServeJSON()
 }
-
-// Métodos adicionales específicos de push
 
 // @Title ActualizarUltimaVista
 // @Summary Actualizar última vista del dispositivo
@@ -612,7 +600,6 @@ func (c *PushController) EnviarNotificacion() {
 		return
 	}
 
-	// Validar campos requeridos
 	if req.Notificacion.Titulo == "" {
 		logging.LogControllerError(c.Ctx, "push.enviar.missing_titulo", nil, nil)
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -635,7 +622,6 @@ func (c *PushController) EnviarNotificacion() {
 		return
 	}
 
-	// Crear servicio y enviar notificación
 	service := newPushService(pushServiceOrmFactory())
 	response, err := service.EnviarNotificacion(&req)
 	if err != nil {
@@ -677,7 +663,6 @@ func (c *PushController) ListarEnvios() {
 	o := pushOrmNew()
 	qs := o.QueryTable("push_envio")
 
-	// Aplicar filtros
 	if dispositivoId := c.GetString("dispositivo_id"); dispositivoId != "" {
 		if id, err := strconv.ParseInt(dispositivoId, 10, 64); err == nil {
 			qs = qs.Filter("pk_id_push_dispositivo", id)
@@ -692,13 +677,12 @@ func (c *PushController) ListarEnvios() {
 
 	if fechaHasta := c.GetString("fecha_hasta"); fechaHasta != "" {
 		if fecha, err := time.Parse("2006-01-02", fechaHasta); err == nil {
-			// Agregar 23:59:59 para incluir todo el día
+
 			fechaFin := fecha.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 			qs = qs.Filter("sent_at__lte", fechaFin)
 		}
 	}
 
-	// Paginación
 	limit, _ := c.GetInt("limit", 20)
 	offset, _ := c.GetInt("offset", 0)
 
@@ -706,7 +690,6 @@ func (c *PushController) ListarEnvios() {
 		limit = 100
 	}
 
-	// Contar total
 	total, err := qs.Count()
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "push.envios.count_error", err, nil)
@@ -720,7 +703,6 @@ func (c *PushController) ListarEnvios() {
 		return
 	}
 
-	// Obtener datos
 	var envios []*models.PushEnvio
 	_, err = qs.OrderBy("-sent_at").Limit(limit).Offset(int64(offset)).All(&envios)
 	if err != nil {
@@ -784,7 +766,6 @@ func (c *PushController) RegistrarEnvio() {
 		return
 	}
 
-	// Validar proveedor
 	if !req.Proveedor.IsValid() {
 		logging.LogControllerError(c.Ctx, "push.registrar_envio.invalid_proveedor", nil, map[string]interface{}{"proveedor": req.Proveedor})
 		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"restaurante/logging"
 	"restaurante/models"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -33,7 +32,7 @@ func (c *ControlNominaController) GetAll() {
 	o := ctrlNomOrmNew()
 	qs := o.QueryTable(new(models.ControlNomina))
 	if f := c.GetString("fecha"); f != "" {
-		if d, err := time.Parse("2006-01-02", f); err == nil {
+		if d, err := models.ParseDateToNoonUTC(f); err == nil {
 			qs = qs.Filter("Fecha", d)
 		} else {
 			logging.LogControllerError(c.Ctx, "control_nomina.getall.bad_fecha", err, map[string]interface{}{"fecha": f})

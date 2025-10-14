@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestValidarCupon_BadJSON cubre el caso de JSON inválido en ValidarCupon
 func TestValidarCupon_BadJSON(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/cupones/validar", bytes.NewReader([]byte("invalid json")))
 	w := httptest.NewRecorder()
@@ -35,7 +34,6 @@ func TestValidarCupon_BadJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
 
-// TestRedimirCupon_BadJSON cubre el caso de JSON inválido en RedimirCupon
 func TestRedimirCupon_BadJSON(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/cupones/TEST/redimir", bytes.NewReader([]byte("invalid json")))
 	w := httptest.NewRecorder()
@@ -56,15 +54,11 @@ func TestRedimirCupon_BadJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
 
-// Skipping RedimirCupon tests with service mocking - require full service implementation or real DB
-
-// TestListarRedenciones_CuponCodigoNoEncontrado cubre el caso de cupón no encontrado por código
 func TestListarRedenciones_CuponCodigoNoEncontrado(t *testing.T) {
-	// Guardar y restaurar la función original
+
 	origCupOrmNew := cupOrmNew
 	defer func() { cupOrmNew = origCupOrmNew }()
 
-	// Mock del ORM que retorna error al buscar por código
 	mockOrm := &mockCuponOrmerForListar{cuponNotFound: true}
 	cupOrmNew = func() cuponOrmer {
 		return mockOrm
@@ -86,12 +80,10 @@ func TestListarRedenciones_CuponCodigoNoEncontrado(t *testing.T) {
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	// Verificar que la respuesta tenga data vacía
 	data := resp.Data.(map[string]interface{})
 	assert.Equal(t, float64(0), data["total"])
 }
 
-// TestListarRedenciones_InvalidCuponId cubre el caso de cupon_id inválido
 func TestListarRedenciones_InvalidCuponId(t *testing.T) {
 	origCupOrmNew := cupOrmNew
 	defer func() { cupOrmNew = origCupOrmNew }()
@@ -115,7 +107,6 @@ func TestListarRedenciones_InvalidCuponId(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// TestListarRedenciones_InvalidClienteId cubre el caso de cliente_id inválido
 func TestListarRedenciones_InvalidClienteId(t *testing.T) {
 	origCupOrmNew := cupOrmNew
 	defer func() { cupOrmNew = origCupOrmNew }()
@@ -139,7 +130,6 @@ func TestListarRedenciones_InvalidClienteId(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// TestListarRedenciones_LimitExceeds100 cubre el caso de límite > 100
 func TestListarRedenciones_LimitExceeds100(t *testing.T) {
 	origCupOrmNew := cupOrmNew
 	defer func() { cupOrmNew = origCupOrmNew }()
@@ -163,9 +153,6 @@ func TestListarRedenciones_LimitExceeds100(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// Mock types
-
-// mockCuponOrmerForListar mock para ListarRedenciones
 type mockCuponOrmerForListar struct {
 	cuponNotFound bool
 	countError    bool
@@ -196,7 +183,6 @@ func (m *mockCuponOrmerForListar) Delete(interface{}, ...string) (int64, error) 
 	return 0, nil
 }
 
-// mockCuponQuerySeterForListar mock para QuerySeter de ListarRedenciones
 type mockCuponQuerySeterForListar struct {
 	cuponNotFound bool
 	countError    bool
@@ -208,7 +194,7 @@ func (m *mockCuponQuerySeterForListar) One(container interface{}) error {
 	if m.cuponNotFound {
 		return orm.ErrNoRows
 	}
-	// Llenar el contenedor con datos de prueba
+
 	if cupon, ok := container.(*models.Cupon); ok {
 		cupon.PkIdCupon = 1
 		cupon.Codigo = "TESTCODE"

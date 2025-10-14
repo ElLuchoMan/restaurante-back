@@ -14,10 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ============================================================================
-// TESTS PARA EnviarNotificacion
-// ============================================================================
-
 func TestEnviarNotificacion_JSONInvalido(t *testing.T) {
 	ctrl := &PushController{}
 	ctrl.Data = make(map[interface{}]interface{})
@@ -57,7 +53,7 @@ func TestEnviarNotificacion_TituloFaltante(t *testing.T) {
 			Tipo: tipoTodos,
 		},
 		Notificacion: models.ContenidoNotificacion{
-			Titulo:  "", // Sin título
+			Titulo:  "",
 			Mensaje: "Test mensaje",
 		},
 	}
@@ -100,7 +96,7 @@ func TestEnviarNotificacion_MensajeFaltante(t *testing.T) {
 		},
 		Notificacion: models.ContenidoNotificacion{
 			Titulo:  "Test título",
-			Mensaje: "", // Sin mensaje
+			Mensaje: "",
 		},
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -124,10 +120,6 @@ func TestEnviarNotificacion_MensajeFaltante(t *testing.T) {
 	assert.Contains(t, response.Message, "mensaje es requerido")
 }
 
-// ============================================================================
-// TESTS PARA ActualizarUltimaVista
-// ============================================================================
-
 func TestActualizarUltimaVista_IDInvalido(t *testing.T) {
 	ctrl := &PushController{}
 	ctrl.Data = make(map[interface{}]interface{})
@@ -148,10 +140,6 @@ func TestActualizarUltimaVista_IDInvalido(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, response.Code)
 	assert.Contains(t, response.Message, "ID inválido")
 }
-
-// ============================================================================
-// TESTS PARA RegistrarEnvio
-// ============================================================================
 
 func TestRegistrarEnvio_JSONInvalido(t *testing.T) {
 	ctrl := &PushController{}
@@ -205,10 +193,6 @@ func TestRegistrarEnvio_ProveedorInvalido(t *testing.T) {
 	assert.Contains(t, response.Message, "Proveedor no válido")
 }
 
-// ============================================================================
-// TESTS DE COBERTURA ADICIONAL
-// ============================================================================
-
 func TestPushServiceOrmFactory_Coverage(t *testing.T) {
 	originalOrmProvider := ormProvider
 	defer func() { ormProvider = originalOrmProvider }()
@@ -238,14 +222,3 @@ func TestPushServiceOrmBase_Coverage(t *testing.T) {
 	assert.Nil(t, result)
 	assert.True(t, called, "ormProvider debe ser llamado")
 }
-
-// ============================================================================
-// NOTAS:
-// Estos tests cubren los casos críticos de las funciones con baja cobertura:
-// - EnviarNotificacion: JSON inválido, título/mensaje faltante, errores ✓
-// - ActualizarUltimaVista: ID inválido, errores ✓
-// - RegistrarEnvio: JSON inválido, proveedor inválido, errores ✓
-//
-// Con el patrón de DI implementado, podemos mockear el ORM sin tocar la BD.
-// Los servicios tienen alta cobertura, así que la lógica crítica está testeada.
-// ============================================================================

@@ -135,9 +135,8 @@ func TestCuponScope_IsValid(t *testing.T) {
 	}
 }
 
-// Tests para verificar que las constantes están definidas correctamente
 func TestEnumConstants(t *testing.T) {
-	// EstadoDomicilio
+
 	if EstadoDomicilioPendiente != "PENDIENTE" {
 		t.Errorf("EstadoDomicilioPendiente = %v, want PENDIENTE", EstadoDomicilioPendiente)
 	}
@@ -148,7 +147,6 @@ func TestEnumConstants(t *testing.T) {
 		t.Errorf("EstadoDomicilioEntregado = %v, want ENTREGADO", EstadoDomicilioEntregado)
 	}
 
-	// EstadoNomina
 	if EstadoNominaPago != "PAGO" {
 		t.Errorf("EstadoNominaPago = %v, want PAGO", EstadoNominaPago)
 	}
@@ -156,7 +154,6 @@ func TestEnumConstants(t *testing.T) {
 		t.Errorf("EstadoNominaNoPago = %v, want NO_PAGO", EstadoNominaNoPago)
 	}
 
-	// EstadoPago
 	if EstadoPagoPagado != "PAGADO" {
 		t.Errorf("EstadoPagoPagado = %v, want PAGADO", EstadoPagoPagado)
 	}
@@ -167,7 +164,6 @@ func TestEnumConstants(t *testing.T) {
 		t.Errorf("EstadoPagoNoPago = %v, want NO_PAGO", EstadoPagoNoPago)
 	}
 
-	// EstadoPedido
 	if EstadoPedidoIniciado != "INICIADO" {
 		t.Errorf("EstadoPedidoIniciado = %v, want INICIADO", EstadoPedidoIniciado)
 	}
@@ -184,7 +180,6 @@ func TestEnumConstants(t *testing.T) {
 		t.Errorf("EstadoPedidoCancelado = %v, want CANCELADO", EstadoPedidoCancelado)
 	}
 
-	// EstadoProducto
 	if EstadoProductoDisponible != "DISPONIBLE" {
 		t.Errorf("EstadoProductoDisponible = %v, want DISPONIBLE", EstadoProductoDisponible)
 	}
@@ -192,7 +187,6 @@ func TestEnumConstants(t *testing.T) {
 		t.Errorf("EstadoProductoNoDisponible = %v, want NO_DISPONIBLE", EstadoProductoNoDisponible)
 	}
 
-	// EstadoReserva
 	if EstadoReservaPendiente != "PENDIENTE" {
 		t.Errorf("EstadoReservaPendiente = %v, want PENDIENTE", EstadoReservaPendiente)
 	}
@@ -206,7 +200,6 @@ func TestEnumConstants(t *testing.T) {
 		t.Errorf("EstadoReservaCumplida = %v, want CUMPLIDA", EstadoReservaCumplida)
 	}
 
-	// DiaSemana
 	if DiaLunes != "Lunes" {
 		t.Errorf("DiaLunes = %v, want Lunes", DiaLunes)
 	}
@@ -229,7 +222,6 @@ func TestEnumConstants(t *testing.T) {
 		t.Errorf("DiaDomingo = %v, want Domingo", DiaDomingo)
 	}
 
-	// RolTrabajador
 	if RolAdministrador != "Administrador" {
 		t.Errorf("RolAdministrador = %v, want Administrador", RolAdministrador)
 	}

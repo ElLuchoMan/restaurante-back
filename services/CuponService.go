@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"restaurante/database"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -116,12 +117,11 @@ func (o beegoCuponOrmer) Insert(model interface{}) (int64, error) {
 	return o.insertFunc(model)
 }
 
-// ValidarCupon valida si un cupón puede ser aplicado a un pedido
 func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCuponRequest) (*models.ValidarCuponResponse, error) {
 	if s.ormer == nil {
 		return nil, fmt.Errorf("ormer no configurado")
 	}
-	// Buscar el cupón por código
+
 	cupon := &models.Cupon{}
 	err := s.ormer.QueryTable("cupon").Filter("codigo", req.Codigo).One(cupon)
 	if err != nil {
@@ -134,7 +134,6 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 		return nil, fmt.Errorf("error al buscar cupón: %w", err)
 	}
 
-	// Validar si el cupón está activo
 	if !cupon.Activo {
 		return &models.ValidarCuponResponse{
 			Aplicable: false,
@@ -142,8 +141,7 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 		}, nil
 	}
 
-	// Validar fechas de vigencia
-	now := time.Now()
+	now := time.Now().In(database.BogotaZone)
 	if now.Before(cupon.FechaInicio) || now.After(cupon.FechaFin) {
 		return &models.ValidarCuponResponse{
 			Aplicable: false,
@@ -151,7 +149,6 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 		}, nil
 	}
 
-	// Validar límite de usos globales
 	if cupon.MaxUsos != nil {
 		usosActuales, err := s.ormer.QueryTable("cupon_redencion").Filter("pk_id_cupon", cupon.PkIdCupon).Count()
 		if err != nil {
@@ -165,7 +162,6 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 		}
 	}
 
-	// Validar límite de usos por cliente
 	if cupon.LimitePorCliente != nil {
 		usosCliente, err := s.ormer.QueryTable("cupon_redencion").Filter("pk_id_cupon", cupon.PkIdCupon).Filter("pk_documento_cliente", req.ClienteId).Count()
 		if err != nil {
@@ -179,20 +175,17 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 		}
 	}
 
-	// Calcular monto total del pedido
 	montoTotal := int64(0)
 	productosAplicables := []int64{}
 
 	for _, item := range req.Items {
 		montoTotal += item.Precio * int64(item.Cantidad)
 
-		// Verificar si el producto es aplicable según el scope del cupón
 		if s.esProductoAplicable(cupon, item.ProductoId) {
 			productosAplicables = append(productosAplicables, item.ProductoId)
 		}
 	}
 
-	// Validar monto mínimo
 	if cupon.MontoMinimo != nil && montoTotal < *cupon.MontoMinimo {
 		return &models.ValidarCuponResponse{
 			Aplicable: false,
@@ -200,7 +193,6 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 		}, nil
 	}
 
-	// Validar scope específico
 	if cupon.Scope == models.CuponScopeCliente && cupon.PkDocumentoCliente != nil {
 		if cupon.PkDocumentoCliente.PK_DOCUMENTO_CLIENTE != req.ClienteId {
 			return &models.ValidarCuponResponse{
@@ -210,7 +202,6 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 		}
 	}
 
-	// Si el scope es por producto o categoría, verificar que haya productos aplicables
 	if (cupon.Scope == models.CuponScopeProducto || cupon.Scope == models.CuponScopeCategoria) && len(productosAplicables) == 0 {
 		return &models.ValidarCuponResponse{
 			Aplicable: false,
@@ -218,7 +209,6 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 		}, nil
 	}
 
-	// Calcular descuento
 	montoDescuento := s.calcularDescuento(cupon, montoTotal, req.Items, productosAplicables)
 
 	return &models.ValidarCuponResponse{
@@ -227,23 +217,21 @@ func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCupo
 	}, nil
 }
 
-// RedimirCupon registra la redención de un cupón
 func (s *CuponService) RedimirCupon(ctx context.Context, codigo string, req *models.RedimirCuponRequest) (*models.CuponRedencion, error) {
 	if s.ormer == nil {
 		return nil, fmt.Errorf("ormer no configurado")
 	}
-	// Buscar el cupón
+
 	cupon := &models.Cupon{}
 	err := s.ormer.QueryTable("cupon").Filter("codigo", codigo).One(cupon)
 	if err != nil {
 		return nil, fmt.Errorf("cupón no encontrado: %w", err)
 	}
 
-	// Validar que el cupón pueda ser redimido (reutilizar lógica de validación)
 	validacionReq := &models.ValidarCuponRequest{
 		ClienteId: req.ClienteId,
 		Codigo:    codigo,
-		Items:     []models.ValidarCuponItemRequest{}, // Se necesitarían los items del pedido real
+		Items:     []models.ValidarCuponItemRequest{},
 	}
 
 	validacion, err := s.ValidarCupon(ctx, validacionReq)
@@ -255,7 +243,6 @@ func (s *CuponService) RedimirCupon(ctx context.Context, codigo string, req *mod
 		return nil, fmt.Errorf("cupón no aplicable: %s", *validacion.Motivo)
 	}
 
-	// Crear la redención
 	redencion := &models.CuponRedencion{
 		PkIdCupon:          cupon,
 		PkDocumentoCliente: &models.Cliente{PK_DOCUMENTO_CLIENTE: req.ClienteId},
@@ -274,7 +261,6 @@ func (s *CuponService) RedimirCupon(ctx context.Context, codigo string, req *mod
 	return redencion, nil
 }
 
-// esProductoAplicable verifica si un producto es aplicable según el scope del cupón
 func (s *CuponService) esProductoAplicable(cupon *models.Cupon, productoId int64) bool {
 	switch cupon.Scope {
 	case models.CuponScopeGlobal:
@@ -288,7 +274,7 @@ func (s *CuponService) esProductoAplicable(cupon *models.Cupon, productoId int64
 		if cupon.PkIdCategoria == nil {
 			return false
 		}
-		// Buscar el producto y verificar su categoría a través de subcategoría
+
 		producto := &models.Producto{}
 		err := s.ormer.QueryTable("producto").Filter("pk_id_producto", productoId).RelatedSel().One(producto)
 		if err != nil {
@@ -306,19 +292,18 @@ func (s *CuponService) esProductoAplicable(cupon *models.Cupon, productoId int64
 
 		return subcategoria.PK_ID_CATEGORIA.PK_ID_CATEGORIA == cupon.PkIdCategoria.PK_ID_CATEGORIA
 	case models.CuponScopeCliente:
-		return true // Ya se validó el cliente en ValidarCupon
+		return true
 	}
 	return false
 }
 
-// calcularDescuento calcula el monto de descuento según el tipo y valor del cupón
 func (s *CuponService) calcularDescuento(cupon *models.Cupon, montoTotal int64, items []models.ValidarCuponItemRequest, productosAplicables []int64) int64 {
 	var montoAplicable int64
 
 	if cupon.Scope == models.CuponScopeGlobal || cupon.Scope == models.CuponScopeCliente {
 		montoAplicable = montoTotal
 	} else {
-		// Solo productos aplicables
+
 		for _, item := range items {
 			for _, prodId := range productosAplicables {
 				if item.ProductoId == prodId {
@@ -341,9 +326,8 @@ func (s *CuponService) calcularDescuento(cupon *models.Cupon, montoTotal int64, 
 	return 0
 }
 
-// ValidarReglasNegocioCupon valida las reglas de negocio al crear/actualizar un cupón
 func (s *CuponService) ValidarReglasNegocioCupon(cupon *models.Cupon) error {
-	// Validar tipo de descuento y valor
+
 	switch cupon.TipoDescuento {
 	case models.TipoDescuentoPorcentaje:
 		if cupon.ValorDescuento < 1 || cupon.ValorDescuento > 100 {
@@ -355,12 +339,10 @@ func (s *CuponService) ValidarReglasNegocioCupon(cupon *models.Cupon) error {
 		}
 	}
 
-	// Validar fechas
 	if cupon.FechaFin.Before(cupon.FechaInicio) {
 		return fmt.Errorf("la fecha de fin debe ser posterior a la fecha de inicio")
 	}
 
-	// Validar scope vs targets
 	switch cupon.Scope {
 	case models.CuponScopeProducto:
 		if cupon.PkIdProducto == nil {

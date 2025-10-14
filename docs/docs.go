@@ -8682,7 +8682,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "valorVida": {
-                    "description": "CLV estimado",
                     "type": "integer"
                 }
             }
@@ -9121,14 +9120,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "capacidadUtilizada": {
-                    "description": "Porcentaje",
                     "type": "number"
                 },
                 "hora": {
                     "type": "string"
                 },
                 "nivelEficiencia": {
-                    "description": "Alto, Medio, Bajo",
                     "type": "string"
                 },
                 "pedidosRecibidos": {
@@ -10142,14 +10139,12 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "gananciaTotal": {
-                    "description": "Ganancia total en pesos",
                     "type": "integer"
                 },
                 "ingresoTotal": {
                     "type": "integer"
                 },
                 "margenGanancia": {
-                    "description": "Porcentaje de ganancia",
                     "type": "number"
                 },
                 "nombreProducto": {
@@ -10401,7 +10396,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "eficienciaScore": {
-                    "description": "1-10",
                     "type": "number"
                 },
                 "horasTrabajadas": {
@@ -10864,7 +10858,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "tiempoPreparacion": {
-                    "description": "en minutos",
                     "type": "integer"
                 },
                 "trabajadorAsignado": {

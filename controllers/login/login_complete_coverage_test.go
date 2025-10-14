@@ -16,9 +16,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// TestRefreshToken_WithoutBearerPrefix cubre el caso de token sin prefijo "Bearer"
 func TestRefreshToken_WithoutBearerPrefix(t *testing.T) {
-	// Generar un refresh token válido
+
 	now := time.Now()
 	refreshClaims := &RefreshClaims{
 		Documento: 123456,
@@ -37,9 +36,8 @@ func TestRefreshToken_WithoutBearerPrefix(t *testing.T) {
 		t.Fatalf("Failed to create token: %v", err)
 	}
 
-	// Enviar request SIN prefijo "Bearer " (solo el token)
 	r := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
-	r.Header.Set("Authorization", tokenString) // SIN "Bearer "
+	r.Header.Set("Authorization", tokenString)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
@@ -64,9 +62,8 @@ func TestRefreshToken_WithoutBearerPrefix(t *testing.T) {
 	}
 }
 
-// TestValidateToken_WithoutBearerPrefix cubre el caso de token sin prefijo "Bearer" en ValidateToken
 func TestValidateToken_WithoutBearerPrefix(t *testing.T) {
-	// Generar un access token válido
+
 	now := time.Now()
 	claims := &Claims{
 		Documento: 123456,
@@ -84,24 +81,21 @@ func TestValidateToken_WithoutBearerPrefix(t *testing.T) {
 		t.Fatalf("Failed to create token: %v", err)
 	}
 
-	// Request protegido SIN prefijo "Bearer "
 	r := httptest.NewRequest(http.MethodGet, "/restaurante/v1/trabajadores", nil)
-	r.Header.Set("Authorization", tokenString) // SIN "Bearer "
+	r.Header.Set("Authorization", tokenString)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
 	ctx.Reset(w, r)
 
 	ValidateToken(ctx)
 
-	// ValidateToken no debe devolver error si el token es válido, incluso sin Bearer
 	if w.Code == http.StatusUnauthorized {
 		t.Fatalf("Expected ValidateToken to accept token without Bearer prefix, got 401")
 	}
 }
 
-// TestRefreshToken_TokenInvalidNotValid cubre el caso de token.Valid == false
 func TestRefreshToken_TokenInvalidNotValid(t *testing.T) {
-	// Token expirado (para que token.Valid sea false)
+
 	now := time.Now()
 	refreshClaims := &RefreshClaims{
 		Documento: 123456,
@@ -109,7 +103,7 @@ func TestRefreshToken_TokenInvalidNotValid(t *testing.T) {
 		Nombre:    "Test User",
 		TokenType: "refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(-1 * time.Hour)), // Expirado
+			ExpiresAt: jwt.NewNumericDate(now.Add(-1 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(now.Add(-2 * time.Hour)),
 		},
 	}
@@ -137,16 +131,15 @@ func TestRefreshToken_TokenInvalidNotValid(t *testing.T) {
 	}
 }
 
-// TestValidateToken_InvalidTokenNotValid cubre el caso de token.Valid == false en ValidateToken
 func TestValidateToken_InvalidTokenNotValid(t *testing.T) {
-	// Token expirado
+
 	now := time.Now()
 	claims := &Claims{
 		Documento: 123456,
 		Rol:       "Cliente",
 		Nombre:    "Test User",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(-1 * time.Hour)), // Expirado
+			ExpiresAt: jwt.NewNumericDate(now.Add(-1 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(now.Add(-2 * time.Hour)),
 		},
 	}
@@ -170,7 +163,6 @@ func TestValidateToken_InvalidTokenNotValid(t *testing.T) {
 	}
 }
 
-// TestGenerateTokens_RefreshTokenSignError cubre el error al firmar el refresh token
 func TestGenerateTokens_RefreshTokenSignError(t *testing.T) {
 	origSecret := jwtSecret
 	origMethod := signingMethod
@@ -181,10 +173,9 @@ func TestGenerateTokens_RefreshTokenSignError(t *testing.T) {
 
 	jwtSecret = []byte("valid-secret")
 
-	// Mock que falla solo en el segundo SignedString (refresh token)
 	callCount := 0
 	signingMethod = &customFailingMethod{
-		failOnCall: 2, // Fallar en la segunda firma (refresh token)
+		failOnCall: 2,
 		callCount:  &callCount,
 	}
 
@@ -198,7 +189,6 @@ func TestGenerateTokens_RefreshTokenSignError(t *testing.T) {
 	}
 }
 
-// customFailingMethod simula un signing method que falla en una llamada específica
 type customFailingMethod struct {
 	failOnCall int
 	callCount  *int
@@ -213,7 +203,7 @@ func (m *customFailingMethod) Sign(signingString string, key interface{}) ([]byt
 	if *m.callCount == m.failOnCall {
 		return nil, jwt.ErrInvalidKey
 	}
-	// Usar el método real para otras llamadas
+
 	return jwt.SigningMethodHS256.Sign(signingString, key)
 }
 
@@ -221,7 +211,6 @@ func (m *customFailingMethod) Alg() string {
 	return "HS256"
 }
 
-// TestLogin_RateLimitAfterReset cubre la línea 138 (después de reset)
 func TestLogin_RateLimitAfterReset(t *testing.T) {
 	origRL := loginRL
 	origMax := loginMaxReq
@@ -238,7 +227,6 @@ func TestLogin_RateLimitAfterReset(t *testing.T) {
 	}
 	body, _ := json.Marshal(loginReq)
 
-	// Primera request
 	r1 := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	r1.RemoteAddr = "192.168.1.100:1234"
 	w1 := httptest.NewRecorder()
@@ -250,7 +238,6 @@ func TestLogin_RateLimitAfterReset(t *testing.T) {
 	c1.Ctx = ctx1
 	c1.Data = make(map[interface{}]interface{})
 
-	// Mock ORM para que falle (no nos importa el resultado del login)
 	origNewOrm := newOrm
 	defer func() { newOrm = origNewOrm }()
 	newOrm = func() orm.Ormer {
@@ -261,7 +248,6 @@ func TestLogin_RateLimitAfterReset(t *testing.T) {
 
 	c1.Login()
 
-	// Segunda request (debería pasar, aún tenemos 1 más)
 	r2 := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	r2.RemoteAddr = "192.168.1.100:1234"
 	w2 := httptest.NewRecorder()
@@ -275,7 +261,6 @@ func TestLogin_RateLimitAfterReset(t *testing.T) {
 
 	c2.Login()
 
-	// Tercera request (debería ser bloqueada)
 	r3 := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	r3.RemoteAddr = "192.168.1.100:1234"
 	w3 := httptest.NewRecorder()
@@ -293,12 +278,10 @@ func TestLogin_RateLimitAfterReset(t *testing.T) {
 		t.Fatalf("Expected status 429 on third request, got %d", w3.Code)
 	}
 
-	// Simular reset del tiempo
 	ip := clientIP(r3)
 	entry := loginRL.m[ip]
-	entry.reset = time.Now().Add(-1 * time.Minute) // Expirar el reset
+	entry.reset = time.Now().Add(-1 * time.Minute)
 
-	// Cuarta request (después del reset, debería permitir)
 	r4 := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	r4.RemoteAddr = "192.168.1.100:1234"
 	w4 := httptest.NewRecorder()
@@ -312,19 +295,16 @@ func TestLogin_RateLimitAfterReset(t *testing.T) {
 
 	c4.Login()
 
-	// No debería ser rate limited (línea 136-138)
 	if w4.Code == http.StatusTooManyRequests {
 		t.Fatal("Expected request to be allowed after reset")
 	}
 }
 
-// TestValidateToken_DevSwaggerBypass cubre las líneas 431-439
 func TestValidateToken_DevSwaggerBypass(t *testing.T) {
 	origRunMode := web.BConfig.RunMode
 	web.BConfig.RunMode = "dev"
 	defer func() { web.BConfig.RunMode = origRunMode }()
 
-	// Test con Referer a swagger
 	r1 := httptest.NewRequest(http.MethodGet, "/restaurante/v1/trabajadores", nil)
 	r1.Header.Set("Referer", "http://localhost:8080/swagger/index.html")
 	w1 := httptest.NewRecorder()
@@ -333,12 +313,10 @@ func TestValidateToken_DevSwaggerBypass(t *testing.T) {
 
 	ValidateToken(ctx1)
 
-	// Debería permitir sin token en dev con referer swagger
 	if w1.Code == http.StatusUnauthorized {
 		t.Fatal("Expected swagger referer to bypass auth in dev mode")
 	}
 
-	// Test con path que empieza con /swagger/
 	r2 := httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil)
 	w2 := httptest.NewRecorder()
 	ctx2 := context.NewContext()
@@ -346,7 +324,6 @@ func TestValidateToken_DevSwaggerBypass(t *testing.T) {
 
 	ValidateToken(ctx2)
 
-	// Debería permitir sin token para paths de swagger en dev
 	if w2.Code == http.StatusUnauthorized {
 		t.Fatal("Expected /swagger/ path to bypass auth in dev mode")
 	}

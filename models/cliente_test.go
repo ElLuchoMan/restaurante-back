@@ -25,12 +25,10 @@ func TestCliente_JSONSerialization(t *testing.T) {
 		PASSWORD:             "hashed_password",
 	}
 
-	// Serializar
 	jsonData, err := json.Marshal(cliente)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Verificar campos en JSON
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
@@ -38,7 +36,6 @@ func TestCliente_JSONSerialization(t *testing.T) {
 	assert.Equal(t, "Juan", jsonMap["nombre"])
 	assert.Equal(t, "juan.perez@example.com", jsonMap["correo"])
 
-	// Deserializar
 	var clienteDeserialized Cliente
 	err = json.Unmarshal(jsonData, &clienteDeserialized)
 	assert.NoError(t, err)
@@ -57,10 +54,8 @@ func TestCliente_ObservacionesNull(t *testing.T) {
 		PASSWORD:             "pass",
 	}
 
-	// Observaciones debe ser nil por defecto
 	assert.Nil(t, cliente.OBSERVACIONES)
 
-	// Serializar y verificar que observaciones no aparece en JSON
 	jsonData, err := json.Marshal(cliente)
 	assert.NoError(t, err)
 
@@ -68,7 +63,6 @@ func TestCliente_ObservacionesNull(t *testing.T) {
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
 
-	// observaciones debe ser nil (null en JSON)
 	_, exists := jsonMap["observaciones"]
-	assert.True(t, exists) // Existe pero es null
+	assert.True(t, exists)
 }

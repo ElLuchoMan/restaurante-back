@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"restaurante/database"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -142,6 +143,10 @@ func TestCuponService_ValidarCupon_CuponInactivo(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_CuponFueraVigencia(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	service := NewCuponService(&mockCuponOrmer{
 		tables: map[string]func() cuponQuerySeter{
@@ -170,6 +175,10 @@ func TestCuponService_ValidarCupon_CuponFueraVigencia(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_MaxUsosSuperado(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	maxUsos := 1
 	service := NewCuponService(&mockCuponOrmer{
@@ -207,6 +216,10 @@ func TestCuponService_ValidarCupon_MaxUsosSuperado(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ErrorContarUsos(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	maxUsos := 2
 	service := NewCuponService(&mockCuponOrmer{
@@ -241,6 +254,10 @@ func TestCuponService_ValidarCupon_ErrorContarUsos(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_LimiteClienteSuperado(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	limite := 1
 	service := NewCuponService(&mockCuponOrmer{
@@ -278,6 +295,10 @@ func TestCuponService_ValidarCupon_LimiteClienteSuperado(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ErrorContarCliente(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	limite := 2
 	service := NewCuponService(&mockCuponOrmer{
@@ -312,6 +333,10 @@ func TestCuponService_ValidarCupon_ErrorContarCliente(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_MontoMinimo(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	minimo := int64(500)
 	service := NewCuponService(&mockCuponOrmer{
@@ -349,6 +374,10 @@ func TestCuponService_ValidarCupon_MontoMinimo(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ScopeClienteInvalido(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	service := NewCuponService(&mockCuponOrmer{
 		tables: map[string]func() cuponQuerySeter{
@@ -385,6 +414,10 @@ func TestCuponService_ValidarCupon_ScopeClienteInvalido(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ScopeProductoSinAplicables(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	product := &models.Producto{PK_ID_PRODUCTO: 99}
 	service := NewCuponService(&mockCuponOrmer{
@@ -422,6 +455,10 @@ func TestCuponService_ValidarCupon_ScopeProductoSinAplicables(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ScopeCategoriaSinAplicables(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	categoria := &models.Categoria{PK_ID_CATEGORIA: 5}
 	service := NewCuponService(&mockCuponOrmer{
@@ -466,6 +503,10 @@ func TestCuponService_ValidarCupon_ScopeCategoriaSinAplicables(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_Success(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	service := NewCuponService(&mockCuponOrmer{
 		tables: map[string]func() cuponQuerySeter{
@@ -531,6 +572,10 @@ func TestCuponService_RedimirCupon_CuponNoEncontrado(t *testing.T) {
 }
 
 func TestCuponService_RedimirCupon_ValidacionError(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	maxUsos := 1
 	service := NewCuponService(&mockCuponOrmer{
@@ -566,6 +611,10 @@ func TestCuponService_RedimirCupon_ValidacionError(t *testing.T) {
 }
 
 func TestCuponService_RedimirCupon_NoAplicable(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	minimo := int64(500)
 	service := NewCuponService(&mockCuponOrmer{
@@ -600,6 +649,10 @@ func TestCuponService_RedimirCupon_NoAplicable(t *testing.T) {
 }
 
 func TestCuponService_RedimirCupon_InsertError(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	service := NewCuponService(&mockCuponOrmer{
 		tables: map[string]func() cuponQuerySeter{
@@ -637,6 +690,10 @@ func TestCuponService_RedimirCupon_InsertError(t *testing.T) {
 }
 
 func TestCuponService_RedimirCupon_Success(t *testing.T) {
+	// Forzar zona a UTC para simular servidor fuera de Bogotá
+	original := database.BogotaZone
+	database.BogotaZone = time.UTC
+	t.Cleanup(func() { database.BogotaZone = original })
 	now := time.Now()
 	pedidoID := int64(22)
 	service := NewCuponService(&mockCuponOrmer{
@@ -891,7 +948,6 @@ func TestNewCuponOrmerFromFuncs(t *testing.T) {
 	service := NewCuponService(ormer)
 	assert.NotNil(t, service)
 
-	// QueryTable with nil returns default query seter
 	qs := service.ormer.QueryTable("cupon")
 	assert.IsType(t, beegoCuponQuerySeter{}, qs)
 	_, _ = service.ormer.Insert(&models.Cupon{})

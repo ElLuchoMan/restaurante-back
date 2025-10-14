@@ -7,7 +7,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// TestGetJWTSecret verifica que GetJWTSecret retorne el secreto configurado
 func TestGetJWTSecret(t *testing.T) {
 	secret := GetJWTSecret()
 	if len(secret) == 0 {
@@ -15,9 +14,8 @@ func TestGetJWTSecret(t *testing.T) {
 	}
 }
 
-// TestParseTokenClaims_ValidToken verifica que ParseTokenClaims funcione con un token válido
 func TestParseTokenClaims_ValidToken(t *testing.T) {
-	// Generar un token válido
+
 	now := time.Now()
 	claims := &Claims{
 		Documento: 12345,
@@ -35,7 +33,6 @@ func TestParseTokenClaims_ValidToken(t *testing.T) {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
 
-	// Parsear el token
 	parsedClaims, err := ParseTokenClaims(tokenString)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -54,7 +51,6 @@ func TestParseTokenClaims_ValidToken(t *testing.T) {
 	}
 }
 
-// TestParseTokenClaims_InvalidToken verifica que ParseTokenClaims falle con un token inválido
 func TestParseTokenClaims_InvalidToken(t *testing.T) {
 	_, err := ParseTokenClaims("invalid.token.here")
 	if err == nil {
@@ -62,16 +58,15 @@ func TestParseTokenClaims_InvalidToken(t *testing.T) {
 	}
 }
 
-// TestParseTokenClaims_ExpiredToken verifica que ParseTokenClaims falle con un token expirado
 func TestParseTokenClaims_ExpiredToken(t *testing.T) {
-	// Generar un token expirado
+
 	now := time.Now()
 	claims := &Claims{
 		Documento: 12345,
 		Rol:       "Administrador",
 		Nombre:    "Test User",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(-1 * time.Hour)), // Expirado hace 1 hora
+			ExpiresAt: jwt.NewNumericDate(now.Add(-1 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(now.Add(-2 * time.Hour)),
 		},
 	}
@@ -82,14 +77,12 @@ func TestParseTokenClaims_ExpiredToken(t *testing.T) {
 		t.Fatalf("Failed to sign token: %v", err)
 	}
 
-	// Parsear el token expirado
 	_, err = ParseTokenClaims(tokenString)
 	if err == nil {
 		t.Fatal("Expected error for expired token, got nil")
 	}
 }
 
-// TestParseTokenClaims_EmptyToken verifica que ParseTokenClaims falle con un token vacío
 func TestParseTokenClaims_EmptyToken(t *testing.T) {
 	_, err := ParseTokenClaims("")
 	if err == nil {

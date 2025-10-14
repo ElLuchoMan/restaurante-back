@@ -66,8 +66,6 @@ func (c *PagoController) GetAll() {
 		return
 	}
 
-	// No aplicar conversiones aquí; el formateo se maneja en los modelos
-
 	fecha := c.GetString("fecha")
 	dia, _ := c.GetInt("dia")
 	mes, _ := c.GetInt("mes")
@@ -158,9 +156,6 @@ func (c *PagoController) GetById() {
 		return
 	}
 
-	// Los datos ya están en zona horaria de Bogotá (conexión PostgreSQL con TimeZone=America/Bogota)
-	// No es necesario aplicar conversión
-
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
@@ -214,7 +209,7 @@ func (c *PagoController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
-	fecha, err := time.Parse("2006-01-02", in.FechaPago)
+	fecha, err := models.ParseDateToNoonUTC(in.FechaPago)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", err, map[string]interface{}{"fechaPago": in.FechaPago, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -230,7 +225,7 @@ func (c *PagoController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
-	hora, err := time.Parse("15:04:05", in.HoraPago)
+	hora, err := models.ParseTimeToUTC(in.HoraPago)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", err, map[string]interface{}{"horaPago": in.HoraPago, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -280,17 +275,17 @@ func (c *PagoController) Post() {
 		updatedBy = &in.UpdatedBy
 	}
 
-	// Guardar fecha a mediodía UTC para evitar corrimientos de día
-	fechaMidUTC := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 12, 0, 0, 0, time.UTC)
-
 	pago := models.Pago{
-		FECHA:             fechaMidUTC,
+		FECHA:             fecha,
 		HORA:              hora,
 		MONTO:             in.Monto,
 		ESTADO_PAGO:       in.EstadoPago,
 		PK_ID_METODO_PAGO: &models.MetodoPago{PK_ID_METODO_PAGO: in.MetodoPagoId},
 		UPDATED_BY:        updatedBy,
 	}
+
+	// Fijar timestamp de actualización en UTC
+	pago.UPDATED_AT = time.Now().UTC()
 
 	if _, err := o.Insert(&pago); err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.post.insert_error", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
@@ -376,7 +371,7 @@ func (c *PagoController) Put() {
 	}
 
 	if fechaStr, ok := getStr("fecha", "FECHA"); ok {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
+		parsedDate, err := models.ParseDateToNoonUTC(fechaStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "pagos.put.validation_error", err, map[string]interface{}{"id": id, "fecha": fechaStr, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -384,15 +379,15 @@ func (c *PagoController) Put() {
 			_ = c.ServeJSON()
 			return
 		}
-		pago.FECHA = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 12, 0, 0, 0, time.UTC)
+		pago.FECHA = parsedDate
 	}
 
 	if horaStr, ok := getStr("hora", "HORA"); ok {
-		parsedHora, err := time.Parse("15:04:05", horaStr)
+		parsedHora, err := models.ParseTimeToUTC(horaStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "pagos.put.validation_error", err, map[string]interface{}{"id": id, "hora": horaStr, "body": string(c.Ctx.Input.RequestBody)})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido (HH:MM:SS)", Cause: err.Error()}
+			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido (HH:MM[:SS])", Cause: err.Error()}
 			_ = c.ServeJSON()
 			return
 		}

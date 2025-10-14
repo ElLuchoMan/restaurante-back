@@ -2,6 +2,7 @@ package pedido
 
 import (
 	"encoding/json"
+	"restaurante/database"
 	"restaurante/logging"
 	"restaurante/models"
 	"time"
@@ -9,8 +10,6 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 )
-
-// zona horaria no requerida: usamos UTC estable en creaciones
 
 type PedidoController struct {
 	web.Controller
@@ -160,12 +159,20 @@ func (c *PedidoController) Post() {
 		return
 	}
 
-	// Zona horaria no requerida; usamos UTC estable
+	bogota := database.BogotaZone
+	if bogota == nil {
+		if loc, err := time.LoadLocation("America/Bogota"); err == nil {
+			bogota = loc
+		} else {
+			bogota = time.FixedZone("UTC-5", -5*60*60)
+		}
+	}
+	nowBogota := time.Now().In(bogota)
 	now := time.Now().UTC()
 
 	var pedido models.Pedido
-	// FECHA al mediodía UTC del día actual; HORA al instante actual UTC (estables)
-	pedido.FECHA = time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC)
+
+	pedido.FECHA = time.Date(nowBogota.Year(), nowBogota.Month(), nowBogota.Day(), 12, 0, 0, 0, time.UTC)
 	pedido.HORA = now
 	pedido.ESTADO_PEDIDO = models.EstadoPedidoIniciado
 
@@ -282,7 +289,7 @@ func (c *PedidoController) AssignDomicilio() {
 func (c *PedidoController) AssignPago() {
 	pedidoID, _ := c.GetInt64("pedido_id")
 	pagoID, _ := c.GetInt64("pago_id")
-	cambiarEstado := true // Por defecto true para mantener compatibilidad
+	cambiarEstado := true
 	if cambiarEstadoStr := c.GetString("cambiar_estado"); cambiarEstadoStr != "" {
 		if cambiarEstadoBool, err := c.GetBool("cambiar_estado"); err == nil {
 			cambiarEstado = cambiarEstadoBool
@@ -299,7 +306,6 @@ func (c *PedidoController) AssignPago() {
 		return
 	}
 
-	// Obtener el estado actual del pedido si no vamos a cambiarlo
 	var estadoPedido models.EstadoPedido
 	if cambiarEstado {
 		estadoPedido = models.EstadoPedidoTerminado
@@ -324,7 +330,6 @@ func (c *PedidoController) AssignPago() {
 		return
 	}
 
-	// Solo cambiar el estado del pago si cambiarEstado es true
 	if cambiarEstado {
 		if _, err := o.Raw("UPDATE pago SET estado_pago = ? WHERE pk_id_pago = ?", models.EstadoPagoPagado, pagoID).Exec(); err != nil {
 			logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_pago_error", err, map[string]interface{}{"pago_id": pagoID})
@@ -471,10 +476,6 @@ WHERE p.pk_id_pedido = ?;
 		_ = c.ServeJSON()
 		return
 	}
-
-	// Los datos en BD ya están en zona horaria de Bogotá
-	// (porque la conexión PostgreSQL usa TimeZone=America/Bogota)
-	// No es necesario hacer conversión, solo formatear si es necesario
 
 	c.Data["json"] = models.ApiResponse{
 		Code:    200,

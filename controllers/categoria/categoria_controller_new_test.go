@@ -272,7 +272,6 @@ func TestCategoriaController_ReadErrors(t *testing.T) {
 	catOrmNew = func() categoriaOrmer { return readErrOrm{newCatMockOrm()} }
 	defer func() { catOrmNew = orig }()
 
-	// GetById con error de Read
 	r := httptest.NewRequest(http.MethodGet, "/categorias/search?id=1", nil)
 	w := httptest.NewRecorder()
 	ctx := context.NewContext()
@@ -285,7 +284,6 @@ func TestCategoriaController_ReadErrors(t *testing.T) {
 		t.Fatalf("GetById expected 500, got %d", w.Code)
 	}
 
-	// Put con error de Read
 	body := `{"nombre":"Z"}`
 	r = httptest.NewRequest(http.MethodPut, "/categorias?id=1", strings.NewReader(body))
 	w = httptest.NewRecorder()
@@ -300,7 +298,6 @@ func TestCategoriaController_ReadErrors(t *testing.T) {
 		t.Fatalf("Put expected 500, got %d", w.Code)
 	}
 
-	// Delete con error de Read
 	r = httptest.NewRequest(http.MethodDelete, "/categorias?id=1", nil)
 	w = httptest.NewRecorder()
 	ctx = context.NewContext()

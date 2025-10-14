@@ -58,15 +58,13 @@ func NewPushService(ormer orm.Ormer) *PushService {
 	return &PushService{ormer: ormer}
 }
 
-// ValidarRegistroDispositivo valida las reglas de negocio para registrar un dispositivo push
 func (s *PushService) ValidarRegistroDispositivo(req *models.RegistrarDispositivoRequest) error {
-	// Validar que exactamente uno de cliente o trabajador esté especificado
+
 	if (req.PkDocumentoCliente == nil && req.PkDocumentoTrabajador == nil) ||
 		(req.PkDocumentoCliente != nil && req.PkDocumentoTrabajador != nil) {
 		return fmt.Errorf("debe especificar exactamente uno de cliente o trabajador")
 	}
 
-	// Validar coherencia entre plataforma y campos requeridos
 	switch req.Plataforma {
 	case models.PlataformaWeb:
 		if req.Endpoint == nil || req.P256dh == nil || req.Auth == nil {
@@ -89,26 +87,24 @@ func (s *PushService) ValidarRegistroDispositivo(req *models.RegistrarDispositiv
 	return nil
 }
 
-// RegistrarDispositivo registra un nuevo dispositivo push o actualiza uno existente
 func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.RegistrarDispositivoRequest) (*models.PushDispositivo, error) {
-	// Validar reglas de negocio
+
 	if err := s.ValidarRegistroDispositivo(req); err != nil {
 		return nil, err
 	}
 
 	now := time.Now()
 
-	// Intentar encontrar dispositivo existente por fcm_token o endpoint
 	var existingDevice *models.PushDispositivo
 	if req.FcmToken != nil && *req.FcmToken != "" {
-		// Buscar por FCM token
+
 		device := &models.PushDispositivo{}
 		err := s.ormer.QueryTable("push_dispositivo").Filter("fcm_token", *req.FcmToken).One(device)
 		if err == nil {
 			existingDevice = device
 		}
 	} else if req.Endpoint != nil && *req.Endpoint != "" {
-		// Buscar por endpoint (para WEB push)
+
 		device := &models.PushDispositivo{}
 		err := s.ormer.QueryTable("push_dispositivo").Filter("endpoint", *req.Endpoint).One(device)
 		if err == nil {
@@ -117,13 +113,13 @@ func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.Regi
 	}
 
 	if existingDevice != nil {
-		// Actualizar dispositivo existente
+
 		existingDevice.Plataforma = req.Plataforma
 		existingDevice.Endpoint = req.Endpoint
 		existingDevice.P256dh = req.P256dh
 		existingDevice.Auth = req.Auth
 		existingDevice.FcmToken = req.FcmToken
-		existingDevice.Enabled = true // Reactivar si estaba deshabilitado
+		existingDevice.Enabled = true
 		existingDevice.Locale = req.Locale
 		existingDevice.TimeZone = req.TimeZone
 		existingDevice.AppVersion = req.AppVersion
@@ -131,7 +127,6 @@ func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.Regi
 		existingDevice.SubscribedTopicsArray = req.SubscribedTopics
 		existingDevice.LastSeenAt = &now
 
-		// Actualizar relaciones de usuario si cambiaron
 		if req.PkDocumentoCliente != nil {
 			existingDevice.PkDocumentoCliente = &models.Cliente{PK_DOCUMENTO_CLIENTE: *req.PkDocumentoCliente}
 		} else {
@@ -144,7 +139,6 @@ func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.Regi
 			existingDevice.PkDocumentoTrabajador = nil
 		}
 
-		// Forzar serialización antes del update
 		existingDevice.BeforeUpdate()
 
 		_, err := s.ormer.Update(existingDevice)
@@ -155,7 +149,6 @@ func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.Regi
 		return existingDevice, nil
 	}
 
-	// Crear nuevo dispositivo
 	dispositivo := &models.PushDispositivo{
 		Plataforma:            req.Plataforma,
 		Endpoint:              req.Endpoint,
@@ -180,7 +173,6 @@ func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.Regi
 		dispositivo.PkDocumentoTrabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: *req.PkDocumentoTrabajador}
 	}
 
-	// Forzar serialización antes del insert
 	dispositivo.BeforeInsert()
 
 	_, err := s.ormer.Insert(dispositivo)
@@ -191,7 +183,6 @@ func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.Regi
 	return dispositivo, nil
 }
 
-// ActualizarUltimaVista actualiza el campo last_seen_at de un dispositivo
 func (s *PushService) ActualizarUltimaVista(ctx context.Context, dispositivoId int64) error {
 	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: dispositivoId}
 	err := s.ormer.Read(dispositivo)
@@ -213,7 +204,6 @@ func (s *PushService) ActualizarUltimaVista(ctx context.Context, dispositivoId i
 	return nil
 }
 
-// ActualizarEstadoDispositivo actualiza el estado enabled de un dispositivo
 func (s *PushService) ActualizarEstadoDispositivo(ctx context.Context, dispositivoId int64, enabled bool) error {
 	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: dispositivoId}
 	err := s.ormer.Read(dispositivo)
@@ -234,7 +224,6 @@ func (s *PushService) ActualizarEstadoDispositivo(ctx context.Context, dispositi
 	return nil
 }
 
-// ActualizarTopicsDispositivo actualiza los topics suscritos de un dispositivo
 func (s *PushService) ActualizarTopicsDispositivo(ctx context.Context, dispositivoId int64, topics []string) error {
 	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: dispositivoId}
 	err := s.ormer.Read(dispositivo)
@@ -255,9 +244,8 @@ func (s *PushService) ActualizarTopicsDispositivo(ctx context.Context, dispositi
 	return nil
 }
 
-// RegistrarEnvio registra el resultado de un envío push
 func (s *PushService) RegistrarEnvio(ctx context.Context, req *models.RegistrarEnvioRequest) (*models.PushEnvio, error) {
-	// Verificar que el dispositivo existe
+
 	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: req.PkIdPushDispositivo}
 	err := s.ormer.Read(dispositivo)
 	if err != nil {
@@ -267,7 +255,6 @@ func (s *PushService) RegistrarEnvio(ctx context.Context, req *models.RegistrarE
 		return nil, fmt.Errorf("error al buscar dispositivo: %w", err)
 	}
 
-	// Validar proveedor
 	if !req.Proveedor.IsValid() {
 		return nil, fmt.Errorf("proveedor no válido: %s", req.Proveedor)
 	}
@@ -290,14 +277,12 @@ func (s *PushService) RegistrarEnvio(ctx context.Context, req *models.RegistrarE
 	return envio, nil
 }
 
-// EnviarNotificacion envía una notificación push a los destinatarios especificados
 func (s *PushService) EnviarNotificacion(req *models.EnviarNotificacionRequest) (*models.EnviarNotificacionResponse, error) {
-	// Validar el remitente
+
 	if err := s.validarRemitente(&req.Remitente); err != nil {
 		return nil, fmt.Errorf("remitente inválido: %w", err)
 	}
 
-	// Obtener dispositivos destinatarios
 	dispositivos, err := s.obtenerDispositivosDestinatarios(&req.Destinatarios)
 	if err != nil {
 		return nil, fmt.Errorf("error obteniendo dispositivos: %w", err)
@@ -315,7 +300,6 @@ func (s *PushService) EnviarNotificacion(req *models.EnviarNotificacionRequest) 
 		}, nil
 	}
 
-	// Enviar notificaciones a cada dispositivo
 	var detalleEnvios []models.DetalleEnvioNotificacion
 	enviosExitosos := 0
 	enviosFallidos := 0
@@ -324,7 +308,6 @@ func (s *PushService) EnviarNotificacion(req *models.EnviarNotificacionRequest) 
 		detalle := s.enviarNotificacionDispositivo(&dispositivo, &req.Notificacion)
 		detalleEnvios = append(detalleEnvios, detalle)
 
-		// Registrar el envío en la base de datos
 		s.registrarEnvioNotificacion(&dispositivo, &req.Notificacion, detalle.Exito, detalle.StatusCode, detalle.ErrorCode)
 
 		if detalle.Exito {
@@ -334,7 +317,6 @@ func (s *PushService) EnviarNotificacion(req *models.EnviarNotificacionRequest) 
 		}
 	}
 
-	// Crear resumen de destinatarios
 	resumen := s.crearResumenDestinatarios(&req.Destinatarios, dispositivos)
 
 	return &models.EnviarNotificacionResponse{
@@ -346,14 +328,12 @@ func (s *PushService) EnviarNotificacion(req *models.EnviarNotificacionRequest) 
 	}, nil
 }
 
-// validarRemitente valida que el remitente sea válido
 func (s *PushService) validarRemitente(remitente *models.RemitenteNotificacion) error {
 	if remitente.Tipo == models.RemitenteTrabajador {
 		if remitente.DocumentoTrabajador == nil {
 			return fmt.Errorf("documentoTrabajador es requerido para remitente TRABAJADOR")
 		}
 
-		// Verificar que el trabajador existe
 		trabajador := &models.Trabajador{}
 		err := s.ormer.QueryTable("trabajador").Filter("pk_documento_trabajador", *remitente.DocumentoTrabajador).One(trabajador)
 		if err != nil {
@@ -363,13 +343,12 @@ func (s *PushService) validarRemitente(remitente *models.RemitenteNotificacion) 
 	return nil
 }
 
-// obtenerDispositivosDestinatarios obtiene los dispositivos según el tipo de destinatario
 func (s *PushService) obtenerDispositivosDestinatarios(destinatarios *models.DestinatariosNotificacion) ([]models.PushDispositivo, error) {
 	qs := s.ormer.QueryTable("push_dispositivo").Filter("enabled", true)
 
 	switch destinatarios.Tipo {
 	case models.DestinatarioTodos:
-		// Todos los dispositivos activos
+
 		break
 	case models.DestinatarioCliente:
 		if destinatarios.DocumentoCliente == nil {
@@ -377,7 +356,7 @@ func (s *PushService) obtenerDispositivosDestinatarios(destinatarios *models.Des
 		}
 		qs = qs.Filter("pk_documento_cliente", *destinatarios.DocumentoCliente)
 	case models.DestinatarioClientes:
-		// Todos los dispositivos asociados a clientes (excluye trabajadores)
+
 		qs = qs.Filter("pk_documento_cliente__isnull", false)
 		qs = qs.Filter("pk_documento_trabajador__isnull", true)
 	case models.DestinatarioTrabajador:
@@ -386,14 +365,14 @@ func (s *PushService) obtenerDispositivosDestinatarios(destinatarios *models.Des
 		}
 		qs = qs.Filter("pk_documento_trabajador", *destinatarios.DocumentoTrabajador)
 	case models.DestinatarioTrabajadores:
-		// Todos los dispositivos asociados a trabajadores (excluye clientes)
+
 		qs = qs.Filter("pk_documento_trabajador__isnull", false)
 		qs = qs.Filter("pk_documento_cliente__isnull", true)
 	case models.DestinatarioTopic:
 		if destinatarios.Topic == nil {
 			return nil, fmt.Errorf("topic es requerido para destinatario TOPIC")
 		}
-		// Filtrar dispositivos que tengan el topic suscrito
+
 		qs = qs.Filter("subscribed_topics__contains", *destinatarios.Topic)
 	default:
 		return nil, fmt.Errorf("tipo de destinatario no válido: %s", destinatarios.Tipo)
@@ -404,7 +383,6 @@ func (s *PushService) obtenerDispositivosDestinatarios(destinatarios *models.Des
 	return dispositivos, err
 }
 
-// enviarNotificacionDispositivo envía la notificación a un dispositivo específico
 func (s *PushService) enviarNotificacionDispositivo(dispositivo *models.PushDispositivo, notificacion *models.ContenidoNotificacion) models.DetalleEnvioNotificacion {
 	var documentoCliente *int64
 	var documentoTrabajador *int64
@@ -423,13 +401,12 @@ func (s *PushService) enviarNotificacionDispositivo(dispositivo *models.PushDisp
 		DocumentoTrabajador: documentoTrabajador,
 	}
 
-	// Aquí iría la lógica real de envío según la plataforma
 	switch dispositivo.Plataforma {
 	case models.PlataformaWeb:
-		// Envío Web Push
+
 		detalle.Exito, detalle.StatusCode, detalle.ErrorCode = s.enviarWebPush(dispositivo, notificacion)
 	case models.PlataformaAndroid, models.PlataformaIOS:
-		// Envío FCM
+
 		detalle.Exito, detalle.StatusCode, detalle.ErrorCode = s.enviarFCM(dispositivo, notificacion)
 	default:
 		detalle.Exito = false
@@ -442,9 +419,8 @@ func (s *PushService) enviarNotificacionDispositivo(dispositivo *models.PushDisp
 	return detalle
 }
 
-// enviarWebPush envía una notificación Web Push a un dispositivo usando el protocolo Web Push
 func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notificacion *models.ContenidoNotificacion) (bool, *int, *string) {
-	// Validar que el dispositivo tenga las credenciales necesarias
+
 	if dispositivo.Endpoint == nil || *dispositivo.Endpoint == "" {
 		logs.Error("[Web Push] Dispositivo %d sin endpoint", dispositivo.PkIdPushDispositivo)
 		status := 400
@@ -464,12 +440,10 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 		return false, &status, &code
 	}
 
-	// Obtener configuración VAPID
 	vapidPublicKey := os.Getenv("VAPID_PUBLIC_KEY")
 	vapidPrivateKey := os.Getenv("VAPID_PRIVATE_KEY")
 	vapidSubject := os.Getenv("VAPID_SUBJECT")
 
-	// Fallback a configuración de Beego
 	if vapidPublicKey == "" {
 		if v, err := web.AppConfig.String("vapid_public_key"); err == nil && strings.TrimSpace(v) != "" {
 			vapidPublicKey = v
@@ -486,7 +460,6 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 		}
 	}
 
-	// Validar que estén configuradas las claves VAPID
 	if vapidPublicKey == "" || vapidPrivateKey == "" {
 		logs.Error("[Web Push] Claves VAPID no configuradas (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)")
 		status := 500
@@ -498,7 +471,6 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 		vapidSubject = "mailto:admin@restaurante.com"
 	}
 
-	// Construir el payload de la notificación según Web Push estándar
 	payload := map[string]interface{}{
 		"notification": map[string]interface{}{
 			"title": notificacion.Titulo,
@@ -508,7 +480,6 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 		},
 	}
 
-	// Agregar datos adicionales si existen
 	if len(notificacion.Datos) > 0 {
 		var datosMap map[string]interface{}
 		if err := jsonUnmarshalFn(notificacion.Datos, &datosMap); err == nil {
@@ -526,7 +497,6 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 		return false, &status, &code
 	}
 
-	// Crear suscripción Web Push
 	subscription := &webpush.Subscription{
 		Endpoint: *dispositivo.Endpoint,
 		Keys: webpush.Keys{
@@ -535,15 +505,13 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 		},
 	}
 
-	// Configurar opciones VAPID
 	options := &webpush.Options{
 		Subscriber:      vapidSubject,
 		VAPIDPublicKey:  vapidPublicKey,
 		VAPIDPrivateKey: vapidPrivateKey,
-		TTL:             30 * 24 * 60 * 60, // 30 días
+		TTL:             30 * 24 * 60 * 60,
 	}
 
-	// Enviar la notificación con timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -562,55 +530,54 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 
 	statusCode := resp.StatusCode
 
-	// Manejar códigos de estado específicos
 	switch statusCode {
 	case 201, 200:
-		// Éxito
+
 		logs.Info("[Web Push] Notificación enviada exitosamente al dispositivo %d (status: %d)", dispositivo.PkIdPushDispositivo, statusCode)
 		return true, &statusCode, nil
 
-	case 410: // Gone - el dispositivo fue desregistrado
+	case 410:
 		logs.Warn("[Web Push] Dispositivo %d desregistrado (410 Gone), deshabilitando...", dispositivo.PkIdPushDispositivo)
-		// Desactivar el dispositivo
+
 		if err := s.ActualizarEstadoDispositivo(context.Background(), dispositivo.PkIdPushDispositivo, false); err != nil {
 			logs.Error("[Web Push] Error al desactivar dispositivo %d: %v", dispositivo.PkIdPushDispositivo, err)
 		}
 		code := "DISPOSITIVO_DESREGISTRADO"
 		return false, &statusCode, &code
 
-	case 404: // Not Found - el endpoint no existe o es inválido
+	case 404:
 		logs.Warn("[Web Push] Endpoint inválido para dispositivo %d (404 Not Found), deshabilitando...", dispositivo.PkIdPushDispositivo)
-		// Desactivar el dispositivo
+
 		if err := s.ActualizarEstadoDispositivo(context.Background(), dispositivo.PkIdPushDispositivo, false); err != nil {
 			logs.Error("[Web Push] Error al desactivar dispositivo %d: %v", dispositivo.PkIdPushDispositivo, err)
 		}
 		code := "ENDPOINT_INVALIDO"
 		return false, &statusCode, &code
 
-	case 401: // Unauthorized - error de autenticación VAPID
+	case 401:
 		logs.Error("[Web Push] Error de autenticación VAPID (401 Unauthorized) - verificar claves VAPID")
 		code := "ERROR_AUTH_VAPID"
 		return false, &statusCode, &code
 
-	case 400: // Bad Request
-		// Intentar leer el cuerpo de la respuesta para más detalles
+	case 400:
+
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		logs.Error("[Web Push] Bad Request (400) para dispositivo %d: %s", dispositivo.PkIdPushDispositivo, string(bodyBytes))
 		code := "BAD_REQUEST"
 		return false, &statusCode, &code
 
-	case 413: // Payload Too Large
+	case 413:
 		logs.Error("[Web Push] Payload demasiado grande (413) para dispositivo %d", dispositivo.PkIdPushDispositivo)
 		code := "PAYLOAD_TOO_LARGE"
 		return false, &statusCode, &code
 
-	case 429: // Too Many Requests
+	case 429:
 		logs.Warn("[Web Push] Demasiadas solicitudes (429) para dispositivo %d - rate limit", dispositivo.PkIdPushDispositivo)
 		code := "RATE_LIMIT"
 		return false, &statusCode, &code
 
 	default:
-		// Otros errores
+
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		logs.Error("[Web Push] Error desconocido (status %d) para dispositivo %d: %s", statusCode, dispositivo.PkIdPushDispositivo, string(bodyBytes))
 		code := fmt.Sprintf("ERROR_HTTP_%d", statusCode)
@@ -618,7 +585,6 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 	}
 }
 
-// enviarFCM simula el envío de FCM (aquí iría la integración real)
 func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacion *models.ContenidoNotificacion) (bool, *int, *string) {
 	if dispositivo.FcmToken == nil || strings.TrimSpace(*dispositivo.FcmToken) == "" {
 		status := 400
@@ -638,7 +604,6 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 		return false, &status, &code
 	}
 
-	// Construir payload HTTP v1
 	body := map[string]interface{}{
 		"message": map[string]interface{}{
 			"token": *dispositivo.FcmToken,
@@ -650,7 +615,7 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 				if len(notificacion.Datos) == 0 {
 					return nil
 				}
-				// Intentar convertir datos arbitrarios a mapa de strings
+
 				var tmp map[string]interface{}
 				_ = jsonUnmarshalFn(notificacion.Datos, &tmp)
 				out := map[string]string{}
@@ -669,16 +634,9 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 		},
 	}
 
-	// Obtener bearer token del metadata server o credenciales (requiere que el entorno ya tenga auth lista)
-	// Para simplicidad: usar Application Default Credentials vía metadata server (GCE) o ADC local
-	// Aquí solo llamamos al endpoint y dejamos al entorno manejar Authorization (por proxy o inyectado)
-	// Si no hay Authorization, retornamos error claro.
-
-	// Permitir inyección de Authorization via env FCM_BEARER_TOKEN (fallback)
 	bearer := os.Getenv("FCM_BEARER_TOKEN")
 	if bearer == "" {
-		// Fallback: intentar obtener token con ADC (Application Default Credentials)
-		// Requiere que el entorno tenga GOOGLE_APPLICATION_CREDENTIALS o identidad GCE/GKE con permisos
+
 		token, adcErr := obtainFCMTokenWithADCFn()
 		if adcErr != nil || strings.TrimSpace(token) == "" {
 			status := 500
@@ -711,7 +669,6 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 		return true, &status, nil
 	}
 
-	// Intentar extraer error code de respuesta FCM
 	var respErr struct {
 		Error struct {
 			Status  string `json:"status"`
@@ -726,12 +683,8 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 	return false, &status, &errCode
 }
 
-// obtainFCMTokenWithADC intenta obtener un token OAuth2 usando ADC sin añadir dependencias externas.
-// Para mantener el repo liviano, llamamos directamente al endpoint de token de gcloud si está disponible
-// vía env GOOGLE_APPLICATION_CREDENTIALS no es trivial sin librerías; por eso este fallback primero intenta
-// usar el metadata server (entornos GCE/GKE). Si no, retorna error.
 func obtainFCMTokenWithADC() (string, error) {
-	// 1) Intentar ADC local/SA (gcloud, GOOGLE_APPLICATION_CREDENTIALS, Workload Identity, etc.)
+
 	ctx := context.Background()
 	const scope = "https://www.googleapis.com/auth/firebase.messaging"
 	creds, err := findDefaultCredentialsFn(ctx, scope)
@@ -742,7 +695,6 @@ func obtainFCMTokenWithADC() (string, error) {
 		}
 	}
 
-	// 2) Fallback: metadata server (GCE/GKE)
 	client := newHTTPClientFn(2 * time.Second)
 	req, err := httpNewRequestFn(http.MethodGet, metadataTokenURL, nil)
 	if err != nil {
@@ -771,7 +723,6 @@ func obtainFCMTokenWithADC() (string, error) {
 	return payload.AccessToken, nil
 }
 
-// registrarEnvioNotificacion registra el envío en la base de datos
 func (s *PushService) registrarEnvioNotificacion(dispositivo *models.PushDispositivo, notificacion *models.ContenidoNotificacion, exito bool, statusCode *int, errorCode *string) {
 	envio := &models.PushEnvio{
 		PkIdPushDispositivo: dispositivo,
@@ -786,7 +737,6 @@ func (s *PushService) registrarEnvioNotificacion(dispositivo *models.PushDisposi
 	_, _ = s.ormer.Insert(envio)
 }
 
-// obtenerProveedor obtiene el proveedor según la plataforma
 func (s *PushService) obtenerProveedor(plataforma models.PlataformaNotificacion) models.ProveedorPush {
 	switch plataforma {
 	case models.PlataformaWeb:
@@ -798,7 +748,6 @@ func (s *PushService) obtenerProveedor(plataforma models.PlataformaNotificacion)
 	}
 }
 
-// crearResumenDestinatarios crea el resumen de destinatarios notificados
 func (s *PushService) crearResumenDestinatarios(destinatarios *models.DestinatariosNotificacion, dispositivos []models.PushDispositivo) models.ResumenDestinatarios {
 	resumen := models.ResumenDestinatarios{
 		TipoDestinatario: string(destinatarios.Tipo),
@@ -815,13 +764,12 @@ func (s *PushService) crearResumenDestinatarios(destinatarios *models.Destinatar
 		if dispositivo.PkDocumentoTrabajador != nil {
 			trabajadoresMap[dispositivo.PkDocumentoTrabajador.PK_DOCUMENTO_TRABAJADOR] = true
 		}
-		// Agregar topics si es el caso
+
 		if destinatarios.Tipo == models.DestinatarioTopic && destinatarios.Topic != nil {
 			topicsMap[*destinatarios.Topic] = true
 		}
 	}
 
-	// Convertir maps a slices
 	for clienteId := range clientesMap {
 		resumen.ClientesNotificados = append(resumen.ClientesNotificados, clienteId)
 	}

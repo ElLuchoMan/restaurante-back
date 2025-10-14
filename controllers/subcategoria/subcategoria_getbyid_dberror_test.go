@@ -12,7 +12,6 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// mockOrmGetByIdDBError es un mock que retorna error de DB en Read
 type mockOrmGetByIdDBError struct{}
 
 func (mockOrmGetByIdDBError) QueryTable(_ interface{}) subcatQuerySeter {
@@ -25,7 +24,6 @@ func (mockOrmGetByIdDBError) Read(interface{}, ...string) error {
 func (mockOrmGetByIdDBError) Update(interface{}, ...string) (int64, error) { return 0, nil }
 func (mockOrmGetByIdDBError) Delete(interface{}, ...string) (int64, error) { return 0, nil }
 
-// TestSubcategoriaController_GetById_DBErrorNotNoRows verifica el manejo de errores de DB distintos a NoRows
 func TestSubcategoriaController_GetById_DBErrorNotNoRows(t *testing.T) {
 	orig := subcatOrmNew
 	subcatOrmNew = func() subcatOrmer { return mockOrmGetByIdDBError{} }
@@ -41,7 +39,6 @@ func TestSubcategoriaController_GetById_DBErrorNotNoRows(t *testing.T) {
 	c.Data = make(map[interface{}]interface{})
 	c.GetById()
 
-	// Debería retornar 404 de todas formas, pero el error se loguea
 	if w.Code != http.StatusOK {
 		t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
@@ -56,7 +53,6 @@ func TestSubcategoriaController_GetById_DBErrorNotNoRows(t *testing.T) {
 	}
 }
 
-// badQSSubForGetById es un QuerySeter que retorna error
 type badQSSubForGetById struct{}
 
 func (badQSSubForGetById) All(res interface{}, _ ...string) (int64, error) {

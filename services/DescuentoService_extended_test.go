@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Mock para DescuentoService
 type mockDescuentoOrmer struct {
 	readFn       func(interface{}, ...string) error
 	insertFn     func(interface{}) (int64, error)
@@ -44,7 +43,6 @@ func (m *mockDescuentoOrmer) QueryTable(ptrStructOrTableName interface{}) orm.Qu
 	return &mockDescuentoQuerySeter{}
 }
 
-// Implementar métodos restantes de orm.Ormer
 func (m *mockDescuentoOrmer) ReadForUpdate(md interface{}, cols ...string) error {
 	return m.Read(md, cols...)
 }
@@ -156,7 +154,6 @@ func (m *mockDescuentoQuerySeter) All(container interface{}, cols ...string) (in
 	return 0, nil
 }
 
-// Implementar métodos requeridos por orm.QuerySeter
 func (m *mockDescuentoQuerySeter) Limit(limit interface{}, args ...interface{}) orm.QuerySeter {
 	return m
 }
@@ -197,7 +194,6 @@ func (m *mockDescuentoQuerySeter) ForceIndex(...string) orm.QuerySeter          
 func (m *mockDescuentoQuerySeter) UseIndex(...string) orm.QuerySeter                  { return m }
 func (m *mockDescuentoQuerySeter) IgnoreIndex(...string) orm.QuerySeter               { return m }
 
-// Métodos adicionales con contexto
 func (m *mockDescuentoQuerySeter) OneWithCtx(context.Context, interface{}, ...string) error {
 	return m.One(nil)
 }
@@ -224,8 +220,6 @@ func (m *mockDescuentoQuerySeter) DeleteWithCtx(context.Context) (int64, error) 
 func (m *mockDescuentoQuerySeter) PrepareInsertWithCtx(context.Context) (orm.Inserter, error) {
 	return nil, nil
 }
-
-// Tests para AplicarDescuento
 
 func TestDescuentoService_AplicarDescuento_NoDescuentoEspecificado(t *testing.T) {
 	service := NewDescuentoService(&mockDescuentoOrmer{})
@@ -300,7 +294,7 @@ func TestDescuentoService_AplicarDescuento_ErrorVerificarDescuentosExistentes(t 
 	service := NewDescuentoService(&mockDescuentoOrmer{
 		readFn: func(md interface{}, cols ...string) error {
 			readCallCount++
-			return nil // Pedido existe
+			return nil
 		},
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			return &mockDescuentoQuerySeter{
@@ -330,14 +324,14 @@ func TestDescuentoService_AplicarDescuento_ErrorVerificarDescuentosExistentes(t 
 func TestDescuentoService_AplicarDescuento_DescuentoYaExiste(t *testing.T) {
 	service := NewDescuentoService(&mockDescuentoOrmer{
 		readFn: func(md interface{}, cols ...string) error {
-			return nil // Pedido existe
+			return nil
 		},
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			return &mockDescuentoQuerySeter{
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockDescuentoQuerySeter{
 						countFn: func() (int64, error) {
-							return 1, nil // Ya existe descuento
+							return 1, nil
 						},
 					}
 				},
@@ -363,10 +357,10 @@ func TestDescuentoService_AplicarDescuento_CuponNoEncontrado(t *testing.T) {
 		readFn: func(md interface{}, cols ...string) error {
 			readCallCount++
 			if readCallCount == 1 {
-				// Primera llamada: pedido existe
+
 				return nil
 			}
-			// Segunda llamada: cupón no existe
+
 			return orm.ErrNoRows
 		},
 		queryTableFn: func(tableName string) orm.QuerySeter {
@@ -374,7 +368,7 @@ func TestDescuentoService_AplicarDescuento_CuponNoEncontrado(t *testing.T) {
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockDescuentoQuerySeter{
 						countFn: func() (int64, error) {
-							return 0, nil // No hay descuentos previos
+							return 0, nil
 						},
 					}
 				},
@@ -400,9 +394,9 @@ func TestDescuentoService_AplicarDescuento_ErrorBuscarCupon(t *testing.T) {
 		readFn: func(md interface{}, cols ...string) error {
 			readCallCount++
 			if readCallCount == 1 {
-				return nil // Pedido existe
+				return nil
 			}
-			return assert.AnError // Error buscando cupón
+			return assert.AnError
 		},
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			return &mockDescuentoQuerySeter{
@@ -435,9 +429,9 @@ func TestDescuentoService_AplicarDescuento_OfertaNoEncontrada(t *testing.T) {
 		readFn: func(md interface{}, cols ...string) error {
 			readCallCount++
 			if readCallCount == 1 {
-				return nil // Pedido existe
+				return nil
 			}
-			return orm.ErrNoRows // Oferta no existe
+			return orm.ErrNoRows
 		},
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			return &mockDescuentoQuerySeter{
@@ -470,9 +464,9 @@ func TestDescuentoService_AplicarDescuento_ErrorBuscarOferta(t *testing.T) {
 		readFn: func(md interface{}, cols ...string) error {
 			readCallCount++
 			if readCallCount == 1 {
-				return nil // Pedido existe
+				return nil
 			}
-			return assert.AnError // Error buscando oferta
+			return assert.AnError
 		},
 		queryTableFn: func(tableName string) orm.QuerySeter {
 			return &mockDescuentoQuerySeter{
@@ -505,13 +499,13 @@ func TestDescuentoService_AplicarDescuento_ErrorInsert(t *testing.T) {
 		readFn: func(md interface{}, cols ...string) error {
 			readCallCount++
 			if readCallCount == 1 {
-				// Pedido
+
 				if pedido, ok := md.(*models.Pedido); ok {
 					pedido.PK_ID_PEDIDO = 1
 				}
 				return nil
 			}
-			// Cupón
+
 			if cupon, ok := md.(*models.Cupon); ok {
 				cupon.PkIdCupon = 1
 				cupon.Codigo = "TEST"
@@ -646,8 +640,6 @@ func TestDescuentoService_AplicarDescuento_ExitoOferta(t *testing.T) {
 	assert.Equal(t, int64(1), result.PkIdOferta.PkIdOferta)
 }
 
-// Tests para ObtenerDescuentosPedido
-
 func TestDescuentoService_ObtenerDescuentosPedido_Error(t *testing.T) {
 	service := NewDescuentoService(&mockDescuentoOrmer{
 		queryTableFn: func(tableName string) orm.QuerySeter {
@@ -682,7 +674,7 @@ func TestDescuentoService_ObtenerDescuentosPedido_Exito(t *testing.T) {
 						relatedSelFn: func(params ...interface{}) orm.QuerySeter {
 							return &mockDescuentoQuerySeter{
 								allFn: func(container interface{}, cols ...string) (int64, error) {
-									// Llenar el container con datos de prueba
+
 									if descuentos, ok := container.(*[]*models.PedidoDescuentoAplicado); ok {
 										*descuentos = []*models.PedidoDescuentoAplicado{
 											{MontoDescuento: 1000},
@@ -704,8 +696,6 @@ func TestDescuentoService_ObtenerDescuentosPedido_Exito(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Len(t, result, 2)
 }
-
-// Tests para ValidarExclusividadDescuento
 
 func TestDescuentoService_ValidarExclusividadDescuento_ErrorCount(t *testing.T) {
 	service := NewDescuentoService(&mockDescuentoOrmer{
@@ -734,7 +724,7 @@ func TestDescuentoService_ValidarExclusividadDescuento_YaExiste(t *testing.T) {
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockDescuentoQuerySeter{
 						countFn: func() (int64, error) {
-							return 1, nil // Ya existe descuento
+							return 1, nil
 						},
 					}
 				},
@@ -760,7 +750,7 @@ func TestDescuentoService_ValidarExclusividadDescuento_CuponDuplicado_Error(t *t
 					return &mockDescuentoQuerySeter{
 						countFn: func() (int64, error) {
 							if callCount == 2 {
-								return 0, assert.AnError // Error en segunda llamada
+								return 0, assert.AnError
 							}
 							return 0, nil
 						},
@@ -793,14 +783,14 @@ func TestDescuentoService_ValidarExclusividadDescuento_CuponYaAplicado(t *testin
 							return &mockDescuentoQuerySeter{
 								countFn: func() (int64, error) {
 									if callCount == 2 {
-										return 1, nil // Cupón ya aplicado
+										return 1, nil
 									}
 									return 0, nil
 								},
 							}
 						},
 						countFn: func() (int64, error) {
-							return 0, nil // Primera verificación OK
+							return 0, nil
 						},
 					}
 				},
@@ -826,14 +816,14 @@ func TestDescuentoService_ValidarExclusividadDescuento_OfertaYaAplicada(t *testi
 							return &mockDescuentoQuerySeter{
 								countFn: func() (int64, error) {
 									if callCount == 2 {
-										return 1, nil // Oferta ya aplicada
+										return 1, nil
 									}
 									return 0, nil
 								},
 							}
 						},
 						countFn: func() (int64, error) {
-							return 0, nil // Primera verificación OK
+							return 0, nil
 						},
 					}
 				},
@@ -859,7 +849,7 @@ func TestDescuentoService_ValidarExclusividadDescuento_OfertaDuplicada_Error(t *
 							return &mockDescuentoQuerySeter{
 								countFn: func() (int64, error) {
 									if callCount == 2 {
-										return 0, assert.AnError // Error en verificación de oferta
+										return 0, assert.AnError
 									}
 									return 0, nil
 								},
@@ -887,7 +877,7 @@ func TestDescuentoService_ValidarExclusividadDescuento_Exito_SinDescuentos(t *te
 				filterFn: func(expr string, args ...interface{}) orm.QuerySeter {
 					return &mockDescuentoQuerySeter{
 						countFn: func() (int64, error) {
-							return 0, nil // No hay descuentos previos
+							return 0, nil
 						},
 					}
 				},

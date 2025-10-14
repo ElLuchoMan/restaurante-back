@@ -26,12 +26,10 @@ func TestOfertaProducto_TableUnique(t *testing.T) {
 func TestOfertaProducto_JSONSerialization(t *testing.T) {
 	op := &OfertaProducto{}
 
-	// Serializar
 	jsonData, err := json.Marshal(op)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Deserializar
 	var opDeserialized OfertaProducto
 	err = json.Unmarshal(jsonData, &opDeserialized)
 	assert.NoError(t, err)

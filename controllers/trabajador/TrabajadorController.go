@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"restaurante/database"
 	"restaurante/logging"
 	"restaurante/models"
 	"strconv"
@@ -74,7 +73,7 @@ func (c *TrabajadorController) GetAll() {
 	}
 
 	if fechaIngreso != "" {
-		parsed, err := time.Parse("2006-01-02", fechaIngreso)
+		parsed, err := models.ParseDateToNoonUTC(fechaIngreso)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "trabajadores.getall.bad_fecha_ingreso", err, map[string]interface{}{"fecha_ingreso": fechaIngreso})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -103,7 +102,7 @@ func (c *TrabajadorController) GetAll() {
 
 	for i := range trabajadores {
 		trabajadores[i].PASSWORD = ""
-		// Los datos de fecha ya están en zona horaria de Bogotá - no aplicar conversiones
+
 		var horarios []models.HorarioTrabajador
 		if _, err := o.QueryTable(new(models.HorarioTrabajador)).
 			Filter("pk_documento_trabajador", trabajadores[i].PK_DOCUMENTO_TRABAJADOR).
@@ -278,7 +277,7 @@ func (c *TrabajadorController) Post() {
 	}
 
 	if fechaIngresoStr, ok := input["fechaIngreso"].(string); ok && fechaIngresoStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaIngresoStr)
+		parsedDate, err := models.ParseDateToNoonUTC(fechaIngresoStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "trabajadores.post.bad_fecha_ingreso", err, map[string]interface{}{"fechaIngreso": fechaIngresoStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -350,7 +349,7 @@ func (c *TrabajadorController) Post() {
 	}
 
 	if fechaNacimientoStr, ok := input["fechaNacimiento"].(string); ok && fechaNacimientoStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaNacimientoStr)
+		parsedDate, err := models.ParseDateToNoonUTC(fechaNacimientoStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "trabajadores.post.bad_fecha_nacimiento", err, map[string]interface{}{"fechaNacimiento": fechaNacimientoStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -485,7 +484,7 @@ func (c *TrabajadorController) Put() {
 	}
 
 	if v, ok := getStr("FECHA_INGRESO", "fechaIngreso"); ok {
-		parsedDate, err := time.Parse("2006-01-02", v)
+		parsedDate, err := models.ParseDateToNoonUTC(v)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "trabajadores.put.bad_fecha_ingreso", err, map[string]interface{}{"id": id, "fecha_ingreso": v})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -496,7 +495,7 @@ func (c *TrabajadorController) Put() {
 		trabajador.FECHA_INGRESO = parsedDate
 	}
 	if v, ok := getStr("FECHA_RETIRO", "fechaRetiro"); ok {
-		parsedDate, err := time.Parse("2006-01-02", v)
+		parsedDate, err := models.ParseDateToNoonUTC(v)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "trabajadores.put.bad_fecha_retiro", err, map[string]interface{}{"id": id, "fecha_retiro": v})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -504,11 +503,10 @@ func (c *TrabajadorController) Put() {
 			_ = c.ServeJSON()
 			return
 		}
-		fechaRetiro := parsedDate
-		trabajador.FECHA_RETIRO = &fechaRetiro
+		trabajador.FECHA_RETIRO = &parsedDate
 	}
 	if v, ok := getStr("FECHA_NACIMIENTO", "fechaNacimiento"); ok {
-		parsedDate, err := time.Parse("2006-01-02", v)
+		parsedDate, err := models.ParseDateToNoonUTC(v)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "trabajadores.put.bad_fecha_nacimiento", err, map[string]interface{}{"id": id, "fecha_nacimiento": v})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -516,8 +514,7 @@ func (c *TrabajadorController) Put() {
 			_ = c.ServeJSON()
 			return
 		}
-		fechaNacimiento := parsedDate
-		trabajador.FECHA_NACIMIENTO = &fechaNacimiento
+		trabajador.FECHA_NACIMIENTO = &parsedDate
 	}
 	if v, ok := getStr("PASSWORD", "password"); ok {
 		hashedPassword, err := hashPassword(v)
@@ -595,9 +592,8 @@ func (c *TrabajadorController) Delete() {
 		return
 	}
 
-	// Guardar FECHA_RETIRO como fecha estable (mediodía UTC) basada en la fecha actual de Bogotá
-	nowBogota := time.Now().In(database.BogotaZone)
-	fechaRetiro := time.Date(nowBogota.Year(), nowBogota.Month(), nowBogota.Day(), 12, 0, 0, 0, time.UTC)
+	nowUTC := time.Now().UTC()
+	fechaRetiro := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 12, 0, 0, 0, time.UTC)
 	trabajador.FECHA_RETIRO = &fechaRetiro
 
 	if _, err := o.Update(&trabajador, "FECHA_RETIRO"); err != nil {

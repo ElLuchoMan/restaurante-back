@@ -43,7 +43,7 @@ type RefreshClaims struct {
 	Documento int64  `json:"documento"`
 	Rol       string `json:"rol"`
 	Nombre    string `json:"nombre"`
-	TokenType string `json:"token_type"` // "refresh"
+	TokenType string `json:"token_type"`
 	jwt.RegisteredClaims
 }
 
@@ -229,7 +229,6 @@ func generateTokens(documento int64, rol, nombre string) (string, string, error)
 
 	now := time.Now()
 
-	// Access Token (120 minutos)
 	accessClaims := &Claims{
 		Documento: documento,
 		Rol:       rol,
@@ -240,7 +239,6 @@ func generateTokens(documento int64, rol, nombre string) (string, string, error)
 		},
 	}
 
-	// Refresh Token (30 días)
 	refreshClaims := &RefreshClaims{
 		Documento: documento,
 		Rol:       rol,
@@ -286,11 +284,11 @@ func generateJWT(c *LoginController, documento int64, rol string, nombre string)
 		Code:    http.StatusOK,
 		Message: "Inicio de sesión exitoso",
 		Data: map[string]string{
-			"token":         accessToken, // Compatibilidad hacia atrás
+			"token":         accessToken,
 			"access_token":  accessToken,
 			"refresh_token": refreshToken,
 			"token_type":    "Bearer",
-			"expires_in":    "1800", // 30 minutos en segundos
+			"expires_in":    "1800",
 			"nombre":        nombre,
 		},
 	}
@@ -340,7 +338,6 @@ func (c *LoginController) RefreshToken() {
 		return
 	}
 
-	// Verificar que sea un refresh token
 	if refreshClaims.TokenType != "refresh" {
 		c.Ctx.Output.SetStatus(http.StatusUnauthorized)
 		c.Data["json"] = models.ApiResponse{
@@ -351,7 +348,6 @@ func (c *LoginController) RefreshToken() {
 		return
 	}
 
-	// Generar nuevos tokens
 	accessToken, newRefreshToken, err := generateTokens(refreshClaims.Documento, refreshClaims.Rol, refreshClaims.Nombre)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
@@ -369,23 +365,21 @@ func (c *LoginController) RefreshToken() {
 		Code:    http.StatusOK,
 		Message: "Tokens renovados exitosamente",
 		Data: map[string]string{
-			"token":         accessToken, // Compatibilidad hacia atrás
+			"token":         accessToken,
 			"access_token":  accessToken,
 			"refresh_token": newRefreshToken,
 			"token_type":    "Bearer",
-			"expires_in":    "1800", // 30 minutos en segundos
+			"expires_in":    "1800",
 			"nombre":        refreshClaims.Nombre,
 		},
 	}
 	_ = c.ServeJSON()
 }
 
-// GetJWTSecret retorna el secreto JWT para uso en otros controladores
 func GetJWTSecret() []byte {
 	return jwtSecret
 }
 
-// ParseTokenClaims parsea un token JWT y retorna los claims
 func ParseTokenClaims(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {

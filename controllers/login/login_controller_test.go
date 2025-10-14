@@ -486,12 +486,10 @@ func TestGenerateTokens(t *testing.T) {
 		t.Fatal("expected refresh token, got empty string")
 	}
 
-	// Verificar que los tokens son diferentes
 	if accessToken == refreshToken {
 		t.Fatal("access token and refresh token should be different")
 	}
 
-	// Verificar claims del access token
 	accessClaims := &Claims{}
 	_, err = jwt.ParseWithClaims(accessToken, accessClaims, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
@@ -504,7 +502,6 @@ func TestGenerateTokens(t *testing.T) {
 		t.Fatalf("expected documento 123, got %d", accessClaims.Documento)
 	}
 
-	// Verificar claims del refresh token
 	refreshClaims := &RefreshClaims{}
 	_, err = jwt.ParseWithClaims(refreshToken, refreshClaims, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
@@ -527,7 +524,6 @@ func TestRefreshTokenEndpoint(t *testing.T) {
 	defer os.Unsetenv("JWT_SECRET")
 	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
-	// Generar un refresh token válido
 	_, refreshToken, err := generateTokens(123, "Admin", "Test User")
 	if err != nil {
 		t.Fatalf("failed to generate tokens: %v", err)
@@ -605,7 +601,6 @@ func TestRefreshTokenWithAccessToken(t *testing.T) {
 	defer os.Unsetenv("JWT_SECRET")
 	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
-	// Generar un access token (no refresh token)
 	accessToken, _, err := generateTokens(123, "Admin", "Test User")
 	if err != nil {
 		t.Fatalf("failed to generate tokens: %v", err)

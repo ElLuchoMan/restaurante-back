@@ -26,22 +26,18 @@ func (o *Oferta) TableName() string {
 	return "oferta"
 }
 
-// BeforeInsert se ejecuta antes de insertar en la base de datos
 func (o *Oferta) BeforeInsert() {
 	o.serializeDiasSemana()
 }
 
-// BeforeUpdate se ejecuta antes de actualizar en la base de datos
 func (o *Oferta) BeforeUpdate() {
 	o.serializeDiasSemana()
 }
 
-// AfterLoad se ejecuta después de cargar desde la base de datos
 func (o *Oferta) AfterLoad() {
 	o.deserializeDiasSemana()
 }
 
-// serializeDiasSemana convierte el array a string para la base de datos
 func (o *Oferta) serializeDiasSemana() {
 	if len(o.DiasSemanaArray) == 0 {
 		o.DiasSemana = ""
@@ -51,7 +47,6 @@ func (o *Oferta) serializeDiasSemana() {
 	o.DiasSemana = string(jsonBytes)
 }
 
-// deserializeDiasSemana convierte el string de la base de datos a array
 func (o *Oferta) deserializeDiasSemana() {
 	if o.DiasSemana == "" {
 		o.DiasSemanaArray = []string{}
@@ -62,4 +57,52 @@ func (o *Oferta) deserializeDiasSemana() {
 
 func init() {
 	orm.RegisterModel(new(Oferta))
+}
+
+func (o Oferta) MarshalJSON() ([]byte, error) {
+
+	fechaInicioStr := FormatDateUTC(o.FechaInicio)
+	fechaFinStr := FormatDateUTC(o.FechaFin)
+
+	var horaInicioStr *string
+	if o.HoraInicio != nil {
+		h := *o.HoraInicio
+		s := FormatTimeWithLMT(h)
+		horaInicioStr = &s
+	}
+
+	var horaFinStr *string
+	if o.HoraFin != nil {
+		h := *o.HoraFin
+		s := FormatTimeWithLMT(h)
+		horaFinStr = &s
+	}
+
+	return json.Marshal(&struct {
+		PkIdOferta      int64         `json:"ofertaId"`
+		Titulo          string        `json:"titulo"`
+		TipoDescuento   TipoDescuento `json:"tipoDescuento"`
+		ValorDescuento  int64         `json:"valorDescuento"`
+		FechaInicio     string        `json:"fechaInicio"`
+		FechaFin        string        `json:"fechaFin"`
+		DiasSemana      string        `json:"-"`
+		DiasSemanaArray []string      `json:"diasSemana" swaggertype:"array,string"`
+		HoraInicio      *string       `json:"horaInicio,omitempty"`
+		HoraFin         *string       `json:"horaFin,omitempty"`
+		Activo          bool          `json:"activo"`
+		PkIdRestaurante *Restaurante  `json:"restauranteId" swaggertype:"integer"`
+	}{
+		PkIdOferta:      o.PkIdOferta,
+		Titulo:          o.Titulo,
+		TipoDescuento:   o.TipoDescuento,
+		ValorDescuento:  o.ValorDescuento,
+		FechaInicio:     fechaInicioStr,
+		FechaFin:        fechaFinStr,
+		DiasSemana:      o.DiasSemana,
+		DiasSemanaArray: o.DiasSemanaArray,
+		HoraInicio:      horaInicioStr,
+		HoraFin:         horaFinStr,
+		Activo:          o.Activo,
+		PkIdRestaurante: o.PkIdRestaurante,
+	})
 }

@@ -14,14 +14,11 @@ import (
 	"github.com/beego/beego/v2/server/web/context"
 )
 
-// Tests adicionales para Put con casos específicos
-
 func TestReservaPut_BadJSON(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
-	// Body con JSON inválido
 	invalidJSON := []byte("{invalid json}")
 	req := httptest.NewRequest("PUT", "/reservas?id=1", bytes.NewReader(invalidJSON))
 	ctx.Reset(recorder, req)
@@ -30,24 +27,21 @@ func TestReservaPut_BadJSON(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva para que encuentre la reserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
-		return nil // Reserva encontrada
+		return nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify - debería retornar 400 por JSON inválido
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, recorder.Code)
 	}
 }
 
 func TestReservaPut_InvalidFechaFormat(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -62,24 +56,21 @@ func TestReservaPut_InvalidFechaFormat(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify - debería retornar 400 por formato de fecha inválido
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, recorder.Code)
 	}
 }
 
 func TestReservaPut_InvalidHoraFormat(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -94,24 +85,21 @@ func TestReservaPut_InvalidHoraFormat(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify - debería retornar 400 por formato de hora inválido
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, recorder.Code)
 	}
 }
 
 func TestReservaPut_InvalidEstado(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -126,24 +114,21 @@ func TestReservaPut_InvalidEstado(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify - debería retornar 400 por estado inválido
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, recorder.Code)
 	}
 }
 
 func TestReservaPut_UpdatePersonas(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -158,14 +143,12 @@ func TestReservaPut_UpdatePersonas(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Mock updateReserva
 	origUpdate := updateReserva
 	defer func() { updateReserva = origUpdate }()
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
@@ -175,17 +158,15 @@ func TestReservaPut_UpdatePersonas(t *testing.T) {
 		return 1, nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, recorder.Code)
 	}
 }
 
 func TestReservaPut_UpdateIndicaciones(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -201,14 +182,12 @@ func TestReservaPut_UpdateIndicaciones(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Mock updateReserva
 	origUpdate := updateReserva
 	defer func() { updateReserva = origUpdate }()
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
@@ -218,17 +197,15 @@ func TestReservaPut_UpdateIndicaciones(t *testing.T) {
 		return 1, nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, recorder.Code)
 	}
 }
 
 func TestReservaPut_UpdatedBy(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -244,14 +221,12 @@ func TestReservaPut_UpdatedBy(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Mock updateReserva
 	origUpdate := updateReserva
 	defer func() { updateReserva = origUpdate }()
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
@@ -261,17 +236,15 @@ func TestReservaPut_UpdatedBy(t *testing.T) {
 		return 1, nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, recorder.Code)
 	}
 }
 
 func TestReservaPut_UpdateRestaurante(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -286,14 +259,12 @@ func TestReservaPut_UpdateRestaurante(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Mock updateReserva
 	origUpdate := updateReserva
 	defer func() { updateReserva = origUpdate }()
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
@@ -303,17 +274,15 @@ func TestReservaPut_UpdateRestaurante(t *testing.T) {
 		return 1, nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, recorder.Code)
 	}
 }
 
 func TestReservaPut_ValidFechaAndHora(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -329,35 +298,33 @@ func TestReservaPut_ValidFechaAndHora(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Mock updateReserva
 	origUpdate := updateReserva
 	defer func() { updateReserva = origUpdate }()
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
+
 		expectedDate, _ := time.Parse("2006-01-02", "2025-12-25")
-		if !r.FECHA.Equal(expectedDate) {
-			t.Errorf("Expected fecha to be 2025-12-25")
+		expectedNormalized := time.Date(expectedDate.Year(), expectedDate.Month(), expectedDate.Day(), 12, 0, 0, 0, time.UTC)
+		if !r.FECHA.Equal(expectedNormalized) {
+			t.Errorf("Expected fecha to be normalized to noon UTC (2025-12-25 12:00:00 UTC), got %v", r.FECHA)
 		}
 		return 1, nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, recorder.Code)
 	}
 }
 
 func TestReservaPut_ValidEstado(t *testing.T) {
-	// Setup
+
 	ctx := context.NewContext()
 	recorder := httptest.NewRecorder()
 
@@ -372,14 +339,12 @@ func TestReservaPut_ValidEstado(t *testing.T) {
 	controller := &ReservaController{}
 	controller.Init(ctx, "ReservaController", "Put", nil)
 
-	// Mock readReserva
 	origRead := readReserva
 	defer func() { readReserva = origRead }()
 	readReserva = func(o orm.Ormer, r *models.Reserva) error {
 		return nil
 	}
 
-	// Mock updateReserva
 	origUpdate := updateReserva
 	defer func() { updateReserva = origUpdate }()
 	updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
@@ -389,10 +354,8 @@ func TestReservaPut_ValidEstado(t *testing.T) {
 		return 1, nil
 	}
 
-	// Execute
 	controller.Put()
 
-	// Verify
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, recorder.Code)
 	}

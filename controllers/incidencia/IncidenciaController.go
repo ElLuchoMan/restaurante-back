@@ -196,7 +196,7 @@ func (c *IncidenciaController) Post() {
 	}
 
 	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
+		parsedDate, err := models.ParseDateToNoonUTC(fechaStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "incidencias.post.bad_fecha", err, map[string]interface{}{"fechaIncidencia": fechaStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -208,8 +208,7 @@ func (c *IncidenciaController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
-		// Guardar fecha a mediodía UTC para estabilidad de calendario
-		incidencia.FECHA = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 12, 0, 0, 0, time.UTC)
+		incidencia.FECHA = parsedDate
 	} else {
 		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "fechaIncidencia"})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -287,25 +286,11 @@ func (c *IncidenciaController) Post() {
 		return
 	}
 
-	response := map[string]interface{}{
-		"incidenciaId":    incidencia.PK_ID_INCIDENCIA,
-		"fechaIncidencia": incidencia.FECHA.Format("2006-01-02"),
-		"monto":           incidencia.MONTO,
-		"resta":           incidencia.RESTA,
-		"motivo":          incidencia.MOTIVO,
-		"documentoTrabajador": func() int64 {
-			if incidencia.PK_DOCUMENTO_TRABAJADOR != nil {
-				return incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
-			}
-			return 0
-		}(),
-	}
-
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
 		Message: "Incidencia creada correctamente",
-		Data:    response,
+		Data:    incidencia,
 	}
 	_ = c.ServeJSON()
 }
@@ -365,7 +350,7 @@ func (c *IncidenciaController) Put() {
 	}
 
 	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
+		parsedDate, err := models.ParseDateToNoonUTC(fechaStr)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "incidencias.put.bad_fecha", err, map[string]interface{}{"id": id, "fechaIncidencia": fechaStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -377,7 +362,7 @@ func (c *IncidenciaController) Put() {
 			_ = c.ServeJSON()
 			return
 		}
-		incidencia.FECHA = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 12, 0, 0, 0, time.UTC)
+		incidencia.FECHA = parsedDate
 	}
 
 	if monto, ok := input["monto"].(float64); ok {
@@ -406,25 +391,11 @@ func (c *IncidenciaController) Put() {
 		return
 	}
 
-	response := map[string]interface{}{
-		"incidenciaId":    incidencia.PK_ID_INCIDENCIA,
-		"fechaIncidencia": incidencia.FECHA.Format("2006-01-02"),
-		"monto":           incidencia.MONTO,
-		"resta":           incidencia.RESTA,
-		"motivo":          incidencia.MOTIVO,
-		"documentoTrabajador": func() int64 {
-			if incidencia.PK_DOCUMENTO_TRABAJADOR != nil {
-				return incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
-			}
-			return 0
-		}(),
-	}
-
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Incidencia actualizada correctamente",
-		Data:    response,
+		Data:    incidencia,
 	}
 	_ = c.ServeJSON()
 }

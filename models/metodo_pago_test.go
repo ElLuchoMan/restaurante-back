@@ -19,12 +19,10 @@ func TestMetodoPago_JSONSerialization(t *testing.T) {
 		DETALLE:           "Visa terminada en 1234",
 	}
 
-	// Serializar
 	jsonData, err := json.Marshal(metodoPago)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
 
-	// Verificar campos en JSON
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &jsonMap)
 	assert.NoError(t, err)
@@ -32,7 +30,6 @@ func TestMetodoPago_JSONSerialization(t *testing.T) {
 	assert.Equal(t, "TARJETA", jsonMap["tipo"])
 	assert.Equal(t, "Visa terminada en 1234", jsonMap["detalle"])
 
-	// Deserializar
 	var metodoPagoDeserialized MetodoPago
 	err = json.Unmarshal(jsonData, &metodoPagoDeserialized)
 	assert.NoError(t, err)

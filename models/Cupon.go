@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -29,4 +30,42 @@ func (c *Cupon) TableName() string {
 
 func init() {
 	orm.RegisterModel(new(Cupon))
+}
+
+func (c Cupon) MarshalJSON() ([]byte, error) {
+
+	fiStr := FormatDateUTC(c.FechaInicio)
+	ffStr := FormatDateUTC(c.FechaFin)
+
+	return json.Marshal(&struct {
+		PkIdCupon          int64         `json:"cuponId"`
+		Codigo             string        `json:"codigo"`
+		Scope              CuponScope    `json:"scope"`
+		TipoDescuento      TipoDescuento `json:"tipoDescuento"`
+		ValorDescuento     int64         `json:"valorDescuento"`
+		MaxUsos            *int          `json:"maxUsos,omitempty"`
+		LimitePorCliente   *int          `json:"limitePorCliente,omitempty"`
+		MontoMinimo        *int64        `json:"montoMinimo,omitempty"`
+		FechaInicio        string        `json:"fechaInicio"`
+		FechaFin           string        `json:"fechaFin"`
+		PkIdProducto       *Producto     `json:"productoId,omitempty"`
+		PkIdCategoria      *Categoria    `json:"categoriaId,omitempty"`
+		PkDocumentoCliente *Cliente      `json:"documentoCliente,omitempty"`
+		Activo             bool          `json:"activo"`
+	}{
+		PkIdCupon:          c.PkIdCupon,
+		Codigo:             c.Codigo,
+		Scope:              c.Scope,
+		TipoDescuento:      c.TipoDescuento,
+		ValorDescuento:     c.ValorDescuento,
+		MaxUsos:            c.MaxUsos,
+		LimitePorCliente:   c.LimitePorCliente,
+		MontoMinimo:        c.MontoMinimo,
+		FechaInicio:        fiStr,
+		FechaFin:           ffStr,
+		PkIdProducto:       c.PkIdProducto,
+		PkIdCategoria:      c.PkIdCategoria,
+		PkDocumentoCliente: c.PkDocumentoCliente,
+		Activo:             c.Activo,
+	})
 }

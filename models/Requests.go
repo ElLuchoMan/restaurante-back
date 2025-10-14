@@ -220,7 +220,6 @@ type SubcategoriaUpdateRequest struct {
 	CategoriaId *int64  `json:"categoriaId,omitempty" example:"1"`
 }
 
-// AuthResponse representa la respuesta de autenticación con tokens
 type AuthResponse struct {
 	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`

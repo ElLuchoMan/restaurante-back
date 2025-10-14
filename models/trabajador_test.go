@@ -7,7 +7,7 @@ import (
 )
 
 func TestTrabajadorMarshalJSON(t *testing.T) {
-	// Cargar zona horaria de Bogotá para los tests
+
 	loc, err := time.LoadLocation("America/Bogota")
 	if err != nil {
 		loc = time.FixedZone("UTC-5", -5*60*60)
@@ -61,7 +61,7 @@ func TestRolTrabajadorIsValid(t *testing.T) {
 }
 
 func TestTrabajadorMarshalJSONNil(t *testing.T) {
-	// Cargar zona horaria de Bogotá para los tests
+
 	loc, err := time.LoadLocation("America/Bogota")
 	if err != nil {
 		loc = time.FixedZone("UTC-5", -5*60*60)
