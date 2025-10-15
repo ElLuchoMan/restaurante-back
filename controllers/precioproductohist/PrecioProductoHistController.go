@@ -70,8 +70,7 @@ WHERE 1=1`
 	resp := make([]map[string]interface{}, 0, len(rows))
 
 	for _, r := range rows {
-		fechaUTC := r.Fecha.UTC()
-		fechaStr := fechaUTC.Format("02-01-2006")
+		fechaStr := models.FormatDateUTC(r.Fecha)
 		resp = append(resp, map[string]interface{}{
 			"nombre":         r.Nombre,
 			"estadoProducto": r.Estado,
@@ -117,8 +116,7 @@ WHERE pph.pk_id_precio_hist = ?`
 		_ = c.ServeJSON()
 		return
 	}
-	fechaUTC := row.Fecha.UTC()
-	fechaStr := fechaUTC.Format("02-01-2006")
+	fechaStr := models.FormatDateUTC(row.Fecha)
 	resp := map[string]interface{}{
 		"nombre":         row.Nombre,
 		"estadoProducto": row.Estado,

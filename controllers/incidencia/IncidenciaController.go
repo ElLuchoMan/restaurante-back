@@ -127,14 +127,14 @@ func (c *IncidenciaController) GetByDocumentAndDate() {
 		return
 	}
 
-	fechaInicio := time.Date(anio, time.Month(mes), 1, 0, 0, 0, 0, time.UTC)
-	fechaFin := fechaInicio.AddDate(0, 1, 0).Add(-time.Second)
+	fechaInicio := time.Date(anio, time.Month(mes), 1, 12, 0, 0, 0, time.UTC)
+	fechaFin := time.Date(anio, time.Month(mes+1), 1, 12, 0, 0, 0, time.UTC).AddDate(0, 0, -1)
 
 	var incidencias []models.Incidencia
 	_, err = o.QueryTable(new(models.Incidencia)).
 		Filter("PK_DOCUMENTO_TRABAJADOR", documento).
-		Filter("FECHA__gte", fechaInicio.Format("2006-01-02")).
-		Filter("FECHA__lte", fechaFin.Format("2006-01-02")).
+		Filter("FECHA__gte", fechaInicio).
+		Filter("FECHA__lte", fechaFin).
 		All(&incidencias)
 
 	if err == orm.ErrNoRows || len(incidencias) == 0 {

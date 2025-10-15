@@ -16,7 +16,7 @@ type CambiosHorarioController struct {
 	web.Controller
 }
 
-var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
+var queryCambioHorarioByDate = func(o orm.Ormer, date time.Time, ch *models.CambiosHorario) error {
 	if o == nil {
 		return errors.New("nil ormer")
 	}
@@ -106,16 +106,16 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 
 	now := time.Now().UTC()
 
-	dateStr := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC).Format("2006-01-02")
+	dateNoon := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC)
 
-	if err := queryCambioHorarioByDate(o, dateStr, &cambioHorario); err != nil {
+	if err := queryCambioHorarioByDate(o, dateNoon, &cambioHorario); err != nil {
 		if err == orm.ErrNoRows {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "No hay cambios de horario para la fecha actual"}
 			_ = c.ServeJSON()
 			return
 		}
-		logging.LogControllerError(c.Ctx, "cambios_horario.actual.db_error", err, map[string]interface{}{"date": dateStr})
+		logging.LogControllerError(c.Ctx, "cambios_horario.actual.db_error", err, map[string]interface{}{"date": dateNoon})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al consultar cambios de horario", Cause: err.Error()}
 		_ = c.ServeJSON()

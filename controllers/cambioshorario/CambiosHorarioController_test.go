@@ -115,7 +115,7 @@ func TestCambiosHorario_GetAll_OK(t *testing.T) {
 
 func TestCambiosHorario_GetByCurrentDate_NoRows(t *testing.T) {
 	orig := queryCambioHorarioByDate
-	queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
+	queryCambioHorarioByDate = func(o orm.Ormer, date time.Time, ch *models.CambiosHorario) error {
 		return orm.ErrNoRows
 	}
 	defer func() { queryCambioHorarioByDate = orig }()
@@ -133,7 +133,7 @@ func TestCambiosHorario_GetByCurrentDate_NoRows(t *testing.T) {
 
 func TestCambiosHorario_GetByCurrentDate_DBError(t *testing.T) {
 	orig := queryCambioHorarioByDate
-	queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
+	queryCambioHorarioByDate = func(o orm.Ormer, date time.Time, ch *models.CambiosHorario) error {
 		return errors.New("db fail")
 	}
 	defer func() { queryCambioHorarioByDate = orig }()
@@ -148,7 +148,7 @@ func TestCambiosHorario_GetByCurrentDate_DBError(t *testing.T) {
 
 func TestCambiosHorario_GetByCurrentDate_OK(t *testing.T) {
 	orig := queryCambioHorarioByDate
-	queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
+	queryCambioHorarioByDate = func(o orm.Ormer, date time.Time, ch *models.CambiosHorario) error {
 		ch.PK_ID_CAMBIO_HORARIO = 10
 		ch.FECHA = time.Now().In(database.BogotaZone)
 		ch.ABIERTO = true
@@ -451,7 +451,8 @@ func TestCambiosHorario_Put_UpdateFecha(t *testing.T) {
 }
 
 func TestCambiosHorario_HookFuncs_NilOrmer(t *testing.T) {
-	if err := queryCambioHorarioByDate(nil, "", &models.CambiosHorario{}); err == nil {
+	testDate := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	if err := queryCambioHorarioByDate(nil, testDate, &models.CambiosHorario{}); err == nil {
 		t.Fatalf("expected error")
 	}
 	if _, err := queryAllCambiosHorario(nil, &[]models.CambiosHorario{}); err == nil {
@@ -476,5 +477,5 @@ func TestCambiosHorario_HookFuncs_NilOrmer(t *testing.T) {
 	_ = queryCambioHorarioByID(o, 1, &models.CambiosHorario{})
 	_, _ = updateCambioHorario(o, &models.CambiosHorario{})
 	_, _ = deleteCambioHorarioByID(o, 1)
-	_ = queryCambioHorarioByDate(o, "2024-01-01", &models.CambiosHorario{})
+	_ = queryCambioHorarioByDate(o, testDate, &models.CambiosHorario{})
 }

@@ -75,9 +75,16 @@ func (c *NominaController) GetAll() {
 	mes, _ := c.GetInt("mes")
 	anio, _ := c.GetInt("anio")
 
+	var fechaParsed *time.Time
+	if fecha != "" {
+		if parsed, err := models.ParseDateToNoonUTC(fecha); err == nil {
+			fechaParsed = &parsed
+		}
+	}
+
 	var filteredNominas []models.Nomina
 	for _, nomina := range nominas {
-		if fecha != "" && nomina.FECHA.Format("2006-01-02") != fecha {
+		if fechaParsed != nil && !nomina.FECHA.Equal(*fechaParsed) {
 			continue
 		}
 		if mes > 0 && mes <= 12 && int(nomina.FECHA.Month()) != mes {
