@@ -264,8 +264,6 @@ func (c *CuponController) Post() {
 		return
 	}
 
-	// ya normalizadas por helper a mediodía UTC
-
 	cupon := &models.Cupon{
 		Codigo:           req.Codigo,
 		Scope:            req.Scope,
@@ -514,8 +512,6 @@ func (c *CuponController) Put() {
 		_ = c.ServeJSON()
 		return
 	}
-
-	// ya normalizadas por helper a mediodía UTC
 
 	cupon.Codigo = req.Codigo
 	cupon.Scope = req.Scope

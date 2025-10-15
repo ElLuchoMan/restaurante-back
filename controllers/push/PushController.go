@@ -670,13 +670,13 @@ func (c *PushController) ListarEnvios() {
 	}
 
 	if fechaDesde := c.GetString("fecha_desde"); fechaDesde != "" {
-		if fecha, err := time.Parse("2006-01-02", fechaDesde); err == nil {
+		if fecha, err := models.ParseDateToNoonUTC(fechaDesde); err == nil {
 			qs = qs.Filter("sent_at__gte", fecha)
 		}
 	}
 
 	if fechaHasta := c.GetString("fecha_hasta"); fechaHasta != "" {
-		if fecha, err := time.Parse("2006-01-02", fechaHasta); err == nil {
+		if fecha, err := models.ParseDateToNoonUTC(fechaHasta); err == nil {
 
 			fechaFin := fecha.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 			qs = qs.Filter("sent_at__lte", fechaFin)

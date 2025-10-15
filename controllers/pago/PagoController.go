@@ -284,7 +284,6 @@ func (c *PagoController) Post() {
 		UPDATED_BY:        updatedBy,
 	}
 
-	// Fijar timestamp de actualización en UTC
 	pago.UPDATED_AT = time.Now().UTC()
 
 	if _, err := o.Insert(&pago); err != nil {

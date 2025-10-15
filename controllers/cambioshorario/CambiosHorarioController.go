@@ -105,7 +105,7 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 	var cambioHorario models.CambiosHorario
 
 	now := time.Now().UTC()
-	// Construimos la fecha actual por componentes (día/mes/año) y usamos mediodía UTC para filtrar por DATE
+
 	dateStr := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC).Format("2006-01-02")
 
 	if err := queryCambioHorarioByDate(o, dateStr, &cambioHorario); err != nil {

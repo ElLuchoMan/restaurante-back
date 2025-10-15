@@ -235,18 +235,16 @@ func (c *OfertaController) Post() {
 		return
 	}
 
-	// ya normalizadas por helper: mediodía UTC
-
 	var horaInicio, horaFin *time.Time
 	if req.HoraInicio != nil {
-		if hora, err := time.Parse("15:04", *req.HoraInicio); err == nil {
+		if hora, err := models.ParseTimeToUTC(*req.HoraInicio); err == nil {
 			horaInicio = &hora
 		} else {
 			logging.LogControllerError(c.Ctx, "ofertas.post.invalid_hora_inicio", err, map[string]interface{}{"horaInicio": *req.HoraInicio})
 			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusUnprocessableEntity,
-				Message: "Hora de inicio inválida - debe tener formato HH:MM",
+				Message: "Hora de inicio inválida - debe tener formato HH:MM o HH:MM:SS",
 			}
 			_ = c.ServeJSON()
 			return
@@ -254,21 +252,19 @@ func (c *OfertaController) Post() {
 	}
 
 	if req.HoraFin != nil {
-		if hora, err := time.Parse("15:04", *req.HoraFin); err == nil {
+		if hora, err := models.ParseTimeToUTC(*req.HoraFin); err == nil {
 			horaFin = &hora
 		} else {
 			logging.LogControllerError(c.Ctx, "ofertas.post.invalid_hora_fin", err, map[string]interface{}{"horaFin": *req.HoraFin})
 			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusUnprocessableEntity,
-				Message: "Hora de fin inválida - debe tener formato HH:MM",
+				Message: "Hora de fin inválida - debe tener formato HH:MM o HH:MM:SS",
 			}
 			_ = c.ServeJSON()
 			return
 		}
 	}
-
-	// ya normalizadas por helper: mediodía UTC
 
 	oferta := &models.Oferta{
 		Titulo:          req.Titulo,
@@ -475,14 +471,14 @@ func (c *OfertaController) Put() {
 
 	var horaInicio, horaFin *time.Time
 	if req.HoraInicio != nil {
-		if hora, err := time.Parse("15:04", *req.HoraInicio); err == nil {
+		if hora, err := models.ParseTimeToUTC(*req.HoraInicio); err == nil {
 			horaInicio = &hora
 		} else {
 			logging.LogControllerError(c.Ctx, "ofertas.put.invalid_hora_inicio", err, map[string]interface{}{"horaInicio": *req.HoraInicio, "id": id})
 			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusUnprocessableEntity,
-				Message: "Hora de inicio inválida - debe tener formato HH:MM",
+				Message: "Hora de inicio inválida - debe tener formato HH:MM o HH:MM:SS",
 			}
 			_ = c.ServeJSON()
 			return
@@ -490,14 +486,14 @@ func (c *OfertaController) Put() {
 	}
 
 	if req.HoraFin != nil {
-		if hora, err := time.Parse("15:04", *req.HoraFin); err == nil {
+		if hora, err := models.ParseTimeToUTC(*req.HoraFin); err == nil {
 			horaFin = &hora
 		} else {
 			logging.LogControllerError(c.Ctx, "ofertas.put.invalid_hora_fin", err, map[string]interface{}{"horaFin": *req.HoraFin, "id": id})
 			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusUnprocessableEntity,
-				Message: "Hora de fin inválida - debe tener formato HH:MM",
+				Message: "Hora de fin inválida - debe tener formato HH:MM o HH:MM:SS",
 			}
 			_ = c.ServeJSON()
 			return
@@ -656,7 +652,7 @@ func (c *OfertaController) ObtenerOfertasActivas() {
 
 	var fecha *time.Time
 	if fechaStr := c.GetString("fecha"); fechaStr != "" {
-		if f, err := time.Parse("2006-01-02", fechaStr); err == nil {
+		if f, err := models.ParseDateToNoonUTC(fechaStr); err == nil {
 			fecha = &f
 		} else {
 			logging.LogControllerError(c.Ctx, "ofertas.activas.invalid_fecha", err, map[string]interface{}{"fecha": fechaStr})
@@ -672,14 +668,14 @@ func (c *OfertaController) ObtenerOfertasActivas() {
 
 	var hora *time.Time
 	if horaStr := c.GetString("hora"); horaStr != "" {
-		if h, err := time.Parse("15:04", horaStr); err == nil {
+		if h, err := models.ParseTimeToUTC(horaStr); err == nil {
 			hora = &h
 		} else {
 			logging.LogControllerError(c.Ctx, "ofertas.activas.invalid_hora", err, map[string]interface{}{"hora": horaStr})
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
 				Code:    http.StatusBadRequest,
-				Message: "Hora inválida - debe tener formato HH:MM",
+				Message: "Hora inválida - debe tener formato HH:MM o HH:MM:SS",
 			}
 			_ = c.ServeJSON()
 			return

@@ -164,7 +164,7 @@ func TestOfertaObtenerOfertasActivas_ConServicioMockeado_HoraInvalida(t *testing
 	var response models.ApiResponse
 	_ = json.Unmarshal(recorder.Body.Bytes(), &response)
 	assert.Equal(t, http.StatusBadRequest, response.Code)
-	assert.Equal(t, "Hora inválida - debe tener formato HH:MM", response.Message)
+	assert.Equal(t, "Hora inválida - debe tener formato HH:MM o HH:MM:SS", response.Message)
 }
 
 func TestOfertaObtenerOfertasActivas_ConServicioMockeado_ProductoIdInvalido(t *testing.T) {

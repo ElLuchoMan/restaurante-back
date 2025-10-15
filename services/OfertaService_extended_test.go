@@ -638,7 +638,7 @@ func TestOfertaService_ObtenerOfertasActivas_SinOfertas(t *testing.T) {
 }
 
 func TestOfertaService_ObtenerOfertasActivas_OfertaSimple(t *testing.T) {
-	// Simular servidor en UTC para validar independencia de zona
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })

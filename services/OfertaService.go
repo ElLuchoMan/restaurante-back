@@ -21,7 +21,7 @@ func NewOfertaService(ormer orm.Ormer) *OfertaService {
 }
 
 func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId int64, fecha *time.Time, hora *time.Time, productoId *int64) ([]*models.OfertaActivaResponse, error) {
-	// Asegurar zona Bogotá incluso si no fue inicializada en tests
+
 	loc := database.BogotaZone
 	if loc == nil {
 		if l, err := time.LoadLocation("America/Bogota"); err == nil {

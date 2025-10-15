@@ -143,7 +143,7 @@ func TestCuponService_ValidarCupon_CuponInactivo(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_CuponFueraVigencia(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -175,7 +175,7 @@ func TestCuponService_ValidarCupon_CuponFueraVigencia(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_MaxUsosSuperado(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -216,7 +216,7 @@ func TestCuponService_ValidarCupon_MaxUsosSuperado(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ErrorContarUsos(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -254,7 +254,7 @@ func TestCuponService_ValidarCupon_ErrorContarUsos(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_LimiteClienteSuperado(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -295,7 +295,7 @@ func TestCuponService_ValidarCupon_LimiteClienteSuperado(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ErrorContarCliente(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -333,7 +333,7 @@ func TestCuponService_ValidarCupon_ErrorContarCliente(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_MontoMinimo(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -374,7 +374,7 @@ func TestCuponService_ValidarCupon_MontoMinimo(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ScopeClienteInvalido(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -414,7 +414,7 @@ func TestCuponService_ValidarCupon_ScopeClienteInvalido(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ScopeProductoSinAplicables(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -455,7 +455,7 @@ func TestCuponService_ValidarCupon_ScopeProductoSinAplicables(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_ScopeCategoriaSinAplicables(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -503,7 +503,7 @@ func TestCuponService_ValidarCupon_ScopeCategoriaSinAplicables(t *testing.T) {
 }
 
 func TestCuponService_ValidarCupon_Success(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -572,7 +572,7 @@ func TestCuponService_RedimirCupon_CuponNoEncontrado(t *testing.T) {
 }
 
 func TestCuponService_RedimirCupon_ValidacionError(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -611,7 +611,7 @@ func TestCuponService_RedimirCupon_ValidacionError(t *testing.T) {
 }
 
 func TestCuponService_RedimirCupon_NoAplicable(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -649,7 +649,7 @@ func TestCuponService_RedimirCupon_NoAplicable(t *testing.T) {
 }
 
 func TestCuponService_RedimirCupon_InsertError(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })
@@ -690,7 +690,7 @@ func TestCuponService_RedimirCupon_InsertError(t *testing.T) {
 }
 
 func TestCuponService_RedimirCupon_Success(t *testing.T) {
-	// Forzar zona a UTC para simular servidor fuera de Bogotá
+
 	original := database.BogotaZone
 	database.BogotaZone = time.UTC
 	t.Cleanup(func() { database.BogotaZone = original })

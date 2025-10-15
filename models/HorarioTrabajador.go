@@ -33,14 +33,8 @@ func init() {
 
 func (h HorarioTrabajador) MarshalJSON() ([]byte, error) {
 
-	inicio := h.HORA_INICIO
-	if inicio.Year() < 1900 {
-		inicio = inicio.Add(9*time.Hour + 52*time.Minute + 32*time.Second)
-	}
-	fin := h.HORA_FIN
-	if fin.Year() < 1900 {
-		fin = fin.Add(9*time.Hour + 52*time.Minute + 32*time.Second)
-	}
+	horaInicioStr := FormatTimeWithLMT(h.HORA_INICIO)
+	horaFinStr := FormatTimeWithLMT(h.HORA_FIN)
 
 	return json.Marshal(&struct {
 		PK_DOCUMENTO_TRABAJADOR *int64 `json:"documentoTrabajador"`
@@ -55,7 +49,7 @@ func (h HorarioTrabajador) MarshalJSON() ([]byte, error) {
 			return nil
 		}(),
 		DIA:         string(h.DIA),
-		HORA_INICIO: FormatTimeWithLMT(inicio),
-		HORA_FIN:    FormatTimeWithLMT(fin),
+		HORA_INICIO: horaInicioStr,
+		HORA_FIN:    horaFinStr,
 	})
 }

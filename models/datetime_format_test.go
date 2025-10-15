@@ -54,7 +54,7 @@ func TestParseTimeToUTCMinutesOnly(t *testing.T) {
 }
 
 func TestFormatTimeWithLMTAdjustment(t *testing.T) {
-	// Year < 1900 should apply adjustment ~09:52:32
+
 	t0 := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
 	s := FormatTimeWithLMT(t0)
 	if s != "09:52:32" {

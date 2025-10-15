@@ -142,6 +142,45 @@ type CuponResponse struct {
 	UsosActuales     int           `json:"usosActuales"`
 }
 
+func (c CuponResponse) MarshalJSON() ([]byte, error) {
+	fechaInicioStr := FormatDateUTC(c.FechaInicio)
+	fechaFinStr := FormatDateUTC(c.FechaFin)
+
+	return json.Marshal(&struct {
+		CuponId          int64         `json:"cuponId"`
+		Codigo           string        `json:"codigo"`
+		Scope            CuponScope    `json:"scope"`
+		TipoDescuento    TipoDescuento `json:"tipoDescuento"`
+		ValorDescuento   int64         `json:"valorDescuento"`
+		MaxUsos          *int          `json:"maxUsos,omitempty"`
+		LimitePorCliente *int          `json:"limitePorCliente,omitempty"`
+		MontoMinimo      *int64        `json:"montoMinimo,omitempty"`
+		FechaInicio      string        `json:"fechaInicio"`
+		FechaFin         string        `json:"fechaFin"`
+		ProductoId       *int64        `json:"productoId,omitempty"`
+		CategoriaId      *int64        `json:"categoriaId,omitempty"`
+		DocumentoCliente *int64        `json:"documentoCliente,omitempty"`
+		Activo           bool          `json:"activo"`
+		UsosActuales     int           `json:"usosActuales"`
+	}{
+		CuponId:          c.CuponId,
+		Codigo:           c.Codigo,
+		Scope:            c.Scope,
+		TipoDescuento:    c.TipoDescuento,
+		ValorDescuento:   c.ValorDescuento,
+		MaxUsos:          c.MaxUsos,
+		LimitePorCliente: c.LimitePorCliente,
+		MontoMinimo:      c.MontoMinimo,
+		FechaInicio:      fechaInicioStr,
+		FechaFin:         fechaFinStr,
+		ProductoId:       c.ProductoId,
+		CategoriaId:      c.CategoriaId,
+		DocumentoCliente: c.DocumentoCliente,
+		Activo:           c.Activo,
+		UsosActuales:     c.UsosActuales,
+	})
+}
+
 type OfertaResponse struct {
 	OfertaId       int64         `json:"ofertaId"`
 	Titulo         string        `json:"titulo"`
@@ -155,6 +194,51 @@ type OfertaResponse struct {
 	Activo         bool          `json:"activo"`
 	RestauranteId  int64         `json:"restauranteId"`
 	ProductosIds   []int64       `json:"productosIds"`
+}
+
+func (o OfertaResponse) MarshalJSON() ([]byte, error) {
+	fechaInicioStr := FormatDateUTC(o.FechaInicio)
+	fechaFinStr := FormatDateUTC(o.FechaFin)
+
+	var horaInicioStr *string
+	if o.HoraInicio != nil {
+		str := FormatTimeWithLMT(*o.HoraInicio)
+		horaInicioStr = &str
+	}
+
+	var horaFinStr *string
+	if o.HoraFin != nil {
+		str := FormatTimeWithLMT(*o.HoraFin)
+		horaFinStr = &str
+	}
+
+	return json.Marshal(&struct {
+		OfertaId       int64         `json:"ofertaId"`
+		Titulo         string        `json:"titulo"`
+		TipoDescuento  TipoDescuento `json:"tipoDescuento"`
+		ValorDescuento int64         `json:"valorDescuento"`
+		FechaInicio    string        `json:"fechaInicio"`
+		FechaFin       string        `json:"fechaFin"`
+		DiasSemana     []string      `json:"diasSemana"`
+		HoraInicio     *string       `json:"horaInicio,omitempty"`
+		HoraFin        *string       `json:"horaFin,omitempty"`
+		Activo         bool          `json:"activo"`
+		RestauranteId  int64         `json:"restauranteId"`
+		ProductosIds   []int64       `json:"productosIds"`
+	}{
+		OfertaId:       o.OfertaId,
+		Titulo:         o.Titulo,
+		TipoDescuento:  o.TipoDescuento,
+		ValorDescuento: o.ValorDescuento,
+		FechaInicio:    fechaInicioStr,
+		FechaFin:       fechaFinStr,
+		DiasSemana:     o.DiasSemana,
+		HoraInicio:     horaInicioStr,
+		HoraFin:        horaFinStr,
+		Activo:         o.Activo,
+		RestauranteId:  o.RestauranteId,
+		ProductosIds:   o.ProductosIds,
+	})
 }
 
 type EnviarNotificacionResponse struct {

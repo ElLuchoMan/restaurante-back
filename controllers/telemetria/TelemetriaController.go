@@ -110,13 +110,13 @@ func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, h
 	case FilterDateRange:
 		if fechaInicio != "" && fechaFin != "" {
 
-			if _, err := time.Parse("2006-01-02", fechaInicio); err == nil {
+			if _, err := models.ParseDateToNoonUTC(fechaInicio); err == nil {
 				startDate = fechaInicio
 			} else {
 				startDate = now.AddDate(0, -1, 0).Format("2006-01-02")
 			}
 
-			if _, err := time.Parse("2006-01-02", fechaFin); err == nil {
+			if _, err := models.ParseDateToNoonUTC(fechaFin); err == nil {
 				endDate = fechaFin
 			} else {
 				endDate = now.Format("2006-01-02")
@@ -132,10 +132,8 @@ func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, h
 	}
 
 	if horaInicio != "" {
-		if _, err := time.Parse("15:04:05", horaInicio); err == nil {
-			startTime = horaInicio
-		} else if _, err := time.Parse("15:04", horaInicio); err == nil {
-			startTime = horaInicio + ":00"
+		if parsed, err := models.ParseTimeToUTC(horaInicio); err == nil {
+			startTime = parsed.Format("15:04:05")
 		} else {
 			startTime = DefaultStartTime
 		}
@@ -144,10 +142,8 @@ func getAdvancedTimeRange(filter TimeFilter, mes, año, fechaInicio, fechaFin, h
 	}
 
 	if horaFin != "" {
-		if _, err := time.Parse("15:04:05", horaFin); err == nil {
-			endTime = horaFin
-		} else if _, err := time.Parse("15:04", horaFin); err == nil {
-			endTime = horaFin + ":00"
+		if parsed, err := models.ParseTimeToUTC(horaFin); err == nil {
+			endTime = parsed.Format("15:04:05")
 		} else {
 			endTime = DefaultEndTime
 		}
