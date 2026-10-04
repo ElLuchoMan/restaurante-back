@@ -4,7 +4,6 @@ services:
     name: restaurante-back
     runtime: docker
     plan: free
-    healthCheckPath: /restaurante/v1/productos-disponibles
     envVars:
       - key: BEEGO_RUNMODE
         value: prod
