@@ -23,6 +23,9 @@ import (
 	oauthgoogle "golang.org/x/oauth2/google"
 )
 
+// keyNotification es la clave JSON del payload de notificación.
+const keyNotification = "notification"
+
 type PushService struct {
 	ormer orm.Ormer
 }
@@ -472,7 +475,7 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 	}
 
 	payload := map[string]interface{}{
-		"notification": map[string]interface{}{
+		keyNotification: map[string]interface{}{
 			"title": notificacion.Titulo,
 			"body":  notificacion.Mensaje,
 			"icon":  "/icons/web-app-manifest-192x192.png",
@@ -483,7 +486,7 @@ func (s *PushService) enviarWebPush(dispositivo *models.PushDispositivo, notific
 	if len(notificacion.Datos) > 0 {
 		var datosMap map[string]interface{}
 		if err := jsonUnmarshalFn(notificacion.Datos, &datosMap); err == nil {
-			if notif, ok := payload["notification"].(map[string]interface{}); ok {
+			if notif, ok := payload[keyNotification].(map[string]interface{}); ok {
 				notif["data"] = datosMap
 			}
 		}
@@ -607,7 +610,7 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 	body := map[string]interface{}{
 		"message": map[string]interface{}{
 			"token": *dispositivo.FcmToken,
-			"notification": map[string]string{
+			keyNotification: map[string]string{
 				"title": notificacion.Titulo,
 				"body":  notificacion.Mensaje,
 			},
@@ -626,7 +629,7 @@ func (s *PushService) enviarFCM(dispositivo *models.PushDispositivo, notificacio
 			}(),
 			"android": map[string]interface{}{
 				"priority": "high",
-				"notification": map[string]string{
+				keyNotification: map[string]string{
 					"channel_id":   "default",
 					"click_action": "FLUTTER_NOTIFICATION_CLICK",
 				},
