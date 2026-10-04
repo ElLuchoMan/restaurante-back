@@ -32,28 +32,48 @@ func init() {
 }
 
 func (d Trabajador) MarshalJSON() ([]byte, error) {
-	type Alias Trabajador
+
+	var fechaNacimientoStr *string
+	if d.FECHA_NACIMIENTO != nil {
+		str := FormatDateUTC(*d.FECHA_NACIMIENTO)
+		fechaNacimientoStr = &str
+	}
+
+	fechaIngresoStr := FormatDateUTC(d.FECHA_INGRESO)
+
+	var fechaRetiroStr *string
+	if d.FECHA_RETIRO != nil {
+		str := FormatDateUTC(*d.FECHA_RETIRO)
+		fechaRetiroStr = &str
+	}
+
 	return json.Marshal(&struct {
-		FECHA_NACIMIENTO *string `json:"fechaNacimiento,omitempty"`
-		FECHA_INGRESO    string  `json:"fechaIngreso"`
-		FECHA_RETIRO     *string `json:"fechaRetiro,omitempty"`
-		Alias
+		PK_DOCUMENTO_TRABAJADOR int64               `json:"documentoTrabajador"`
+		NOMBRE                  string              `json:"nombre"`
+		APELLIDO                string              `json:"apellido"`
+		SUELDO                  int64               `json:"sueldo"`
+		TELEFONO                *string             `json:"telefono,omitempty"`
+		FECHA_NACIMIENTO        *string             `json:"fechaNacimiento,omitempty"`
+		NUEVO                   bool                `json:"nuevo"`
+		ROL                     RolTrabajador       `json:"rol"`
+		FECHA_INGRESO           string              `json:"fechaIngreso"`
+		FECHA_RETIRO            *string             `json:"fechaRetiro,omitempty"`
+		PASSWORD                string              `json:"password"`
+		HORARIOS                []HorarioTrabajador `json:"horarios,omitempty"`
+		PK_ID_RESTAURANTE       *Restaurante        `json:"restauranteId,omitempty"`
 	}{
-		FECHA_NACIMIENTO: func() *string {
-			if d.FECHA_NACIMIENTO != nil {
-				str := d.FECHA_NACIMIENTO.Format("02-01-2006")
-				return &str
-			}
-			return nil
-		}(),
-		FECHA_INGRESO: d.FECHA_INGRESO.Format("02-01-2006 15:04:05"),
-		FECHA_RETIRO: func() *string {
-			if d.FECHA_RETIRO != nil {
-				str := d.FECHA_RETIRO.Format("02-01-2006 15:04:05")
-				return &str
-			}
-			return nil
-		}(),
-		Alias: (Alias)(d),
+		PK_DOCUMENTO_TRABAJADOR: d.PK_DOCUMENTO_TRABAJADOR,
+		NOMBRE:                  d.NOMBRE,
+		APELLIDO:                d.APELLIDO,
+		SUELDO:                  d.SUELDO,
+		TELEFONO:                d.TELEFONO,
+		FECHA_NACIMIENTO:        fechaNacimientoStr,
+		NUEVO:                   d.NUEVO,
+		ROL:                     d.ROL,
+		FECHA_INGRESO:           fechaIngresoStr,
+		FECHA_RETIRO:            fechaRetiroStr,
+		PASSWORD:                d.PASSWORD,
+		HORARIOS:                d.HORARIOS,
+		PK_ID_RESTAURANTE:       d.PK_ID_RESTAURANTE,
 	})
 }

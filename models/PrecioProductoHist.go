@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -23,4 +24,21 @@ func (p *PrecioProductoHist) TableUnique() [][]string {
 
 func init() {
 	orm.RegisterModel(new(PrecioProductoHist))
+}
+
+func (p PrecioProductoHist) MarshalJSON() ([]byte, error) {
+
+	fechaStr := FormatDateUTC(p.FechaVigencia)
+
+	return json.Marshal(&struct {
+		PK_ID_PRECIO_HIST int64     `json:"precioHistId"`
+		PKIDProducto      *Producto `json:"productoId" swaggertype:"integer"`
+		Precio            int64     `json:"precio"`
+		FechaVigencia     string    `json:"fechaVigencia"`
+	}{
+		PK_ID_PRECIO_HIST: p.PK_ID_PRECIO_HIST,
+		PKIDProducto:      p.PKIDProducto,
+		Precio:            p.Precio,
+		FechaVigencia:     fechaStr,
+	})
 }

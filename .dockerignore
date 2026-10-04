@@ -1,0 +1,9 @@
+.git
+.github
+.env
+*.exe
+coverage*
+*_test.go
+docs/*.md
+tools
+node_modules

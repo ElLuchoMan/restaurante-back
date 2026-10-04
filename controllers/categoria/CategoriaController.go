@@ -91,8 +91,15 @@ func (c *CategoriaController) GetById() {
 	}
 	cat := models.Categoria{PK_ID_CATEGORIA: id}
 	if err := o.Read(&cat); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
+		if err == orm.ErrNoRows {
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
+			_ = c.ServeJSON()
+			return
+		}
+		logging.LogControllerError(c.Ctx, "categorias.getbyid.read_error", err, map[string]interface{}{"id": id})
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error interno del servidor", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
@@ -157,8 +164,15 @@ func (c *CategoriaController) Put() {
 	}
 	cat := models.Categoria{PK_ID_CATEGORIA: id}
 	if err := o.Read(&cat); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
+		if err == orm.ErrNoRows {
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
+			_ = c.ServeJSON()
+			return
+		}
+		logging.LogControllerError(c.Ctx, "categorias.put.read_error", err, map[string]interface{}{"id": id})
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error interno del servidor", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
@@ -205,9 +219,24 @@ func (c *CategoriaController) Delete() {
 		_ = c.ServeJSON()
 		return
 	}
-	if _, err := o.Delete(&models.Categoria{PK_ID_CATEGORIA: id}); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
+	cat := models.Categoria{PK_ID_CATEGORIA: id}
+	if err := o.Read(&cat); err != nil {
+		if err == orm.ErrNoRows {
+			c.Ctx.Output.SetStatus(http.StatusNotFound)
+			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
+			_ = c.ServeJSON()
+			return
+		}
+		logging.LogControllerError(c.Ctx, "categorias.delete.read_error", err, map[string]interface{}{"id": id})
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error interno del servidor", Cause: err.Error()}
+		_ = c.ServeJSON()
+		return
+	}
+	if _, err := o.Delete(&cat); err != nil {
+		logging.LogControllerError(c.Ctx, "categorias.delete.delete_error", err, map[string]interface{}{"id": id})
+		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
+		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar categoría", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}

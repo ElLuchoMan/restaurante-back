@@ -17,7 +17,7 @@ type Pedido struct {
 	PK_ID_PAGO           *Pago        `orm:"column(pk_id_pago);rel(fk);null" json:"pagoId" swaggertype:"integer"`
 	PK_ID_RESTAURANTE    *Restaurante `orm:"column(pk_id_restaurante);rel(fk);null" json:"restauranteId" swaggertype:"integer"`
 	PK_DOCUMENTO_CLIENTE *Cliente     `orm:"column(pk_documento_cliente);rel(fk);null" json:"documentoCliente" swaggertype:"integer"`
-	UPDATED_AT           time.Time    `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt"`
+	UPDATED_AT           time.Time    `orm:"column(updated_at);type(timestamptz);auto_now" json:"updatedAt" swaggertype:"string"`
 	UPDATED_BY           *string      `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 }
 
@@ -44,16 +44,36 @@ func init() {
 }
 
 func (d Pedido) MarshalJSON() ([]byte, error) {
-	type Alias Pedido
+
+	fechaStr := FormatDateUTC(d.FECHA)
+
+	horaStr := FormatTimeWithLMT(d.HORA)
+
+	updatedAtStr := FormatTimestampBogota(d.UPDATED_AT)
+
 	return json.Marshal(&struct {
-		FECHA      string `json:"fechaPedido"`
-		HORA       string `json:"horaPedido"`
-		UPDATED_AT string `json:"updatedAt"`
-		Alias
+		PK_ID_PEDIDO         int64        `json:"pedidoId"`
+		FECHA                string       `json:"fechaPedido"`
+		HORA                 string       `json:"horaPedido"`
+		DELIVERY             bool         `json:"delivery"`
+		ESTADO_PEDIDO        EstadoPedido `json:"estadoPedido"`
+		PK_ID_DOMICILIO      *Domicilio   `json:"domicilioId,omitempty"`
+		PK_ID_PAGO           *Pago        `json:"pagoId"`
+		PK_ID_RESTAURANTE    *Restaurante `json:"restauranteId"`
+		PK_DOCUMENTO_CLIENTE *Cliente     `json:"documentoCliente"`
+		UPDATED_AT           string       `json:"updatedAt"`
+		UPDATED_BY           *string      `json:"updatedBy,omitempty"`
 	}{
-		FECHA:      d.FECHA.Format("02-01-2006"),
-		HORA:       d.HORA.Format("15:04:05"),
-		UPDATED_AT: d.UPDATED_AT.Format("02-01-2006 15:04:05"),
-		Alias:      (Alias)(d),
+		PK_ID_PEDIDO:         d.PK_ID_PEDIDO,
+		FECHA:                fechaStr,
+		HORA:                 horaStr,
+		DELIVERY:             d.DELIVERY,
+		ESTADO_PEDIDO:        d.ESTADO_PEDIDO,
+		PK_ID_DOMICILIO:      d.PK_ID_DOMICILIO,
+		PK_ID_PAGO:           d.PK_ID_PAGO,
+		PK_ID_RESTAURANTE:    d.PK_ID_RESTAURANTE,
+		PK_DOCUMENTO_CLIENTE: d.PK_DOCUMENTO_CLIENTE,
+		UPDATED_AT:           updatedAtStr,
+		UPDATED_BY:           d.UPDATED_BY,
 	})
 }

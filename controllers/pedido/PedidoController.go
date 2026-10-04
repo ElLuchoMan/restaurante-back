@@ -2,6 +2,7 @@ package pedido
 
 import (
 	"encoding/json"
+	"restaurante/database"
 	"restaurante/logging"
 	"restaurante/models"
 	"time"
@@ -9,8 +10,6 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 )
-
-var loadLocationPedido = time.LoadLocation
 
 type PedidoController struct {
 	web.Controller
@@ -142,9 +141,10 @@ func (c *PedidoController) GetAll() {
 // @Router /pedidos [post]
 func (c *PedidoController) Post() {
 	var in struct {
-		Delivery      *bool  `json:"delivery"`
-		PKIDDomicilio *int64 `json:"pk_id_domicilio"`
-		RestauranteId int64  `json:"restauranteId"`
+		Delivery         *bool  `json:"delivery"`
+		PKIDDomicilio    *int64 `json:"pk_id_domicilio"`
+		RestauranteId    int64  `json:"restauranteId"`
+		DocumentoCliente *int64 `json:"documentoCliente"`
 	}
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
@@ -159,18 +159,20 @@ func (c *PedidoController) Post() {
 		return
 	}
 
-	loc, errLoc := loadLocationPedido("America/Bogota")
-	if errLoc != nil {
-		logging.LogControllerError(c.Ctx, "pedidos.post.tz_error", errLoc, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(500)
-		c.Data["json"] = models.ApiResponse{Code: 500, Message: "No se pudo cargar zona horaria", Cause: errLoc.Error()}
-		_ = c.ServeJSON()
-		return
+	bogota := database.BogotaZone
+	if bogota == nil {
+		if loc, err := time.LoadLocation("America/Bogota"); err == nil {
+			bogota = loc
+		} else {
+			bogota = time.FixedZone("UTC-5", -5*60*60)
+		}
 	}
-	now := time.Now().In(loc)
+	nowBogota := time.Now().In(bogota)
+	now := time.Now().UTC()
 
 	var pedido models.Pedido
-	pedido.FECHA = now
+
+	pedido.FECHA = time.Date(nowBogota.Year(), nowBogota.Month(), nowBogota.Day(), 12, 0, 0, 0, time.UTC)
 	pedido.HORA = now
 	pedido.ESTADO_PEDIDO = models.EstadoPedidoIniciado
 
@@ -184,6 +186,9 @@ func (c *PedidoController) Post() {
 	}
 	if in.RestauranteId != 0 {
 		pedido.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: in.RestauranteId}
+	}
+	if in.DocumentoCliente != nil && *in.DocumentoCliente > 0 {
+		pedido.PK_DOCUMENTO_CLIENTE = &models.Cliente{PK_DOCUMENTO_CLIENTE: *in.DocumentoCliente}
 	}
 
 	if pedido.DELIVERY && pedido.PK_ID_DOMICILIO == nil {
@@ -269,12 +274,13 @@ func (c *PedidoController) AssignDomicilio() {
 
 // @Title AssignPago
 // @Summary Asignar un pago a un pedido
-// @Description Asigna un pago existente a un pedido y actualiza su estado a "TERMINADO" y el pago a "PAGADO".
+// @Description Asigna un pago existente a un pedido. Por defecto actualiza el estado del pedido a "TERMINADO" y el pago a "PAGADO", pero esto se puede controlar con el parámetro cambiar_estado.
 // @Tags pedido
 // @Accept json
 // @Produce json
 // @Param pedido_id query int true "ID del pedido"
 // @Param pago_id query int true "ID del pago"
+// @Param cambiar_estado query bool false "Si es true (defecto), cambia estado del pedido a TERMINADO y pago a PAGADO. Si es false, solo vincula el pago sin cambiar estados" default(true)
 // @Success 200 {object} models.ApiResponse "Pago asignado al pedido"
 // @Failure 404 {object} models.ApiResponse "Pedido o pago no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error al asignar pago"
@@ -283,6 +289,12 @@ func (c *PedidoController) AssignDomicilio() {
 func (c *PedidoController) AssignPago() {
 	pedidoID, _ := c.GetInt64("pedido_id")
 	pagoID, _ := c.GetInt64("pago_id")
+	cambiarEstado := true
+	if cambiarEstadoStr := c.GetString("cambiar_estado"); cambiarEstadoStr != "" {
+		if cambiarEstadoBool, err := c.GetBool("cambiar_estado"); err == nil {
+			cambiarEstado = cambiarEstadoBool
+		}
+	}
 	o := orm.NewOrm()
 
 	var pedidosExist []models.Pedido
@@ -294,17 +306,34 @@ func (c *PedidoController) AssignPago() {
 		return
 	}
 
-	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, PK_ID_PAGO: &models.Pago{PK_ID_PAGO: pagoID}, ESTADO_PEDIDO: models.EstadoPedidoTerminado}
+	var estadoPedido models.EstadoPedido
+	if cambiarEstado {
+		estadoPedido = models.EstadoPedidoTerminado
+	} else {
+		var pedidoActual models.Pedido
+		if err := o.Raw("SELECT estado_pedido FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRow(&pedidoActual); err != nil {
+			logging.LogControllerError(c.Ctx, "pedidos.assign_pago.get_estado_error", err, map[string]interface{}{"pedido_id": pedidoID})
+			c.Ctx.Output.SetStatus(500)
+			c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al obtener estado del pedido", Cause: err.Error()}
+			_ = c.ServeJSON()
+			return
+		}
+		estadoPedido = pedidoActual.ESTADO_PEDIDO
+	}
+
+	pedido := models.Pedido{PK_ID_PEDIDO: pedidoID, PK_ID_PAGO: &models.Pago{PK_ID_PAGO: pagoID}, ESTADO_PEDIDO: estadoPedido}
 	if _, err := o.Update(&pedido, "PK_ID_PAGO", "ESTADO_PEDIDO"); err != nil {
-		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_error", err, map[string]interface{}{"pedido_id": pedidoID, "pago_id": pagoID})
+		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_error", err, map[string]interface{}{"pedido_id": pedidoID, "pago_id": pagoID, "cambiar_estado": cambiarEstado})
 		c.Ctx.Output.SetStatus(500)
 		c.Data["json"] = models.ApiResponse{Code: 500, Message: "Error al asignar pago", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
 
-	if _, err := o.Raw("UPDATE pago SET estado_pago = ? WHERE pk_id_pago = ?", models.EstadoPagoPagado, pagoID).Exec(); err != nil {
-		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_pago_error", err, map[string]interface{}{"pago_id": pagoID})
+	if cambiarEstado {
+		if _, err := o.Raw("UPDATE pago SET estado_pago = ? WHERE pk_id_pago = ?", models.EstadoPagoPagado, pagoID).Exec(); err != nil {
+			logging.LogControllerError(c.Ctx, "pedidos.assign_pago.update_pago_error", err, map[string]interface{}{"pago_id": pagoID})
+		}
 	}
 
 	c.Data["json"] = models.ApiResponse{Code: 200, Message: "Pago asignado correctamente", Data: pedido}
@@ -410,7 +439,7 @@ func (c *PedidoController) GetPedidoDetails() {
 SELECT
     p.pk_id_pedido                                   AS pk_id_pedido,
     COALESCE(TO_CHAR(p.fecha, 'YYYY-MM-DD'), '')     AS fecha,
-    COALESCE(TO_CHAR(p.hora,  'HH24:MI:SS'), '')     AS hora,
+    COALESCE(TO_CHAR(p.hora, 'HH24:MI:SS'), '')     AS hora,
     COALESCE(p.delivery, false)                      AS delivery,
     COALESCE(p.estado_pedido::text, '')              AS estado_pedido,
     COALESCE(mp.tipo, '')                            AS metodo_pago,

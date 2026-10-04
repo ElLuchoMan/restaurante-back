@@ -32,6 +32,10 @@ func init() {
 }
 
 func (h HorarioTrabajador) MarshalJSON() ([]byte, error) {
+
+	horaInicioStr := FormatTimeWithLMT(h.HORA_INICIO)
+	horaFinStr := FormatTimeWithLMT(h.HORA_FIN)
+
 	return json.Marshal(&struct {
 		PK_DOCUMENTO_TRABAJADOR *int64 `json:"documentoTrabajador"`
 		DIA                     string `json:"dia"`
@@ -45,7 +49,7 @@ func (h HorarioTrabajador) MarshalJSON() ([]byte, error) {
 			return nil
 		}(),
 		DIA:         string(h.DIA),
-		HORA_INICIO: h.HORA_INICIO.Format("15:04:05"),
-		HORA_FIN:    h.HORA_FIN.Format("15:04:05"),
+		HORA_INICIO: horaInicioStr,
+		HORA_FIN:    horaFinStr,
 	})
 }

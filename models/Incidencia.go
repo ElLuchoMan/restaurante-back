@@ -25,12 +25,27 @@ func init() {
 }
 
 func (t Incidencia) MarshalJSON() ([]byte, error) {
-	type Alias Incidencia
+
+	fechaStr := FormatDateUTC(t.FECHA)
+
+	var docTrabajador int64
+	if t.PK_DOCUMENTO_TRABAJADOR != nil {
+		docTrabajador = t.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
+	}
+
 	return json.Marshal(&struct {
-		FECHA string `json:"fechaIncidencia"`
-		Alias
+		PK_ID_INCIDENCIA        int64  `json:"incidenciaId"`
+		FECHA                   string `json:"fechaIncidencia"`
+		MONTO                   int64  `json:"monto"`
+		RESTA                   bool   `json:"resta"`
+		MOTIVO                  string `json:"motivo"`
+		PK_DOCUMENTO_TRABAJADOR int64  `json:"documentoTrabajador"`
 	}{
-		FECHA: t.FECHA.Format("02-01-2006"),
-		Alias: (Alias)(t),
+		PK_ID_INCIDENCIA:        t.PK_ID_INCIDENCIA,
+		FECHA:                   fechaStr,
+		MONTO:                   t.MONTO,
+		RESTA:                   t.RESTA,
+		MOTIVO:                  t.MOTIVO,
+		PK_DOCUMENTO_TRABAJADOR: docTrabajador,
 	})
 }

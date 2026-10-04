@@ -236,7 +236,7 @@ func TestHorarioTrabajadorPostDecodeError(t *testing.T) {
 }
 
 func TestHorarioTrabajadorPostInvalidTimeFormat(t *testing.T) {
-	body := `{"documentoTrabajador":1,"dia":"LUNES","horaInicio":"08:00","horaFin":"17:00:00"}`
+	body := `{"documentoTrabajador":1,"dia":"LUNES","horaInicio":"not-a-time","horaFin":"17:00:00"}`
 	c, w := setupHTCtx(http.MethodPost, "/horario_trabajador", body)
 	c.Post()
 	if w.Code != http.StatusBadRequest {

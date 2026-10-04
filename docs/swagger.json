@@ -10,6 +10,62 @@
     },
     "basePath": "/restaurante/v1",
     "paths": {
+        "/auth/refresh": {
+            "post": {
+                "description": "Permite obtener un nuevo access token utilizando un refresh token válido",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Renovar access token usando refresh token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Refresh Token en formato: Bearer {token}",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tokens renovados exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud incorrecta",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Refresh token inválido o expirado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/cambios_horario": {
             "get": {
                 "security": [
@@ -930,6 +986,664 @@
                 }
             }
         },
+        "/cupones": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Obtener todos los cupones",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Filtrar por estado activo",
+                        "name": "activo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por código",
+                        "name": "codigo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por scope (GLOBAL, PRODUCTO, CATEGORIA, CLIENTE)",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha desde (YYYY-MM-DD)",
+                        "name": "fecha_desde",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha hasta (YYYY-MM-DD)",
+                        "name": "fecha_hasta",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Actualizar cupón",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del cupón",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados del cupón",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrearCuponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cupon"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Crear cupón",
+                "parameters": [
+                    {
+                        "description": "Datos del cupón",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrearCuponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cupon"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Desactivar cupón",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del cupón",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cupones/redenciones": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Listar redenciones de cupones",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código del cupón",
+                        "name": "cupon_codigo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del cupón",
+                        "name": "cupon_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del cliente",
+                        "name": "cliente_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cupones/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Obtener cupón por ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID o código del cupón",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Cupon"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cupones/validar": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Validar cupón",
+                "parameters": [
+                    {
+                        "description": "Datos para validación",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ValidarCuponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ValidarCuponResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cupones/{codigo}/redimir": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cupones"
+                ],
+                "summary": "Redimir cupón",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código del cupón",
+                        "name": "codigo",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de redención",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RedimirCuponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.CuponRedencion"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/descuentos/pedidos": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "descuentos"
+                ],
+                "summary": "Obtener descuentos de pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.PedidoDescuentoAplicado"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "descuentos"
+                ],
+                "summary": "Aplicar descuento a pedido",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del pedido",
+                        "name": "pedido_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del descuento a aplicar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AplicarDescuentoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PedidoDescuentoAplicado"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/domicilios": {
             "get": {
                 "security": [
@@ -1284,6 +1998,61 @@
                         "description": "Domicilio no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/estados-pedidos": {
+            "get": {
+                "description": "Obtiene el conteo de pedidos agrupados por estado - endpoint público sin autenticación",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "integer",
+                                                "format": "int64"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/healthz": {
+            "get": {
+                "description": "Retorna 200 OK si la aplicación está en ejecución",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Verifica la salud básica de la API",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -1855,9 +2624,21 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Inicio de sesión exitoso con token JWT",
+                        "description": "Inicio de sesión exitoso con tokens JWT",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -2653,6 +3434,485 @@
                 }
             }
         },
+        "/ofertas": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Obtener todas las ofertas",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Filtrar por estado activo",
+                        "name": "activo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del restaurante",
+                        "name": "restaurante_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por título",
+                        "name": "titulo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Actualizar oferta",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados de la oferta",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrearOfertaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Oferta"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Crear oferta",
+                "parameters": [
+                    {
+                        "description": "Datos de la oferta",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrearOfertaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Oferta"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Desactivar oferta",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ofertas/activas": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Obtener ofertas activas",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del restaurante",
+                        "name": "restaurante_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha a consultar (YYYY-MM-DD, default: hoy)",
+                        "name": "fecha",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora a consultar (HH:MM, default: ahora)",
+                        "name": "hora",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del producto específico",
+                        "name": "producto_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.OfertaActivaResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ofertas/productos": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Asociar producto a oferta",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "ID del producto",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AsociarProductoOfertaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Desasociar producto de oferta",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del producto",
+                        "name": "producto_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ofertas/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ofertas"
+                ],
+                "summary": "Obtener oferta por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID de la oferta",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Oferta"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pagos": {
             "get": {
                 "security": [
@@ -3238,7 +4498,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un pago existente a un pedido y actualiza su estado a \"TERMINADO\" y el pago a \"PAGADO\".",
+                "description": "Asigna un pago existente a un pedido. Por defecto actualiza el estado del pedido a \"TERMINADO\" y el pago a \"PAGADO\", pero esto se puede controlar con el parámetro cambiar_estado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3263,6 +4523,13 @@
                         "name": "pago_id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Si es true (defecto), cambia estado del pedido a TERMINADO y pago a PAGADO. Si es false, solo vincula el pago sin cambiar estados",
+                        "name": "cambiar_estado",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -3935,6 +5202,86 @@
                 }
             }
         },
+        "/productos-disponibles": {
+            "get": {
+                "description": "Obtiene todos los productos disponibles en el sistema - endpoint público sin autenticación",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "additionalProperties": true
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/productos-populares": {
+            "get": {
+                "description": "Obtiene los productos más vendidos - endpoint público sin autenticación",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número de productos a retornar (default: 4)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtro temporal: hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico",
+                        "name": "periodo",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/telemetria.ProductosPopularesData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/productos/search": {
             "get": {
                 "description": "Devuelve un producto específico por ID, incluyendo la imagen en formato Base64.",
@@ -3980,6 +5327,596 @@
                         "description": "Producto no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/dispositivos": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Obtener dispositivos push",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del cliente",
+                        "name": "cliente_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del trabajador",
+                        "name": "trabajador_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Plataforma (WEB, ANDROID, IOS)",
+                        "name": "plataforma",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Actualizar dispositivo push",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Nuevo estado",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ActualizarEstadoDispositivoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Registrar dispositivo push",
+                "parameters": [
+                    {
+                        "description": "Datos del dispositivo",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegistrarDispositivoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PushDispositivo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Eliminar dispositivo push",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/dispositivos/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Obtener dispositivo por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PushDispositivo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/dispositivos/topics": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Actualizar topics suscritos del dispositivo",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Nuevos topics",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ActualizarTopicsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/dispositivos/visto": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Actualizar última vista del dispositivo",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/enviar": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Enviar notificación push",
+                "parameters": [
+                    {
+                        "description": "Datos de la notificación a enviar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.EnviarNotificacionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.EnviarNotificacionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/push/envios": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Listar envíos push",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del dispositivo",
+                        "name": "dispositivo_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha desde (YYYY-MM-DD)",
+                        "name": "fecha_desde",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha hasta (YYYY-MM-DD)",
+                        "name": "fecha_hasta",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Límite de resultados (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset para paginación (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push_notifications"
+                ],
+                "summary": "Registrar envío push",
+                "parameters": [
+                    {
+                        "description": "Datos del envío",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegistrarEnvioRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PushEnvio"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/readyz": {
+            "get": {
+                "description": "Retorna 200 OK si la aplicación puede conectarse a la base de datos",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Verifica si la aplicación está lista",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
+                        "description": "unavailable",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -4245,6 +6182,112 @@
                     },
                     "404": {
                         "description": "Reserva no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/cliente": {
+            "get": {
+                "description": "Devuelve las reservas asociadas a un documento de cliente registrado, opcionalmente filtradas por fecha.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Obtener reservas por documento de cliente registrado",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del Cliente Registrado",
+                        "name": "documentoCliente",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha de la reserva (YYYY-MM-DD) (Opcional)",
+                        "name": "fecha",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas encontradas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Error en los parámetros",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/documento": {
+            "get": {
+                "description": "Busca reservas por documento de cliente registrado o documento de contacto. Intenta primero como cliente registrado, luego como contacto.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Obtener reservas por documento (cliente loggeado o no loggeado)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Documento del Cliente o Contacto",
+                        "name": "documento",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha de la reserva (YYYY-MM-DD) (Opcional)",
+                        "name": "fecha",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas encontradas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reserva"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Error en los parámetros",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4903,6 +6946,1209 @@
                 }
             }
         },
+        "/telemetria/dashboard": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene métricas generales del dashboard usando datos existentes: total de pedidos, ingresos, usuarios, promedios y métricas del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Dashboard General de Telemetría",
+                "parameters": [
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Dashboard obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.DashboardData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/eficiencia": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis de eficiencia operacional: tiempos de entrega, rendimiento de trabajadores y análisis por horas del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Eficiencia de Entregas",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de registros por sección",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de eficiencia obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.EficienciaData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/pedidos-analisis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis detallado de pedidos realizados por días y horas: identificar patrones de pedidos más exitosos y horarios de mayor demanda del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Pedidos por Días y Horas",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de registros por sección",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de pedidos obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PedidosAnalisisData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/products": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis de productos más y menos vendidos basado en datos de pedidos del período seleccionado, incluyendo estadísticas generales de productos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Productos",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de productos a mostrar",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de productos obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ProductsData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/rentabilidad": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis detallado de rentabilidad de productos: margen de ganancia, productos más y menos rentables del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Rentabilidad por Producto",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de productos a mostrar",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de rentabilidad obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.RentabilidadData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/reservas-analisis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis detallado de reservas completadas por días y horas: identificar patrones de reservas más exitosas del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Reservas por Días y Horas",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de registros por sección",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de reservas obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ReservasAnalisisData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/sales": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis detallado de ventas usando datos existentes: ventas por método de pago, tendencias y estadísticas generales del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Ventas",
+                "parameters": [
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de ventas obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.SalesData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/segmentacion": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene segmentación de clientes en VIP, regulares, ocasionales y nuevos basado en frecuencia y valor de compras del período seleccionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Segmentación de Clientes",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de clientes por segmento",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de segmentación obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.SegmentacionData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/time-analysis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis temporal de pedidos y ventas del período seleccionado: por hora del día, día de la semana y por mes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis Temporal",
+                "parameters": [
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis temporal obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.TimeAnalysisData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telemetria/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene análisis de usuarios frecuentes e inactivos basado en historial de pedidos del período seleccionado, incluyendo estadísticas generales de clientes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Análisis de Usuarios",
+                "parameters": [
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Límite de usuarios a mostrar",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico",
+                            "mes_año",
+                            "rango_fechas"
+                        ],
+                        "type": "string",
+                        "default": "ultimo_mes",
+                        "description": "Período de tiempo",
+                        "name": "periodo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Mes (1-12) para filtro mes_año",
+                        "name": "mes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Año para filtro mes_año",
+                        "name": "año",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "name": "fecha_fin",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "name": "hora_fin",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Análisis de usuarios obtenido exitosamente",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.UsersData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso denegado - se requiere rol de administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/trabajadores": {
             "get": {
                 "security": [
@@ -5181,6 +8427,25 @@
         }
     },
     "definitions": {
+        "models.ActualizarEstadoDispositivoRequest": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.ActualizarTopicsRequest": {
+            "type": "object",
+            "properties": {
+                "subscribedTopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "models.ApiResponse": {
             "type": "object",
             "properties": {
@@ -5193,6 +8458,56 @@
                 "data": {},
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "models.AplicarDescuentoRequest": {
+            "type": "object",
+            "properties": {
+                "cuponId": {
+                    "type": "integer"
+                },
+                "detalle": {
+                    "type": "object"
+                },
+                "montoDescuento": {
+                    "type": "integer"
+                },
+                "ofertaId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.AsociarProductoOfertaRequest": {
+            "type": "object",
+            "properties": {
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "expires_in": {
+                    "type": "string",
+                    "example": "1800"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Juan Pérez"
+                },
+                "refresh_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "Bearer"
                 }
             }
         },
@@ -5332,6 +8647,38 @@
                 }
             }
         },
+        "models.ClienteSegmento": {
+            "type": "object",
+            "properties": {
+                "diasSinPedir": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "promedioGasto": {
+                    "type": "number"
+                },
+                "segmento": {
+                    "type": "string"
+                },
+                "totalGastado": {
+                    "type": "integer"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "ultimoPedido": {
+                    "type": "string"
+                },
+                "valorVida": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.ClienteUpdateRequest": {
             "type": "object",
             "properties": {
@@ -5365,6 +8712,20 @@
                 }
             }
         },
+        "models.ContenidoNotificacion": {
+            "type": "object",
+            "properties": {
+                "datos": {
+                    "type": "object"
+                },
+                "mensaje": {
+                    "type": "string"
+                },
+                "titulo": {
+                    "type": "string"
+                }
+            }
+        },
         "models.ControlNomina": {
             "type": "object",
             "properties": {
@@ -5376,6 +8737,233 @@
                 },
                 "fecha": {
                     "type": "string"
+                }
+            }
+        },
+        "models.CrearCuponRequest": {
+            "type": "object",
+            "properties": {
+                "categoriaId": {
+                    "type": "integer"
+                },
+                "codigo": {
+                    "type": "string"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "fechaFin": {
+                    "type": "string"
+                },
+                "fechaInicio": {
+                    "type": "string"
+                },
+                "limitePorCliente": {
+                    "type": "integer"
+                },
+                "maxUsos": {
+                    "type": "integer"
+                },
+                "montoMinimo": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "$ref": "#/definitions/models.CuponScope"
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.CrearOfertaRequest": {
+            "type": "object",
+            "properties": {
+                "diasSemana": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "fechaFin": {
+                    "type": "string"
+                },
+                "fechaInicio": {
+                    "type": "string"
+                },
+                "horaFin": {
+                    "type": "string"
+                },
+                "horaInicio": {
+                    "type": "string"
+                },
+                "restauranteId": {
+                    "type": "integer"
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "titulo": {
+                    "type": "string"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Cupon": {
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "type": "boolean"
+                },
+                "categoriaId": {
+                    "type": "integer"
+                },
+                "codigo": {
+                    "type": "string"
+                },
+                "cuponId": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "fechaFin": {
+                    "type": "string"
+                },
+                "fechaInicio": {
+                    "type": "string"
+                },
+                "limitePorCliente": {
+                    "type": "integer"
+                },
+                "maxUsos": {
+                    "type": "integer"
+                },
+                "montoMinimo": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "$ref": "#/definitions/models.CuponScope"
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.CuponRedencion": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "cuponId": {
+                    "type": "integer"
+                },
+                "cuponRedencionId": {
+                    "type": "integer"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "montoDescuento": {
+                    "type": "integer"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.CuponScope": {
+            "type": "string",
+            "enum": [
+                "GLOBAL",
+                "PRODUCTO",
+                "CATEGORIA",
+                "CLIENTE"
+            ],
+            "x-enum-varnames": [
+                "CuponScopeGlobal",
+                "CuponScopeProducto",
+                "CuponScopeCategoria",
+                "CuponScopeCliente"
+            ]
+        },
+        "models.DashboardData": {
+            "type": "object",
+            "properties": {
+                "ingresosHoy": {
+                    "type": "integer"
+                },
+                "pedidosHoy": {
+                    "type": "integer"
+                },
+                "promedioVentaPedido": {
+                    "type": "number"
+                },
+                "totalIngresos": {
+                    "type": "integer"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "totalUsuarios": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.DestinatariosNotificacion": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "tipo": {
+                    "$ref": "#/definitions/models.TipoDestinatario"
+                },
+                "topic": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.DetalleEnvioNotificacion": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "errorCode": {
+                    "type": "string"
+                },
+                "exito": {
+                    "type": "boolean"
+                },
+                "plataforma": {
+                    "type": "string"
+                },
+                "pushDispositivoId": {
+                    "type": "integer"
+                },
+                "statusCode": {
+                    "type": "integer"
                 }
             }
         },
@@ -5492,6 +9080,243 @@
                 "updatedBy": {
                     "type": "string",
                     "example": "operador@example.com"
+                }
+            }
+        },
+        "models.EficienciaData": {
+            "type": "object",
+            "properties": {
+                "analisisPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.EficienciaPorHora"
+                    }
+                },
+                "estadisticasEficiencia": {
+                    "$ref": "#/definitions/models.EstadisticasEficiencia"
+                },
+                "rendimientoTrabajadores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.RendimientoTrabajador"
+                    }
+                },
+                "tiemposEntrega": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.TiempoEntrega"
+                    }
+                }
+            }
+        },
+        "models.EficienciaPorHora": {
+            "type": "object",
+            "properties": {
+                "capacidadUtilizada": {
+                    "type": "number"
+                },
+                "hora": {
+                    "type": "string"
+                },
+                "nivelEficiencia": {
+                    "type": "string"
+                },
+                "pedidosRecibidos": {
+                    "type": "integer"
+                },
+                "tiempoPromedioPrep": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.EnviarNotificacionRequest": {
+            "type": "object",
+            "properties": {
+                "destinatarios": {
+                    "$ref": "#/definitions/models.DestinatariosNotificacion"
+                },
+                "notificacion": {
+                    "$ref": "#/definitions/models.ContenidoNotificacion"
+                },
+                "remitente": {
+                    "$ref": "#/definitions/models.RemitenteNotificacion"
+                }
+            }
+        },
+        "models.EnviarNotificacionResponse": {
+            "type": "object",
+            "properties": {
+                "detalleEnvios": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DetalleEnvioNotificacion"
+                    }
+                },
+                "enviosExitosos": {
+                    "type": "integer"
+                },
+                "enviosFallidos": {
+                    "type": "integer"
+                },
+                "resumenDestinatarios": {
+                    "$ref": "#/definitions/models.ResumenDestinatarios"
+                },
+                "totalDispositivos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasEficiencia": {
+            "type": "object",
+            "properties": {
+                "capacidadPromedioUso": {
+                    "type": "number"
+                },
+                "horaMasEficiente": {
+                    "type": "string"
+                },
+                "horaMenosEficiente": {
+                    "type": "string"
+                },
+                "pedidosPendientes": {
+                    "type": "integer"
+                },
+                "tiempoPromedioGeneral": {
+                    "type": "number"
+                },
+                "trabajadorMasEficiente": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.EstadisticasPedidos": {
+            "type": "object",
+            "properties": {
+                "diaMasPedidos": {
+                    "type": "string"
+                },
+                "horaMasPedidos": {
+                    "type": "string"
+                },
+                "ingresoPromedioHora": {
+                    "type": "number"
+                },
+                "tasaCompletamientoGeneral": {
+                    "type": "number"
+                },
+                "totalPedidosTerminados": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasProductos": {
+            "type": "object",
+            "properties": {
+                "productoConMasVentas": {
+                    "type": "string"
+                },
+                "productoConMenosVentas": {
+                    "type": "string"
+                },
+                "totalProductosActivos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasRentabilidad": {
+            "type": "object",
+            "properties": {
+                "margenPromedioGeneral": {
+                    "type": "number"
+                },
+                "productoMasRentable": {
+                    "type": "string"
+                },
+                "productoMenosRentable": {
+                    "type": "string"
+                },
+                "totalGanancias": {
+                    "type": "integer"
+                },
+                "totalIngresos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasReservas": {
+            "type": "object",
+            "properties": {
+                "diaMasReservas": {
+                    "type": "string"
+                },
+                "horaMasReservas": {
+                    "type": "string"
+                },
+                "promedioPersonasPorReserva": {
+                    "type": "number"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalReservasCompletadas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasSegmentacion": {
+            "type": "object",
+            "properties": {
+                "porcentajeVIP": {
+                    "type": "number"
+                },
+                "promedioGastoRegular": {
+                    "type": "number"
+                },
+                "promedioGastoVIP": {
+                    "type": "number"
+                },
+                "totalClientesNuevos": {
+                    "type": "integer"
+                },
+                "totalClientesOcasionales": {
+                    "type": "integer"
+                },
+                "totalClientesRegulares": {
+                    "type": "integer"
+                },
+                "totalClientesVIP": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasUsuarios": {
+            "type": "object",
+            "properties": {
+                "clientesActivos": {
+                    "type": "integer"
+                },
+                "clientesInactivos": {
+                    "type": "integer"
+                },
+                "promedioGastoPorCliente": {
+                    "type": "number"
+                },
+                "totalClientes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.EstadisticasVentas": {
+            "type": "object",
+            "properties": {
+                "pedidoPromedioDiario": {
+                    "type": "number"
+                },
+                "ticketPromedio": {
+                    "type": "number"
+                },
+                "ventaPromedioDiaria": {
+                    "type": "number"
                 }
             }
         },
@@ -5853,6 +9678,88 @@
                 }
             }
         },
+        "models.Oferta": {
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "type": "boolean"
+                },
+                "diasSemana": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "fechaFin": {
+                    "type": "string"
+                },
+                "fechaInicio": {
+                    "type": "string"
+                },
+                "horaFin": {
+                    "type": "string"
+                },
+                "horaInicio": {
+                    "type": "string"
+                },
+                "ofertaId": {
+                    "type": "integer"
+                },
+                "restauranteId": {
+                    "type": "integer"
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "titulo": {
+                    "type": "string"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.OfertaActivaResponse": {
+            "type": "object",
+            "properties": {
+                "ofertaId": {
+                    "type": "integer"
+                },
+                "productosIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "tipoDescuento": {
+                    "$ref": "#/definitions/models.TipoDescuento"
+                },
+                "titulo": {
+                    "type": "string"
+                },
+                "valorDescuento": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Pago": {
             "type": "object",
             "properties": {
@@ -5995,6 +9902,32 @@
                 }
             }
         },
+        "models.PedidoDescuentoAplicado": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "cuponId": {
+                    "type": "integer"
+                },
+                "detalle": {
+                    "type": "object"
+                },
+                "montoDescuento": {
+                    "type": "integer"
+                },
+                "ofertaId": {
+                    "type": "integer"
+                },
+                "pedidoDescuentoId": {
+                    "type": "integer"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.PedidoDetails": {
             "type": "object",
             "properties": {
@@ -6032,6 +9965,105 @@
                     "type": "string"
                 }
             }
+        },
+        "models.PedidoPorDia": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PedidoPorDiaSemana": {
+            "type": "object",
+            "properties": {
+                "diaSemana": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PedidoPorHora": {
+            "type": "object",
+            "properties": {
+                "hora": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "pedidosTerminados": {
+                    "type": "integer"
+                },
+                "tasaCompletamiento": {
+                    "type": "number"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PedidosAnalisisData": {
+            "type": "object",
+            "properties": {
+                "estadisticasPedidos": {
+                    "$ref": "#/definitions/models.EstadisticasPedidos"
+                },
+                "pedidosPorDia": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PedidoPorDia"
+                    }
+                },
+                "pedidosPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PedidoPorDiaSemana"
+                    }
+                },
+                "pedidosPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PedidoPorHora"
+                    }
+                }
+            }
+        },
+        "models.PlataformaNotificacion": {
+            "type": "string",
+            "enum": [
+                "WEB",
+                "ANDROID",
+                "IOS"
+            ],
+            "x-enum-varnames": [
+                "PlataformaWeb",
+                "PlataformaAndroid",
+                "PlataformaIOS"
+            ]
         },
         "models.Producto": {
             "type": "object",
@@ -6090,6 +10122,306 @@
                 "productoId": {
                     "type": "integer",
                     "example": 1
+                }
+            }
+        },
+        "models.ProductoRentabilidad": {
+            "type": "object",
+            "properties": {
+                "cantidadVendida": {
+                    "type": "integer"
+                },
+                "gananciaTotal": {
+                    "type": "integer"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "margenGanancia": {
+                    "type": "number"
+                },
+                "nombreProducto": {
+                    "type": "string"
+                },
+                "precioVenta": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ProductoVendido": {
+            "type": "object",
+            "properties": {
+                "cantidadVendida": {
+                    "type": "integer"
+                },
+                "imagen": {
+                    "type": "string"
+                },
+                "ingresoTotal": {
+                    "type": "integer"
+                },
+                "nombreProducto": {
+                    "type": "string"
+                },
+                "precio": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ProductsData": {
+            "type": "object",
+            "properties": {
+                "estadisticasProductos": {
+                    "$ref": "#/definitions/models.EstadisticasProductos"
+                },
+                "productosMasVendidos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoVendido"
+                    }
+                },
+                "productosMenosVendidos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoVendido"
+                    }
+                }
+            }
+        },
+        "models.ProveedorPush": {
+            "type": "string",
+            "enum": [
+                "WEB_PUSH",
+                "FCM"
+            ],
+            "x-enum-varnames": [
+                "ProveedorWebPush",
+                "ProveedorFCM"
+            ]
+        },
+        "models.PushDispositivo": {
+            "type": "object",
+            "properties": {
+                "appVersion": {
+                    "type": "string"
+                },
+                "auth": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "fcmToken": {
+                    "type": "string"
+                },
+                "lastSeenAt": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "p256dh": {
+                    "type": "string"
+                },
+                "plataforma": {
+                    "$ref": "#/definitions/models.PlataformaNotificacion"
+                },
+                "pushDispositivoId": {
+                    "type": "integer"
+                },
+                "subscribedTopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timeZone": {
+                    "type": "string"
+                },
+                "userAgent": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PushEnvio": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object"
+                },
+                "errorCode": {
+                    "type": "string"
+                },
+                "exito": {
+                    "type": "boolean"
+                },
+                "proveedor": {
+                    "$ref": "#/definitions/models.ProveedorPush"
+                },
+                "pushDispositivoId": {
+                    "type": "integer"
+                },
+                "pushEnvioId": {
+                    "type": "integer"
+                },
+                "sentAt": {
+                    "type": "string"
+                },
+                "statusCode": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RedimirCuponRequest": {
+            "type": "object",
+            "properties": {
+                "clienteId": {
+                    "type": "integer"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RegistrarDispositivoRequest": {
+            "type": "object",
+            "properties": {
+                "appVersion": {
+                    "type": "string"
+                },
+                "auth": {
+                    "type": "string"
+                },
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "fcmToken": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "p256dh": {
+                    "type": "string"
+                },
+                "plataforma": {
+                    "$ref": "#/definitions/models.PlataformaNotificacion"
+                },
+                "subscribedTopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timeZone": {
+                    "type": "string"
+                },
+                "userAgent": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.RegistrarEnvioRequest": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object"
+                },
+                "errorCode": {
+                    "type": "string"
+                },
+                "exito": {
+                    "type": "boolean"
+                },
+                "proveedor": {
+                    "$ref": "#/definitions/models.ProveedorPush"
+                },
+                "pushDispositivoId": {
+                    "type": "integer"
+                },
+                "statusCode": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RemitenteNotificacion": {
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "$ref": "#/definitions/models.TipoRemitente"
+                }
+            }
+        },
+        "models.RendimientoTrabajador": {
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer"
+                },
+                "eficienciaScore": {
+                    "type": "number"
+                },
+                "horasTrabajadas": {
+                    "type": "number"
+                },
+                "nombreTrabajador": {
+                    "type": "string"
+                },
+                "pedidosAtendidos": {
+                    "type": "integer"
+                },
+                "tiempoPromedioAtencion": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.RentabilidadData": {
+            "type": "object",
+            "properties": {
+                "estadisticasRentabilidad": {
+                    "$ref": "#/definitions/models.EstadisticasRentabilidad"
+                },
+                "productosMenosRentables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoRentabilidad"
+                    }
+                },
+                "productosRentables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoRentabilidad"
+                    }
                 }
             }
         },
@@ -6191,6 +10523,66 @@
                 }
             }
         },
+        "models.ReservaPorDia": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ReservaPorDiaSemana": {
+            "type": "object",
+            "properties": {
+                "diaSemana": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ReservaPorHora": {
+            "type": "object",
+            "properties": {
+                "hora": {
+                    "type": "string"
+                },
+                "porcentajeCompletado": {
+                    "type": "number"
+                },
+                "reservasCompletadas": {
+                    "type": "integer"
+                },
+                "totalPersonas": {
+                    "type": "integer"
+                },
+                "totalReservas": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.ReservaUpdateRequest": {
             "type": "object",
             "properties": {
@@ -6225,6 +10617,32 @@
                 "updatedBy": {
                     "type": "string",
                     "example": "operador@example.com"
+                }
+            }
+        },
+        "models.ReservasAnalisisData": {
+            "type": "object",
+            "properties": {
+                "estadisticasReservas": {
+                    "$ref": "#/definitions/models.EstadisticasReservas"
+                },
+                "reservasPorDia": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ReservaPorDia"
+                    }
+                },
+                "reservasPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ReservaPorDiaSemana"
+                    }
+                },
+                "reservasPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ReservaPorHora"
+                    }
                 }
             }
         },
@@ -6279,6 +10697,32 @@
                 }
             }
         },
+        "models.ResumenDestinatarios": {
+            "type": "object",
+            "properties": {
+                "clientesNotificados": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "tipoDestinatario": {
+                    "type": "string"
+                },
+                "topicsNotificados": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "trabajadoresNotificados": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "models.RolTrabajador": {
             "type": "string",
             "enum": [
@@ -6295,6 +10739,58 @@
                 "RolDomiciliario",
                 "RolOficiosVarios"
             ]
+        },
+        "models.SalesData": {
+            "type": "object",
+            "properties": {
+                "estadisticasGenerales": {
+                    "$ref": "#/definitions/models.EstadisticasVentas"
+                },
+                "tendenciaVentas": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorFecha"
+                    }
+                },
+                "ventasPorMetodoPago": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorMetodo"
+                    }
+                }
+            }
+        },
+        "models.SegmentacionData": {
+            "type": "object",
+            "properties": {
+                "clientesNuevos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ClienteSegmento"
+                    }
+                },
+                "clientesOcasionales": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ClienteSegmento"
+                    }
+                },
+                "clientesRegulares": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ClienteSegmento"
+                    }
+                },
+                "clientesVIP": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ClienteSegmento"
+                    }
+                },
+                "estadisticasSegmentacion": {
+                    "$ref": "#/definitions/models.EstadisticasSegmentacion"
+                }
+            }
         },
         "models.Subcategoria": {
             "type": "object",
@@ -6335,6 +10831,96 @@
                     "example": "Gaseosas zero"
                 }
             }
+        },
+        "models.TiempoEntrega": {
+            "type": "object",
+            "properties": {
+                "cliente": {
+                    "type": "string"
+                },
+                "estadoPedido": {
+                    "type": "string"
+                },
+                "fechaPedido": {
+                    "type": "string"
+                },
+                "horaPedido": {
+                    "type": "string"
+                },
+                "pedidoId": {
+                    "type": "integer"
+                },
+                "tiempoPreparacion": {
+                    "type": "integer"
+                },
+                "trabajadorAsignado": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.TimeAnalysisData": {
+            "type": "object",
+            "properties": {
+                "ventasPorDiaSemana": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorDiaSemana"
+                    }
+                },
+                "ventasPorHora": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorHora"
+                    }
+                },
+                "ventasPorMes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VentaPorMes"
+                    }
+                }
+            }
+        },
+        "models.TipoDescuento": {
+            "type": "string",
+            "enum": [
+                "PORCENTAJE",
+                "MONTO"
+            ],
+            "x-enum-varnames": [
+                "TipoDescuentoPorcentaje",
+                "TipoDescuentoMonto"
+            ]
+        },
+        "models.TipoDestinatario": {
+            "type": "string",
+            "enum": [
+                "TODOS",
+                "CLIENTE",
+                "TRABAJADOR",
+                "TOPIC",
+                "CLIENTES",
+                "TRABAJADORES"
+            ],
+            "x-enum-varnames": [
+                "DestinatarioTodos",
+                "DestinatarioCliente",
+                "DestinatarioTrabajador",
+                "DestinatarioTopic",
+                "DestinatarioClientes",
+                "DestinatarioTrabajadores"
+            ]
+        },
+        "models.TipoRemitente": {
+            "type": "string",
+            "enum": [
+                "TRABAJADOR",
+                "SISTEMA"
+            ],
+            "x-enum-varnames": [
+                "RemitenteTrabajador",
+                "RemitenteSistema"
+            ]
         },
         "models.Trabajador": {
             "type": "object",
@@ -6473,12 +11059,198 @@
                 }
             }
         },
+        "models.UsersData": {
+            "type": "object",
+            "properties": {
+                "estadisticasUsuarios": {
+                    "$ref": "#/definitions/models.EstadisticasUsuarios"
+                },
+                "usuariosFrecuentes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UsuarioFrecuente"
+                    }
+                },
+                "usuariosInactivos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UsuarioInactivo"
+                    }
+                }
+            }
+        },
+        "models.UsuarioFrecuente": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "totalGastado": {
+                    "type": "integer"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "ultimoPedido": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.UsuarioInactivo": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer"
+                },
+                "nombreCompleto": {
+                    "type": "string"
+                },
+                "totalPedidos": {
+                    "type": "integer"
+                },
+                "ultimoPedido": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ValidarCuponItemRequest": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "precio": {
+                    "type": "integer"
+                },
+                "productoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ValidarCuponRequest": {
+            "type": "object",
+            "properties": {
+                "clienteId": {
+                    "type": "integer"
+                },
+                "codigo": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ValidarCuponItemRequest"
+                    }
+                },
+                "pedidoId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ValidarCuponResponse": {
+            "type": "object",
+            "properties": {
+                "aplicable": {
+                    "type": "boolean"
+                },
+                "montoDescuento": {
+                    "type": "integer"
+                },
+                "motivo": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.VentaPorDiaSemana": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "diaSemana": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.VentaPorFecha": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "fecha": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.VentaPorHora": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "hora": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.VentaPorMes": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "mes": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.VentaPorMetodo": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer"
+                },
+                "metodoPago": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "productopedido.ProductoPedidoResponse": {
             "type": "object",
             "properties": {
                 "detalles": {},
                 "pedidoId": {
                     "type": "integer"
+                }
+            }
+        },
+        "telemetria.ProductosPopularesData": {
+            "type": "object",
+            "properties": {
+                "productosPopulares": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoVendido"
+                    }
                 }
             }
         }

@@ -53,3 +53,25 @@ func TestValidateToken_PublicRouteWithSlash(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
+
+func TestValidateToken_RestaurantesPublicGet(t *testing.T) {
+	ctx := context.NewContext()
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/restaurante/v1/restaurantes", nil)
+	ctx.Reset(w, r)
+	ValidateToken(ctx)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestValidateToken_RestaurantesSearchPublicGet(t *testing.T) {
+	ctx := context.NewContext()
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/restaurante/v1/restaurantes/search", nil)
+	ctx.Reset(w, r)
+	ValidateToken(ctx)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}

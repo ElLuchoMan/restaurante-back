@@ -73,7 +73,7 @@ func (c *DomicilioController) GetAll() {
 		qs = qs.Filter("UpdatedBy__icontains", updatedBy)
 	}
 	if fecha != "" {
-		if parsed, err := time.Parse("2006-01-02", fecha); err == nil {
+		if parsed, err := models.ParseDateToNoonUTC(fecha); err == nil {
 			qs = qs.Filter("Fecha", parsed)
 		}
 	}
@@ -318,7 +318,7 @@ func (c *DomicilioController) Post() {
 		return
 	}
 
-	parsedDate, err := time.Parse("2006-01-02", input.FechaDomicilio)
+	parsedDate, err := models.ParseDateToNoonUTC(input.FechaDomicilio)
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.post.validation_error", err, map[string]interface{}{"fecha": input.FechaDomicilio, "body": string(c.Ctx.Input.RequestBody)})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)

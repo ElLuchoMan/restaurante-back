@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"restaurante/database"
 	"restaurante/logging"
 	"restaurante/models"
 	"time"
@@ -17,7 +16,7 @@ type CambiosHorarioController struct {
 	web.Controller
 }
 
-var queryCambioHorarioByDate = func(o orm.Ormer, date string, ch *models.CambiosHorario) error {
+var queryCambioHorarioByDate = func(o orm.Ormer, date time.Time, ch *models.CambiosHorario) error {
 	if o == nil {
 		return errors.New("nil ormer")
 	}
@@ -83,30 +82,10 @@ func (c *CambiosHorarioController) GetAll() {
 		return
 	}
 
-	var response []map[string]interface{}
-	for _, horario := range horarios {
-		h := map[string]interface{}{
-			"cambioHorarioId":    horario.PK_ID_CAMBIO_HORARIO,
-			"fechaCambioHorario": horario.FECHA.Format("2006-01-02"),
-			"abierto":            horario.ABIERTO,
-		}
-		if horario.HORA_APERTURA != nil {
-			h["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
-		} else {
-			h["horaApertura"] = nil
-		}
-		if !horario.HORA_CIERRE.IsZero() {
-			h["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
-		} else {
-			h["horaCierre"] = nil
-		}
-		response = append(response, h)
-	}
-
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Cambios de horario obtenidos correctamente",
-		Data:    response,
+		Data:    horarios,
 	}
 	_ = c.ServeJSON()
 }
@@ -125,37 +104,26 @@ func (c *CambiosHorarioController) GetByCurrentDate() {
 	o := orm.NewOrm()
 	var cambioHorario models.CambiosHorario
 
-	currentDate := time.Now().In(database.BogotaZone)
-	dateStr := currentDate.Format("2006-01-02")
+	now := time.Now().UTC()
 
-	if err := queryCambioHorarioByDate(o, dateStr, &cambioHorario); err != nil {
+	dateNoon := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC)
+
+	if err := queryCambioHorarioByDate(o, dateNoon, &cambioHorario); err != nil {
 		if err == orm.ErrNoRows {
 			c.Ctx.Output.SetStatus(http.StatusOK)
 			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "No hay cambios de horario para la fecha actual"}
 			_ = c.ServeJSON()
 			return
 		}
-		logging.LogControllerError(c.Ctx, "cambios_horario.actual.db_error", err, map[string]interface{}{"date": dateStr})
+		logging.LogControllerError(c.Ctx, "cambios_horario.actual.db_error", err, map[string]interface{}{"date": dateNoon})
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al consultar cambios de horario", Cause: err.Error()}
 		_ = c.ServeJSON()
 		return
 	}
 
-	response := map[string]interface{}{
-		"cambioHorarioId":    cambioHorario.PK_ID_CAMBIO_HORARIO,
-		"fechaCambioHorario": cambioHorario.FECHA.Format("2006-01-02"),
-		"abierto":            cambioHorario.ABIERTO,
-	}
-	if cambioHorario.HORA_APERTURA != nil {
-		response["horaApertura"] = cambioHorario.HORA_APERTURA.Format("15:04:05")
-	}
-	if !cambioHorario.HORA_CIERRE.IsZero() {
-		response["horaCierre"] = cambioHorario.HORA_CIERRE.Format("15:04:05")
-	}
-
 	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Cambio de horario encontrado para la fecha actual", Data: response}
+	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Cambio de horario encontrado para la fecha actual", Data: cambioHorario}
 	_ = c.ServeJSON()
 }
 
@@ -189,7 +157,7 @@ func (c *CambiosHorarioController) Post() {
 	}
 
 	if fechaStr, ok := input["fechaCambioHorario"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
+		parsedDate, err := models.ParseDateToNoonUTC(fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -200,6 +168,7 @@ func (c *CambiosHorarioController) Post() {
 			_ = c.ServeJSON()
 			return
 		}
+
 		horario.FECHA = parsedDate
 	} else {
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
@@ -224,15 +193,15 @@ func (c *CambiosHorarioController) Post() {
 	}
 
 	if !horario.ABIERTO {
-		if ha, err := time.Parse("15:04:05", "00:00:00"); err == nil {
+		if ha, err := models.ParseTimeToUTC("00:00:00"); err == nil {
 			horario.HORA_APERTURA = &ha
 		}
-		if hc, err := time.Parse("15:04:05", "23:59:59"); err == nil {
+		if hc, err := models.ParseTimeToUTC("23:59:59"); err == nil {
 			horario.HORA_CIERRE = hc
 		}
 	} else {
 		if horaAperturaStr, ok := input["horaApertura"].(string); ok && horaAperturaStr != "" {
-			parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
+			parsedHora, err := models.ParseTimeToUTC(horaAperturaStr)
 			if err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
 				c.Data["json"] = models.ApiResponse{
@@ -255,7 +224,7 @@ func (c *CambiosHorarioController) Post() {
 		}
 
 		if horaCierreStr, ok := input["horaCierre"].(string); ok && horaCierreStr != "" {
-			parsedHora, err := time.Parse("15:04:05", horaCierreStr)
+			parsedHora, err := models.ParseTimeToUTC(horaCierreStr)
 			if err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
 				c.Data["json"] = models.ApiResponse{
@@ -290,23 +259,11 @@ func (c *CambiosHorarioController) Post() {
 		return
 	}
 
-	response := map[string]interface{}{
-		"cambioHorarioId":    horario.PK_ID_CAMBIO_HORARIO,
-		"fechaCambioHorario": horario.FECHA.Format("2006-01-02"),
-		"abierto":            horario.ABIERTO,
-	}
-	if horario.HORA_APERTURA != nil {
-		response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
-	}
-	if !horario.HORA_CIERRE.IsZero() {
-		response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
-	}
-
 	c.Ctx.Output.SetStatus(http.StatusCreated)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusCreated,
 		Message: "Cambio de horario creado correctamente",
-		Data:    response,
+		Data:    horario,
 	}
 	_ = c.ServeJSON()
 }
@@ -374,7 +331,7 @@ func (c *CambiosHorarioController) Put() {
 	}
 
 	if fechaStr, ok := input["fechaCambioHorario"].(string); ok && fechaStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", fechaStr)
+		parsedDate, err := models.ParseDateToNoonUTC(fechaStr)
 		if err != nil {
 			c.Ctx.Output.SetStatus(http.StatusBadRequest)
 			c.Data["json"] = models.ApiResponse{
@@ -391,10 +348,10 @@ func (c *CambiosHorarioController) Put() {
 	if abierto, ok := input["abierto"].(bool); ok {
 		horario.ABIERTO = abierto
 		if !abierto {
-			if ha, err := time.Parse("15:04:05", "00:00:00"); err == nil {
+			if ha, err := models.ParseTimeToUTC("00:00:00"); err == nil {
 				horario.HORA_APERTURA = &ha
 			}
-			if hc, err := time.Parse("15:04:05", "23:59:59"); err == nil {
+			if hc, err := models.ParseTimeToUTC("23:59:59"); err == nil {
 				horario.HORA_CIERRE = hc
 			}
 		}
@@ -402,7 +359,7 @@ func (c *CambiosHorarioController) Put() {
 
 	if horario.ABIERTO {
 		if horaAperturaStr, ok := input["horaApertura"].(string); ok && horaAperturaStr != "" {
-			parsedHora, err := time.Parse("15:04:05", horaAperturaStr)
+			parsedHora, err := models.ParseTimeToUTC(horaAperturaStr)
 			if err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
 				c.Data["json"] = models.ApiResponse{
@@ -417,7 +374,7 @@ func (c *CambiosHorarioController) Put() {
 		}
 
 		if horaCierreStr, ok := input["horaCierre"].(string); ok && horaCierreStr != "" {
-			parsedHora, err := time.Parse("15:04:05", horaCierreStr)
+			parsedHora, err := models.ParseTimeToUTC(horaCierreStr)
 			if err != nil {
 				c.Ctx.Output.SetStatus(http.StatusBadRequest)
 				c.Data["json"] = models.ApiResponse{
@@ -444,23 +401,11 @@ func (c *CambiosHorarioController) Put() {
 		return
 	}
 
-	response := map[string]interface{}{
-		"cambioHorarioId": horario.PK_ID_CAMBIO_HORARIO,
-		"fecha":           horario.FECHA.Format("2006-01-02"),
-		"abierto":         horario.ABIERTO,
-	}
-	if horario.HORA_APERTURA != nil {
-		response["horaApertura"] = horario.HORA_APERTURA.Format("15:04:05")
-	}
-	if !horario.HORA_CIERRE.IsZero() {
-		response["horaCierre"] = horario.HORA_CIERRE.Format("15:04:05")
-	}
-
 	c.Ctx.Output.SetStatus(http.StatusOK)
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Cambio de horario actualizado correctamente",
-		Data:    response,
+		Data:    horario,
 	}
 	_ = c.ServeJSON()
 }

@@ -1,0 +1,7208 @@
+basePath: /restaurante/v1
+definitions:
+  models.ActualizarEstadoDispositivoRequest:
+    properties:
+      enabled:
+        type: boolean
+    type: object
+  models.ActualizarTopicsRequest:
+    properties:
+      subscribedTopics:
+        items:
+          type: string
+        type: array
+    type: object
+  models.ApiResponse:
+    properties:
+      cause:
+        type: string
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  models.AplicarDescuentoRequest:
+    properties:
+      cuponId:
+        type: integer
+      detalle:
+        type: object
+      montoDescuento:
+        type: integer
+      ofertaId:
+        type: integer
+    type: object
+  models.AsociarProductoOfertaRequest:
+    properties:
+      productoId:
+        type: integer
+    type: object
+  models.AuthResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      expires_in:
+        example: "1800"
+        type: string
+      nombre:
+        example: Juan Pérez
+        type: string
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      token_type:
+        example: Bearer
+        type: string
+    type: object
+  models.CambiosHorarioCreateRequest:
+    properties:
+      abierto:
+        example: true
+        type: boolean
+      fechaCambioHorario:
+        example: "2025-01-31"
+        type: string
+      horaApertura:
+        example: "08:00:00"
+        type: string
+      horaCierre:
+        example: "18:00:00"
+        type: string
+    type: object
+  models.CambiosHorarioUpdateRequest:
+    properties:
+      abierto:
+        type: boolean
+      fechaCambioHorario:
+        example: "2025-02-01"
+        type: string
+      horaApertura:
+        example: "09:00:00"
+        type: string
+      horaCierre:
+        example: "17:00:00"
+        type: string
+    type: object
+  models.Categoria:
+    properties:
+      categoriaId:
+        type: integer
+      nombre:
+        type: string
+    type: object
+  models.CategoriaCreateRequest:
+    properties:
+      nombre:
+        example: Bebidas
+        type: string
+    type: object
+  models.CategoriaUpdateRequest:
+    properties:
+      nombre:
+        example: Bebidas frías
+        type: string
+    type: object
+  models.Cliente:
+    properties:
+      apellido:
+        type: string
+      correo:
+        type: string
+      direccion:
+        type: string
+      documentoCliente:
+        type: integer
+      nombre:
+        type: string
+      observaciones:
+        type: string
+      password:
+        type: string
+      telefono:
+        type: string
+    type: object
+  models.ClienteCreateRequest:
+    properties:
+      apellido:
+        example: Pérez
+        type: string
+      correo:
+        example: juan.perez@example.com
+        type: string
+      direccion:
+        example: 'Calle 123 #45-67'
+        type: string
+      documentoCliente:
+        example: 1234567890
+        type: integer
+      nombre:
+        example: Juan
+        type: string
+      observaciones:
+        example: Cliente frecuente
+        type: string
+      password:
+        example: MiPassSegura!
+        type: string
+      telefono:
+        example: "3001234567"
+        type: string
+    type: object
+  models.ClienteSegmento:
+    properties:
+      diasSinPedir:
+        type: integer
+      documentoCliente:
+        type: integer
+      nombreCompleto:
+        type: string
+      promedioGasto:
+        type: number
+      segmento:
+        type: string
+      totalGastado:
+        type: integer
+      totalPedidos:
+        type: integer
+      ultimoPedido:
+        type: string
+      valorVida:
+        description: CLV estimado
+        type: integer
+    type: object
+  models.ClienteUpdateRequest:
+    properties:
+      apellido:
+        example: Pérez
+        type: string
+      correo:
+        example: juan.perez@example.com
+        type: string
+      direccion:
+        example: 'Carrera 10 #20-30'
+        type: string
+      nombre:
+        example: Juan
+        type: string
+      observaciones:
+        example: Prefiere contacto por WhatsApp
+        type: string
+      password:
+        example: NuevaPass!
+        type: string
+      telefono:
+        example: "3009876543"
+        type: string
+    type: object
+  models.ContenidoNotificacion:
+    properties:
+      datos:
+        type: object
+      mensaje:
+        type: string
+      titulo:
+        type: string
+    type: object
+  models.ControlNomina:
+    properties:
+      controlNominaId:
+        type: integer
+      estado:
+        $ref: '#/definitions/models.EstadoControlNomina'
+      fecha:
+        type: string
+    type: object
+  models.CrearCuponRequest:
+    properties:
+      categoriaId:
+        type: integer
+      codigo:
+        type: string
+      documentoCliente:
+        type: integer
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      limitePorCliente:
+        type: integer
+      maxUsos:
+        type: integer
+      montoMinimo:
+        type: integer
+      productoId:
+        type: integer
+      scope:
+        $ref: '#/definitions/models.CuponScope'
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      valorDescuento:
+        type: integer
+    type: object
+  models.CrearOfertaRequest:
+    properties:
+      diasSemana:
+        items:
+          type: string
+        type: array
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      horaFin:
+        type: string
+      horaInicio:
+        type: string
+      restauranteId:
+        type: integer
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      titulo:
+        type: string
+      valorDescuento:
+        type: integer
+    type: object
+  models.Cupon:
+    properties:
+      activo:
+        type: boolean
+      categoriaId:
+        type: integer
+      codigo:
+        type: string
+      cuponId:
+        type: integer
+      documentoCliente:
+        type: integer
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      limitePorCliente:
+        type: integer
+      maxUsos:
+        type: integer
+      montoMinimo:
+        type: integer
+      productoId:
+        type: integer
+      scope:
+        $ref: '#/definitions/models.CuponScope'
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      valorDescuento:
+        type: integer
+    type: object
+  models.CuponRedencion:
+    properties:
+      createdAt:
+        type: string
+      cuponId:
+        type: integer
+      cuponRedencionId:
+        type: integer
+      documentoCliente:
+        type: integer
+      montoDescuento:
+        type: integer
+      pedidoId:
+        type: integer
+    type: object
+  models.CuponScope:
+    enum:
+    - GLOBAL
+    - PRODUCTO
+    - CATEGORIA
+    - CLIENTE
+    type: string
+    x-enum-varnames:
+    - CuponScopeGlobal
+    - CuponScopeProducto
+    - CuponScopeCategoria
+    - CuponScopeCliente
+  models.DashboardData:
+    properties:
+      ingresosHoy:
+        type: integer
+      pedidosHoy:
+        type: integer
+      promedioVentaPedido:
+        type: number
+      totalIngresos:
+        type: integer
+      totalPedidos:
+        type: integer
+      totalUsuarios:
+        type: integer
+    type: object
+  models.DestinatariosNotificacion:
+    properties:
+      documentoCliente:
+        type: integer
+      documentoTrabajador:
+        type: integer
+      tipo:
+        $ref: '#/definitions/models.TipoDestinatario'
+      topic:
+        type: string
+    type: object
+  models.DetalleEnvioNotificacion:
+    properties:
+      documentoCliente:
+        type: integer
+      documentoTrabajador:
+        type: integer
+      errorCode:
+        type: string
+      exito:
+        type: boolean
+      plataforma:
+        type: string
+      pushDispositivoId:
+        type: integer
+      statusCode:
+        type: integer
+    type: object
+  models.DiaSemana:
+    enum:
+    - Lunes
+    - Martes
+    - Miércoles
+    - Jueves
+    - Viernes
+    - Sábado
+    - Domingo
+    type: string
+    x-enum-varnames:
+    - DiaLunes
+    - DiaMartes
+    - DiaMiercoles
+    - DiaJueves
+    - DiaViernes
+    - DiaSabado
+    - DiaDomingo
+  models.Domicilio:
+    properties:
+      createdAt:
+        type: string
+      createdBy:
+        type: string
+      direccion:
+        type: string
+      domicilioId:
+        type: integer
+      entregado:
+        type: boolean
+      estadoDomicilio:
+        $ref: '#/definitions/models.EstadoDomicilio'
+      fechaDomicilio:
+        type: string
+      observaciones:
+        type: string
+      telefono:
+        type: string
+      trabajadorAsignado:
+        type: integer
+      updatedAt:
+        type: string
+      updatedBy:
+        type: string
+    type: object
+  models.DomicilioCreate:
+    properties:
+      createdBy:
+        example: admin@example.com
+        type: string
+      direccion:
+        example: 'Calle 123 #45-67'
+        type: string
+      estadoDomicilio:
+        allOf:
+        - $ref: '#/definitions/models.EstadoDomicilio'
+        example: PENDIENTE
+      fechaDomicilio:
+        example: "2025-01-31"
+        type: string
+      observaciones:
+        example: Dejar en portería
+        type: string
+      telefono:
+        example: "3001234567"
+        type: string
+      trabajadorAsignado:
+        example: 0
+        type: integer
+    type: object
+  models.DomicilioUpdateRequest:
+    properties:
+      direccion:
+        example: 'Calle 45 #12-34'
+        type: string
+      telefono:
+        example: "3001112233"
+        type: string
+      updatedBy:
+        example: operador@example.com
+        type: string
+    type: object
+  models.EficienciaData:
+    properties:
+      analisisPorHora:
+        items:
+          $ref: '#/definitions/models.EficienciaPorHora'
+        type: array
+      estadisticasEficiencia:
+        $ref: '#/definitions/models.EstadisticasEficiencia'
+      rendimientoTrabajadores:
+        items:
+          $ref: '#/definitions/models.RendimientoTrabajador'
+        type: array
+      tiemposEntrega:
+        items:
+          $ref: '#/definitions/models.TiempoEntrega'
+        type: array
+    type: object
+  models.EficienciaPorHora:
+    properties:
+      capacidadUtilizada:
+        description: Porcentaje
+        type: number
+      hora:
+        type: string
+      nivelEficiencia:
+        description: Alto, Medio, Bajo
+        type: string
+      pedidosRecibidos:
+        type: integer
+      tiempoPromedioPrep:
+        type: number
+    type: object
+  models.EnviarNotificacionRequest:
+    properties:
+      destinatarios:
+        $ref: '#/definitions/models.DestinatariosNotificacion'
+      notificacion:
+        $ref: '#/definitions/models.ContenidoNotificacion'
+      remitente:
+        $ref: '#/definitions/models.RemitenteNotificacion'
+    type: object
+  models.EnviarNotificacionResponse:
+    properties:
+      detalleEnvios:
+        items:
+          $ref: '#/definitions/models.DetalleEnvioNotificacion'
+        type: array
+      enviosExitosos:
+        type: integer
+      enviosFallidos:
+        type: integer
+      resumenDestinatarios:
+        $ref: '#/definitions/models.ResumenDestinatarios'
+      totalDispositivos:
+        type: integer
+    type: object
+  models.EstadisticasEficiencia:
+    properties:
+      capacidadPromedioUso:
+        type: number
+      horaMasEficiente:
+        type: string
+      horaMenosEficiente:
+        type: string
+      pedidosPendientes:
+        type: integer
+      tiempoPromedioGeneral:
+        type: number
+      trabajadorMasEficiente:
+        type: string
+    type: object
+  models.EstadisticasPedidos:
+    properties:
+      diaMasPedidos:
+        type: string
+      horaMasPedidos:
+        type: string
+      ingresoPromedioHora:
+        type: number
+      tasaCompletamientoGeneral:
+        type: number
+      totalPedidosTerminados:
+        type: integer
+    type: object
+  models.EstadisticasProductos:
+    properties:
+      productoConMasVentas:
+        type: string
+      productoConMenosVentas:
+        type: string
+      totalProductosActivos:
+        type: integer
+    type: object
+  models.EstadisticasRentabilidad:
+    properties:
+      margenPromedioGeneral:
+        type: number
+      productoMasRentable:
+        type: string
+      productoMenosRentable:
+        type: string
+      totalGanancias:
+        type: integer
+      totalIngresos:
+        type: integer
+    type: object
+  models.EstadisticasReservas:
+    properties:
+      diaMasReservas:
+        type: string
+      horaMasReservas:
+        type: string
+      promedioPersonasPorReserva:
+        type: number
+      tasaCompletamiento:
+        type: number
+      totalReservasCompletadas:
+        type: integer
+    type: object
+  models.EstadisticasSegmentacion:
+    properties:
+      porcentajeVIP:
+        type: number
+      promedioGastoRegular:
+        type: number
+      promedioGastoVIP:
+        type: number
+      totalClientesNuevos:
+        type: integer
+      totalClientesOcasionales:
+        type: integer
+      totalClientesRegulares:
+        type: integer
+      totalClientesVIP:
+        type: integer
+    type: object
+  models.EstadisticasUsuarios:
+    properties:
+      clientesActivos:
+        type: integer
+      clientesInactivos:
+        type: integer
+      promedioGastoPorCliente:
+        type: number
+      totalClientes:
+        type: integer
+    type: object
+  models.EstadisticasVentas:
+    properties:
+      pedidoPromedioDiario:
+        type: number
+      ticketPromedio:
+        type: number
+      ventaPromedioDiaria:
+        type: number
+    type: object
+  models.EstadoControlNomina:
+    enum:
+    - NO GENERADA
+    - GENERADA
+    - REGENERADA
+    type: string
+    x-enum-varnames:
+    - EstadoControlNominaNoGenerada
+    - EstadoControlNominaGenerada
+    - EstadoControlNominaReGenerada
+  models.EstadoDomicilio:
+    enum:
+    - PENDIENTE
+    - EN_CAMINO
+    - ENTREGADO
+    type: string
+    x-enum-varnames:
+    - EstadoDomicilioPendiente
+    - EstadoDomicilioEnCamino
+    - EstadoDomicilioEntregado
+  models.EstadoNomina:
+    enum:
+    - PAGO
+    - NO_PAGO
+    type: string
+    x-enum-varnames:
+    - EstadoNominaPago
+    - EstadoNominaNoPago
+  models.EstadoPago:
+    enum:
+    - PAGADO
+    - PENDIENTE
+    - NO_PAGO
+    type: string
+    x-enum-varnames:
+    - EstadoPagoPagado
+    - EstadoPagoPendiente
+    - EstadoPagoNoPago
+  models.EstadoPedido:
+    enum:
+    - INICIADO
+    - EN_PREPARACION
+    - LISTO
+    - TERMINADO
+    - CANCELADO
+    type: string
+    x-enum-varnames:
+    - EstadoPedidoIniciado
+    - EstadoPedidoEnPreparacion
+    - EstadoPedidoListo
+    - EstadoPedidoTerminado
+    - EstadoPedidoCancelado
+  models.EstadoProducto:
+    enum:
+    - DISPONIBLE
+    - NO_DISPONIBLE
+    type: string
+    x-enum-varnames:
+    - EstadoProductoDisponible
+    - EstadoProductoNoDisponible
+  models.EstadoReserva:
+    enum:
+    - PENDIENTE
+    - CONFIRMADA
+    - CANCELADA
+    - CUMPLIDA
+    type: string
+    x-enum-varnames:
+    - EstadoReservaPendiente
+    - EstadoReservaConfirmada
+    - EstadoReservaCancelada
+    - EstadoReservaCumplida
+  models.HorarioTrabajador:
+    properties:
+      dia:
+        $ref: '#/definitions/models.DiaSemana'
+      documentoTrabajador:
+        type: integer
+      horaFin:
+        type: string
+      horaInicio:
+        type: string
+      horarioTrabajadorId:
+        type: integer
+    type: object
+  models.HorarioTrabajadorCreateRequest:
+    properties:
+      dia:
+        example: Lunes
+        type: string
+      documentoTrabajador:
+        example: 10000000
+        type: integer
+      horaFin:
+        example: "12:00:00"
+        type: string
+      horaInicio:
+        example: "08:00:00"
+        type: string
+    type: object
+  models.HorarioTrabajadorUpdateRequest:
+    properties:
+      horaFin:
+        example: "12:00:00"
+        type: string
+      horaInicio:
+        example: "08:00:00"
+        type: string
+    type: object
+  models.Incidencia:
+    properties:
+      documentoTrabajador:
+        type: integer
+      fechaIncidencia:
+        type: string
+      incidenciaId:
+        type: integer
+      monto:
+        type: integer
+      motivo:
+        type: string
+      resta:
+        type: boolean
+    type: object
+  models.IncidenciaCreateRequest:
+    properties:
+      documentoTrabajador:
+        example: 10000000
+        type: integer
+      fechaIncidencia:
+        example: "2025-01-31"
+        type: string
+      monto:
+        example: 50000
+        type: integer
+      motivo:
+        example: Descuento por retraso
+        type: string
+      resta:
+        example: true
+        type: boolean
+    type: object
+  models.IncidenciaUpdateRequest:
+    properties:
+      documentoTrabajador:
+        example: 10000000
+        type: integer
+      fechaIncidencia:
+        example: "2025-02-01"
+        type: string
+      monto:
+        example: 60000
+        type: integer
+      motivo:
+        example: Bonificación
+        type: string
+      resta:
+        example: false
+        type: boolean
+    type: object
+  models.LoginRequest:
+    properties:
+      documento:
+        type: integer
+      password:
+        type: string
+    type: object
+  models.MetodoPago:
+    properties:
+      detalle:
+        type: string
+      metodoPagoId:
+        type: integer
+      tipo:
+        type: string
+    type: object
+  models.MetodoPagoCreateRequest:
+    properties:
+      detalle:
+        example: Cuenta 3001234567
+        type: string
+      tipo:
+        example: NEQUI
+        type: string
+    type: object
+  models.MetodoPagoUpdateRequest:
+    properties:
+      detalle:
+        example: Cuenta 3007654321
+        type: string
+      tipo:
+        example: DAVIPLATA
+        type: string
+    type: object
+  models.Nomina:
+    properties:
+      estadoNomina:
+        $ref: '#/definitions/models.EstadoNomina'
+      fechaNomina:
+        type: string
+      monto:
+        type: integer
+      nominaId:
+        type: integer
+    type: object
+  models.NominaCreateRequest:
+    properties:
+      estadoNomina:
+        example: NO_PAGO
+        type: string
+      fecha:
+        example: "2025-01-31"
+        type: string
+    type: object
+  models.NominaTrabajador:
+    properties:
+      detalles:
+        type: string
+      documentoTrabajador:
+        type: integer
+      montoIncidencias:
+        type: integer
+      nominaId:
+        type: integer
+      nominaTrabajadorId:
+        type: integer
+      sueldoBase:
+        type: integer
+    type: object
+  models.NominaTrabajadorRequest:
+    properties:
+      detalles:
+        example: Pago correspondiente al mes de enero
+        type: string
+      documentoTrabajador:
+        example: 1015466494
+        type: integer
+    type: object
+  models.NominaTrabajadorResponse:
+    properties:
+      detalles:
+        example: Pago correspondiente al mes de enero
+        type: string
+      documentoTrabajador:
+        example: 1015466494
+        type: integer
+      montoIncidencias:
+        example: 50000
+        type: integer
+      sueldoBase:
+        example: 2000000
+        type: integer
+    type: object
+  models.Oferta:
+    properties:
+      activo:
+        type: boolean
+      diasSemana:
+        items:
+          type: string
+        type: array
+      fechaFin:
+        type: string
+      fechaInicio:
+        type: string
+      horaFin:
+        type: string
+      horaInicio:
+        type: string
+      ofertaId:
+        type: integer
+      restauranteId:
+        type: integer
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      titulo:
+        type: string
+      valorDescuento:
+        type: integer
+    type: object
+  models.OfertaActivaResponse:
+    properties:
+      ofertaId:
+        type: integer
+      productosIds:
+        items:
+          type: integer
+        type: array
+      tipoDescuento:
+        $ref: '#/definitions/models.TipoDescuento'
+      titulo:
+        type: string
+      valorDescuento:
+        type: integer
+    type: object
+  models.PaginatedResponse:
+    properties:
+      data: {}
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  models.Pago:
+    properties:
+      estadoPago:
+        $ref: '#/definitions/models.EstadoPago'
+      fechaPago:
+        type: string
+      horaPago:
+        type: string
+      metodoPagoId:
+        type: integer
+      monto:
+        type: integer
+      pagoId:
+        type: integer
+      updatedAt:
+        type: string
+      updatedBy:
+        type: string
+    type: object
+  models.PagoCreateRequest:
+    properties:
+      estadoPago:
+        example: PAGADO
+        type: string
+      fechaPago:
+        example: "2025-01-31"
+        type: string
+      horaPago:
+        example: "14:30:00"
+        type: string
+      metodoPagoId:
+        example: 1
+        type: integer
+      monto:
+        example: 50000
+        type: integer
+      updatedBy:
+        example: operador@example.com
+        type: string
+    type: object
+  models.PagoUpdateRequest:
+    properties:
+      estadoPago:
+        example: PENDIENTE
+        type: string
+      fecha:
+        example: "2025-02-01"
+        type: string
+      hora:
+        example: "15:00:00"
+        type: string
+      metodoPagoId:
+        example: 2
+        type: integer
+      monto:
+        example: 60000
+        type: integer
+      updatedBy:
+        example: operador@example.com
+        type: string
+    type: object
+  models.Pedido:
+    properties:
+      delivery:
+        type: boolean
+      documentoCliente:
+        type: integer
+      domicilioId:
+        type: integer
+      estadoPedido:
+        $ref: '#/definitions/models.EstadoPedido'
+      fechaPedido:
+        type: string
+      horaPedido:
+        type: string
+      pagoId:
+        type: integer
+      pedidoId:
+        type: integer
+      restauranteId:
+        type: integer
+      updatedAt:
+        type: string
+      updatedBy:
+        type: string
+    type: object
+  models.PedidoCreateRequest:
+    properties:
+      delivery:
+        example: false
+        type: boolean
+      pk_id_domicilio:
+        example: 0
+        type: integer
+      restauranteId:
+        example: 1
+        type: integer
+    type: object
+  models.PedidoDescuentoAplicado:
+    properties:
+      createdAt:
+        type: string
+      cuponId:
+        type: integer
+      detalle:
+        type: object
+      montoDescuento:
+        type: integer
+      ofertaId:
+        type: integer
+      pedidoDescuentoId:
+        type: integer
+      pedidoId:
+        type: integer
+    type: object
+  models.PedidoDetails:
+    properties:
+      delivery:
+        type: boolean
+      documentoCliente:
+        type: integer
+      domicilioId:
+        type: integer
+      estadoPedido:
+        type: string
+      fechaPedido:
+        type: string
+      horaPedido:
+        type: string
+      metodoPago:
+        type: string
+      metodoPagoId:
+        type: integer
+      pagoId:
+        type: integer
+      pedidoId:
+        type: integer
+      productos:
+        type: string
+    type: object
+  models.PedidoPorDia:
+    properties:
+      fecha:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  models.PedidoPorDiaSemana:
+    properties:
+      diaSemana:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  models.PedidoPorHora:
+    properties:
+      hora:
+        type: string
+      ingresoTotal:
+        type: integer
+      pedidosTerminados:
+        type: integer
+      tasaCompletamiento:
+        type: number
+      totalPedidos:
+        type: integer
+    type: object
+  models.PedidosAnalisisData:
+    properties:
+      estadisticasPedidos:
+        $ref: '#/definitions/models.EstadisticasPedidos'
+      pedidosPorDia:
+        items:
+          $ref: '#/definitions/models.PedidoPorDia'
+        type: array
+      pedidosPorDiaSemana:
+        items:
+          $ref: '#/definitions/models.PedidoPorDiaSemana'
+        type: array
+      pedidosPorHora:
+        items:
+          $ref: '#/definitions/models.PedidoPorHora'
+        type: array
+    type: object
+  models.PlataformaNotificacion:
+    enum:
+    - WEB
+    - ANDROID
+    - IOS
+    type: string
+    x-enum-varnames:
+    - PlataformaWeb
+    - PlataformaAndroid
+    - PlataformaIOS
+  models.Producto:
+    properties:
+      calorias:
+        type: integer
+      cantidad:
+        type: integer
+      descripcion:
+        type: string
+      estadoProducto:
+        $ref: '#/definitions/models.EstadoProducto'
+      imagen:
+        type: string
+      nombre:
+        type: string
+      precio:
+        type: integer
+      productoId:
+        type: integer
+      subcategoriaId:
+        type: integer
+    type: object
+  models.ProductoPedidoCreateRequest:
+    properties:
+      detalles:
+        items:
+          $ref: '#/definitions/models.ProductoPedidoItemInput'
+        type: array
+      pedidoId:
+        example: 1
+        type: integer
+    type: object
+  models.ProductoPedidoItemInput:
+    properties:
+      cantidad:
+        example: 2
+        type: integer
+      productoId:
+        example: 1
+        type: integer
+    type: object
+  models.ProductoRentabilidad:
+    properties:
+      cantidadVendida:
+        type: integer
+      gananciaTotal:
+        description: Ganancia total en pesos
+        type: integer
+      ingresoTotal:
+        type: integer
+      margenGanancia:
+        description: Porcentaje de ganancia
+        type: number
+      nombreProducto:
+        type: string
+      precioVenta:
+        type: integer
+      productoId:
+        type: integer
+    type: object
+  models.ProductoVendido:
+    properties:
+      cantidadVendida:
+        type: integer
+      imagen:
+        type: string
+      ingresoTotal:
+        type: integer
+      nombreProducto:
+        type: string
+      precio:
+        type: integer
+      productoId:
+        type: integer
+    type: object
+  models.ProductsData:
+    properties:
+      estadisticasProductos:
+        $ref: '#/definitions/models.EstadisticasProductos'
+      productosMasVendidos:
+        items:
+          $ref: '#/definitions/models.ProductoVendido'
+        type: array
+      productosMenosVendidos:
+        items:
+          $ref: '#/definitions/models.ProductoVendido'
+        type: array
+    type: object
+  models.ProveedorPush:
+    enum:
+    - WEB_PUSH
+    - FCM
+    type: string
+    x-enum-varnames:
+    - ProveedorWebPush
+    - ProveedorFCM
+  models.PushDispositivo:
+    properties:
+      appVersion:
+        type: string
+      auth:
+        type: string
+      createdAt:
+        type: string
+      documentoCliente:
+        type: integer
+      documentoTrabajador:
+        type: integer
+      enabled:
+        type: boolean
+      endpoint:
+        type: string
+      fcmToken:
+        type: string
+      lastSeenAt:
+        type: string
+      locale:
+        type: string
+      p256dh:
+        type: string
+      plataforma:
+        $ref: '#/definitions/models.PlataformaNotificacion'
+      pushDispositivoId:
+        type: integer
+      subscribedTopics:
+        items:
+          type: string
+        type: array
+      timeZone:
+        type: string
+      userAgent:
+        type: string
+    type: object
+  models.PushEnvio:
+    properties:
+      data:
+        type: object
+      errorCode:
+        type: string
+      exito:
+        type: boolean
+      proveedor:
+        $ref: '#/definitions/models.ProveedorPush'
+      pushDispositivoId:
+        type: integer
+      pushEnvioId:
+        type: integer
+      sentAt:
+        type: string
+      statusCode:
+        type: integer
+    type: object
+  models.RedimirCuponRequest:
+    properties:
+      clienteId:
+        type: integer
+      pedidoId:
+        type: integer
+    type: object
+  models.RegistrarDispositivoRequest:
+    properties:
+      appVersion:
+        type: string
+      auth:
+        type: string
+      documentoCliente:
+        type: integer
+      documentoTrabajador:
+        type: integer
+      endpoint:
+        type: string
+      fcmToken:
+        type: string
+      locale:
+        type: string
+      p256dh:
+        type: string
+      plataforma:
+        $ref: '#/definitions/models.PlataformaNotificacion'
+      subscribedTopics:
+        items:
+          type: string
+        type: array
+      timeZone:
+        type: string
+      userAgent:
+        type: string
+    type: object
+  models.RegistrarEnvioRequest:
+    properties:
+      data:
+        type: object
+      errorCode:
+        type: string
+      exito:
+        type: boolean
+      proveedor:
+        $ref: '#/definitions/models.ProveedorPush'
+      pushDispositivoId:
+        type: integer
+      statusCode:
+        type: integer
+    type: object
+  models.RemitenteNotificacion:
+    properties:
+      documentoTrabajador:
+        type: integer
+      nombre:
+        type: string
+      tipo:
+        $ref: '#/definitions/models.TipoRemitente'
+    type: object
+  models.RendimientoTrabajador:
+    properties:
+      documentoTrabajador:
+        type: integer
+      eficienciaScore:
+        description: 1-10
+        type: number
+      horasTrabajadas:
+        type: number
+      nombreTrabajador:
+        type: string
+      pedidosAtendidos:
+        type: integer
+      tiempoPromedioAtencion:
+        type: number
+    type: object
+  models.RentabilidadData:
+    properties:
+      estadisticasRentabilidad:
+        $ref: '#/definitions/models.EstadisticasRentabilidad'
+      productosMenosRentables:
+        items:
+          $ref: '#/definitions/models.ProductoRentabilidad'
+        type: array
+      productosRentables:
+        items:
+          $ref: '#/definitions/models.ProductoRentabilidad'
+        type: array
+    type: object
+  models.Reserva:
+    properties:
+      contactoId:
+        type: integer
+      createdAt:
+        type: string
+      createdBy:
+        type: string
+      estadoReserva:
+        $ref: '#/definitions/models.EstadoReserva'
+      fechaReserva:
+        type: string
+      horaReserva:
+        type: string
+      indicaciones:
+        type: string
+      personas:
+        type: integer
+      reservaId:
+        type: integer
+      restauranteId:
+        type: integer
+      updatedAt:
+        type: string
+      updatedBy:
+        type: string
+    type: object
+  models.ReservaContacto:
+    properties:
+      contactoId:
+        type: integer
+      documentoCliente:
+        type: integer
+      documentoContacto:
+        type: integer
+      nombreCompleto:
+        type: string
+      telefono:
+        type: string
+    type: object
+  models.ReservaCreateRequest:
+    properties:
+      contactoId:
+        example: 1
+        type: integer
+      createdBy:
+        example: admin@example.com
+        type: string
+      estadoReserva:
+        example: PENDIENTE
+        type: string
+      fechaReserva:
+        example: "2025-01-31"
+        type: string
+      horaReserva:
+        example: "18:30:00"
+        type: string
+      indicaciones:
+        example: Mesa cerca a la ventana
+        type: string
+      personas:
+        example: 4
+        type: integer
+      restauranteId:
+        example: 1
+        type: integer
+    type: object
+  models.ReservaPorDia:
+    properties:
+      fecha:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
+  models.ReservaPorDiaSemana:
+    properties:
+      diaSemana:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
+  models.ReservaPorHora:
+    properties:
+      hora:
+        type: string
+      porcentajeCompletado:
+        type: number
+      reservasCompletadas:
+        type: integer
+      totalPersonas:
+        type: integer
+      totalReservas:
+        type: integer
+    type: object
+  models.ReservaUpdateRequest:
+    properties:
+      contactoId:
+        example: 1
+        type: integer
+      estadoReserva:
+        example: CONFIRMADA
+        type: string
+      fechaReserva:
+        example: "2025-01-31"
+        type: string
+      horaReserva:
+        example: "19:00:00"
+        type: string
+      indicaciones:
+        example: Mesa al fondo
+        type: string
+      personas:
+        example: 5
+        type: integer
+      restauranteId:
+        example: 1
+        type: integer
+      updatedBy:
+        example: operador@example.com
+        type: string
+    type: object
+  models.ReservasAnalisisData:
+    properties:
+      estadisticasReservas:
+        $ref: '#/definitions/models.EstadisticasReservas'
+      reservasPorDia:
+        items:
+          $ref: '#/definitions/models.ReservaPorDia'
+        type: array
+      reservasPorDiaSemana:
+        items:
+          $ref: '#/definitions/models.ReservaPorDiaSemana'
+        type: array
+      reservasPorHora:
+        items:
+          $ref: '#/definitions/models.ReservaPorHora'
+        type: array
+    type: object
+  models.Restaurante:
+    properties:
+      cambioHorarioId:
+        type: integer
+      horaApertura:
+        type: string
+      nombreRestaurante:
+        type: string
+      restauranteId:
+        type: integer
+    type: object
+  models.RestauranteCreateRequest:
+    properties:
+      cambioHorarioId:
+        example: 1
+        type: integer
+      horaApertura:
+        example: "08:00:00"
+        type: string
+      nombreRestaurante:
+        example: El Fogón de María
+        type: string
+    type: object
+  models.RestauranteUpdateRequest:
+    properties:
+      cambioHorarioId:
+        example: 2
+        type: integer
+      horaApertura:
+        example: "09:00:00"
+        type: string
+      nombreRestaurante:
+        example: El Fogón Centro
+        type: string
+    type: object
+  models.ResumenDestinatarios:
+    properties:
+      clientesNotificados:
+        items:
+          type: integer
+        type: array
+      tipoDestinatario:
+        type: string
+      topicsNotificados:
+        items:
+          type: string
+        type: array
+      trabajadoresNotificados:
+        items:
+          type: integer
+        type: array
+    type: object
+  models.RolTrabajador:
+    enum:
+    - Administrador
+    - Mesero
+    - Cocinero
+    - Domiciliario
+    - Oficios_varios
+    type: string
+    x-enum-varnames:
+    - RolAdministrador
+    - RolMesero
+    - RolCocinero
+    - RolDomiciliario
+    - RolOficiosVarios
+  models.SalesData:
+    properties:
+      estadisticasGenerales:
+        $ref: '#/definitions/models.EstadisticasVentas'
+      tendenciaVentas:
+        items:
+          $ref: '#/definitions/models.VentaPorFecha'
+        type: array
+      ventasPorMetodoPago:
+        items:
+          $ref: '#/definitions/models.VentaPorMetodo'
+        type: array
+    type: object
+  models.SegmentacionData:
+    properties:
+      clientesNuevos:
+        items:
+          $ref: '#/definitions/models.ClienteSegmento'
+        type: array
+      clientesOcasionales:
+        items:
+          $ref: '#/definitions/models.ClienteSegmento'
+        type: array
+      clientesRegulares:
+        items:
+          $ref: '#/definitions/models.ClienteSegmento'
+        type: array
+      clientesVIP:
+        items:
+          $ref: '#/definitions/models.ClienteSegmento'
+        type: array
+      estadisticasSegmentacion:
+        $ref: '#/definitions/models.EstadisticasSegmentacion'
+    type: object
+  models.Subcategoria:
+    properties:
+      categoriaId:
+        type: integer
+      nombre:
+        type: string
+      subcategoriaId:
+        type: integer
+    type: object
+  models.SubcategoriaCreateRequest:
+    properties:
+      categoriaId:
+        example: 1
+        type: integer
+      nombre:
+        example: Gaseosas
+        type: string
+    type: object
+  models.SubcategoriaUpdateRequest:
+    properties:
+      categoriaId:
+        example: 1
+        type: integer
+      nombre:
+        example: Gaseosas zero
+        type: string
+    type: object
+  models.TiempoEntrega:
+    properties:
+      cliente:
+        type: string
+      estadoPedido:
+        type: string
+      fechaPedido:
+        type: string
+      horaPedido:
+        type: string
+      pedidoId:
+        type: integer
+      tiempoPreparacion:
+        description: en minutos
+        type: integer
+      trabajadorAsignado:
+        type: string
+    type: object
+  models.TimeAnalysisData:
+    properties:
+      ventasPorDiaSemana:
+        items:
+          $ref: '#/definitions/models.VentaPorDiaSemana'
+        type: array
+      ventasPorHora:
+        items:
+          $ref: '#/definitions/models.VentaPorHora'
+        type: array
+      ventasPorMes:
+        items:
+          $ref: '#/definitions/models.VentaPorMes'
+        type: array
+    type: object
+  models.TipoDescuento:
+    enum:
+    - PORCENTAJE
+    - MONTO
+    type: string
+    x-enum-varnames:
+    - TipoDescuentoPorcentaje
+    - TipoDescuentoMonto
+  models.TipoDestinatario:
+    enum:
+    - TODOS
+    - CLIENTE
+    - TRABAJADOR
+    - TOPIC
+    - CLIENTES
+    - TRABAJADORES
+    type: string
+    x-enum-varnames:
+    - DestinatarioTodos
+    - DestinatarioCliente
+    - DestinatarioTrabajador
+    - DestinatarioTopic
+    - DestinatarioClientes
+    - DestinatarioTrabajadores
+  models.TipoRemitente:
+    enum:
+    - TRABAJADOR
+    - SISTEMA
+    type: string
+    x-enum-varnames:
+    - RemitenteTrabajador
+    - RemitenteSistema
+  models.Trabajador:
+    properties:
+      apellido:
+        type: string
+      documentoTrabajador:
+        type: integer
+      fechaIngreso:
+        type: string
+      fechaNacimiento:
+        type: string
+      fechaRetiro:
+        type: string
+      horarios:
+        items:
+          $ref: '#/definitions/models.HorarioTrabajador'
+        type: array
+      nombre:
+        type: string
+      nuevo:
+        type: boolean
+      password:
+        type: string
+      restauranteId:
+        type: integer
+      rol:
+        $ref: '#/definitions/models.RolTrabajador'
+      sueldo:
+        type: integer
+      telefono:
+        type: string
+    type: object
+  models.TrabajadorCreateRequest:
+    properties:
+      apellido:
+        example: Gómez
+        type: string
+      documentoTrabajador:
+        example: 10000000
+        type: integer
+      fechaIngreso:
+        example: "2025-01-31"
+        type: string
+      fechaNacimiento:
+        example: "1990-05-20"
+        type: string
+      nombre:
+        example: María
+        type: string
+      password:
+        example: Secreta123
+        type: string
+      restauranteId:
+        example: 1
+        type: integer
+      rol:
+        example: Mesero
+        type: string
+      sueldo:
+        example: 2000000
+        type: integer
+      telefono:
+        example: "3012223344"
+        type: string
+    type: object
+  models.TrabajadorUpdateRequest:
+    properties:
+      apellido:
+        example: Gómez
+        type: string
+      fechaIngreso:
+        example: "2025-02-01"
+        type: string
+      fechaNacimiento:
+        example: "1990-05-20"
+        type: string
+      fechaRetiro:
+        example: "2025-12-31"
+        type: string
+      nombre:
+        example: María
+        type: string
+      nuevo:
+        example: false
+        type: boolean
+      password:
+        example: NuevaSecreta!
+        type: string
+      rol:
+        example: Cocinero
+        type: string
+      sueldo:
+        example: 2200000
+        type: integer
+      telefono:
+        example: "3012223344"
+        type: string
+    type: object
+  models.UsersData:
+    properties:
+      estadisticasUsuarios:
+        $ref: '#/definitions/models.EstadisticasUsuarios'
+      usuariosFrecuentes:
+        items:
+          $ref: '#/definitions/models.UsuarioFrecuente'
+        type: array
+      usuariosInactivos:
+        items:
+          $ref: '#/definitions/models.UsuarioInactivo'
+        type: array
+    type: object
+  models.UsuarioFrecuente:
+    properties:
+      documentoCliente:
+        type: integer
+      nombreCompleto:
+        type: string
+      totalGastado:
+        type: integer
+      totalPedidos:
+        type: integer
+      ultimoPedido:
+        type: string
+    type: object
+  models.UsuarioInactivo:
+    properties:
+      documentoCliente:
+        type: integer
+      nombreCompleto:
+        type: string
+      totalPedidos:
+        type: integer
+      ultimoPedido:
+        type: string
+    type: object
+  models.ValidarCuponItemRequest:
+    properties:
+      cantidad:
+        type: integer
+      precio:
+        type: integer
+      productoId:
+        type: integer
+    type: object
+  models.ValidarCuponRequest:
+    properties:
+      clienteId:
+        type: integer
+      codigo:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/models.ValidarCuponItemRequest'
+        type: array
+      pedidoId:
+        type: integer
+    type: object
+  models.ValidarCuponResponse:
+    properties:
+      aplicable:
+        type: boolean
+      montoDescuento:
+        type: integer
+      motivo:
+        type: string
+    type: object
+  models.VentaPorDiaSemana:
+    properties:
+      cantidad:
+        type: integer
+      diaSemana:
+        type: string
+      total:
+        type: integer
+    type: object
+  models.VentaPorFecha:
+    properties:
+      cantidad:
+        type: integer
+      fecha:
+        type: string
+      total:
+        type: integer
+    type: object
+  models.VentaPorHora:
+    properties:
+      cantidad:
+        type: integer
+      hora:
+        type: integer
+      total:
+        type: integer
+    type: object
+  models.VentaPorMes:
+    properties:
+      cantidad:
+        type: integer
+      mes:
+        type: string
+      total:
+        type: integer
+    type: object
+  models.VentaPorMetodo:
+    properties:
+      cantidad:
+        type: integer
+      metodoPago:
+        type: string
+      total:
+        type: integer
+    type: object
+  productopedido.ProductoPedidoResponse:
+    properties:
+      detalles: {}
+      pedidoId:
+        type: integer
+    type: object
+  telemetria.ProductosPopularesData:
+    properties:
+      productosPopulares:
+        items:
+          $ref: '#/definitions/models.ProductoVendido'
+        type: array
+    type: object
+info:
+  contact:
+    email: baluisto96@gmail.com
+  description: API para gestionar el sistema de "El fogón de María"
+  title: El fogón de María API
+  version: 2.0.0
+paths:
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Permite obtener un nuevo access token utilizando un refresh token
+        válido
+      parameters:
+      - description: 'Refresh Token en formato: Bearer {token}'
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tokens renovados exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AuthResponse'
+              type: object
+        "400":
+          description: Solicitud incorrecta
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "401":
+          description: Refresh token inválido o expirado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Renovar access token usando refresh token
+      tags:
+      - auth
+  /cambios_horario:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un cambio de horario de la base de datos.
+      parameters:
+      - description: ID del cambio de horario
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cambio de horario eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Cambio de horario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar un cambio de horario
+      tags:
+      - cambios_horario
+    get:
+      consumes:
+      - application/json
+      description: Obtiene un listado de todos los cambios de horario registrados
+        en la base de datos
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Listado de cambios de horario
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todos los cambios de horario
+      tags:
+      - cambios_horario
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo cambio de horario en la base de datos.
+      parameters:
+      - description: Datos del cambio de horario (fecha YYYY-MM-DD, horas HH:MM:SS)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CambiosHorarioCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Cambio de horario creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un nuevo cambio de horario
+      tags:
+      - cambios_horario
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un cambio de horario existente.
+      parameters:
+      - description: ID del cambio de horario
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del cambio de horario a actualizar (sólo campos a modificar)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CambiosHorarioUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cambio de horario actualizado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Cambio de horario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar un cambio de horario
+      tags:
+      - cambios_horario
+  /cambios_horario/actual:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene el cambio de horario que aplica para la fecha actual, si
+        existe.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No hay cambios de horario para la fecha actual
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Consultar cambios de horario para la fecha actual
+      tags:
+      - cambios_horario
+  /categorias:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la categoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar categoría
+      tags:
+      - categorias
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Categoria'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las categorías
+      tags:
+      - categorias
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos de categoría
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CategoriaCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Categoria'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear categoría
+      tags:
+      - categorias
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la categoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CategoriaUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Categoria'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar categoría
+      tags:
+      - categorias
+  /categorias/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la categoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Categoria'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener categoría por ID
+      tags:
+      - categorias
+  /clientes:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un cliente de la base de datos.
+      parameters:
+      - description: ID del Cliente
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cliente eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Cliente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar un cliente
+      tags:
+      - clientes
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los clientes registrados en la base de datos, con
+        opción de retornar solo nombre completo y teléfono.
+      parameters:
+      - default: 10
+        description: Cantidad de resultados por página
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: Número de registros a omitir
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - description: 'Campos a incluir en la respuesta (opciones: ''nombre_completo_telefono'')'
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de clientes
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Cliente'
+                  type: array
+              type: object
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todos los clientes con opción de filtrar campos
+      tags:
+      - clientes
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo cliente en la base de datos.
+      parameters:
+      - description: Datos del cliente a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ClienteCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Cliente creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cliente'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "409":
+          description: Correo ya registrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo cliente
+      tags:
+      - clientes
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un cliente existente.
+      parameters:
+      - description: ID del Cliente
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del cliente a actualizar (sólo campos a modificar)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ClienteUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cliente actualizado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cliente'
+              type: object
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Cliente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "409":
+          description: Correo ya registrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar un cliente
+      tags:
+      - clientes
+  /clientes/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un cliente específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Cliente
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cliente encontrado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cliente'
+              type: object
+        "401":
+          description: No autorizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Cliente no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener cliente por ID
+      tags:
+      - clientes
+  /control_nomina:
+    get:
+      consumes:
+      - application/json
+      description: 'Opcional: filtrar por fecha (YYYY-MM-DD)'
+      parameters:
+      - description: Fecha (YYYY-MM-DD)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.ControlNomina'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar control de nómina
+      tags:
+      - control_nomina
+  /control_nomina/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del control
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ControlNomina'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener control de nómina por ID
+      tags:
+      - control_nomina
+  /cupones:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del cupón
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Desactivar cupón
+      tags:
+      - cupones
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Filtrar por estado activo
+        in: query
+        name: activo
+        type: boolean
+      - description: Filtrar por código
+        in: query
+        name: codigo
+        type: string
+      - description: Filtrar por scope (GLOBAL, PRODUCTO, CATEGORIA, CLIENTE)
+        in: query
+        name: scope
+        type: string
+      - description: Fecha desde (YYYY-MM-DD)
+        in: query
+        name: fecha_desde
+        type: string
+      - description: Fecha hasta (YYYY-MM-DD)
+        in: query
+        name: fecha_hasta
+        type: string
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los cupones
+      tags:
+      - cupones
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos del cupón
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrearCuponRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cupon'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear cupón
+      tags:
+      - cupones
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del cupón
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados del cupón
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrearCuponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cupon'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar cupón
+      tags:
+      - cupones
+  /cupones/{codigo}/redimir:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Código del cupón
+        in: path
+        name: codigo
+        required: true
+        type: string
+      - description: Datos de redención
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RedimirCuponRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CuponRedencion'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Redimir cupón
+      tags:
+      - cupones
+  /cupones/redenciones:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Código del cupón
+        in: query
+        name: cupon_codigo
+        type: string
+      - description: ID del cupón
+        in: query
+        name: cupon_id
+        type: integer
+      - description: ID del cliente
+        in: query
+        name: cliente_id
+        type: integer
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar redenciones de cupones
+      tags:
+      - cupones
+  /cupones/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID o código del cupón
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cupon'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener cupón por ID
+      tags:
+      - cupones
+  /cupones/validar:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos para validación
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ValidarCuponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ValidarCuponResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Validar cupón
+      tags:
+      - cupones
+  /descuentos/pedidos:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.PedidoDescuentoAplicado'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener descuentos de pedido
+      tags:
+      - descuentos
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      - description: Datos del descuento a aplicar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.AplicarDescuentoRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PedidoDescuentoAplicado'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Aplicar descuento a pedido
+      tags:
+      - descuentos
+  /domicilios:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un domicilio de la base de datos.
+      parameters:
+      - description: ID del Domicilio
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Domicilio eliminado
+        "404":
+          description: Domicilio no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar un domicilio
+      tags:
+      - domicilios
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los domicilios registrados en la base de datos,
+        filtrando según criterios específicos.
+      parameters:
+      - description: Filtrar por dirección
+        in: query
+        name: direccion
+        type: string
+      - description: Filtrar por teléfono
+        in: query
+        name: telefono
+        type: string
+      - description: Filtrar por fecha
+        in: query
+        name: fecha
+        type: string
+      - description: Filtrar por estado del domicilio
+        in: query
+        name: estado
+        type: string
+      - description: Filtrar por usuario que realizó la última actualización
+        in: query
+        name: updated_by
+        type: string
+      - description: ID del domiciliario solicitante
+        in: query
+        name: trabajador
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de domicilios
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Domicilio'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todos los domicilios con posibilidad de filtrar
+      tags:
+      - domicilios
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo domicilio en la base de datos. El campo 'entregado'
+        es generado automáticamente y no debe enviarse en la solicitud.
+      parameters:
+      - description: Datos del domicilio a crear (sólo campos permitidos)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.DomicilioCreate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Domicilio creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Domicilio'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un nuevo domicilio
+      tags:
+      - domicilios
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un domicilio existente. El campo 'entregado'
+        es calculado automáticamente.
+      parameters:
+      - description: ID del Domicilio
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del domicilio a actualizar (sólo campos a modificar)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.DomicilioUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Domicilio actualizado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Domicilio'
+              type: object
+        "404":
+          description: Domicilio no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar un domicilio
+      tags:
+      - domicilios
+  /domicilios/asignar:
+    post:
+      consumes:
+      - application/json
+      description: Un domiciliario puede tomar un pedido si no ha sido asignado previamente
+      parameters:
+      - description: ID del domicilio
+        in: query
+        name: domicilio_id
+        required: true
+        type: integer
+      - description: ID del domiciliario que lo tomará
+        in: query
+        name: trabajador_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Domicilio asignado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Domicilio no encontrado o ya asignado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al asignar domicilio
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Asignar un domiciliario a un pedido de domicilio
+      tags:
+      - domicilios
+  /domicilios/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un domicilio por ID y, si está asociado a un pedido, incluye
+        documento/nombre del cliente y resumen del pedido (monto/productos).
+      parameters:
+      - description: ID del Domicilio
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Domicilio encontrado (con cliente/pedido si aplica)
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Domicilio'
+              type: object
+        "400":
+          description: Parámetro inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Domicilio no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener domicilio por ID (incluye cliente y pedido asociado si existen)
+      tags:
+      - domicilios
+  /estados-pedidos:
+    get:
+      description: Obtiene el conteo de pedidos agrupados por estado - endpoint público
+        sin autenticación
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    format: int64
+                    type: integer
+                  type: object
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+  /healthz:
+    get:
+      description: Retorna 200 OK si la aplicación está en ejecución
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+      summary: Verifica la salud básica de la API
+      tags:
+      - health
+  /horario_trabajador:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un horario de un trabajador y día específico.
+      parameters:
+      - description: Documento del trabajador
+        in: query
+        name: documento
+        required: true
+        type: integer
+      - description: Día del horario
+        in: query
+        name: dia
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Horario eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Parámetros inválidos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Horario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar horario de trabajador
+      tags:
+      - horarios_trabajador
+    get:
+      consumes:
+      - application/json
+      description: Lista los horarios, opcionalmente filtrados por documento del trabajador.
+      parameters:
+      - description: Documento del trabajador
+        in: query
+        name: documento
+        type: integer
+      - description: Día a filtrar
+        in: query
+        name: dia
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de horarios
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.HorarioTrabajador'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener horarios de trabajadores
+      tags:
+      - horarios_trabajador
+    post:
+      consumes:
+      - application/json
+      description: Crea un registro de horario para un trabajador.
+      parameters:
+      - description: Datos del horario (formato hora HH:MM:SS)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.HorarioTrabajadorCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Horario creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.HorarioTrabajador'
+              type: object
+        "400":
+          description: Solicitud inválida
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear horario para trabajador
+      tags:
+      - horarios_trabajador
+    put:
+      consumes:
+      - application/json
+      description: Actualiza las horas de inicio o fin para un trabajador y día específico.
+      parameters:
+      - description: Documento del trabajador
+        in: query
+        name: documento
+        required: true
+        type: integer
+      - description: Día del horario
+        in: query
+        name: dia
+        required: true
+        type: string
+      - description: Horas a actualizar (formato HH:MM:SS)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.HorarioTrabajadorUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Horario actualizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Solicitud inválida
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Horario no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar horario de trabajador
+      tags:
+      - horarios_trabajador
+  /incidencias:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina una incidencia de la base de datos.
+      parameters:
+      - description: ID de la incidencia
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Incidencia eliminada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Incidencia no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar una incidencia
+      tags:
+      - incidencias
+    get:
+      consumes:
+      - application/json
+      description: Devuelve una lista de todas las incidencias registradas en la base
+        de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de incidencias
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Incidencia'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todas las incidencias
+      tags:
+      - incidencias
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva incidencia en la base de datos.
+      parameters:
+      - description: Datos de la incidencia (fecha YYYY-MM-DD)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.IncidenciaCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Incidencia creada
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear una nueva incidencia
+      tags:
+      - incidencias
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de una incidencia existente en la base de datos.
+      parameters:
+      - description: ID de la Incidencia
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos de la incidencia a actualizar (sólo campos a modificar)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.IncidenciaUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Incidencia actualizada
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Incidencia no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar una incidencia
+      tags:
+      - incidencias
+  /incidencias/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve una lista de incidencias según los filtros proporcionados.
+      parameters:
+      - description: Documento del Trabajador
+        in: query
+        name: documento
+        required: true
+        type: integer
+      - description: Mes de la Incidencia (1-12)
+        in: query
+        name: mes
+        required: true
+        type: integer
+      - description: Año de la Incidencia
+        in: query
+        name: anio
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de incidencias encontradas
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Incidencia'
+                  type: array
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: No se encontraron incidencias
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener incidencias por documento y/o fecha
+      tags:
+      - incidencias
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Permite iniciar sesión utilizando el documento y la contraseña,
+        devuelve un JWT con el rol.
+      parameters:
+      - description: Documento y Contraseña
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inicio de sesión exitoso con tokens JWT
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AuthResponse'
+              type: object
+        "400":
+          description: Solicitud incorrecta
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "401":
+          description: Credenciales inválidas
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "429":
+          description: Demasiadas solicitudes
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Iniciar sesión para clientes o trabajadores
+      tags:
+      - login
+  /metodos_pago:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un método de pago de la base de datos.
+      parameters:
+      - description: ID del Método de Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Método de pago eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Método de pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar un método de pago
+      tags:
+      - metodos_pago
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los métodos de pago registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de métodos de pago
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.MetodoPago'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todos los métodos de pago
+      tags:
+      - metodos_pago
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo método de pago en la base de datos.
+      parameters:
+      - description: Datos del método de pago a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.MetodoPagoCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Método de pago creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MetodoPago'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un nuevo método de pago
+      tags:
+      - metodos_pago
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un método de pago existente.
+      parameters:
+      - description: ID del Método de Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del método de pago a actualizar (sólo campos a modificar)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.MetodoPagoUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Método de pago actualizado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MetodoPago'
+              type: object
+        "404":
+          description: Método de pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar un método de pago
+      tags:
+      - metodos_pago
+  /metodos_pago/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un método de pago específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Método de Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Método de pago encontrado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MetodoPago'
+              type: object
+        "404":
+          description: Método de pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener método de pago por ID
+      tags:
+      - metodos_pago
+  /nomina_trabajador:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene un listado de todas las relaciones nómina-trabajador registradas
+        en la base de datos
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Listado de relaciones nómina-trabajador
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.NominaTrabajador'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todas las relaciones nómina-trabajador
+      tags:
+      - nomina_trabajador
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva relación nómina-trabajador, calculando incidencias
+        y total a pagar basado en el sueldo y las incidencias del trabajador.
+      parameters:
+      - description: Datos de la nómina-trabajador
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.NominaTrabajadorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Nómina-trabajador creada
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.NominaTrabajadorResponse'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear una nómina-trabajador con cálculo automático
+      tags:
+      - nomina_trabajador
+  /nomina_trabajador/mes:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todas las relaciones nómina-trabajador del mes actual o
+        de un mes/año específico, incluyendo el nombre y apellido del trabajador.
+      parameters:
+      - description: Mes (1-12) para filtrar nóminas
+        in: query
+        name: mes
+        type: integer
+      - description: Año (YYYY) para filtrar nóminas
+        in: query
+        name: anio
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Relaciones nómina-trabajador encontradas
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+              type: object
+        "404":
+          description: No se encontraron relaciones nómina-trabajador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Consultar nóminas del mes actual o de un mes/año específico
+      tags:
+      - nomina_trabajador
+  /nomina_trabajador/search:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene las relaciones nómina-trabajador según los filtros aplicados
+        (nómina actual, nóminas pagas, nóminas no pagas, nómina por mes y año, todas
+        las nóminas).
+      parameters:
+      - description: Documento del trabajador
+        in: query
+        name: documento
+        required: true
+        type: integer
+      - description: Consultar solo la nómina actual
+        in: query
+        name: actual
+        type: boolean
+      - description: Consultar solo nóminas pagadas
+        in: query
+        name: pagas
+        type: boolean
+      - description: Consultar solo nóminas no pagadas
+        in: query
+        name: no_pagas
+        type: boolean
+      - description: Mes (1-12) para filtrar nóminas
+        in: query
+        name: mes
+        type: integer
+      - description: Año (YYYY) para filtrar nóminas
+        in: query
+        name: anio
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Relaciones nómina-trabajador encontradas
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.NominaTrabajador'
+                  type: array
+              type: object
+        "404":
+          description: Relación nómina-trabajador no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener relaciones nómina-trabajador según filtros
+      tags:
+      - nomina_trabajador
+  /nominas:
+    delete:
+      consumes:
+      - application/json
+      description: Marca una nómina como "NO_PAGO" en lugar de eliminarla físicamente.
+      parameters:
+      - description: ID de la Nómina
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Nómina eliminada lógicamente
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Nómina no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar una nómina (lógica)
+      tags:
+      - nominas
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todas las nóminas registradas en la base de datos, con
+        opción de filtrar por fecha exacta, mes y año.
+      parameters:
+      - description: Filtrar por fecha exacta (YYYY-MM-DD)
+        in: query
+        name: fecha
+        type: string
+      - description: Filtrar por mes (1-12)
+        in: query
+        name: mes
+        type: integer
+      - description: Filtrar por año (YYYY)
+        in: query
+        name: anio
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de nóminas
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Nomina'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todas las nóminas con filtros
+      tags:
+      - nominas
+    post:
+      consumes:
+      - application/json
+      description: Inserta un registro en la tabla "NOMINA"; el trigger genera automáticamente
+        los cálculos.
+      parameters:
+      - description: Datos de la nómina a crear (sin 'MONTO'; fecha YYYY-MM-DD)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.NominaCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Nómina creada
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Nomina'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear una nueva nómina
+      tags:
+      - nominas
+    put:
+      consumes:
+      - application/json
+      description: Cambia el estado de una nómina existente a "PAGO".
+      parameters:
+      - description: ID de la Nómina
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Nómina actualizada
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Nomina'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Nómina no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar el estado de una nómina
+      tags:
+      - nominas
+  /ofertas:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Desactivar oferta
+      tags:
+      - ofertas
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Filtrar por estado activo
+        in: query
+        name: activo
+        type: boolean
+      - description: ID del restaurante
+        in: query
+        name: restaurante_id
+        type: integer
+      - description: Filtrar por título
+        in: query
+        name: titulo
+        type: string
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las ofertas
+      tags:
+      - ofertas
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos de la oferta
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrearOfertaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Oferta'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear oferta
+      tags:
+      - ofertas
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados de la oferta
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrearOfertaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Oferta'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar oferta
+      tags:
+      - ofertas
+  /ofertas/activas:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del restaurante
+        in: query
+        name: restaurante_id
+        required: true
+        type: integer
+      - description: 'Fecha a consultar (YYYY-MM-DD, default: hoy)'
+        in: query
+        name: fecha
+        type: string
+      - description: 'Hora a consultar (HH:MM, default: ahora)'
+        in: query
+        name: hora
+        type: string
+      - description: ID del producto específico
+        in: query
+        name: producto_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.OfertaActivaResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener ofertas activas
+      tags:
+      - ofertas
+  /ofertas/productos:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: ID del producto
+        in: query
+        name: producto_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Desasociar producto de oferta
+      tags:
+      - ofertas
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: ID del producto
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.AsociarProductoOfertaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Asociar producto a oferta
+      tags:
+      - ofertas
+  /ofertas/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la oferta
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Oferta'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener oferta por ID
+      tags:
+      - ofertas
+  /pagos:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un pago de la base de datos.
+      parameters:
+      - description: ID del Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pago eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar un pago
+      tags:
+      - pagos
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los pagos registrados en la base de datos, con opción
+        de filtrar por fecha exacta, mes, año y estado.
+      parameters:
+      - description: Filtrar por fecha exacta (YYYY-MM-DD)
+        in: query
+        name: fecha
+        type: string
+      - description: Filtrar por dia (1-31)
+        in: query
+        name: dia
+        type: integer
+      - description: Filtrar por mes (1-12)
+        in: query
+        name: mes
+        type: integer
+      - description: Filtrar por año (YYYY)
+        in: query
+        name: anio
+        type: integer
+      - description: Filtrar por estado del pago (PAGADO, PENDIENTE, NO_PAGO)
+        in: query
+        name: estado
+        type: string
+      - description: Filtrar por metodo de pago
+        in: query
+        name: metodo_pago
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de pagos
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Pago'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todos los pagos con filtros
+      tags:
+      - pagos
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo pago en la base de datos.
+      parameters:
+      - description: Datos del pago a crear (fecha YYYY-MM-DD, hora HH:MM:SS)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.PagoCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Pago creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Pago'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un nuevo pago
+      tags:
+      - pagos
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un pago existente.
+      parameters:
+      - description: ID del Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: 'Datos del pago a actualizar (sólo campos a modificar, formatos:
+          fecha YYYY-MM-DD, hora HH:MM:SS)'
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.PagoUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pago actualizado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Pago'
+              type: object
+        "404":
+          description: Pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar un pago
+      tags:
+      - pagos
+  /pagos/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un pago específico por ID.
+      parameters:
+      - description: ID del Pago
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pago encontrado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Pago'
+              type: object
+        "404":
+          description: Pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener pago por ID
+      tags:
+      - pagos
+  /pedidos:
+    get:
+      consumes:
+      - application/json
+      description: 'Devuelve pedidos filtrados según varios criterios: fecha, rango
+        de fechas, usuario (cliente), tipo de método de pago, si tienen domicilio,
+        etc.'
+      parameters:
+      - description: Fecha específica en formato YYYY-MM-DD
+        in: query
+        name: fecha
+        type: string
+      - description: Fecha inicial del rango en formato YYYY-MM-DD
+        in: query
+        name: desde
+        type: string
+      - description: Fecha final del rango en formato YYYY-MM-DD
+        in: query
+        name: hasta
+        type: string
+      - description: Mes del año (1-12)
+        in: query
+        name: mes
+        type: integer
+      - description: Año para el filtro de mes
+        in: query
+        name: anio
+        type: integer
+      - description: ID del cliente (PK_DOCUMENTO_CLIENTE)
+        in: query
+        name: cliente
+        type: integer
+      - description: Tipo de método de pago (NEQUI, DAVIPLATA, EFECTIVO)
+        in: query
+        name: metodo_pago
+        type: string
+      - description: Indica si el pedido tiene domicilio (true/false)
+        in: query
+        name: domicilio
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pedidos obtenidos exitosamente, cada uno con pagoId, metodoPagoId,
+            domicilioId y documentoCliente cuando apliquen
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Pedido'
+                  type: array
+              type: object
+        "400":
+          description: Error en los parámetros de filtro
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al obtener los pedidos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener pedidos con múltiples filtros
+      tags:
+      - pedido
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo pedido. Fuerza FECHA/HORA (Bogotá) y ESTADO_PEDIDO=INICIADO.
+        Lee 'delivery' del JSON.
+      parameters:
+      - description: Datos del pedido (sólo se respeta 'delivery')
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.PedidoCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pedido creado con identificadores pagoId, metodoPagoId, domicilioId
+            y documentoCliente cuando existan
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Pedido'
+              type: object
+        "400":
+          description: Datos inválidos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al crear el pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un nuevo pedido
+      tags:
+      - pedido
+  /pedidos/actualizar-estado:
+    put:
+      consumes:
+      - application/json
+      description: Actualiza el estado de un pedido existente.
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      - description: Nuevo estado del pedido
+        in: query
+        name: estado
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Estado actualizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al actualizar estado del pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar el estado de un pedido
+      tags:
+      - pedido
+  /pedidos/asignar-domicilio:
+    post:
+      consumes:
+      - application/json
+      description: Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      - description: ID del domicilio
+        in: query
+        name: domicilio_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Domicilio asignado al pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pedido o domicilio no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al asignar domicilio
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Asignar un domicilio a un pedido
+      tags:
+      - pedido
+  /pedidos/asignar-pago:
+    post:
+      consumes:
+      - application/json
+      description: Asigna un pago existente a un pedido y actualiza su estado a "TERMINADO"
+        y el pago a "PAGADO".
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      - description: ID del pago
+        in: query
+        name: pago_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pago asignado al pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pedido o pago no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al asignar pago
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Asignar un pago a un pedido
+      tags:
+      - pedido
+  /pedidos/detalles:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve la información del pedido, tipo de pago y los productos
+        asociados.
+      parameters:
+      - description: ID del pedido (filtrar por pedido específico)
+        in: query
+        name: pedido_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Detalles del pedido obtenidos exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PedidoDetails'
+              type: object
+        "400":
+          description: Error en los parámetros de filtro
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error al obtener los detalles del pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener detalles completos de un pedido
+      tags:
+      - pedido
+  /precio_producto_hist:
+    get:
+      consumes:
+      - application/json
+      description: 'Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD).
+        Devuelve nombre, estadoProducto, precio y fechaVigencia.'
+      parameters:
+      - description: ID del producto
+        in: query
+        name: producto_id
+        type: integer
+      - description: Fecha de vigencia (YYYY-MM-DD)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar historial de precios
+      tags:
+      - precio_producto_hist
+  /precio_producto_hist/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve nombre, estadoProducto, precio y fechaVigencia para el
+        registro indicado.
+      parameters:
+      - description: ID del historial
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener historial por ID
+      tags:
+      - precio_producto_hist
+  /producto_pedido:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve los productos consolidados en un pedido específico
+      parameters:
+      - description: ID del pedido
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de productos del pedido
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/productopedido.ProductoPedidoResponse'
+              type: object
+        "404":
+          description: No se encontraron productos asociados a este pedido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener los productos de un pedido
+      tags:
+      - producto_pedido
+    post:
+      consumes:
+      - application/json
+      description: Crea un registro de productos consolidados en un pedido
+      parameters:
+      - description: Datos del pedido con productos
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductoPedidoCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Pedido con productos agregado exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/productopedido.ProductoPedidoResponse'
+              type: object
+        "400":
+          description: Datos inválidos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un pedido con productos consolidados
+      tags:
+      - producto_pedido
+    put:
+      consumes:
+      - application/json
+      description: Permite agregar o modificar productos en un pedido consolidado
+      parameters:
+      - description: ID del pedido a actualizar
+        in: query
+        name: pedido_id
+        required: true
+        type: integer
+      - description: Lista actualizada de productos
+        in: body
+        name: body
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/models.ProductoPedidoItemInput'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Productos actualizados exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/productopedido.ProductoPedidoResponse'
+              type: object
+        "400":
+          description: Datos inválidos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Pedido no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar productos en un pedido consolidado
+      tags:
+      - producto_pedido
+  /productos:
+    delete:
+      consumes:
+      - application/json
+      description: Desactiva un producto en la base de datos (borrado lógico).
+      parameters:
+      - description: ID del Producto
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Producto desactivado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Producto no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Desactivar un producto
+      tags:
+      - productos
+    get:
+      consumes:
+      - application/json
+      description: Devuelve productos registrados con filtros opcionales para imágenes
+        y disponibilidad.
+      parameters:
+      - description: Incluir imágenes Base64 en la respuesta (true o false, por defecto
+          es false)
+        in: query
+        name: includeImage
+        type: boolean
+      - description: Filtrar solo productos disponibles (true o false, por defecto
+          es false)
+        in: query
+        name: onlyActive
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de productos
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Producto'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener productos con filtros
+      tags:
+      - productos
+    post:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: Crea un nuevo producto. Puedes enviar JSON (imagen en Base64) o
+        multipart/form-data con archivo.
+      parameters:
+      - description: Nombre del producto
+        in: formData
+        name: nombre
+        type: string
+      - description: Calorías
+        in: formData
+        name: calorias
+        type: integer
+      - description: Descripción
+        in: formData
+        name: descripcion
+        type: string
+      - description: Precio
+        in: formData
+        name: precio
+        type: integer
+      - description: DISPONIBLE | NO_DISPONIBLE
+        in: formData
+        name: estadoProducto
+        type: string
+      - description: Cantidad
+        in: formData
+        name: cantidad
+        type: integer
+      - description: ID de subcategoría
+        in: formData
+        name: subcategoriaId
+        type: integer
+      - description: Archivo de imagen
+        in: formData
+        name: imagen
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Producto creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Producto'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un nuevo producto
+      tags:
+      - productos
+    put:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: Actualiza un producto. Puedes enviar JSON (imagen en Base64) o
+        multipart/form-data con archivo.
+      parameters:
+      - description: ID del Producto
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Nombre del producto
+        in: formData
+        name: nombre
+        type: string
+      - description: Calorías
+        in: formData
+        name: calorias
+        type: integer
+      - description: Descripción
+        in: formData
+        name: descripcion
+        type: string
+      - description: Precio
+        in: formData
+        name: precio
+        type: integer
+      - description: DISPONIBLE | NO_DISPONIBLE
+        in: formData
+        name: estadoProducto
+        type: string
+      - description: Cantidad
+        in: formData
+        name: cantidad
+        type: integer
+      - description: ID de subcategoría
+        in: formData
+        name: subcategoriaId
+        type: integer
+      - description: Archivo de imagen
+        in: formData
+        name: imagen
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Producto actualizado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Producto'
+              type: object
+        "404":
+          description: Producto no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar un producto
+      tags:
+      - productos
+  /productos-disponibles:
+    get:
+      description: Obtiene todos los productos disponibles en el sistema - endpoint
+        público sin autenticación
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+  /productos-populares:
+    get:
+      description: Obtiene los productos más vendidos - endpoint público sin autenticación
+      parameters:
+      - description: 'Número de productos a retornar (default: 4)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Filtro temporal: hoy, ultima_semana, ultimo_mes, ultimos_3_meses,
+          ultimos_6_meses, ultimo_año, historico'
+        in: query
+        name: periodo
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/telemetria.ProductosPopularesData'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+  /productos/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un producto específico por ID, incluyendo la imagen en
+        formato Base64.
+      parameters:
+      - description: ID del Producto
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Producto encontrado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Producto'
+              type: object
+        "404":
+          description: Producto no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener producto por ID
+      tags:
+      - productos
+  /push/dispositivos:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar dispositivo push
+      tags:
+      - push_notifications
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del cliente
+        in: query
+        name: cliente_id
+        type: integer
+      - description: ID del trabajador
+        in: query
+        name: trabajador_id
+        type: integer
+      - description: Plataforma (WEB, ANDROID, IOS)
+        in: query
+        name: plataforma
+        type: string
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener dispositivos push
+      tags:
+      - push_notifications
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos del dispositivo
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistrarDispositivoRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PushDispositivo'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Registrar dispositivo push
+      tags:
+      - push_notifications
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Nuevo estado
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ActualizarEstadoDispositivoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar dispositivo push
+      tags:
+      - push_notifications
+  /push/dispositivos/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PushDispositivo'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener dispositivo por ID
+      tags:
+      - push_notifications
+  /push/dispositivos/topics:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Nuevos topics
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ActualizarTopicsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar topics suscritos del dispositivo
+      tags:
+      - push_notifications
+  /push/dispositivos/visto:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar última vista del dispositivo
+      tags:
+      - push_notifications
+  /push/enviar:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos de la notificación a enviar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.EnviarNotificacionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.EnviarNotificacionResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Enviar notificación push
+      tags:
+      - push_notifications
+  /push/envios:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del dispositivo
+        in: query
+        name: dispositivo_id
+        type: integer
+      - description: Fecha desde (YYYY-MM-DD)
+        in: query
+        name: fecha_desde
+        type: string
+      - description: Fecha hasta (YYYY-MM-DD)
+        in: query
+        name: fecha_hasta
+        type: string
+      - description: 'Límite de resultados (default: 20)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset para paginación (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar envíos push
+      tags:
+      - push_notifications
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos del envío
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistrarEnvioRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PushEnvio'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Registrar envío push
+      tags:
+      - push_notifications
+  /readyz:
+    get:
+      description: Retorna 200 OK si la aplicación puede conectarse a la base de datos
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "503":
+          description: unavailable
+          schema:
+            type: string
+      summary: Verifica si la aplicación está lista
+      tags:
+      - health
+  /reserva_contacto:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Documento del contacto
+        in: query
+        name: documento_contacto
+        type: integer
+      - description: Documento del cliente
+        in: query
+        name: documento_cliente
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.ReservaContacto'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar contactos de reserva
+      tags:
+      - reserva_contacto
+  /reserva_contacto/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del contacto
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ReservaContacto'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener contacto por ID
+      tags:
+      - reserva_contacto
+  /reservas:
+    delete:
+      consumes:
+      - application/json
+      description: Actualiza el estado de una reserva a "CANCELADA".
+      parameters:
+      - description: ID de la Reserva
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reserva cancelada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Reserva no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancelar una reserva
+      tags:
+      - reservas
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todas las reservas registradas en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de reservas
+          schema:
+            items:
+              $ref: '#/definitions/models.Reserva'
+            type: array
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las reservas
+      tags:
+      - reservas
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva reserva en la base de datos.
+      parameters:
+      - description: Datos de la reserva a crear (fecha YYYY-MM-DD, hora HH:MM:SS)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ReservaCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Reserva creada
+          schema:
+            $ref: '#/definitions/models.Reserva'
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear una nueva reserva
+      tags:
+      - reservas
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de una reserva existente.
+      parameters:
+      - description: ID de la Reserva
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos de la reserva a actualizar (sólo campos a modificar)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ReservaUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reserva actualizada
+          schema:
+            $ref: '#/definitions/models.Reserva'
+        "404":
+          description: Reserva no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar una reserva
+      tags:
+      - reservas
+  /reservas/cliente:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve las reservas asociadas a un documento de cliente registrado,
+        opcionalmente filtradas por fecha.
+      parameters:
+      - description: Documento del Cliente Registrado
+        in: query
+        name: documentoCliente
+        required: true
+        type: integer
+      - description: Fecha de la reserva (YYYY-MM-DD) (Opcional)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de reservas encontradas
+          schema:
+            items:
+              $ref: '#/definitions/models.Reserva'
+            type: array
+        "400":
+          description: Error en los parámetros
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener reservas por documento de cliente registrado
+      tags:
+      - reservas
+  /reservas/documento:
+    get:
+      consumes:
+      - application/json
+      description: Busca reservas por documento de cliente registrado o documento
+        de contacto. Intenta primero como cliente registrado, luego como contacto.
+      parameters:
+      - description: Documento del Cliente o Contacto
+        in: query
+        name: documento
+        required: true
+        type: integer
+      - description: Fecha de la reserva (YYYY-MM-DD) (Opcional)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de reservas encontradas
+          schema:
+            items:
+              $ref: '#/definitions/models.Reserva'
+            type: array
+        "400":
+          description: Error en los parámetros
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener reservas por documento (cliente loggeado o no loggeado)
+      tags:
+      - reservas
+  /reservas/parameter:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve las reservas asociadas a un contacto en una fecha específica,
+        todas sus reservas si no se especifica la fecha, o todas las reservas en una
+        fecha específica si no se especifica el contacto.
+      parameters:
+      - description: ID del Contacto (Opcional)
+        in: query
+        name: contactoId
+        type: integer
+      - description: Fecha de la reserva (YYYY-MM-DD) (Opcional)
+        in: query
+        name: fecha
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de reservas encontradas
+          schema:
+            items:
+              $ref: '#/definitions/models.Reserva'
+            type: array
+        "400":
+          description: Error en los parámetros
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener reservas por contacto y/o fecha
+      tags:
+      - reservas
+  /reservas/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve una reserva específica por ID utilizando query parameters.
+      parameters:
+      - description: ID de la Reserva
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reserva encontrada
+          schema:
+            $ref: '#/definitions/models.Reserva'
+        "404":
+          description: Reserva no encontrada
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener reserva por ID
+      tags:
+      - reservas
+  /restaurante_dia:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve restauranteId, nombreRestaurante, horaApertura y dia.
+      parameters:
+      - description: ID del restaurante
+        in: query
+        name: restaurante_id
+        type: integer
+      - description: Día del enum (Lunes..Domingo)
+        in: query
+        name: dia
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Listar días de servicio del restaurante
+      tags:
+      - restaurante_dia
+  /restaurante_dia/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve restauranteId, nombreRestaurante, horaApertura y dia.
+      parameters:
+      - description: ID del registro
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener registro por ID
+      tags:
+      - restaurante_dia
+  /restaurantes:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un restaurante de la base de datos.
+      parameters:
+      - description: ID del Restaurante
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Restaurante eliminado
+        "404":
+          description: Restaurante no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar un restaurante
+      tags:
+      - restaurantes
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los restaurantes registrados en la base de datos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de restaurantes
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Restaurante'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todos los restaurantes
+      tags:
+      - restaurantes
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo restaurante en la base de datos.
+      parameters:
+      - description: Datos del restaurante a crear
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RestauranteCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Restaurante creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Restaurante'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear un nuevo restaurante
+      tags:
+      - restaurantes
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un restaurante existente.
+      parameters:
+      - description: ID del Restaurante
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del restaurante a actualizar (sólo campos a modificar)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RestauranteUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restaurante actualizado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Restaurante'
+              type: object
+        "404":
+          description: Restaurante no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar un restaurante
+      tags:
+      - restaurantes
+  /restaurantes/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un restaurante específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Restaurante
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restaurante encontrado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Restaurante'
+              type: object
+        "404":
+          description: Restaurante no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener restaurante por ID
+      tags:
+      - restaurantes
+  /subcategorias:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la subcategoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Eliminar subcategoría
+      tags:
+      - subcategorias
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Filtrar por categoría
+        in: query
+        name: categoria_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Subcategoria'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener todas las subcategorías
+      tags:
+      - subcategorias
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos de subcategoría
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.SubcategoriaCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Subcategoria'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Crear subcategoría
+      tags:
+      - subcategorias
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la subcategoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.SubcategoriaUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Subcategoria'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Actualizar subcategoría
+      tags:
+      - subcategorias
+  /subcategorias/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID de la subcategoría
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Subcategoria'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      summary: Obtener subcategoría por ID
+      tags:
+      - subcategorias
+  /telemetria/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene métricas generales del dashboard usando datos existentes:
+        total de pedidos, ingresos, usuarios, promedios y métricas del período seleccionado.'
+      parameters:
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dashboard obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.DashboardData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Dashboard General de Telemetría
+      tags:
+      - telemetria
+  /telemetria/eficiencia:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis de eficiencia operacional: tiempos de entrega,
+        rendimiento de trabajadores y análisis por horas del período seleccionado.'
+      parameters:
+      - default: 10
+        description: Límite de registros por sección
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de eficiencia obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.EficienciaData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Eficiencia de Entregas
+      tags:
+      - telemetria
+  /telemetria/pedidos-analisis:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis detallado de pedidos realizados por días y horas:
+        identificar patrones de pedidos más exitosos y horarios de mayor demanda del
+        período seleccionado.'
+      parameters:
+      - default: 10
+        description: Límite de registros por sección
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de pedidos obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PedidosAnalisisData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Pedidos por Días y Horas
+      tags:
+      - telemetria
+  /telemetria/products:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene análisis de productos más y menos vendidos basado en datos
+        de pedidos del período seleccionado, incluyendo estadísticas generales de
+        productos.
+      parameters:
+      - default: 10
+        description: Límite de productos a mostrar
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de productos obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProductsData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Productos
+      tags:
+      - telemetria
+  /telemetria/rentabilidad:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis detallado de rentabilidad de productos: margen
+        de ganancia, productos más y menos rentables del período seleccionado.'
+      parameters:
+      - default: 10
+        description: Límite de productos a mostrar
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de rentabilidad obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.RentabilidadData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Rentabilidad por Producto
+      tags:
+      - telemetria
+  /telemetria/reservas-analisis:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis detallado de reservas completadas por días y
+        horas: identificar patrones de reservas más exitosas del período seleccionado.'
+      parameters:
+      - default: 10
+        description: Límite de registros por sección
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de reservas obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ReservasAnalisisData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Reservas por Días y Horas
+      tags:
+      - telemetria
+  /telemetria/sales:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis detallado de ventas usando datos existentes:
+        ventas por método de pago, tendencias y estadísticas generales del período
+        seleccionado.'
+      parameters:
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de ventas obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.SalesData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Ventas
+      tags:
+      - telemetria
+  /telemetria/segmentacion:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene segmentación de clientes en VIP, regulares, ocasionales
+        y nuevos basado en frecuencia y valor de compras del período seleccionado.
+      parameters:
+      - default: 10
+        description: Límite de clientes por segmento
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de segmentación obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.SegmentacionData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Segmentación de Clientes
+      tags:
+      - telemetria
+  /telemetria/time-analysis:
+    get:
+      consumes:
+      - application/json
+      description: 'Obtiene análisis temporal de pedidos y ventas del período seleccionado:
+        por hora del día, día de la semana y por mes.'
+      parameters:
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis temporal obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.TimeAnalysisData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis Temporal
+      tags:
+      - telemetria
+  /telemetria/users:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene análisis de usuarios frecuentes e inactivos basado en historial
+        de pedidos del período seleccionado, incluyendo estadísticas generales de
+        clientes.
+      parameters:
+      - default: 10
+        description: Límite de usuarios a mostrar
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: ultimo_mes
+        description: Período de tiempo
+        enum:
+        - hoy
+        - ultima_semana
+        - ultimo_mes
+        - ultimos_3_meses
+        - ultimos_6_meses
+        - ultimo_año
+        - historico
+        - mes_año
+        - rango_fechas
+        in: query
+        name: periodo
+        type: string
+      - description: Mes (1-12) para filtro mes_año
+        in: query
+        name: mes
+        type: integer
+      - description: Año para filtro mes_año
+        in: query
+        name: año
+        type: integer
+      - description: Fecha inicio (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_inicio
+        type: string
+      - description: Fecha fin (YYYY-MM-DD) para filtro rango_fechas
+        in: query
+        name: fecha_fin
+        type: string
+      - description: Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_inicio
+        type: string
+      - description: Hora fin (HH:MM:SS o HH:MM) para filtros avanzados
+        in: query
+        name: hora_fin
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Análisis de usuarios obtenido exitosamente
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UsersData'
+              type: object
+        "401":
+          description: Token no proporcionado o inválido
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "403":
+          description: Acceso denegado - se requiere rol de administrador
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Análisis de Usuarios
+      tags:
+      - telemetria
+  /trabajadores:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un trabajador de la base de datos.
+      parameters:
+      - description: ID del Trabajador
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Trabajador eliminado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Trabajador no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Eliminar un trabajador
+      tags:
+      - trabajadores
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los trabajadores registrados en la base de datos,
+        con opción de filtrar por fecha de ingreso, rol, estado de retiro, o solo
+        retirados.
+      parameters:
+      - description: Filtrar por fecha exacta de ingreso (YYYY-MM-DD)
+        in: query
+        name: fecha_ingreso
+        type: string
+      - description: Filtrar por rol del trabajador
+        in: query
+        name: rol
+        type: string
+      - description: Incluir trabajadores retirados (true/false)
+        in: query
+        name: incluir_retirados
+        type: boolean
+      - description: Ver solo trabajadores retirados (true/false)
+        in: query
+        name: solo_retirados
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de trabajadores
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Trabajador'
+                  type: array
+              type: object
+        "500":
+          description: Error en la base de datos
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener todos los trabajadores con filtros
+      tags:
+      - trabajadores
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo trabajador en la base de datos.
+      parameters:
+      - description: Datos del trabajador a crear (fecha YYYY-MM-DD)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.TrabajadorCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Trabajador creado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Trabajador'
+              type: object
+        "400":
+          description: Error en la solicitud
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear un nuevo trabajador
+      tags:
+      - trabajadores
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un trabajador existente.
+      parameters:
+      - description: ID del Trabajador
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: Datos del trabajador a actualizar (sólo campos a modificar)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.TrabajadorUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Trabajador actualizado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+        "404":
+          description: Trabajador no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar un trabajador
+      tags:
+      - trabajadores
+  /trabajadores/search:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un trabajador específico por ID utilizando query parameters.
+      parameters:
+      - description: ID del Trabajador
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Trabajador encontrado
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Trabajador'
+              type: object
+        "404":
+          description: Trabajador no encontrado
+          schema:
+            $ref: '#/definitions/models.ApiResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener trabajador por ID
+      tags:
+      - trabajadores
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,9 +1,10 @@
 package models
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
-	"fmt"
 	"github.com/beego/beego/v2/client/orm"
 )
 
@@ -42,4 +43,18 @@ func (c *ControlNomina) Update(o simpleOrmer, cols ...string) (int64, error) {
 		return 0, fmt.Errorf("estado inválido: %s", c.Estado)
 	}
 	return o.Update(c, cols...)
+}
+
+func (c ControlNomina) MarshalJSON() ([]byte, error) {
+
+	fechaStr := FormatDateUTC(c.Fecha)
+	return json.Marshal(&struct {
+		PK_ID_CONTROL_NOMINA int64  `json:"controlNominaId"`
+		Fecha                string `json:"fecha"`
+		Estado               string `json:"estado"`
+	}{
+		PK_ID_CONTROL_NOMINA: c.PK_ID_CONTROL_NOMINA,
+		Fecha:                fechaStr,
+		Estado:               string(c.Estado),
+	})
 }

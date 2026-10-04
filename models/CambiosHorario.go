@@ -23,12 +23,28 @@ func init() {
 }
 
 func (t CambiosHorario) MarshalJSON() ([]byte, error) {
-	type Alias CambiosHorario
+
+	fechaStr := FormatDateUTC(t.FECHA)
+
+	var horaAperturaStr *string
+	if t.HORA_APERTURA != nil {
+		str := FormatTimeWithLMT(*t.HORA_APERTURA)
+		horaAperturaStr = &str
+	}
+
+	horaCierreStr := FormatTimeWithLMT(t.HORA_CIERRE)
+
 	return json.Marshal(&struct {
-		FECHA string `json:"fechaCambioHorario"`
-		Alias
+		PK_ID_CAMBIO_HORARIO int64   `json:"cambioHorarioId"`
+		FECHA                string  `json:"fechaCambioHorario"`
+		HORA_APERTURA        *string `json:"horaApertura,omitempty"`
+		HORA_CIERRE          string  `json:"horaCierre"`
+		ABIERTO              bool    `json:"abierto"`
 	}{
-		FECHA: t.FECHA.Format("02-01-2006"),
-		Alias: (Alias)(t),
+		PK_ID_CAMBIO_HORARIO: t.PK_ID_CAMBIO_HORARIO,
+		FECHA:                fechaStr,
+		HORA_APERTURA:        horaAperturaStr,
+		HORA_CIERRE:          horaCierreStr,
+		ABIERTO:              t.ABIERTO,
 	})
 }

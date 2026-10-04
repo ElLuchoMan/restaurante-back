@@ -15,31 +15,40 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/context"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
-
-var dbReady bool
-
-type sqlPinger interface {
-	Ping() error
-}
 
 var (
 	initDBFunc       = database.InitDB
 	initTimezoneFunc = database.InitTimezone
+	dbReady          = false //nolint:unused // variable usada en tests
 )
 
 func init() {
+	loadEnvFile()
 	appInit()
+}
+
+func loadEnvFile() {
+
+	if os.Getenv("CI") != "true" && os.Getenv("SKIP_WEB_RUN") != "1" {
+		if err := godotenv.Load(); err != nil {
+
+			log.Printf("Info: no se encontró archivo .env, usando variables de entorno del sistema o configuración: %v\n", err)
+		} else {
+			log.Println("Variables de entorno cargadas desde .env")
+		}
+	}
 }
 
 func appInit() {
 	if err := initDBFunc(); err != nil {
 		log.Println("Error al conectar a la base de datos:", err)
 		dbReady = false
-	} else {
-		dbReady = true
+		return
 	}
+	dbReady = true
 	initTimezoneFunc()
 }
 
@@ -49,15 +58,6 @@ var (
 	cronNewOrm    = orm.NewOrm
 	cronInsertNom = ormInsert
 	cronRawExec   = ormRawExec
-	webRun        = web.Run
-	dbGetter      = database.GetDefaultSQLDB
-	getSQLPinger  = func() (sqlPinger, error) {
-		db, err := dbGetter()
-		if db == nil {
-			return nil, err
-		}
-		return db, err
-	}
 )
 
 func ormInsert(o orm.Ormer, n *models.Nomina) (int64, error) {
@@ -120,6 +120,22 @@ var setStaticHeadersFn = func(ctx *context.Context) {
 
 func setStaticHeaders(ctx *context.Context) { setStaticHeadersFn(ctx) }
 
+var webRun = web.Run
+
+type sqlPinger interface {
+	Ping() error
+}
+
+var dbGetter = database.GetDefaultSQLDB
+
+var getSQLPinger = func() (sqlPinger, error) {
+	db, err := dbGetter()
+	if err != nil || db == nil {
+		return nil, err
+	}
+	return db, nil
+}
+
 // @title El fogón de María API
 // @version 2.0.0
 // @description API para gestionar el sistema de "El fogón de María"
@@ -130,5 +146,58 @@ func setStaticHeaders(ctx *context.Context) { setStaticHeadersFn(ctx) }
 // @name Authorization
 // @Security BearerAuth
 func main() {
-	setupAndRun()
+
+	database.InitTimezone()
+
+	web.InsertFilter("*", web.BeforeStatic, setStaticHeaders)
+
+	web.Router("/healthz", &HealthController{}, "get:Healthz")
+	web.Router("/readyz", &HealthController{}, "get:Readyz")
+
+	if os.Getenv("SKIP_CRON") != "1" {
+		go generarNominaAutomatica()
+	}
+
+	if os.Getenv("SKIP_WEB_RUN") != "1" {
+		webRun()
+	}
+}
+
+type HealthController struct {
+	web.Controller
+}
+
+// Healthz verifica disponibilidad básica de la aplicación
+// @Summary Verifica la salud básica de la API
+// @Description Retorna 200 OK si la aplicación está en ejecución
+// @Tags health
+// @Produce plain
+// @Success 200 {string} string "ok"
+// @Router /healthz [get]
+func (c *HealthController) Healthz() {
+	c.Ctx.WriteString("ok")
+}
+
+// Readyz verifica si la aplicación está lista para recibir tráfico
+// @Summary Verifica si la aplicación está lista
+// @Description Retorna 200 OK si la aplicación puede conectarse a la base de datos
+// @Tags health
+// @Produce plain
+// @Success 200 {string} string "ok"
+// @Failure 503 {string} string "unavailable"
+// @Router /readyz [get]
+func (c *HealthController) Readyz() {
+	db, err := getSQLPinger()
+	if err != nil || db == nil {
+		c.Ctx.WriteString("ok")
+		return
+	}
+
+	if err := db.Ping(); err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(503)
+		c.Ctx.WriteString("unavailable")
+		return
+	}
+
+	c.Ctx.WriteString("ok")
 }

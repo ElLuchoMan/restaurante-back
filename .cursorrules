@@ -1,4 +1,41 @@
 rules:
+  - "Contexto: Backend Go (Beego) del sistema Restaurante."
+  - "Objetivo: Todas las fechas/horas deben mostrarse y comportarse como horario de Bogotá (America/Bogota), independientemente del servidor."
+
+  - "Manejo de Zonas Horarias (Backend): PostgreSQL ya opera con TimeZone=America/Bogota; evitar dobles conversiones en controladores/modelos."
+  - "JSON de modelos: NO usar 'type Alias' cuando se formatean campos de fecha/hora porque colisionan las claves JSON; construir structs explícitos con strings formateados."
+
+  - "Reserva.POST (creación):"
+  - "  - fechaReserva (YYYY-MM-DD): parsear y GUARDAR como mediodía UTC (12:00:00Z) del mismo día para evitar corrimientos de día por cambios de zona."
+  - "  - horaReserva (HH:MM:SS): parsear y GUARDAR como hora UTC (00-01-01 HH:MM:SSZ) sin timezone de origen."
+
+  - "Reserva.MarshalJSON (lectura):"
+  - "  - FECHA: normalizar a UTC y formatear solo componentes de calendario como DD-MM-YYYY (sin convertir a otra zona)."
+  - "  - HORA: si el campo viene con timezone histórico (p. ej. LMT en America/Bogota), ajustar para recuperar la hora de pared; si Year<1900, sumar ~09:52:32 (doble desfase LMT) antes de formatear HH:MM:SS."
+  - "  - Resultado: 'fechaReserva' en DD-MM-YYYY y 'horaReserva' en HH:MM:SS, coherentes con Bogotá."
+
+  - "Criterio de referencia (Reserva y Pedido):"
+  - "  - DATE: extraer componentes con t.FECHA.UTC() y formatear DD-MM-YYYY (sin .In())."
+  - "  - TIME: formatear HH:MM:SS a partir de Hour/Minute/Second; si Year<1900, aplicar ajuste ~09:52:32 para neutralizar LMT antes de formatear."
+  - "  - TIMESTAMPTZ (createdAt/updatedAt): serializar como string 'DD-MM-YYYY HH:MM:SS' en America/Bogota (sin dobles conversiones)."
+  - "  - Controladores: no aplicar .In(Bogota) ni .UTC() sobre valores ya normalizados; todo el formateo ocurre en MarshalJSON."
+
+  - "Otros modelos con fechas (Pedido, Pago, Incidencia, Nomina, CambiosHorario, Trabajador):"
+  - "  - Para campos DATE: siempre formatear por componentes (Year/Month/Day) sin aplicar .In() ni conversiones de zona."
+  - "  - Para campos TIME: formatear HH:MM:SS; si Year<1900 (caso LMT), aplicar ajuste ~09:52:32 antes del formateo."
+  - "  - Para campos TIMESTAMPTZ: serializar como 'DD-MM-YYYY HH:MM:SS' en America/Bogota."
+
+  - "Controladores: no volver a aplicar .In(Bogota) ni .UTC() sobre campos ya normalizados; el formateo ocurre en MarshalJSON."
+
+  - "Frontend: espera strings en DD-MM-YYYY y HH:mm:ss y re-formatea en America/Bogota con el FormatDatePipe; mantener esta interfaz."
+
+  - "Desarrollo local: ejecutar .\\start-dev.ps1 (o ./start-dev.sh) para fijar JWT_SECRET consistente y pasar flags de bee (p. ej. -downdoc=true -gendoc=true)."
+
+  - "Pruebas: las fechas de trabajador (ingreso/retiro) se validan como DD-MM-YYYY (solo fecha)."
+
+  - "Regla de oro: preferir la extracción de componentes (Year/Month/Day y Hour/Minute/Second) sobre conversiones de zona al serializar; al guardar, elegir una representación estable (fecha = 12:00 UTC, hora = UTC) para impedir corrimientos por timezone."
+
+rules:
   # Contexto
   - "Backend en Go (>=1.22) con Beego v2 y PostgreSQL; arquitectura por capas (controladores, servicios, repositorios, modelos)."
   - "Rutas documentadas con Swagger; mantener documentación sincronizada."
@@ -12,6 +49,20 @@ rules:
   - "Cuando modifiques lógica, añade pruebas en tests/ o *_test.go cercanos."
   - "Los unit tests no deben tocar la DB real; mockea hooks/wrappers del ORM (p. ej., funciones wrapper con orm.Ormer) y evita dependencias de conf/app.conf."
   - "Fija timezones necesarios (p. ej., database.BogotaZone) y datos vía código para tests deterministas."
+  # Arquitectura y Testing
+  - "INYECCIÓN DE DEPENDENCIAS: Los controllers DEBEN usar variables mockeables para crear servicios. Ejemplo: 'var newXxxService = func(o orm.Ormer) *services.XxxService { return services.NewXxxService(o) }'"
+  - "ADAPTADORES DE ORM: Cada controller debe tener interfaces (xxxOrmer, xxxQuerySeter) y adaptadores (xxxOrmAdapter, xxxQSAdapter) para mockear el ORM en tests."
+  - "CONTEXTO DE BEEGO: En tests, SIEMPRE usar 'ctx := context.NewContext(); ctx.Reset(recorder, req)' en lugar de crear struct literal de context.Context."
+  - "REQUEST BODY EN TESTS: Para POST/PUT/PATCH, SIEMPRE establecer 'ctx.Input.RequestBody = body' después de crear el request, o el controller no podrá leer el JSON."
+  - "FORMATO DE FECHAS EN JSON: En tests, usar 'map[string]interface{}' con fechas como strings 'YYYY-MM-DD' en lugar de time.Time para evitar problemas de serialización (Go agrega 'T00:00:00Z')."
+  - "QUERY STRINGS VS PATH PARAMS: Beego usa query strings (?id=1) para parámetros, NO path params (:id). En tests, crear requests con query strings correctos."
+  - "CÓDIGOS HTTP CONSISTENTES: Cuando un recurso no existe (orm.ErrNoRows), devolver HTTP 404 en SetStatus(), NO 200 con código 404 en el JSON."
+  - "MOCKS DE ORM: Al mockear Update/Delete, verificar qué columnas espera el controller (ej: Update con []string{'Activo'} para soft delete)."
+  - "SERVICIOS QUE USAN ORM: Si un servicio necesita acceso a BD, el controller debe pasar orm.NewOrm() real, NO nil. Considerar skipear tests que requieren refactorización profunda."
+  - "COBERTURA OBJETIVO: Mantener >95% de cobertura. Priorizar tests de services y models sobre controllers complejos que requieren refactorización."
+  - "TESTS: Para cada controller, crear tests para cada método. No repetir tests para métodos similares. Priorizar tests de services y models sobre controllers complejos que requieren refactorización. Si se hacen cambios, se deben actualizar los tests."
+  - "TESTS: Si se hacen cambios, se deben actualizar los tests."
+  - "TESTS: Si se hacen cambios, se deben actualizar los tests."
   # Seguridad
   - "Usa consultas parametrizadas para evitar SQL injection, valida/sanitiza entradas y guarda secretos en variables de entorno."
   - "No registres secretos ni payloads sensibles en logs; limita tamaños de request body."

@@ -18,13 +18,13 @@ import (
 
 func isKeptCommentText(text string) bool {
 	t := strings.TrimSpace(text)
-	if strings.HasPrefix(t, "// @") { // Swagger annotations
+	if strings.HasPrefix(t, "// @") {
 		return true
 	}
-	if strings.HasPrefix(t, "//go:build") || strings.HasPrefix(t, "// +build") { // build tags
+	if strings.HasPrefix(t, "//go:build") || strings.HasPrefix(t, "// +build") {
 		return true
 	}
-	// Preserve security and lint directives
+
 	if strings.Contains(t, "#nosec") || strings.Contains(t, "nolint") {
 		return true
 	}
@@ -60,7 +60,7 @@ func cleanGoFile(root, path string) error {
 	if absPath != absRoot && !strings.HasPrefix(absPath, absRoot+string(os.PathSeparator)) {
 		return fmt.Errorf("ruta fuera de la raíz: %s", absPath)
 	}
-	// Skip symlinks
+
 	if fi, err := os.Lstat(absPath); err == nil && (fi.Mode()&os.ModeSymlink) != 0 {
 		return nil
 	}

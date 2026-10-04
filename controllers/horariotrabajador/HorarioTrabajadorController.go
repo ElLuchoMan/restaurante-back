@@ -113,17 +113,16 @@ func (c *HorarioTrabajadorController) Post() {
 		_ = c.ServeJSON()
 		return
 	}
-	horaInicio, err1 := time.Parse("15:04:05", input.HoraInicio)
-	horaFin, err2 := time.Parse("15:04:05", input.HoraFin)
+
+	horaInicio, err1 := models.ParseTimeToUTC(input.HoraInicio)
+	horaFin, err2 := models.ParseTimeToUTC(input.HoraFin)
 	if err1 != nil || err2 != nil {
-		logging.LogControllerError(c.Ctx, "horario_trabajador.post.bad_time_format", nil, map[string]interface{}{"horaInicio": input.HoraInicio, "horaFin": input.HoraFin})
+		logging.LogControllerError(c.Ctx, "horario_trabajador.post.bad_time_format", nil, map[string]interface{}{"horaInicio": input.HoraInicio, "horaFin": input.HoraFin, "err1": err1, "err2": err2})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido"}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido (use HH:MM:SS o HH:MM)"}
 		_ = c.ServeJSON()
 		return
 	}
-	horaInicio = time.Date(1, 1, 1, horaInicio.Hour(), horaInicio.Minute(), horaInicio.Second(), 0, time.UTC)
-	horaFin = time.Date(1, 1, 1, horaFin.Hour(), horaFin.Minute(), horaFin.Second(), 0, time.UTC)
 	validCandidate := &models.HorarioTrabajador{HORA_INICIO: horaInicio, HORA_FIN: horaFin}
 	if !validCandidate.ValidHours() {
 		logging.LogControllerError(c.Ctx, "horario_trabajador.post.validation_error", nil, map[string]interface{}{"horaInicio": input.HoraInicio, "horaFin": input.HoraFin})
@@ -202,7 +201,7 @@ func (c *HorarioTrabajadorController) Put() {
 		return
 	}
 	if input.HoraInicio != nil && *input.HoraInicio != "" {
-		if t, err := time.Parse("15:04:05", *input.HoraInicio); err == nil {
+		if t, err := models.ParseTimeToUTC(*input.HoraInicio); err == nil {
 			horario.HORA_INICIO = t
 		} else {
 			logging.LogControllerError(c.Ctx, "horario_trabajador.put.bad_time_format", nil, map[string]interface{}{"horaInicio": *input.HoraInicio})
@@ -213,7 +212,7 @@ func (c *HorarioTrabajadorController) Put() {
 		}
 	}
 	if input.HoraFin != nil && *input.HoraFin != "" {
-		if t, err := time.Parse("15:04:05", *input.HoraFin); err == nil {
+		if t, err := models.ParseTimeToUTC(*input.HoraFin); err == nil {
 			horario.HORA_FIN = t
 		} else {
 			logging.LogControllerError(c.Ctx, "horario_trabajador.put.bad_time_format", nil, map[string]interface{}{"horaFin": *input.HoraFin})
@@ -223,6 +222,7 @@ func (c *HorarioTrabajadorController) Put() {
 			return
 		}
 	}
+
 	horario.HORA_INICIO = time.Date(1, 1, 1, horario.HORA_INICIO.Hour(), horario.HORA_INICIO.Minute(), horario.HORA_INICIO.Second(), 0, time.UTC)
 	horario.HORA_FIN = time.Date(1, 1, 1, horario.HORA_FIN.Hour(), horario.HORA_FIN.Minute(), horario.HORA_FIN.Second(), 0, time.UTC)
 	if !horario.ValidHours() {

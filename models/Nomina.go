@@ -24,13 +24,19 @@ func init() {
 }
 
 func (t Nomina) MarshalJSON() ([]byte, error) {
-	type Alias Nomina
+
+	fechaStr := FormatDateUTC(t.FECHA)
+
 	return json.Marshal(&struct {
-		FECHA string `json:"fechaNomina"`
-		Alias
+		PK_ID_NOMINA  int64        `json:"nominaId"`
+		FECHA         string       `json:"fechaNomina"`
+		MONTO         int64        `json:"monto"`
+		ESTADO_NOMINA EstadoNomina `json:"estadoNomina"`
 	}{
-		FECHA: t.FECHA.Format("02-01-2006"),
-		Alias: (Alias)(t),
+		PK_ID_NOMINA:  t.PK_ID_NOMINA,
+		FECHA:         fechaStr,
+		MONTO:         t.MONTO,
+		ESTADO_NOMINA: t.ESTADO_NOMINA,
 	})
 }
 func (n *Nomina) UnmarshalJSON(data []byte) error {
@@ -45,7 +51,7 @@ func (n *Nomina) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if aux.FECHA != "" {
-		t, err := time.Parse("2006-01-02", aux.FECHA)
+		t, err := ParseDateToNoonUTC(aux.FECHA)
 		if err != nil {
 			return fmt.Errorf("fechaNomina debe tener formato YYYY-MM-DD: %w", err)
 		}
