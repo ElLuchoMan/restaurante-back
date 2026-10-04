@@ -128,7 +128,7 @@ jobs:
       - name: Run golangci-lint (v2, usa .golangci.yml)
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.4.0
+          version: v2.13.2
           args: >
             --timeout=5m
 
