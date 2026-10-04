@@ -1,0 +1,34 @@
+# Blueprint de Render (staging). Los valores con sync:false se piden al crear el servicio.
+services:
+  - type: web
+    name: restaurante-back
+    runtime: docker
+    plan: free
+    healthCheckPath: /restaurante/v1/productos-disponibles
+    envVars:
+      - key: BEEGO_RUNMODE
+        value: prod
+      - key: PORT
+        value: "8080"   # Beego escucha en 8080 (conf/app.conf)
+      - key: DB_SSLMODE
+        value: require
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
