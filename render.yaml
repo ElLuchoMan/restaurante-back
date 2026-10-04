@@ -4,6 +4,7 @@ services:
     name: restaurante-back
     runtime: docker
     plan: free
+    region: ohio
     envVars:
       - key: BEEGO_RUNMODE
         value: prod
