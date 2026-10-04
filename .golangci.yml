@@ -32,6 +32,9 @@ linters:
           - ineffassign
           - staticcheck
           - unused
+      # goconst: cadenas repetidas en controladores (mensajes y claves JSON); estilo, no bugs
+      - path: 'controllers/'
+        linters: [goconst]
       # Errores típicos ignorados por contrato del framework / controladores
       - linters: [errcheck]
         text: 'ServeJSON'
