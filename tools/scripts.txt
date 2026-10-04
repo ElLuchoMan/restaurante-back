@@ -25,3 +25,12 @@ go run -tags tools tools/comment_cleaner.go -root .
 
 # Instala hooks de git locales (pre-commit)
 git config core.hooksPath .githooks
+
+# Valida que la colección de Postman esté sincronizada con Swagger
+node tools/validate_postman.js
+
+# Regenera la colección de Postman desde Swagger (si hay cambios en la API)
+node tools/swagger_to_postman.js
+
+# Aplica mejoras finales a la colección de Postman (tests, bodies, etc)
+node tools/polish_postman.js
