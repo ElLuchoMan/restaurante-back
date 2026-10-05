@@ -57,19 +57,28 @@ jobs:
           go test -race -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
           go tool cover -func=coverage.out | tee coverage.txt
 
-      - name: Enforce coverage >= 68%
+      - name: Enforce coverage == 100%
         run: |
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","",$3); print $3}')
           echo "Total coverage: ${pct}%"
-          python3 - <<'PY' "$pct"
-          import sys
-          pct=float(sys.argv[1])
-          th=68.0
-          if pct < th:
-              print(f"Coverage {pct}% below threshold {th}%", flush=True)
-              sys.exit(1)
-          print("Coverage OK", flush=True)
-          PY
+          # Ninguna función puede quedar por debajo de 100% (evita que el redondeo del total oculte huecos)
+          missing=$(go tool cover -func=coverage.out | awk '$1!="total:" && $3+0 < 100 {print $1, $2, $3}')
+          if [ -n "$missing" ]; then
+            echo "Funciones sin cobertura completa (todo cambio debe incluir sus tests):"
+            echo "$missing"
+            exit 1
+          fi
+          # `go tool cover -func` ignora los literales de función de nivel de paquete
+          # (var x = func(...) {...}); se revisan los bloques del perfil, sumando los
+          # conteos de cada binario de test, que es lo que ve Codecov.
+          zero=$(awk 'NR>1 {c=$NF; $NF=""; n[$0]+=c} END {for (k in n) if (n[k]==0) print k}' coverage.out \
+            | grep -v -E 'docs/docs\.go|_defaults\.go' | sort || true)
+          if [ -n "$zero" ]; then
+            echo "Bloques sin ejecutar (los ve Codecov aunque -func marque 100%):"
+            echo "$zero"
+            exit 1
+          fi
+          echo "Coverage OK (100%)"
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4

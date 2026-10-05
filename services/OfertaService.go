@@ -12,6 +12,8 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
+var loadBogotaLocation = time.LoadLocation
+
 type OfertaService struct {
 	ormer orm.Ormer
 }
@@ -24,7 +26,7 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 
 	loc := database.BogotaZone
 	if loc == nil {
-		if l, err := time.LoadLocation("America/Bogota"); err == nil {
+		if l, err := loadBogotaLocation("America/Bogota"); err == nil {
 			loc = l
 		} else {
 			loc = time.FixedZone("UTC-5", -5*60*60)

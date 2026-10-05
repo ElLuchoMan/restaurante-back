@@ -18,8 +18,10 @@ func FormatTimeWithLMT(t time.Time) string {
 	return fmt.Sprintf("%02d:%02d:%02d", adj.Hour(), adj.Minute(), adj.Second())
 }
 
+var loadLocation = time.LoadLocation
+
 func FormatTimestampBogota(t time.Time) string {
-	loc, err := time.LoadLocation("America/Bogota")
+	loc, err := loadLocation("America/Bogota")
 	if err != nil {
 		loc = time.FixedZone("UTC-5", -5*60*60)
 	}

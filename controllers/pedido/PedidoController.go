@@ -11,6 +11,9 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+// loadLocation carga la zona horaria; es una variable para poder simular su fallo en tests.
+var loadLocation = time.LoadLocation
+
 type PedidoController struct {
 	web.Controller
 }
@@ -161,7 +164,7 @@ func (c *PedidoController) Post() {
 
 	bogota := database.BogotaZone
 	if bogota == nil {
-		if loc, err := time.LoadLocation("America/Bogota"); err == nil {
+		if loc, err := loadLocation("America/Bogota"); err == nil {
 			bogota = loc
 		} else {
 			bogota = time.FixedZone("UTC-5", -5*60*60)

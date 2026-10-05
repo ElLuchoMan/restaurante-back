@@ -3,6 +3,7 @@ package nomina
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -602,5 +603,47 @@ func TestFindExistingNominaFnError(t *testing.T) {
 	existing, err := findExistingNominaFn(o, fecha)
 	if err == nil || existing != nil {
 		t.Fatalf("expected error finding nomina")
+	}
+}
+
+func TestNominaGetAllFiltersByFechaAndReturnsMatches(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/nominas?fecha=2024-01-01&mes=1&anio=2024", nil)
+	w := httptest.NewRecorder()
+	ctx := webCtx.NewContext()
+	ctx.Reset(w, r)
+	c := NominaController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	match, err := models.ParseDateToNoonUTC("2024-01-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := models.ParseDateToNoonUTC("2024-01-15")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	saved := queryAllNominas
+	queryAllNominas = func(o orm.Ormer, out *[]models.Nomina) (int64, error) {
+		*out = []models.Nomina{{PK_ID_NOMINA: 1, FECHA: match}, {PK_ID_NOMINA: 2, FECHA: other}}
+		return 2, nil
+	}
+	t.Cleanup(func() { queryAllNominas = saved })
+
+	c.GetAll()
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	var resp models.ApiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Message != "Nóminas obtenidas exitosamente" {
+		t.Fatalf("unexpected message: %s", resp.Message)
+	}
+	data, ok := resp.Data.([]interface{})
+	if !ok || len(data) != 1 {
+		t.Fatalf("expected exactly one nomina after fecha filter, got %#v", resp.Data)
 	}
 }

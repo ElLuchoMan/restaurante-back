@@ -435,11 +435,10 @@ func ValidateToken(ctx *context.Context) {
 	authHeader := ctx.Input.Header("Authorization")
 	if authHeader == "" {
 		ctx.Output.SetStatus(http.StatusUnauthorized)
-		if err := ctx.Output.JSON(models.ApiResponse{
+		_ = ctx.Output.JSON(models.ApiResponse{
 			Code:    http.StatusUnauthorized,
 			Message: "Token no proporcionado",
-		}, false, false); err != nil {
-		}
+		}, false, false)
 		return
 	}
 
@@ -455,11 +454,10 @@ func ValidateToken(ctx *context.Context) {
 
 	if err != nil || !token.Valid {
 		ctx.Output.SetStatus(http.StatusUnauthorized)
-		if err := ctx.Output.JSON(models.ApiResponse{
+		_ = ctx.Output.JSON(models.ApiResponse{
 			Code:    http.StatusUnauthorized,
 			Message: "Token inválido",
-		}, false, false); err != nil {
-		}
+		}, false, false)
 		return
 	}
 }

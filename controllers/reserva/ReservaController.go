@@ -413,7 +413,11 @@ func (c *ReservaController) Put() {
 	if err != nil || id == 0 {
 		logging.LogControllerError(c.Ctx, "reservas.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}
+		cause := "el parámetro 'id' debe ser distinto de cero"
+		if err != nil {
+			cause = err.Error()
+		}
+		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: cause}
 		_ = c.ServeJSON()
 		return
 	}
