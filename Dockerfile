@@ -11,6 +11,8 @@ RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 10001 app
 WORKDIR /app
 COPY --from=build /out/restaurante-back /app/restaurante-back
 COPY conf ./conf
+# Con BEEGO_RUNMODE=prod Beego busca conf/prod.app.conf (no app.prod.conf)
+RUN cp conf/app.prod.conf conf/prod.app.conf
 COPY static ./static
 COPY swagger ./swagger
 USER app
