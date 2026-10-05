@@ -68,6 +68,16 @@ jobs:
             echo "$missing"
             exit 1
           fi
+          # `go tool cover -func` ignora los literales de función de nivel de paquete
+          # (var x = func(...) {...}); se revisan los bloques del perfil, sumando los
+          # conteos de cada binario de test, que es lo que ve Codecov.
+          zero=$(awk 'NR>1 {c=$NF; $NF=""; n[$0]+=c} END {for (k in n) if (n[k]==0) print k}' coverage.out \
+            | grep -v -E 'docs/docs\.go|_defaults\.go' | sort || true)
+          if [ -n "$zero" ]; then
+            echo "Bloques sin ejecutar (los ve Codecov aunque -func marque 100%):"
+            echo "$zero"
+            exit 1
+          fi
           echo "Coverage OK (100%)"
 
       - name: Upload coverage artifact
