@@ -263,7 +263,7 @@ func init() {
 			beego.NSRouter("/", &cup.CuponController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &cup.CuponController{}, "get:GetById"),
 			beego.NSRouter("/validar", &cup.CuponController{}, "post:ValidarCupon"),
-			beego.NSRouter("/redimir", &cup.CuponController{}, "post:RedimirCupon"),
+			beego.NSRouter("/:codigo/redimir", &cup.CuponController{}, "post:RedimirCupon"),
 			beego.NSRouter("/redenciones", &cup.CuponController{}, "get:ListarRedenciones"),
 		),
 

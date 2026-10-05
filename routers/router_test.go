@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -41,4 +42,22 @@ func TestStaticFile(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 	})
+}
+
+// La ruta de redimir debe incluir el parámetro :codigo; sin token el namespace
+// responde 401 (ruta encontrada), mientras que una ruta inexistente daría 404.
+func TestCuponRedimirRouteIncludesCodigo(t *testing.T) {
+	r, _ := http.NewRequest("POST", "/restaurante/v1/cupones/ABC123/redimir", strings.NewReader("{}"))
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("esperaba 401 (ruta registrada), obtuve %d", w.Code)
+	}
+
+	r, _ = http.NewRequest("POST", "/restaurante/v1/cupones/redimir", strings.NewReader("{}"))
+	w = httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if w.Code == http.StatusOK {
+		t.Fatalf("la ruta sin codigo no debe resolver a redimir")
+	}
 }
