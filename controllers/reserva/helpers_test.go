@@ -9,7 +9,10 @@ import (
 	"testing"
 	"time"
 
+	loginc "restaurante/controllers/login"
 	"restaurante/models"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // res es el resultado programado para las consultas cuyo SQL contiene match.
@@ -32,6 +35,8 @@ var (
 	recorded []string
 	// execs registra los comandos (INSERT/UPDATE) con sus argumentos.
 	execs []execCall
+	// consultas registra las lecturas (SELECT) con sus argumentos.
+	consultas []execCall
 )
 
 // programa instala un fakeQuery que responde según las reglas (la primera
@@ -39,9 +44,10 @@ var (
 func programa(t *testing.T, reglas ...*res) {
 	t.Helper()
 	resetFake()
-	recorded, execs = nil, nil
+	recorded, execs, consultas = nil, nil, nil
 	fakeQuery = func(q string, args []driver.NamedValue) (driver.Rows, error) {
 		recorded = append(recorded, q)
+		consultas = append(consultas, execCall{q: q, args: args})
 		for _, r := range reglas {
 			if !strings.Contains(q, r.match) {
 				continue
@@ -150,14 +156,40 @@ func vacio(match string, cols int) *res { return &res{match: match, cols: cols} 
 
 func conError(match string) *res { return &res{match: match, err: errDB} }
 
-// run ejecuta un handler del controlador con una petición simulada.
+// run ejecuta un handler del controlador como personal (Mesero) autenticado.
 func run(method, target, body string, h func(*ReservaController)) *httptest.ResponseRecorder {
+	return runAs(tokenDe(rolMesero, 1), method, target, body, h)
+}
+
+// runAs ejecuta un handler con el Authorization dado ("" = invitado sin token).
+func runAs(auth, method, target, body string, h func(*ReservaController)) *httptest.ResponseRecorder {
 	ctx, w := newCtx(method, target, body)
+	if auth != "" {
+		ctx.Request.Header.Set("Authorization", auth)
+	}
 	c := &ReservaController{}
 	c.Ctx = ctx
 	c.Data = map[interface{}]interface{}{}
 	h(c)
 	return w
+}
+
+const (
+	rolMesero  = "Mesero"
+	rolCliente = "Cliente"
+)
+
+// tokenDe devuelve un header Authorization Bearer firmado para rol y documento.
+func tokenDe(rol string, documento int64) string {
+	claims := loginc.Claims{
+		Documento: documento, Rol: rol, Nombre: "Prueba",
+		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))},
+	}
+	tok, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(loginc.GetJWTSecret())
+	if err != nil {
+		panic(err)
+	}
+	return "Bearer " + tok
 }
 
 func dataMap(t *testing.T, r models.ApiResponse) map[string]any {
@@ -185,4 +217,14 @@ func sinPassword(t *testing.T, w *httptest.ResponseRecorder) {
 	if strings.Contains(b, "password") || strings.Contains(b, "secreto") {
 		t.Fatalf("la respuesta filtra la contraseña: %s", w.Body.String())
 	}
+}
+
+// argQue devuelve el primer argumento de la primera lectura cuyo SQL contiene sub.
+func argQue(sub string) driver.Value {
+	for _, c := range consultas {
+		if strings.Contains(c.q, sub) && len(c.args) > 0 {
+			return c.args[0].Value
+		}
+	}
+	return nil
 }

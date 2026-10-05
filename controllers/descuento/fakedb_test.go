@@ -11,12 +11,39 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
+	loginc "restaurante/controllers/login"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
 	beecontext "github.com/beego/beego/v2/server/web/context"
+	"github.com/golang-jwt/jwt/v5"
 )
+
+// actor es quien hace las peticiones de prueba: por defecto un Administrador.
+// Un documento 0 significa "sin token". Usar as(...) y restaurar con asAdmin().
+var actor = struct {
+	doc int64
+	rol string
+}{doc: 1, rol: string(models.RolAdministrador)}
+
+func as(doc int64, rol string) { actor.doc, actor.rol = doc, rol }
+func asAdmin()                 { as(1, string(models.RolAdministrador)) }
+
+// tokenFor firma un access token con el secreto del paquete login.
+func tokenFor(doc int64, rol string) string {
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, loginc.Claims{
+		Documento:        doc,
+		Rol:              rol,
+		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))},
+	})
+	str, err := t.SignedString(loginc.GetJWTSecret())
+	if err != nil {
+		panic(err)
+	}
+	return str
+}
 
 // Driver SQL falso registrado como base "default": permite usar orm.NewOrm()
 // sin base de datos real. Los tests programan fakeExec/fakeQuery.
@@ -127,6 +154,9 @@ func TestMain(m *testing.M) {
 // newCtx crea un contexto Beego con la petición dada.
 func newCtx(method, target, body string) (*beecontext.Context, *httptest.ResponseRecorder) {
 	r := httptest.NewRequest(method, target, strings.NewReader(body))
+	if actor.doc != 0 {
+		r.Header.Set("Authorization", "Bearer "+tokenFor(actor.doc, actor.rol))
+	}
 	w := httptest.NewRecorder()
 	ctx := beecontext.NewContext()
 	ctx.Reset(w, r)

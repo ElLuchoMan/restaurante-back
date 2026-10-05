@@ -137,6 +137,15 @@ func TestPublicRoutes(t *testing.T) {
 		{http.MethodGet, "/restaurante/v1/ofertas/activas", true},
 		{http.MethodPost, "/restaurante/v1/clientes", true},
 		{http.MethodPost, "/restaurante/v1/reservas", true},
+		{http.MethodGet, "/restaurante/v1/reservas/consulta", true},
+		// los listados y búsquedas de reservas/contactos con datos personales ya no son públicos
+		{http.MethodGet, "/restaurante/v1/reservas", false},
+		{http.MethodGet, "/restaurante/v1/reservas/search", false},
+		{http.MethodGet, "/restaurante/v1/reservas/parameter", false},
+		{http.MethodGet, "/restaurante/v1/reservas/cliente", false},
+		{http.MethodGet, "/restaurante/v1/reservas/documento", false},
+		{http.MethodGet, "/restaurante/v1/reserva_contacto", false},
+		{http.MethodGet, "/restaurante/v1/reserva_contacto/search", false},
 		// POST/PUT/DELETE de productos u otras rutas ya no son públicas
 		{http.MethodPost, "/restaurante/v1/productos", false},
 		{http.MethodPost, "/restaurante/v1/restaurantes", false},

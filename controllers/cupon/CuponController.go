@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"restaurante/internal/authz"
 	"restaurante/internal/dberr"
 	"restaurante/internal/httpx"
 	"restaurante/logging"
@@ -139,7 +140,7 @@ func pagina[T any](items []T, total int64, limit, offset int) models.PaginatedRe
 
 // @Title GetAll
 // @Summary Obtener todos los cupones
-// @Description Lista paginada (más recientes primero). `data.data` es la lista de cupones (`[]` si no hay). `limit` por defecto 20 (máximo 100) y `offset` por defecto 0. `fecha_desde` filtra por `fechaInicio >=` y `fecha_hasta` por `fechaFin <=`.
+// @Description Solo Administrador (los clientes no pueden listar cupones). Lista paginada (más recientes primero). `data.data` es la lista de cupones (`[]` si no hay). `limit` por defecto 20 (máximo 100) y `offset` por defecto 0. `fecha_desde` filtra por `fechaInicio >=` y `fecha_hasta` por `fechaFin <=`.
 // @Tags cupones
 // @Accept json
 // @Produce json
@@ -153,10 +154,14 @@ func pagina[T any](items []T, total int64, limit, offset int) models.PaginatedRe
 // @Success 200 {object} models.ApiResponse{data=models.CuponPaginadoDoc} "Cupones obtenidos"
 // @Failure 400 {object} models.ApiResponse "Parámetros de filtro o paginación inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /cupones [get]
 func (c *CuponController) GetAll() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	qs := orm.NewOrm().QueryTable(new(models.Cupon))
 
 	if v := strings.TrimSpace(c.GetString("activo")); v != "" {
@@ -231,7 +236,7 @@ func (c *CuponController) validar(op string, cp *models.Cupon) bool {
 
 // @Title Post
 // @Summary Crear cupón
-// @Description Crea un cupón activo. Validación de negocio incumplida (scope, tipo, fechas, código de 3 a 50 caracteres, porcentaje 1-100, combinación de producto/categoría/cliente según el scope) responde 422; un producto, categoría o cliente inexistente responde 400 y un código repetido 409. Fechas YYYY-MM-DD. Devuelve el cupón con sus relaciones como objetos.
+// @Description Solo Administrador. Crea un cupón activo. Validación de negocio incumplida (scope, tipo, fechas, código de 3 a 50 caracteres, porcentaje 1-100, combinación de producto/categoría/cliente según el scope) responde 422; un producto, categoría o cliente inexistente responde 400 y un código repetido 409. Fechas YYYY-MM-DD. Devuelve el cupón con sus relaciones como objetos.
 // @Tags cupones
 // @Accept json
 // @Produce json
@@ -239,12 +244,16 @@ func (c *CuponController) validar(op string, cp *models.Cupon) bool {
 // @Success 201 {object} models.ApiResponse{data=models.CuponDoc} "Cupón creado"
 // @Failure 400 {object} models.ApiResponse "JSON inválido o referencia inexistente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 409 {object} models.ApiResponse "Ya existe un cupón con ese código"
 // @Failure 422 {object} models.ApiResponse "Error de validación"
 // @Failure 500 {object} models.ApiResponse "Error al crear el cupón"
 // @Security BearerAuth
 // @Router /cupones [post]
 func (c *CuponController) Post() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	var req models.CrearCuponRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.post.bad_json", err, nil)
@@ -308,7 +317,7 @@ func (c *CuponController) Post() {
 
 // @Title GetById
 // @Summary Obtener cupón por ID o código
-// @Description `id` puede ser el id numérico del cupón o su código; se busca primero por id (si es numérico) y luego por código.
+// @Description Solo Administrador. `id` puede ser el id numérico del cupón o su código; se busca primero por id (si es numérico) y luego por código.
 // @Tags cupones
 // @Accept json
 // @Produce json
@@ -316,11 +325,15 @@ func (c *CuponController) Post() {
 // @Success 200 {object} models.ApiResponse{data=models.CuponDoc} "Cupón encontrado"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' ausente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Cupón no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /cupones/search [get]
 func (c *CuponController) GetById() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	idOrCodigo := strings.TrimSpace(c.GetString("id"))
 	if idOrCodigo == "" {
 		logging.LogControllerError(c.Ctx, "cupones.getbyid.bad_request", nil, map[string]interface{}{"id": idOrCodigo})
@@ -419,7 +432,7 @@ func (c *CuponController) aplicar(body []byte, req *models.ActualizarCuponReques
 
 // @Title Put
 // @Summary Actualizar cupón
-// @Description Actualización parcial (merge): los campos ausentes se conservan (cuerpo `models.ActualizarCuponRequest`). `maxUsos`, `limitePorCliente`, `montoMinimo`, `productoId`, `categoriaId` y `documentoCliente` admiten null explícito (se limpian); null en cualquier otro campo responde 400. Al cambiar de `scope` debe ajustarse también la relación correspondiente (p. ej. pasar a GLOBAL exige `productoId`, `categoriaId` y `documentoCliente` en null) o la validación responde 422. `activo` permite reactivar un cupón desactivado. Un cuerpo sin cambios responde 200.
+// @Description Solo Administrador. Actualización parcial (merge): los campos ausentes se conservan (cuerpo `models.ActualizarCuponRequest`). `maxUsos`, `limitePorCliente`, `montoMinimo`, `productoId`, `categoriaId` y `documentoCliente` admiten null explícito (se limpian); null en cualquier otro campo responde 400. Al cambiar de `scope` debe ajustarse también la relación correspondiente (p. ej. pasar a GLOBAL exige `productoId`, `categoriaId` y `documentoCliente` en null) o la validación responde 422. `activo` permite reactivar un cupón desactivado. Un cuerpo sin cambios responde 200.
 // @Tags cupones
 // @Accept json
 // @Produce json
@@ -428,6 +441,7 @@ func (c *CuponController) aplicar(body []byte, req *models.ActualizarCuponReques
 // @Success 200 {object} models.ApiResponse{data=models.CuponDoc} "Cupón actualizado"
 // @Failure 400 {object} models.ApiResponse "id o JSON inválido, null en campo no anulable o referencia inexistente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Cupón no encontrado"
 // @Failure 409 {object} models.ApiResponse "Ya existe un cupón con ese código"
 // @Failure 422 {object} models.ApiResponse "Error de validación"
@@ -435,6 +449,9 @@ func (c *CuponController) aplicar(body []byte, req *models.ActualizarCuponReques
 // @Security BearerAuth
 // @Router /cupones [put]
 func (c *CuponController) Put() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	cupon, ok := c.load("put")
 	if !ok {
 		return
@@ -464,7 +481,7 @@ func (c *CuponController) Put() {
 
 // @Title Delete
 // @Summary Desactivar cupón
-// @Description No elimina la fila: desactiva el cupón (`activo = false`; se reactiva con PUT `activo: true`). Si ya estaba desactivado responde 400.
+// @Description Solo Administrador. No elimina la fila: desactiva el cupón (`activo = false`; se reactiva con PUT `activo: true`). Si ya estaba desactivado responde 400.
 // @Tags cupones
 // @Accept json
 // @Produce json
@@ -472,11 +489,15 @@ func (c *CuponController) Put() {
 // @Success 200 {object} models.ApiResponse "Cupón desactivado"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o cupón ya desactivado"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Cupón no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error al desactivar el cupón"
 // @Security BearerAuth
 // @Router /cupones [delete]
 func (c *CuponController) Delete() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	cupon, ok := c.load("delete")
 	if !ok {
 		return
@@ -496,27 +517,36 @@ func (c *CuponController) Delete() {
 
 // @Title ValidarCupon
 // @Summary Validar cupón
-// @Description Evalúa si un cupón es aplicable a un cliente y a unos ítems. Siempre responde 200 con `aplicable` true/false: si es false, `motivo` explica por qué (cupón inexistente, inactivo, fuera de vigencia, usos agotados, cliente no permitido, monto mínimo o sin productos aplicables). Requiere `codigo`, `clienteId` positivo y al menos un ítem con `productoId` > 0, `cantidad` >= 1 y `precio` >= 0.
+// @Description Cualquier usuario autenticado. Evalúa si un cupón es aplicable a un cliente. El cliente SALE DEL TOKEN: un Cliente no envía `clienteId` (si lo envía y no coincide con su documento responde 403); un trabajador o administrador actúa en nombre de un cliente y debe indicar `clienteId`. Con `pedidoId` el servidor evalúa el detalle real del pedido (que debe pertenecer al cliente: 404 si no existe, 403 si es de otro) e ignora `items`; sin `pedidoId`, `items` es obligatorio (`productoId` > 0, `cantidad` >= 1, `precio` >= 0) y el resultado es solo una vista previa no vinculante. Responde 200 con `aplicable` true/false: si es false, `motivo` explica por qué (cupón inexistente, inactivo, fuera de vigencia, usos agotados, cliente no permitido, monto mínimo o sin productos aplicables).
 // @Tags cupones
 // @Accept json
 // @Produce json
 // @Param body body models.ValidarCuponRequest true "Datos para validación"
 // @Success 200 {object} models.ApiResponse{data=models.ValidarCuponResponse} "Resultado de la validación"
-// @Failure 400 {object} models.ApiResponse "JSON inválido o campos requeridos incorrectos"
+// @Failure 400 {object} models.ApiResponse "JSON inválido, código/ítems ausentes o clienteId ausente para un trabajador"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "clienteId distinto del token o pedido de otro cliente"
+// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error al validar el cupón"
 // @Security BearerAuth
 // @Router /cupones/validar [post]
 func (c *CuponController) ValidarCupon() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	var req models.ValidarCuponRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.validar.bad_json", err, nil)
 		httpx.Fail(&c.Controller, http.StatusBadRequest, msgBadJSON, err)
 		return
 	}
+	if req.ClienteId, ok = authz.ResolveCliente(&c.Controller, claims, req.ClienteId); !ok {
+		return
+	}
 	req.Codigo = strings.TrimSpace(req.Codigo)
-	if req.Codigo == "" || req.ClienteId <= 0 || len(req.Items) == 0 {
-		httpx.Fail(&c.Controller, http.StatusBadRequest, "codigo, clienteId (positivo) e items (al menos uno) son obligatorios", nil)
+	if req.Codigo == "" || (req.PedidoId != nil && *req.PedidoId <= 0) || (req.PedidoId == nil && len(req.Items) == 0) {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "codigo es obligatorio y se requiere pedidoId (positivo) o items (al menos uno)", nil)
 		return
 	}
 	for _, it := range req.Items {
@@ -528,31 +558,55 @@ func (c *CuponController) ValidarCupon() {
 
 	resp, err := services.NewCuponServiceFromOrm(orm.NewOrm()).ValidarCupon(c.Ctx.Request.Context(), &req)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "cupones.validar.service_error", err, map[string]interface{}{"codigo": req.Codigo})
-		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al validar cupón", err)
+		c.fallar("cupones.validar.service_error", req.Codigo, "Error al validar cupón", err)
 		return
 	}
 	httpx.Send(&c.Controller, http.StatusOK, "Cupón validado exitosamente", resp)
 }
 
+// fallar traduce los errores tipados del servicio a su código HTTP (400, 403,
+// 404, 409, 422) y responde 500 con msg para cualquier otro.
+func (c *CuponController) fallar(op, codigo, msg string, err error) {
+	logging.LogControllerError(c.Ctx, op, err, map[string]interface{}{"codigo": codigo})
+	status := http.StatusInternalServerError
+	switch {
+	case errors.Is(err, services.ErrPedidoRequerido):
+		status = http.StatusBadRequest
+	case errors.Is(err, services.ErrCuponNoEncontrado), errors.Is(err, services.ErrPedidoNoEncontrado):
+		status = http.StatusNotFound
+	case errors.Is(err, services.ErrPedidoAjeno):
+		status = http.StatusForbidden
+	case errors.Is(err, services.ErrCuponConflicto), errors.Is(err, services.ErrPedidoCerrado), dberr.IsUnique(err):
+		status = http.StatusConflict
+	case errors.Is(err, services.ErrCuponNoAplicable):
+		status = http.StatusUnprocessableEntity
+	}
+	httpx.Fail(&c.Controller, status, msg, err)
+}
+
 // @Title RedimirCupon
 // @Summary Redimir cupón
-// @Description Registra la redención de un cupón para un cliente y un pedido existentes; el descuento se calcula con el detalle del pedido (`detalle_pedido`). Un cupón no puede redimirse dos veces en el mismo pedido. Errores: 400 (JSON inválido, `clienteId`/`pedidoId` ausentes o no positivos), 404 (cupón, cliente o pedido inexistente), 409 (cupón agotado, límite por cliente alcanzado o ya redimido en el pedido), 422 (cupón no aplicable: inactivo, fuera de vigencia, cliente no permitido, monto mínimo, sin productos aplicables). La respuesta es el registro de redención con montoDescuento.
+// @Description Cualquier usuario autenticado. Registra la redención de un cupón para un pedido del cliente; el descuento se calcula en el servidor con el detalle del pedido (`detalle_pedido`). El cliente SALE DEL TOKEN: un Cliente no envía `clienteId` (si lo envía y no coincide con su documento responde 403); un trabajador o administrador actúa en nombre de un cliente y debe indicar `clienteId`. El pedido debe pertenecer a ese cliente (404 si no existe, 403 si es de otro) y no estar cancelado ni terminado (409). Todo ocurre en una transacción que bloquea el pedido y la fila del cupón (`SELECT ... FOR UPDATE`) y vuelve a comprobar activo, vigencia, `maxUsos` y `limitePorCliente` bajo el bloqueo: dos redenciones simultáneas no pueden superar los topes. Un cupón no puede redimirse dos veces en el mismo pedido. Solo registra la redención; para aplicar el descuento al pedido y recalcular su total use POST /descuentos/pedidos. Errores: 400 (JSON inválido, `pedidoId` ausente o no positivo, `clienteId` ausente para un trabajador), 403, 404 (cupón o pedido inexistente), 409 (cupón agotado, límite por cliente alcanzado, ya redimido en el pedido o pedido cerrado), 422 (cupón no aplicable: inactivo, fuera de vigencia, cliente no permitido, monto mínimo, sin productos aplicables). La respuesta es el registro de redención con montoDescuento.
 // @Tags cupones
 // @Accept json
 // @Produce json
 // @Param codigo path string true "Código del cupón"
-// @Param body body models.RedimirCuponRequest true "Datos de redención (clienteId y pedidoId obligatorios)"
+// @Param body body models.RedimirCuponRequest true "Datos de redención (pedidoId obligatorio; clienteId solo para trabajadores)"
 // @Success 201 {object} models.ApiResponse{data=models.CuponRedencionDoc} "Cupón redimido"
-// @Failure 400 {object} models.ApiResponse "JSON inválido o ids ausentes/no positivos"
+// @Failure 400 {object} models.ApiResponse "JSON inválido, ids ausentes/no positivos o clienteId ausente para un trabajador"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Cupón, cliente o pedido no encontrado"
-// @Failure 409 {object} models.ApiResponse "Cupón agotado o ya redimido"
+// @Failure 403 {object} models.ApiResponse "clienteId distinto del token o pedido de otro cliente"
+// @Failure 404 {object} models.ApiResponse "Cupón o pedido no encontrado"
+// @Failure 409 {object} models.ApiResponse "Cupón agotado, ya redimido o pedido cerrado"
 // @Failure 422 {object} models.ApiResponse "Cupón no aplicable"
 // @Failure 500 {object} models.ApiResponse "Error interno"
 // @Security BearerAuth
 // @Router /cupones/{codigo}/redimir [post]
 func (c *CuponController) RedimirCupon() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	codigo := strings.TrimSpace(c.Ctx.Input.Param(":codigo"))
 
 	var req models.RedimirCuponRequest
@@ -561,39 +615,25 @@ func (c *CuponController) RedimirCupon() {
 		httpx.Fail(&c.Controller, http.StatusBadRequest, msgBadJSON, err)
 		return
 	}
-	if codigo == "" || req.ClienteId <= 0 || (req.PedidoId != nil && *req.PedidoId <= 0) {
-		httpx.Fail(&c.Controller, http.StatusBadRequest, "El código, clienteId y pedidoId deben ser válidos (enteros positivos)", nil)
+	if req.ClienteId, ok = authz.ResolveCliente(&c.Controller, claims, req.ClienteId); !ok {
+		return
+	}
+	if codigo == "" || (req.PedidoId != nil && *req.PedidoId <= 0) {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El código y pedidoId deben ser válidos (enteros positivos)", nil)
 		return
 	}
 
 	redencion, err := services.NewCuponServiceFromOrm(orm.NewOrm()).RedimirCupon(c.Ctx.Request.Context(), codigo, &req)
 	if err != nil {
-		c.redimirError(codigo, err)
+		c.fallar("cupones.redimir.service_error", codigo, "Error al redimir cupón", err)
 		return
 	}
 	httpx.Send(&c.Controller, http.StatusCreated, "Cupón redimido exitosamente", redencion)
 }
 
-// redimirError traduce los errores tipados del servicio a su código HTTP.
-func (c *CuponController) redimirError(codigo string, err error) {
-	logging.LogControllerError(c.Ctx, "cupones.redimir.service_error", err, map[string]interface{}{"codigo": codigo})
-	switch {
-	case errors.Is(err, services.ErrPedidoRequerido):
-		httpx.Fail(&c.Controller, http.StatusBadRequest, "Error al redimir cupón", err)
-	case errors.Is(err, services.ErrCuponNoEncontrado), errors.Is(err, services.ErrClienteNoEncontrado), errors.Is(err, services.ErrPedidoNoEncontrado):
-		httpx.Fail(&c.Controller, http.StatusNotFound, "Error al redimir cupón", err)
-	case errors.Is(err, services.ErrCuponConflicto), dberr.IsUnique(err):
-		httpx.Fail(&c.Controller, http.StatusConflict, "Error al redimir cupón", err)
-	case errors.Is(err, services.ErrCuponNoAplicable):
-		httpx.Fail(&c.Controller, http.StatusUnprocessableEntity, "Error al redimir cupón", err)
-	default:
-		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al redimir cupón", err)
-	}
-}
-
 // @Title ListarRedenciones
 // @Summary Listar redenciones de cupones
-// @Description Lista paginada (más recientes primero). `cupon_codigo` desconocido devuelve una página vacía. `data.data` es `[]` si no hay resultados. Cada redención trae `cuponId`, `documentoCliente` y `pedidoId` como objetos (sin contraseñas).
+// @Description Solo Administrador. Lista paginada (más recientes primero). `cupon_codigo` desconocido devuelve una página vacía. `data.data` es `[]` si no hay resultados. Cada redención trae `cuponId`, `documentoCliente` y `pedidoId` como objetos (sin contraseñas).
 // @Tags cupones
 // @Accept json
 // @Produce json
@@ -605,10 +645,14 @@ func (c *CuponController) redimirError(codigo string, err error) {
 // @Success 200 {object} models.ApiResponse{data=models.CuponRedencionPaginadaDoc} "Redenciones obtenidas"
 // @Failure 400 {object} models.ApiResponse "Parámetros de filtro o paginación inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /cupones/redenciones [get]
 func (c *CuponController) ListarRedenciones() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(models.CuponRedencion))
 

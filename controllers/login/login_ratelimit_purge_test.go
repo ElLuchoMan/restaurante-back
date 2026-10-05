@@ -18,7 +18,7 @@ func TestAllowLoginPurgaVentanasVencidas(t *testing.T) {
 
 	r := httptest.NewRequest("POST", "/login", nil)
 	r.RemoteAddr = "198.51.100.7:4000"
-	if !allowLogin(r) {
+	if ok, _ := allowLogin(r); !ok {
 		t.Fatal("el primer intento debe permitirse")
 	}
 	if _, ok := loginRL.m["vencida"]; ok {

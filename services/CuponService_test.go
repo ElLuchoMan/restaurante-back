@@ -35,6 +35,7 @@ type mockQuerySeter struct {
 	countHook      func() (int64, error)
 	relatedSelHook func(...interface{}) cuponQuerySeter
 	allHook        func(interface{}, ...string) (int64, error)
+	forUpdateHook  func() cuponQuerySeter
 }
 
 func (m *mockQuerySeter) All(dest interface{}, cols ...string) (int64, error) {
@@ -56,6 +57,13 @@ func (m *mockQuerySeter) One(dest interface{}, cols ...string) error {
 		return m.oneHook(dest, cols...)
 	}
 	return nil
+}
+
+func (m *mockQuerySeter) ForUpdate() cuponQuerySeter {
+	if m.forUpdateHook != nil {
+		return m.forUpdateHook()
+	}
+	return m
 }
 
 func (m *mockQuerySeter) Count() (int64, error) {

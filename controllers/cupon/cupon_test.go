@@ -41,8 +41,7 @@ func with(base map[string]driver.Value, kv ...interface{}) map[string]driver.Val
 func setup() (*db, *[]string, *[]driver.NamedValue) {
 	d := newDB().install()
 	d.rows["cupon"] = []map[string]driver.Value{cuponVals()}
-	d.counts["cliente"] = 1
-	d.counts["pedido"] = 1
+	d.rows["pedido"] = []map[string]driver.Value{{"pk_id_pedido": int64(9), "estado_pedido": "INICIADO", "pk_documento_cliente": int64(7)}}
 	d.rows["detalle_pedido"] = []map[string]driver.Value{{"pk_id_producto": int64(2), "cantidad": int64(2), "precio": int64(5000)}}
 	var execs []string
 	var last []driver.NamedValue
@@ -290,9 +289,12 @@ const okValidar = `{"codigo":"VERANO10","clienteId":7,"items":[{"productoId":2,"
 
 func TestValidar(t *testing.T) {
 	defer resetFake()
+	defer asAdmin()
+	// Un trabajador debe indicar clienteId; items obligatorios sin pedidoId.
 	for _, b := range []string{"", "nojson", `{}`,
 		`{"codigo":"X","clienteId":0,"items":[{"productoId":2,"cantidad":1,"precio":1}]}`,
 		`{"codigo":"X","clienteId":7,"items":[]}`,
+		`{"codigo":"X","clienteId":7,"pedidoId":0}`,
 		`{"codigo":" ","clienteId":7,"items":[{"productoId":2,"cantidad":1,"precio":1}]}`,
 		`{"codigo":"X","clienteId":7,"items":[{"productoId":0,"cantidad":1,"precio":1}]}`,
 		`{"codigo":"X","clienteId":7,"items":[{"productoId":2,"cantidad":0,"precio":1}]}`,
@@ -308,10 +310,44 @@ func TestValidar(t *testing.T) {
 	call(t, http.MethodPost, "/cupones/validar", okValidar, validar, http.StatusInternalServerError)
 }
 
+func TestValidar_ClienteDelToken(t *testing.T) {
+	defer resetFake()
+	defer asAdmin()
+	setup()
+	as(7, "Cliente")
+	// Sin clienteId: manda el documento del token.
+	body := `{"codigo":"VERANO10","items":[{"productoId":2,"cantidad":2,"precio":5000}]}`
+	contains(t, call(t, http.MethodPost, "/cupones/validar", body, validar, http.StatusOK), `"aplicable":true`)
+	// Igual al del token: permitido.
+	contains(t, call(t, http.MethodPost, "/cupones/validar", okValidar, validar, http.StatusOK), `"aplicable":true`)
+	// Distinto al del token: 403.
+	call(t, http.MethodPost, "/cupones/validar", strings.Replace(okValidar, `"clienteId":7`, `"clienteId":8`, 1), validar, http.StatusForbidden)
+	// Sin token: 401.
+	asAnon()
+	call(t, http.MethodPost, "/cupones/validar", okValidar, validar, http.StatusUnauthorized)
+}
+
+func TestValidar_ConPedido(t *testing.T) {
+	defer resetFake()
+	defer asAdmin()
+	d, _, _ := setup()
+	as(7, "Cliente")
+	// Con pedidoId los ítems del cliente se ignoran y se usa el detalle real (2 x 5000).
+	body := `{"codigo":"VERANO10","pedidoId":9,"items":[{"productoId":2,"cantidad":1,"precio":1}]}`
+	contains(t, call(t, http.MethodPost, "/cupones/validar", body, validar, http.StatusOK), `"montoDescuento":1000`)
+	// Pedido de otro cliente: 403. Inexistente: 404.
+	as(8, "Cliente")
+	call(t, http.MethodPost, "/cupones/validar", body, validar, http.StatusForbidden)
+	as(7, "Cliente")
+	d.rows["pedido"] = nil
+	call(t, http.MethodPost, "/cupones/validar", body, validar, http.StatusNotFound)
+}
+
 func TestRedimir(t *testing.T) {
 	defer resetFake()
+	defer asAdmin()
 	callCodigo(t, "VERANO10", "nojson", http.StatusBadRequest)
-	callCodigo(t, "VERANO10", `{"clienteId":0,"pedidoId":9}`, http.StatusBadRequest)
+	callCodigo(t, "VERANO10", `{"clienteId":0,"pedidoId":9}`, http.StatusBadRequest) // trabajador sin clienteId
 	callCodigo(t, "VERANO10", `{"clienteId":7,"pedidoId":0}`, http.StatusBadRequest)
 	callCodigo(t, " ", `{"clienteId":7,"pedidoId":9}`, http.StatusBadRequest)
 	callCodigo(t, "VERANO10", `{"clienteId":7}`, http.StatusBadRequest) // pedidoId requerido
@@ -328,12 +364,16 @@ func TestRedimir(t *testing.T) {
 	d.rows["cupon"] = nil
 	callCodigo(t, "NOPE", `{"clienteId":7,"pedidoId":9}`, http.StatusNotFound)
 	d.rows["cupon"] = saved
-	d.counts["cliente"] = 0
+	savedPedido := d.rows["pedido"]
+	d.rows["pedido"] = nil
 	callCodigo(t, "VERANO10", `{"clienteId":7,"pedidoId":9}`, http.StatusNotFound)
-	d.counts["cliente"] = 1
-	d.counts["pedido"] = 0
-	callCodigo(t, "VERANO10", `{"clienteId":7,"pedidoId":9}`, http.StatusNotFound)
-	d.counts["pedido"] = 1
+	// Pedido de otro cliente (un trabajador indica un clienteId que no es el dueño): 403.
+	d.rows["pedido"] = savedPedido
+	callCodigo(t, "VERANO10", `{"clienteId":8,"pedidoId":9}`, http.StatusForbidden)
+	// Pedido cerrado: 409.
+	d.rows["pedido"] = []map[string]driver.Value{{"pk_id_pedido": int64(9), "estado_pedido": "CANCELADO", "pk_documento_cliente": int64(7)}}
+	callCodigo(t, "VERANO10", `{"clienteId":7,"pedidoId":9}`, http.StatusConflict)
+	d.rows["pedido"] = savedPedido
 
 	// Conflictos: ya redimido en el pedido / usos agotados / límite por cliente.
 	d.counts["cupon_redencion"] = 1
@@ -365,6 +405,65 @@ func TestRedimir(t *testing.T) {
 	callCodigo(t, "VERANO10", `{"clienteId":7,"pedidoId":9}`, http.StatusInternalServerError)
 	d.errs["detalle_pedido"] = errors.New("boom")
 	callCodigo(t, "VERANO10", `{"clienteId":7,"pedidoId":9}`, http.StatusInternalServerError)
+	// Falla al abrir la transacción: 500.
+	resetFake()
+	setup()
+	fakeBeginErr = errors.New("begin boom")
+	callCodigo(t, "VERANO10", `{"clienteId":7,"pedidoId":9}`, http.StatusInternalServerError)
+}
+
+func TestRedimir_ClienteDelToken(t *testing.T) {
+	defer resetFake()
+	defer asAdmin()
+	setup()
+	as(7, "Cliente")
+	// Sin clienteId en el body: se usa el documento del token.
+	callCodigo(t, "VERANO10", `{"pedidoId":9}`, http.StatusCreated)
+	// Un clienteId distinto al del token se rechaza aunque el pedido sea de ese otro cliente.
+	callCodigo(t, "VERANO10", `{"clienteId":8,"pedidoId":9}`, http.StatusForbidden)
+	// Un cliente no puede redimir sobre un pedido ajeno: 403.
+	as(8, "Cliente")
+	callCodigo(t, "VERANO10", `{"pedidoId":9}`, http.StatusForbidden)
+	// Sin token: 401.
+	asAnon()
+	callCodigo(t, "VERANO10", `{"pedidoId":9}`, http.StatusUnauthorized)
+}
+
+// Solo el Administrador gestiona y consulta cupones; los demás roles reciben 403
+// (sin token, 401) sin tocar la base.
+func TestPermisosAdministrador(t *testing.T) {
+	defer resetFake()
+	defer asAdmin()
+	d, execs, _ := setup()
+	handlers := []struct {
+		name   string
+		method string
+		f      func(c *CuponController)
+		body   string
+	}{
+		{"GetAll", http.MethodGet, getAll, ""},
+		{"Post", http.MethodPost, post, okPost},
+		{"GetById", http.MethodGet, getByID, ""},
+		{"Put", http.MethodPut, put, `{"activo":false}`},
+		{"Delete", http.MethodDelete, del, ""},
+		{"ListarRedenciones", http.MethodGet, redencio, ""},
+	}
+	for _, h := range handlers {
+		for _, quien := range []struct {
+			doc    int64
+			rol    string
+			status int
+		}{{0, "", http.StatusUnauthorized}, {7, "Cliente", http.StatusForbidden}, {3, "Mesero", http.StatusForbidden}} {
+			as(quien.doc, quien.rol)
+			if quien.doc == 0 {
+				asAnon()
+			}
+			call(t, h.method, "/cupones?id=1&codigo=VERANO10", h.body, h.f, quien.status)
+		}
+	}
+	if len(*execs) != 0 || len(d.seen) != 0 {
+		t.Fatalf("sin permisos no debe tocar la base: %v %v", *execs, d.seen)
+	}
 }
 
 func TestRedenciones(t *testing.T) {

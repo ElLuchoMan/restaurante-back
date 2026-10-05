@@ -14,11 +14,17 @@ import (
 
 var loadBogotaLocation = time.LoadLocation
 
-type OfertaService struct {
-	ormer orm.Ormer
+// ofertaOrmer es lo que OfertaService necesita del ORM; lo cumplen tanto
+// orm.Ormer como orm.TxOrmer (para evaluar ofertas dentro de una transacción).
+type ofertaOrmer interface {
+	QueryTable(ptrStructOrTableName interface{}) orm.QuerySeter
 }
 
-func NewOfertaService(ormer orm.Ormer) *OfertaService {
+type OfertaService struct {
+	ormer ofertaOrmer
+}
+
+func NewOfertaService(ormer ofertaOrmer) *OfertaService {
 	return &OfertaService{ormer: ormer}
 }
 
@@ -60,27 +66,8 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 	for _, oferta := range ofertas {
 		oferta.AfterLoad()
 
-		if len(oferta.DiasSemanaArray) > 0 {
-			diaValido := false
-			for _, dia := range oferta.DiasSemanaArray {
-				if strings.TrimSpace(dia) == diaSemana {
-					diaValido = true
-					break
-				}
-			}
-			if !diaValido {
-				continue
-			}
-		}
-
-		if oferta.HoraInicio != nil && oferta.HoraFin != nil {
-			horaOfertaInicio := time.Date(0, 1, 1, oferta.HoraInicio.Hour(), oferta.HoraInicio.Minute(), oferta.HoraInicio.Second(), 0, time.UTC)
-			horaOfertaFin := time.Date(0, 1, 1, oferta.HoraFin.Hour(), oferta.HoraFin.Minute(), oferta.HoraFin.Second(), 0, time.UTC)
-			horaActual := time.Date(0, 1, 1, horaConsulta.Hour(), horaConsulta.Minute(), horaConsulta.Second(), 0, time.UTC)
-
-			if horaActual.Before(horaOfertaInicio) || horaActual.After(horaOfertaFin) {
-				continue
-			}
+		if !ofertaDisponibleEnDia(oferta, diaSemana) || !ofertaDisponibleEnHora(oferta, horaConsulta) {
+			continue
 		}
 
 		productosIds, err := s.obtenerProductosOferta(oferta.PkIdOferta)
@@ -113,6 +100,52 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 	}
 
 	return ofertasActivas, nil
+}
+
+// ofertaDisponibleEnDia indica si la oferta (con AfterLoad ya invocado) rige el
+// día de la semana dado; sin días configurados rige todos.
+func ofertaDisponibleEnDia(oferta *models.Oferta, diaSemana string) bool {
+	if len(oferta.DiasSemanaArray) == 0 {
+		return true
+	}
+	for _, dia := range oferta.DiasSemanaArray {
+		if strings.TrimSpace(dia) == diaSemana {
+			return true
+		}
+	}
+	return false
+}
+
+// ofertaDisponibleEnHora indica si la hora cae dentro del horario de la oferta
+// (extremos incluidos); sin horario configurado rige todo el día.
+func ofertaDisponibleEnHora(oferta *models.Oferta, hora time.Time) bool {
+	if oferta.HoraInicio == nil || oferta.HoraFin == nil {
+		return true
+	}
+	horaOfertaInicio := time.Date(0, 1, 1, oferta.HoraInicio.Hour(), oferta.HoraInicio.Minute(), oferta.HoraInicio.Second(), 0, time.UTC)
+	horaOfertaFin := time.Date(0, 1, 1, oferta.HoraFin.Hour(), oferta.HoraFin.Minute(), oferta.HoraFin.Second(), 0, time.UTC)
+	horaActual := time.Date(0, 1, 1, hora.Hour(), hora.Minute(), hora.Second(), 0, time.UTC)
+	return !horaActual.Before(horaOfertaInicio) && !horaActual.After(horaOfertaFin)
+}
+
+// MotivoNoVigente devuelve por qué la oferta (con AfterLoad ya invocado) no
+// puede aplicarse en el instante `ahora` (hora de Bogotá): inactiva, fuera del
+// período, día o franja horaria. Cadena vacía si está vigente.
+func (s *OfertaService) MotivoNoVigente(oferta *models.Oferta, ahora time.Time) string {
+	if !oferta.Activo {
+		return "Oferta inactiva"
+	}
+	hoy := time.Date(ahora.Year(), ahora.Month(), ahora.Day(), 0, 0, 0, 0, time.UTC)
+	if hoy.Before(soloDia(oferta.FechaInicio)) || hoy.After(soloDia(oferta.FechaFin)) {
+		return "Oferta fuera del período de vigencia"
+	}
+	if !ofertaDisponibleEnDia(oferta, s.obtenerDiaSemanaEspanol(ahora.Weekday())) {
+		return "Oferta no disponible este día de la semana"
+	}
+	if !ofertaDisponibleEnHora(oferta, ahora) {
+		return "Oferta fuera de su horario"
+	}
+	return ""
 }
 
 func (s *OfertaService) ValidarReglasNegocioOferta(oferta *models.Oferta) error {

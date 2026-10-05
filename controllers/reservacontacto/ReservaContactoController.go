@@ -28,7 +28,7 @@ func (c *ReservaContactoController) optionalPositive(key string) (v int64, ok bo
 
 // @Title GetAll
 // @Summary Listar contactos de reserva
-// @Description Devuelve los contactos de reserva, opcionalmente filtrados por documento de invitado y/o de cliente registrado. `documentoCliente` se responde como objeto `{documentoCliente}` (solo el documento; nunca datos del cliente ni contraseña). Sin resultados: 200 con `data: []`. Público (no exige token).
+// @Description Devuelve los contactos de reserva, opcionalmente filtrados por documento de invitado y/o de cliente registrado. `documentoCliente` se responde como objeto `{documentoCliente}` (solo el documento; nunca datos del cliente ni contraseña). Sin resultados: 200 con `data: []`. Solo personal (trabajadores/administrador): contiene datos personales.
 // @Tags reserva_contacto
 // @Accept json
 // @Produce json
@@ -36,7 +36,10 @@ func (c *ReservaContactoController) optionalPositive(key string) (v int64, ok bo
 // @Param documento_cliente query int false "Documento del cliente registrado (entero positivo)"
 // @Success 200 {object} models.ApiResponse{data=[]models.ReservaContactoResponse} "Lista de contactos (puede ser [])"
 // @Failure 400 {object} models.ApiResponse "documento_contacto o documento_cliente inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "El token no es de un trabajador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /reserva_contacto [get]
 func (c *ReservaContactoController) GetAll() {
 	qs := orm.NewOrm().QueryTable(new(models.ReservaContacto))
@@ -67,15 +70,18 @@ func (c *ReservaContactoController) GetAll() {
 
 // @Title GetById
 // @Summary Obtener contacto por ID
-// @Description Devuelve un contacto de reserva por su ID. Público (no exige token).
+// @Description Devuelve un contacto de reserva por su ID. Solo personal (trabajadores/administrador): contiene datos personales.
 // @Tags reserva_contacto
 // @Accept json
 // @Produce json
 // @Param id query int true "ID del contacto (entero positivo)"
 // @Success 200 {object} models.ApiResponse{data=models.ReservaContactoResponse} "Contacto encontrado"
 // @Failure 400 {object} models.ApiResponse "id ausente o inválido"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "El token no es de un trabajador"
 // @Failure 404 {object} models.ApiResponse "Contacto no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /reserva_contacto/search [get]
 func (c *ReservaContactoController) GetById() {
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")

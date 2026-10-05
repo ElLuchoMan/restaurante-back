@@ -131,20 +131,23 @@ func init() {
 			beego.NSRouter("/search", &trab.TrabajadorController{}, "get:GetById"),
 		),
 
+		// /reservas: reparto de acceso en resv.AccessFilter (el filtro de un namespace cubre todo su prefijo).
+		// Público: POST (crear con o sin cuenta) y GET /consulta (invitado: id + teléfono/documento, con límite
+		// por IP). Solo trabajadores (401/403): GET /, /parameter y /documento. Con token: /search, /cliente,
+		// PUT y DELETE, donde el controlador limita a cada Cliente a sus propias reservas.
 		beego.NSNamespace("/reservas",
-			beego.NSRouter("/", &resv.ReservaController{}, "get:GetAll"),
+			beego.NSBefore(resv.AccessFilter),
+			beego.NSRouter("/", &resv.ReservaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/consulta", &resv.ReservaController{}, "get:Consulta"),
 			beego.NSRouter("/search", &resv.ReservaController{}, "get:GetById"),
 			beego.NSRouter("/parameter", &resv.ReservaController{}, "get:GetByParameter"),
 			beego.NSRouter("/cliente", &resv.ReservaController{}, "get:GetByDocumentoCliente"),
 			beego.NSRouter("/documento", &resv.ReservaController{}, "get:GetByDocumento"),
 		),
 
-		beego.NSNamespace("/reservas",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &resv.ReservaController{}, "post:Post;put:Put;delete:Delete"),
-		),
-
+		// /reserva_contacto: solo trabajadores.
 		beego.NSNamespace("/reserva_contacto",
+			beego.NSBefore(loginc.ValidateStaff),
 			beego.NSRouter("/", &rc.ReservaContactoController{}, "get:GetAll"),
 			beego.NSRouter("/search", &rc.ReservaContactoController{}, "get:GetById"),
 		),

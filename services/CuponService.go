@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"restaurante/database"
+	"restaurante/internal/dberr"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -18,14 +19,19 @@ type cuponQuerySeter interface {
 	Count() (int64, error)
 	RelatedSel(...interface{}) cuponQuerySeter
 	All(interface{}, ...string) (int64, error)
+	// ForUpdate agrega SELECT ... FOR UPDATE; solo bloquea dentro de una transacción.
+	ForUpdate() cuponQuerySeter
 }
 
 // Errores tipados de CuponService; el controlador los traduce a códigos HTTP.
 var (
-	ErrCuponNoEncontrado   = errors.New("cupón no encontrado")
-	ErrClienteNoEncontrado = errors.New("cliente no encontrado")
-	ErrPedidoNoEncontrado  = errors.New("pedido no encontrado")
-	ErrPedidoRequerido     = errors.New("pedidoId es requerido")
+	ErrCuponNoEncontrado  = errors.New("cupón no encontrado")
+	ErrPedidoNoEncontrado = errors.New("pedido no encontrado")
+	ErrPedidoRequerido    = errors.New("pedidoId es requerido")
+	// ErrPedidoAjeno: el pedido no pertenece al cliente que actúa.
+	ErrPedidoAjeno = errors.New("el pedido no pertenece al cliente")
+	// ErrPedidoCerrado: el pedido está cancelado o terminado y ya no admite descuentos.
+	ErrPedidoCerrado = errors.New("el pedido está cancelado o terminado")
 	// ErrCuponNoAplicable: el cupón no cumple las reglas (inactivo, fuera de vigencia, monto mínimo, cliente, productos).
 	ErrCuponNoAplicable = errors.New("cupón no aplicable")
 	// ErrCuponConflicto: el cupón ya fue redimido o está agotado (máximo de usos, límite por cliente, ya usado en el pedido).
@@ -37,115 +43,92 @@ type cuponOrmer interface {
 	Insert(interface{}) (int64, error)
 }
 
+// CuponService valida y redime cupones. La redención se ejecuta dentro de una
+// transacción que bloquea (FOR UPDATE) el pedido y la fila del cupón, de modo
+// que los topes (maxUsos, limitePorCliente) se comprueban bajo el bloqueo.
 type CuponService struct {
 	ormer cuponOrmer
+	// runTx ejecuta fn dentro de una transacción con un servicio ligado a ella;
+	// nil ejecuta fn sin transacción sobre el mismo ormer (pruebas).
+	runTx func(ctx context.Context, fn func(*CuponService) error) error
 }
 
 func NewCuponService(ormer cuponOrmer) *CuponService {
 	return &CuponService{ormer: ormer}
 }
 
-// NewCuponServiceFromOrm crea el servicio sobre un orm.Ormer real.
+// NewCuponServiceFromOrm crea el servicio sobre un orm.Ormer real; RedimirCupon
+// abre una transacción con DoTx.
 func NewCuponServiceFromOrm(o orm.Ormer) *CuponService {
-	return NewCuponService(NewCuponOrmerFromFuncs(func(name string) orm.QuerySeter { return o.QueryTable(name) }, o.Insert))
-}
-
-func NewCuponOrmerFromFuncs(queryTable func(string) orm.QuerySeter, insertFunc func(interface{}) (int64, error)) cuponOrmer {
-	if queryTable == nil || insertFunc == nil {
-		return nil
-	}
-	return beegoCuponOrmer{
-		queryTable: func(name string) cuponQuerySeter {
-			return wrapOrmQuerySeter(queryTable(name))
-		},
-		insertFunc: insertFunc,
-	}
-}
-
-type beegoCuponOrmer struct {
-	queryTable func(string) cuponQuerySeter
-	insertFunc func(interface{}) (int64, error)
-}
-
-func (o beegoCuponOrmer) QueryTable(name string) cuponQuerySeter {
-	if o.queryTable == nil {
-		return beegoCuponQuerySeter{}
-	}
-	return o.queryTable(name)
-}
-
-type beegoCuponQuerySeter struct {
-	filterFunc     func(string, ...interface{}) cuponQuerySeter
-	oneFunc        func(interface{}, ...string) error
-	countFunc      func() (int64, error)
-	relatedSelFunc func(...interface{}) cuponQuerySeter
-	allFunc        func(interface{}, ...string) (int64, error)
-}
-
-func (q beegoCuponQuerySeter) All(container interface{}, cols ...string) (int64, error) {
-	if q.allFunc == nil {
-		return 0, nil
-	}
-	return q.allFunc(container, cols...)
-}
-
-func (q beegoCuponQuerySeter) Filter(field string, args ...interface{}) cuponQuerySeter {
-	if q.filterFunc == nil {
-		return q
-	}
-	return q.filterFunc(field, args...)
-}
-
-func (q beegoCuponQuerySeter) One(container interface{}, cols ...string) error {
-	if q.oneFunc == nil {
-		return orm.ErrNoRows
-	}
-	return q.oneFunc(container, cols...)
-}
-
-func (q beegoCuponQuerySeter) Count() (int64, error) {
-	if q.countFunc == nil {
-		return 0, nil
-	}
-	return q.countFunc()
-}
-
-func (q beegoCuponQuerySeter) RelatedSel(params ...interface{}) cuponQuerySeter {
-	if q.relatedSelFunc == nil {
-		return q
-	}
-	return q.relatedSelFunc(params...)
-}
-
-func wrapOrmQuerySeter(qs orm.QuerySeter) cuponQuerySeter {
-	if qs == nil {
-		return beegoCuponQuerySeter{}
-	}
-	return beegoCuponQuerySeter{
-		filterFunc: func(field string, args ...interface{}) cuponQuerySeter {
-			return wrapOrmQuerySeter(qs.Filter(field, args...))
-		},
-		oneFunc: func(container interface{}, cols ...string) error {
-			return qs.One(container, cols...)
-		},
-		countFunc: func() (int64, error) {
-			return qs.Count()
-		},
-		relatedSelFunc: func(params ...interface{}) cuponQuerySeter {
-			return wrapOrmQuerySeter(qs.RelatedSel(params...))
-		},
-		allFunc: func(container interface{}, cols ...string) (int64, error) {
-			return qs.All(container, cols...)
+	return &CuponService{
+		ormer: ormerAdapter{queryTable: func(name string) orm.QuerySeter { return o.QueryTable(name) }, insert: o.Insert},
+		runTx: func(ctx context.Context, fn func(*CuponService) error) error {
+			return doTx(ctx, o, func(tx orm.TxOrmer) error { return fn(newCuponServiceFromTx(tx)) })
 		},
 	}
 }
 
-func (o beegoCuponOrmer) Insert(model interface{}) (int64, error) {
-	if o.insertFunc == nil {
-		return 0, fmt.Errorf("insert function no configurada")
+// doTx abre una transacción, ejecuta task y la confirma. A diferencia de
+// orm.DoTx (que solo registra en el log un COMMIT fallido y devuelve nil),
+// devuelve el error del COMMIT: un descuento o redención no confirmados nunca se
+// reportan como exitosos. Ante error o pánico en task hace ROLLBACK.
+func doTx(ctx context.Context, o orm.TxBeginner, task func(orm.TxOrmer) error) error {
+	tx, err := o.BeginWithCtx(ctx)
+	if err != nil {
+		return err
 	}
-	return o.insertFunc(model)
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		}
+	}()
+	if err = task(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
+
+// newCuponServiceFromTx liga un servicio a una transacción abierta.
+func newCuponServiceFromTx(tx orm.TxOrmer) *CuponService {
+	return &CuponService{ormer: ormerAdapter{queryTable: func(name string) orm.QuerySeter { return tx.QueryTable(name) }, insert: tx.Insert}}
+}
+
+// inTx ejecuta fn en una transacción (o directamente si no hay runTx).
+func (s *CuponService) inTx(ctx context.Context, fn func(*CuponService) error) error {
+	if s.runTx == nil {
+		return fn(s)
+	}
+	return s.runTx(ctx, fn)
+}
+
+// ormerAdapter adapta un orm.Ormer / orm.TxOrmer a cuponOrmer.
+type ormerAdapter struct {
+	queryTable func(string) orm.QuerySeter
+	insert     func(interface{}) (int64, error)
+}
+
+func (a ormerAdapter) QueryTable(name string) cuponQuerySeter { return qsAdapter{a.queryTable(name)} }
+func (a ormerAdapter) Insert(m interface{}) (int64, error)    { return a.insert(m) }
+
+// qsAdapter adapta orm.QuerySeter a cuponQuerySeter.
+type qsAdapter struct{ qs orm.QuerySeter }
+
+func (q qsAdapter) Filter(field string, args ...interface{}) cuponQuerySeter {
+	return qsAdapter{q.qs.Filter(field, args...)}
+}
+func (q qsAdapter) One(container interface{}, cols ...string) error {
+	return q.qs.One(container, cols...)
+}
+func (q qsAdapter) Count() (int64, error) { return q.qs.Count() }
+func (q qsAdapter) RelatedSel(params ...interface{}) cuponQuerySeter {
+	return qsAdapter{q.qs.RelatedSel(params...)}
+}
+func (q qsAdapter) All(container interface{}, cols ...string) (int64, error) {
+	return q.qs.All(container, cols...)
+}
+func (q qsAdapter) ForUpdate() cuponQuerySeter { return qsAdapter{q.qs.ForUpdate()} }
 
 // ahoraBogota devuelve la hora actual en zona America/Bogota.
 func ahoraBogota() time.Time {
@@ -163,7 +146,9 @@ func soloDia(t time.Time) time.Time {
 }
 
 // ValidarCupon evalúa si un cupón es aplicable a la solicitud. Las reglas
-// incumplidas se informan con Aplicable=false y un Motivo (no es error).
+// incumplidas se informan con Aplicable=false y un Motivo (no es error). Con
+// PedidoId los ítems salen del detalle real del pedido (que debe pertenecer al
+// cliente: ErrPedidoNoEncontrado / ErrPedidoAjeno) y se ignora req.Items.
 func (s *CuponService) ValidarCupon(ctx context.Context, req *models.ValidarCuponRequest) (*models.ValidarCuponResponse, error) {
 	resp, _, err := s.validar(ctx, req)
 	return resp, err
@@ -176,17 +161,38 @@ func (s *CuponService) validar(_ context.Context, req *models.ValidarCuponReques
 		return nil, false, fmt.Errorf("ormer no configurado")
 	}
 
-	rechazo := func(motivo string, conflicto bool) (*models.ValidarCuponResponse, bool, error) {
-		return &models.ValidarCuponResponse{Aplicable: false, Motivo: stringPtr(motivo)}, conflicto, nil
+	items := req.Items
+	if req.PedidoId != nil {
+		pedido, err := s.cargarPedido(*req.PedidoId, false)
+		if err != nil {
+			return nil, false, err
+		}
+		if err = verificarPropietario(pedido, req.ClienteId); err != nil {
+			return nil, false, err
+		}
+		if items, err = s.itemsDePedido(pedido.PK_ID_PEDIDO); err != nil {
+			return nil, false, err
+		}
 	}
 
 	cupon := &models.Cupon{}
 	err := s.ormer.QueryTable("cupon").Filter("codigo", req.Codigo).One(cupon)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			return rechazo("Cupón no encontrado", false)
+			return &models.ValidarCuponResponse{Aplicable: false, Motivo: stringPtr("Cupón no encontrado")}, false, nil
 		}
 		return nil, false, fmt.Errorf("error al buscar cupón: %w", err)
+	}
+	return s.evaluar(cupon, req.ClienteId, items)
+}
+
+// evaluar aplica las reglas del cupón (estado, vigencia, topes de uso, cliente,
+// monto mínimo y productos) y calcula el descuento. Los conteos de uso se leen
+// con el ormer del servicio: dentro de RedimirCupon es el de la transacción con
+// la fila del cupón ya bloqueada.
+func (s *CuponService) evaluar(cupon *models.Cupon, clienteID int64, items []models.ValidarCuponItemRequest) (*models.ValidarCuponResponse, bool, error) {
+	rechazo := func(motivo string, conflicto bool) (*models.ValidarCuponResponse, bool, error) {
+		return &models.ValidarCuponResponse{Aplicable: false, Motivo: stringPtr(motivo)}, conflicto, nil
 	}
 
 	if !cupon.Activo {
@@ -210,7 +216,7 @@ func (s *CuponService) validar(_ context.Context, req *models.ValidarCuponReques
 	}
 
 	if cupon.LimitePorCliente != nil {
-		usosCliente, err := s.ormer.QueryTable("cupon_redencion").Filter("pk_id_cupon", cupon.PkIdCupon).Filter("pk_documento_cliente", req.ClienteId).Count()
+		usosCliente, err := s.ormer.QueryTable("cupon_redencion").Filter("pk_id_cupon", cupon.PkIdCupon).Filter("pk_documento_cliente", clienteID).Count()
 		if err != nil {
 			return nil, false, fmt.Errorf("error al contar usos del cliente: %w", err)
 		}
@@ -220,14 +226,14 @@ func (s *CuponService) validar(_ context.Context, req *models.ValidarCuponReques
 	}
 
 	if cupon.Scope == models.CuponScopeCliente && cupon.PkDocumentoCliente != nil {
-		if cupon.PkDocumentoCliente.PK_DOCUMENTO_CLIENTE != req.ClienteId {
+		if cupon.PkDocumentoCliente.PK_DOCUMENTO_CLIENTE != clienteID {
 			return rechazo("Cupón no válido para este cliente", false)
 		}
 	}
 
 	montoTotal := int64(0)
 	productosAplicables := []int64{}
-	for _, item := range req.Items {
+	for _, item := range items {
 		montoTotal += item.Precio * int64(item.Cantidad)
 
 		if s.esProductoAplicable(cupon, item.ProductoId) {
@@ -243,12 +249,54 @@ func (s *CuponService) validar(_ context.Context, req *models.ValidarCuponReques
 		return rechazo("No hay productos aplicables para este cupón", false)
 	}
 
-	montoDescuento := s.calcularDescuento(cupon, montoTotal, req.Items, productosAplicables)
+	montoDescuento := s.calcularDescuento(cupon, montoTotal, items, productosAplicables)
 
 	return &models.ValidarCuponResponse{
 		Aplicable:      true,
 		MontoDescuento: montoDescuento,
 	}, false, nil
+}
+
+// cargarPedido lee el pedido (sin relaciones); con lock lo bloquea con
+// SELECT ... FOR UPDATE (solo tiene efecto dentro de una transacción).
+func (s *CuponService) cargarPedido(pedidoID int64, lock bool) (*models.Pedido, error) {
+	qs := s.ormer.QueryTable("pedido").Filter("pk_id_pedido", pedidoID)
+	if lock {
+		qs = qs.ForUpdate()
+	}
+	pedido := &models.Pedido{}
+	if err := qs.One(pedido); err != nil {
+		if err == orm.ErrNoRows {
+			return nil, ErrPedidoNoEncontrado
+		}
+		return nil, fmt.Errorf("error al buscar pedido: %w", err)
+	}
+	return pedido, nil
+}
+
+// verificarPropietario exige que el pedido pertenezca al cliente.
+func verificarPropietario(pedido *models.Pedido, clienteID int64) error {
+	if pedido.PK_DOCUMENTO_CLIENTE == nil || pedido.PK_DOCUMENTO_CLIENTE.PK_DOCUMENTO_CLIENTE != clienteID {
+		return ErrPedidoAjeno
+	}
+	return nil
+}
+
+// bloquearPedido bloquea el pedido (FOR UPDATE) y exige que sea del cliente y
+// que siga abierto (ni TERMINADO ni CANCELADO). Debe llamarse dentro de la
+// transacción, antes de bloquear el cupón (orden único de bloqueo: pedido, cupón).
+func (s *CuponService) bloquearPedido(pedidoID, clienteID int64) (*models.Pedido, error) {
+	pedido, err := s.cargarPedido(pedidoID, true)
+	if err != nil {
+		return nil, err
+	}
+	if err = verificarPropietario(pedido, clienteID); err != nil {
+		return nil, err
+	}
+	if pedido.ESTADO_PEDIDO == models.EstadoPedidoTerminado || pedido.ESTADO_PEDIDO == models.EstadoPedidoCancelado {
+		return nil, ErrPedidoCerrado
+	}
+	return pedido, nil
 }
 
 // itemsDePedido arma los ítems (producto, cantidad, precio) del pedido a partir de detalle_pedido.
@@ -271,16 +319,14 @@ func (s *CuponService) itemsDePedido(pedidoId int64) ([]models.ValidarCuponItemR
 	return items, nil
 }
 
-// existe indica si hay al menos una fila de tabla con campo = valor.
-func (s *CuponService) existe(tabla, campo string, valor int64) (bool, error) {
-	n, err := s.ormer.QueryTable(tabla).Filter(campo, valor).Count()
-	return n > 0, err
-}
-
 // RedimirCupon registra la redención de un cupón para un cliente y un pedido
-// existentes. Los montos se calculan con el detalle del pedido. Errores:
-// ErrPedidoRequerido, ErrCuponNoEncontrado, ErrClienteNoEncontrado,
-// ErrPedidoNoEncontrado, ErrCuponConflicto (agotado / ya redimido) y
+// suyo. Todo ocurre en una transacción: se bloquea el pedido y luego la fila del
+// cupón (SELECT ... FOR UPDATE), se vuelven a comprobar activo, vigencia,
+// maxUsos y limitePorCliente con conteos bajo el bloqueo, se inserta la
+// redención y se confirma; dos redenciones simultáneas no pueden superar los
+// topes. Los montos se calculan con el detalle del pedido. Errores:
+// ErrPedidoRequerido, ErrPedidoNoEncontrado, ErrPedidoAjeno, ErrPedidoCerrado,
+// ErrCuponNoEncontrado, ErrCuponConflicto (agotado / ya redimido) y
 // ErrCuponNoAplicable (reglas incumplidas); cualquier otro es un error interno.
 func (s *CuponService) RedimirCupon(ctx context.Context, codigo string, req *models.RedimirCuponRequest) (*models.CuponRedencion, error) {
 	if s.ormer == nil {
@@ -290,31 +336,38 @@ func (s *CuponService) RedimirCupon(ctx context.Context, codigo string, req *mod
 		return nil, ErrPedidoRequerido
 	}
 
+	var redencion *models.CuponRedencion
+	err := s.inTx(ctx, func(ts *CuponService) error {
+		pedido, err := ts.bloquearPedido(*req.PedidoId, req.ClienteId)
+		if err != nil {
+			return err
+		}
+		items, err := ts.itemsDePedido(pedido.PK_ID_PEDIDO)
+		if err != nil {
+			return err
+		}
+		redencion, err = ts.redimirEn("codigo", codigo, req.ClienteId, pedido, items)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return redencion, nil
+}
+
+// redimirEn bloquea la fila del cupón (campo = valor), revalida bajo el
+// bloqueo y registra la redención. El pedido ya debe estar bloqueado y validado.
+// Un mismo pedido no puede redimir el mismo cupón dos veces (ErrCuponConflicto).
+func (s *CuponService) redimirEn(campo string, valor interface{}, clienteID int64, pedido *models.Pedido, items []models.ValidarCuponItemRequest) (*models.CuponRedencion, error) {
 	cupon := &models.Cupon{}
-	if err := s.ormer.QueryTable("cupon").Filter("codigo", codigo).One(cupon); err != nil {
+	if err := s.ormer.QueryTable("cupon").Filter(campo, valor).ForUpdate().One(cupon); err != nil {
 		if err == orm.ErrNoRows {
 			return nil, ErrCuponNoEncontrado
 		}
 		return nil, fmt.Errorf("error al buscar cupón: %w", err)
 	}
 
-	ok, err := s.existe("cliente", "pk_documento_cliente", req.ClienteId)
-	if err != nil {
-		return nil, fmt.Errorf("error al buscar cliente: %w", err)
-	}
-	if !ok {
-		return nil, ErrClienteNoEncontrado
-	}
-
-	ok, err = s.existe("pedido", "pk_id_pedido", *req.PedidoId)
-	if err != nil {
-		return nil, fmt.Errorf("error al buscar pedido: %w", err)
-	}
-	if !ok {
-		return nil, ErrPedidoNoEncontrado
-	}
-
-	yaRedimido, err := s.ormer.QueryTable("cupon_redencion").Filter("pk_id_cupon", cupon.PkIdCupon).Filter("pk_id_pedido", *req.PedidoId).Count()
+	yaRedimido, err := s.ormer.QueryTable("cupon_redencion").Filter("pk_id_cupon", cupon.PkIdCupon).Filter("pk_id_pedido", pedido.PK_ID_PEDIDO).Count()
 	if err != nil {
 		return nil, fmt.Errorf("error al verificar redenciones del pedido: %w", err)
 	}
@@ -322,17 +375,7 @@ func (s *CuponService) RedimirCupon(ctx context.Context, codigo string, req *mod
 		return nil, fmt.Errorf("%w: el cupón ya fue redimido para este pedido", ErrCuponConflicto)
 	}
 
-	items, err := s.itemsDePedido(*req.PedidoId)
-	if err != nil {
-		return nil, err
-	}
-
-	validacion, conflicto, err := s.validar(ctx, &models.ValidarCuponRequest{
-		PedidoId:  req.PedidoId,
-		ClienteId: req.ClienteId,
-		Codigo:    codigo,
-		Items:     items,
-	})
+	validacion, conflicto, err := s.evaluar(cupon, clienteID, items)
 	if err != nil {
 		return nil, fmt.Errorf("error al validar cupón: %w", err)
 	}
@@ -345,12 +388,14 @@ func (s *CuponService) RedimirCupon(ctx context.Context, codigo string, req *mod
 
 	redencion := &models.CuponRedencion{
 		PkIdCupon:          cupon,
-		PkDocumentoCliente: &models.Cliente{PK_DOCUMENTO_CLIENTE: req.ClienteId},
-		PkIdPedido:         &models.Pedido{PK_ID_PEDIDO: *req.PedidoId},
+		PkDocumentoCliente: &models.Cliente{PK_DOCUMENTO_CLIENTE: clienteID},
+		PkIdPedido:         &models.Pedido{PK_ID_PEDIDO: pedido.PK_ID_PEDIDO},
 		MontoDescuento:     validacion.MontoDescuento,
 	}
-
 	if _, err = s.ormer.Insert(redencion); err != nil {
+		if dberr.IsUnique(err) {
+			return nil, fmt.Errorf("%w: el cupón ya fue redimido para este pedido", ErrCuponConflicto)
+		}
 		return nil, fmt.Errorf("error al registrar redención: %w", err)
 	}
 

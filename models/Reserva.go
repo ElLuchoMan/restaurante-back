@@ -30,6 +30,24 @@ type RestauranteReservaResponse struct {
 	HoraApertura      string `json:"horaApertura" example:"08:00:00" description:"HH:MM:SS"`
 }
 
+// RestauranteConsultaResponse es el restaurante en la vista mínima de invitado.
+type RestauranteConsultaResponse struct {
+	RestauranteID     int64  `json:"restauranteId" example:"1"`
+	NombreRestaurante string `json:"nombreRestaurante" example:"Sazón Criolla"`
+}
+
+// ReservaConsultaResponse es la vista mínima de una reserva para invitados
+// (GET /reservas/consulta y POST /reservas sin sesión): nunca incluye nombre,
+// teléfono ni documento del contacto.
+type ReservaConsultaResponse struct {
+	ReservaID     int64                        `json:"reservaId" example:"12"`
+	FechaReserva  string                       `json:"fechaReserva" example:"31-01-2025" description:"DD-MM-YYYY"`
+	HoraReserva   string                       `json:"horaReserva" example:"18:30:00" description:"HH:MM:SS"`
+	Personas      int                          `json:"personas" example:"4"`
+	EstadoReserva *string                      `json:"estadoReserva,omitempty" enums:"PENDIENTE,CONFIRMADA,CANCELADA,CUMPLIDA" example:"PENDIENTE"`
+	Restaurante   *RestauranteConsultaResponse `json:"restaurante"`
+}
+
 // ReservaResponse es EXACTAMENTE lo que el API devuelve por cada reserva
 // (Reserva.MarshalJSON). Fechas de respuesta: fechaReserva DD-MM-YYYY,
 // horaReserva HH:MM:SS, createdAt/updatedAt DD-MM-YYYY HH:MM:SS (hora de Bogotá).

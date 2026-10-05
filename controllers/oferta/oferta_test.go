@@ -365,3 +365,39 @@ func TestDesasociar(t *testing.T) {
 	execErrOn("DELETE FROM oferta_producto", "boom")
 	call(t, http.MethodDelete, "/ofertas/productos?id=1&producto_id=2", "", desasoc, http.StatusInternalServerError)
 }
+
+// Solo el Administrador crea, modifica, desactiva y asocia productos a ofertas:
+// sin token 401, cualquier otro rol 403, sin tocar la base.
+func TestPermisosAdministrador(t *testing.T) {
+	defer resetFake()
+	defer asAdmin()
+	var execs []string
+	fakeExec = func(q string, _ []driver.NamedValue) (driver.Result, error) {
+		execs = append(execs, q)
+		return fakeResult{}, nil
+	}
+	handlers := []struct {
+		name, method string
+		f            func(c *OfertaController)
+	}{
+		{"Post", http.MethodPost, post},
+		{"Put", http.MethodPut, put},
+		{"Delete", http.MethodDelete, del},
+		{"AsociarProducto", http.MethodPost, asociar},
+		{"DesasociarProducto", http.MethodDelete, desasoc},
+	}
+	quienes := []struct {
+		doc    int64
+		rol    string
+		status int
+	}{{0, "", http.StatusUnauthorized}, {7, "Cliente", http.StatusForbidden}, {3, "Mesero", http.StatusForbidden}}
+	for _, h := range handlers {
+		for _, q := range quienes {
+			as(q.doc, q.rol)
+			call(t, h.method, "/ofertas?id=1", `{}`, h.f, q.status)
+		}
+	}
+	if len(execs) != 0 {
+		t.Fatalf("sin permisos no debe escribir: %v", execs)
+	}
+}

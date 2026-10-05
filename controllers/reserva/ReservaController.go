@@ -5,10 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	loginc "restaurante/controllers/login"
+	"restaurante/internal/clientip"
 	"restaurante/internal/httpx"
+	"restaurante/internal/ratelimit"
 	"restaurante/logging"
 	"restaurante/models"
 
@@ -27,7 +31,12 @@ const (
 	layoutHora  = "15:04:05"
 
 	msgEstadoInvalido = "El estado debe ser uno de: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA"
+	msgNoEncontrada   = "Reserva no encontrada"
+	msgSinToken       = "Token ausente o inválido"
 )
+
+// consultaRL limita por IP la consulta pública de invitado (anti-enumeración).
+var consultaRL = ratelimit.New(ratelimit.EnvInt("RESERVA_CONSULTA_MAX_REQ_PER_MIN", 10), time.Minute, 10000)
 
 var estadosPermitidos = map[models.EstadoReserva]bool{
 	models.EstadoReservaPendiente:  true,
@@ -65,12 +74,94 @@ func loadReserva(o orm.Ormer, id int64) (*models.Reserva, *apiError) {
 	var r models.Reserva
 	err := reservasConRelaciones(o).Filter("PK_ID_RESERVA", id).One(&r)
 	if errors.Is(err, orm.ErrNoRows) {
-		return nil, newErr(http.StatusNotFound, "Reserva no encontrada", err)
+		return nil, noEncontrada()
 	}
 	if err != nil {
 		return nil, newErr(http.StatusInternalServerError, "Error al obtener la reserva", err)
 	}
 	return &r, nil
+}
+
+// claimsOrFail devuelve los claims del access token o responde 401 y devuelve nil.
+func (c *ReservaController) claimsOrFail() *loginc.Claims {
+	claims := loginc.ClaimsFromContext(c.Ctx)
+	if claims == nil {
+		httpx.Fail(&c.Controller, http.StatusUnauthorized, msgSinToken, nil)
+	}
+	return claims
+}
+
+// poseeReserva indica si el documento del token coincide con el del contacto de
+// la reserva (documento de invitado o de cliente registrado).
+func poseeReserva(claims *loginc.Claims, r *models.Reserva) bool {
+	ct := r.PK_ID_CONTACTO
+	if ct == nil {
+		return false
+	}
+	if ct.DocumentoContacto != nil && *ct.DocumentoContacto == claims.Documento {
+		return true
+	}
+	return ct.PKDocumentoCliente != nil && ct.PKDocumentoCliente.PK_DOCUMENTO_CLIENTE == claims.Documento
+}
+
+// loadAutorizada carga la reserva y exige que el llamador sea trabajador o su
+// dueño; si no, responde igual que si no existiera (404) para no revelar ids.
+func loadAutorizada(o orm.Ormer, id int64, claims *loginc.Claims) (*models.Reserva, *apiError) {
+	r, apiErr := loadReserva(o, id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+	if !claims.IsStaff() && !poseeReserva(claims, r) {
+		return nil, noEncontrada()
+	}
+	return r, nil
+}
+
+// noEncontrada es el 404 uniforme (mismo cuerpo y causa) para "no existe" y
+// "no es suya", de modo que no sirva para enumerar reservas.
+func noEncontrada() *apiError {
+	return newErr(http.StatusNotFound, msgNoEncontrada, orm.ErrNoRows)
+}
+
+func forbidden(msg string) *apiError {
+	return newErr(http.StatusForbidden, msg, nil)
+}
+
+// checkClienteUpdate limita lo que un Cliente (no trabajador) puede cambiar en
+// su reserva: no puede reasignar el contacto a otro documento ni cambiar el
+// estado salvo para cancelar.
+func checkClienteUpdate(claims *loginc.Claims, in *models.ReservaUpdateRequest) *apiError {
+	if in.DocumentoContacto != nil && *in.DocumentoContacto != claims.Documento {
+		return forbidden("No puede asignar la reserva a otro documento")
+	}
+	if in.DocumentoCliente != nil && *in.DocumentoCliente != claims.Documento {
+		return forbidden("No puede asignar la reserva a otro documento")
+	}
+	if in.EstadoReserva != nil && *in.EstadoReserva != string(models.EstadoReservaCancelada) {
+		return forbidden("Solo puede cancelar su reserva; el estado lo gestiona el personal")
+	}
+	return nil
+}
+
+// checkCreateAutorizacion limita la creación pública: sin ser trabajador solo
+// se crea en estado PENDIENTE y asociada a un cliente registrado únicamente si
+// el token es de ese cliente.
+func checkCreateAutorizacion(claims *loginc.Claims, in *models.ReservaCreateRequest) *apiError {
+	if claims.IsStaff() {
+		return nil
+	}
+	if in.EstadoReserva != nil && *in.EstadoReserva != "" && *in.EstadoReserva != string(models.EstadoReservaPendiente) {
+		return forbidden("El estado inicial lo define el personal")
+	}
+	if in.DocumentoCliente != nil && in.DocumentoContacto == nil {
+		if claims == nil {
+			return newErr(http.StatusUnauthorized, msgSinToken, nil)
+		}
+		if claims.Documento != *in.DocumentoCliente {
+			return forbidden("No puede reservar a nombre de otro cliente")
+		}
+	}
+	return nil
 }
 
 func parseFecha(s string) (time.Time, *apiError) {
@@ -226,12 +317,15 @@ func (c *ReservaController) sendList(reservas []models.Reserva, vacio, lleno str
 
 // @Title GetAll
 // @Summary Obtener todas las reservas
-// @Description Devuelve todas las reservas con su contacto (nombreCompleto, teléfono, documentos; nunca contraseñas) y su restaurante ya cargados. Lista vacía: `data` es `[]`. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS, createdAt/updatedAt DD-MM-YYYY HH:MM:SS. Público (no exige token).
+// @Description Devuelve todas las reservas con su contacto (nombreCompleto, teléfono, documentos; nunca contraseñas) y su restaurante ya cargados. Lista vacía: `data` es `[]`. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS, createdAt/updatedAt DD-MM-YYYY HH:MM:SS. Solo personal (trabajadores/administrador): contiene datos personales de los contactos.
 // @Tags reservas
 // @Accept json
 // @Produce json
 // @Success 200 {object} models.ApiResponse{data=[]models.ReservaResponse} "Lista de reservas (puede ser [])"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "El token no es de un trabajador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /reservas [get]
 func (c *ReservaController) GetAll() {
 	o := orm.NewOrm()
@@ -245,23 +339,29 @@ func (c *ReservaController) GetAll() {
 
 // @Title GetById
 // @Summary Obtener reserva por ID
-// @Description Devuelve una reserva por ID con contacto y restaurante cargados. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS. Público (no exige token).
+// @Description Devuelve una reserva por ID con contacto y restaurante cargados. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS. Requiere token: el personal ve cualquier reserva; un Cliente solo las suyas (documento del token = documento del contacto); en otro caso responde 404. Los invitados usan `GET /reservas/consulta`.
 // @Tags reservas
 // @Accept json
 // @Produce json
 // @Param   id     query    int     true        "ID de la reserva (entero positivo)"
 // @Success 200 {object} models.ApiResponse{data=models.ReservaResponse} "Reserva encontrada"
 // @Failure 400 {object} models.ApiResponse "id ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Reserva no encontrada (o no pertenece al cliente del token)"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /reservas/search [get]
 func (c *ReservaController) GetById() {
+	claims := c.claimsOrFail()
+	if claims == nil {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'id' es inválido o está ausente", err)
 		return
 	}
-	reserva, apiErr := loadReserva(orm.NewOrm(), id)
+	reserva, apiErr := loadAutorizada(orm.NewOrm(), id, claims)
 	if apiErr != nil {
 		c.fail("reservas.getbyid.db_error", apiErr)
 		return
@@ -271,13 +371,15 @@ func (c *ReservaController) GetById() {
 
 // @Title Create
 // @Summary Crear una nueva reserva
-// @Description Crea una reserva. El contacto se resuelve con `documentoContacto` (invitado; si no existe se crea y exige `nombreCompleto`) o con `documentoCliente` (cliente registrado); si se envían ambos prevalece `documentoContacto`. `contactoId` NO se acepta. Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1, estadoReserva opcional (por defecto PENDIENTE). La respuesta devuelve la reserva con contacto y restaurante (sin contraseñas); fechas de respuesta en DD-MM-YYYY. Público (no exige token).
+// @Description Crea una reserva. El contacto se resuelve con `documentoContacto` (invitado; si no existe se crea y exige `nombreCompleto`) o con `documentoCliente` (cliente registrado); si se envían ambos prevalece `documentoContacto`. `contactoId` NO se acepta. Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1, estadoReserva opcional (por defecto PENDIENTE). Público: no exige token (invitado), pero si se envía uno se usa para autorizar. Sin ser trabajador: el estado solo puede ser PENDIENTE (403) y `documentoCliente` (sin `documentoContacto`) exige el token de ese mismo cliente (401/403). La respuesta es la reserva completa (contacto y restaurante, sin contraseñas) solo para el personal o el cliente dueño; para un invitado devuelve únicamente los datos mínimos (`ReservaConsultaResponse`: sin nombre, teléfono ni documento). Fechas de respuesta en DD-MM-YYYY.
 // @Tags reservas
 // @Accept json
 // @Produce json
 // @Param   body  body   models.ReservaCreateRequest true  "Datos de la reserva a crear"
-// @Success 201 {object} models.ApiResponse{data=models.ReservaResponse} "Reserva creada"
+// @Success 201 {object} models.ApiResponse{data=models.ReservaConsultaResponse} "Reserva creada (invitado: datos mínimos; personal o cliente dueño: models.ReservaResponse completa)"
 // @Failure 400 {object} models.ApiResponse "JSON, campos obligatorios, fecha, hora, personas, estado o contacto inválidos"
+// @Failure 401 {object} models.ApiResponse "documentoCliente sin token"
+// @Failure 403 {object} models.ApiResponse "Estado distinto de PENDIENTE o documentoCliente de otro cliente"
 // @Failure 404 {object} models.ApiResponse "Restaurante o cliente no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas [post]
@@ -285,6 +387,12 @@ func (c *ReservaController) Post() {
 	var in models.ReservaCreateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		c.fail("reservas.post.bad_json", newErr(http.StatusBadRequest, "Error al decodificar la solicitud", err))
+		return
+	}
+
+	claims := loginc.ClaimsFromContext(c.Ctx)
+	if apiErr := checkCreateAutorizacion(claims, &in); apiErr != nil {
+		c.fail("reservas.post.forbidden", apiErr)
 		return
 	}
 
@@ -325,7 +433,11 @@ func (c *ReservaController) Post() {
 		c.fail("reservas.post.reload_error", apiErr)
 		return
 	}
-	httpx.Send(&c.Controller, http.StatusCreated, "Reserva creada correctamente", creada)
+	if claims.IsStaff() || (claims != nil && poseeReserva(claims, creada)) {
+		httpx.Send(&c.Controller, http.StatusCreated, "Reserva creada correctamente", creada)
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusCreated, "Reserva creada correctamente", consultaView(creada))
 }
 
 // validateCreate valida el cuerpo de POST y arma la reserva (sin relaciones).
@@ -380,7 +492,7 @@ func validateCreate(in *models.ReservaCreateRequest) (*models.Reserva, *apiError
 
 // @Title Update
 // @Summary Actualizar una reserva (merge parcial)
-// @Description Actualiza solo los campos enviados; los ausentes se conservan. `indicaciones` y `updatedBy` admiten `null` (limpian el campo); `null` en cualquier otro campo devuelve 400. Para cambiar el contacto envíe `documentoContacto` o `documentoCliente` (se busca o crea el contacto; `contactoId` NO se acepta). Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1. La respuesta devuelve la reserva completa (fechas DD-MM-YYYY).
+// @Description Actualiza solo los campos enviados; los ausentes se conservan. `indicaciones` y `updatedBy` admiten `null` (limpian el campo); `null` en cualquier otro campo devuelve 400. Para cambiar el contacto envíe `documentoContacto` o `documentoCliente` (se busca o crea el contacto; `contactoId` NO se acepta). Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1. La respuesta devuelve la reserva completa (fechas DD-MM-YYYY). Requiere token: el personal modifica cualquier reserva; un Cliente solo las suyas (404 si no son suyas) y no puede reasignar el contacto a otro documento ni cambiar el estado salvo a CANCELADA (403). Los invitados no pueden modificar.
 // @Tags reservas
 // @Accept json
 // @Produce json
@@ -389,11 +501,16 @@ func validateCreate(in *models.ReservaCreateRequest) (*models.Reserva, *apiError
 // @Success 200 {object} models.ApiResponse{data=models.ReservaResponse} "Reserva actualizada"
 // @Failure 400 {object} models.ApiResponse "id, JSON, null no permitido, fecha, hora, personas, estado o contacto inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Reserva, restaurante o cliente no encontrado"
+// @Failure 403 {object} models.ApiResponse "Un Cliente intenta reasignar el contacto o cambiar el estado (salvo cancelar)"
+// @Failure 404 {object} models.ApiResponse "Reserva (o no pertenece al cliente del token), restaurante o cliente no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /reservas [put]
 func (c *ReservaController) Put() {
+	claims := c.claimsOrFail()
+	if claims == nil {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'id' es inválido o está ausente", err)
@@ -407,10 +524,16 @@ func (c *ReservaController) Put() {
 	}
 
 	o := orm.NewOrm()
-	reserva, apiErr := loadReserva(o, id)
+	reserva, apiErr := loadAutorizada(o, id, claims)
 	if apiErr != nil {
 		c.fail("reservas.put.load_error", apiErr)
 		return
+	}
+	if !claims.IsStaff() {
+		if apiErr := checkClienteUpdate(claims, &in); apiErr != nil {
+			c.fail("reservas.put.forbidden", apiErr)
+			return
+		}
 	}
 
 	cols, apiErr := applyUpdate(o, reserva, &in, body)
@@ -502,7 +625,7 @@ func applyUpdate(o orm.Ormer, reserva *models.Reserva, in *models.ReservaUpdateR
 
 // @Title GetByParameter
 // @Summary Obtener reservas por contacto y/o fecha
-// @Description Devuelve las reservas de un contacto en una fecha, todas las de un contacto, o todas las de una fecha. Sin ningún filtro devuelve todas. Cada reserva trae contacto y restaurante cargados. Filtro `fecha` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Público (no exige token).
+// @Description Devuelve las reservas de un contacto en una fecha, todas las de un contacto, o todas las de una fecha. Sin ningún filtro devuelve todas. Cada reserva trae contacto y restaurante cargados. Filtro `fecha` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Solo personal (sirve también para las reservas del día con `fecha`).
 // @Tags reservas
 // @Accept json
 // @Produce json
@@ -510,7 +633,10 @@ func applyUpdate(o orm.Ormer, reserva *models.Reserva, in *models.ReservaUpdateR
 // @Param fecha query string false "Fecha de la reserva, formato YYYY-MM-DD"
 // @Success 200 {object} models.ApiResponse{data=[]models.ReservaResponse} "Lista de reservas (puede ser [])"
 // @Failure 400 {object} models.ApiResponse "contactoId o fecha inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "El token no es de un trabajador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /reservas/parameter [get]
 func (c *ReservaController) GetByParameter() {
 	qs := reservasConRelaciones(orm.NewOrm())
@@ -553,7 +679,7 @@ func reservasPorFiltro(o orm.Ormer, expr string, documento int64, fecha string) 
 
 // @Title GetByDocumento
 // @Summary Obtener reservas por documento (cliente registrado o invitado)
-// @Description Busca reservas por documento: primero como cliente registrado y, si no hay resultados, como documento de contacto (invitado). Filtro `fecha` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Público (no exige token).
+// @Description Busca reservas por documento: primero como cliente registrado y, si no hay resultados, como documento de contacto (invitado). Filtro `fecha` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Solo personal.
 // @Tags reservas
 // @Accept json
 // @Produce json
@@ -561,7 +687,10 @@ func reservasPorFiltro(o orm.Ormer, expr string, documento int64, fecha string) 
 // @Param fecha query string false "Fecha de la reserva, formato YYYY-MM-DD"
 // @Success 200 {object} models.ApiResponse{data=[]models.ReservaResponse} "Lista de reservas (puede ser [])"
 // @Failure 400 {object} models.ApiResponse "documento o fecha inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "El token no es de un trabajador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /reservas/documento [get]
 func (c *ReservaController) GetByDocumento() {
 	documento, err := httpx.PositiveInt64Param(&c.Controller, "documento")
@@ -593,20 +722,27 @@ func (c *ReservaController) GetByDocumento() {
 
 // @Title GetByDocumentoCliente
 // @Summary Obtener reservas por documento de cliente registrado
-// @Description Devuelve las reservas de un cliente registrado, opcionalmente filtradas por fecha (YYYY-MM-DD). Fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Público (no exige token).
+// @Description Devuelve las reservas de un cliente registrado, opcionalmente filtradas por fecha (YYYY-MM-DD). Fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Requiere token. Un Cliente solo ve las suyas: el documento sale del token, `documentoCliente` es opcional y, si se envía y no coincide, responde 403. El personal debe enviar `documentoCliente` y puede consultar cualquiera.
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param documentoCliente query int true "Documento del cliente registrado (entero positivo)"
+// @Param documentoCliente query int false "Documento del cliente registrado (entero positivo). Obligatorio para el personal; opcional para un Cliente (debe coincidir con el token)"
 // @Param fecha query string false "Fecha de la reserva, formato YYYY-MM-DD"
 // @Success 200 {object} models.ApiResponse{data=[]models.ReservaResponse} "Lista de reservas (puede ser [])"
 // @Failure 400 {object} models.ApiResponse "documentoCliente o fecha inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "documentoCliente distinto del documento del token (Cliente)"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /reservas/cliente [get]
 func (c *ReservaController) GetByDocumentoCliente() {
-	documento, err := httpx.PositiveInt64Param(&c.Controller, "documentoCliente")
-	if err != nil {
-		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'documentoCliente' es requerido y debe ser un número válido", err)
+	claims := c.claimsOrFail()
+	if claims == nil {
+		return
+	}
+	documento, apiErr := documentoSolicitado(c, claims)
+	if apiErr != nil {
+		c.fail("reservas.cliente.documento_error", apiErr)
 		return
 	}
 	fecha, apiErr := optionalDate(c)
@@ -622,6 +758,22 @@ func (c *ReservaController) GetByDocumentoCliente() {
 	httpx.Send(&c.Controller, http.StatusOK, mensajeCliente(len(reservas)), httpx.List(reservas))
 }
 
+// documentoSolicitado resuelve el documento a consultar: el personal lo envía
+// siempre; un Cliente solo puede consultar el de su token.
+func documentoSolicitado(c *ReservaController, claims *loginc.Claims) (int64, *apiError) {
+	if !claims.IsStaff() && c.GetString("documentoCliente") == "" {
+		return claims.Documento, nil
+	}
+	documento, err := httpx.PositiveInt64Param(&c.Controller, "documentoCliente")
+	if err != nil {
+		return 0, newErr(http.StatusBadRequest, "El parámetro 'documentoCliente' es requerido y debe ser un número válido", err)
+	}
+	if !claims.IsStaff() && documento != claims.Documento {
+		return 0, forbidden("Solo puede consultar sus propias reservas")
+	}
+	return documento, nil
+}
+
 func mensajeCliente(n int) string {
 	if n == 0 {
 		return "No se encontraron reservas para este cliente"
@@ -631,7 +783,7 @@ func mensajeCliente(n int) string {
 
 // @Title Delete
 // @Summary Cancelar una reserva
-// @Description No borra la reserva: cambia su estado a CANCELADA y devuelve la reserva actualizada. Si ya estaba cancelada responde 409.
+// @Description No borra la reserva: cambia su estado a CANCELADA y devuelve la reserva actualizada. Si ya estaba cancelada responde 409. Requiere token: el personal cancela cualquier reserva; un Cliente solo las suyas (404 si no son suyas). Los invitados no pueden cancelar.
 // @Tags reservas
 // @Accept json
 // @Produce json
@@ -645,13 +797,17 @@ func mensajeCliente(n int) string {
 // @Security BearerAuth
 // @Router /reservas [delete]
 func (c *ReservaController) Delete() {
+	claims := c.claimsOrFail()
+	if claims == nil {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'id' es inválido o está ausente", err)
 		return
 	}
 	o := orm.NewOrm()
-	reserva, apiErr := loadReserva(o, id)
+	reserva, apiErr := loadAutorizada(o, id, claims)
 	if apiErr != nil {
 		c.fail("reservas.delete.load_error", apiErr)
 		return
@@ -667,4 +823,106 @@ func (c *ReservaController) Delete() {
 		return
 	}
 	httpx.Send(&c.Controller, http.StatusOK, "Reserva cancelada correctamente", reserva)
+}
+
+// consultaView arma la vista mínima de una reserva para invitados: sin nombre,
+// teléfono ni documento del contacto.
+func consultaView(r *models.Reserva) models.ReservaConsultaResponse {
+	full := r.Response()
+	out := models.ReservaConsultaResponse{
+		ReservaID:     full.ReservaID,
+		FechaReserva:  full.FechaReserva,
+		HoraReserva:   full.HoraReserva,
+		Personas:      full.Personas,
+		EstadoReserva: full.EstadoReserva,
+	}
+	if full.RestauranteID != nil {
+		out.Restaurante = &models.RestauranteConsultaResponse{
+			RestauranteID:     full.RestauranteID.RestauranteID,
+			NombreRestaurante: full.RestauranteID.NombreRestaurante,
+		}
+	}
+	return out
+}
+
+func soloDigitos(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, s)
+}
+
+// normalizaTelefono deja solo dígitos y quita el indicativo de Colombia (57).
+func normalizaTelefono(s string) string {
+	d := soloDigitos(s)
+	if len(d) > 10 && strings.HasPrefix(d, "57") {
+		return d[2:]
+	}
+	return d
+}
+
+// contactoCoincide indica si el valor dado es el teléfono o el documento
+// (de invitado o de cliente registrado) del contacto de la reserva.
+func contactoCoincide(ct *models.ReservaContacto, valor string) bool {
+	if ct == nil {
+		return false
+	}
+	tel := normalizaTelefono(valor)
+	if tel == "" {
+		return false
+	}
+	if ct.Telefono != nil && normalizaTelefono(*ct.Telefono) == tel {
+		return true
+	}
+	doc, err := strconv.ParseInt(soloDigitos(valor), 10, 64)
+	if err != nil {
+		return false
+	}
+	if ct.DocumentoContacto != nil && *ct.DocumentoContacto == doc {
+		return true
+	}
+	return ct.PKDocumentoCliente != nil && ct.PKDocumentoCliente.PK_DOCUMENTO_CLIENTE == doc
+}
+
+// @Title Consulta
+// @Summary Consultar una reserva como invitado
+// @Description Consulta pública (sin token) de una reserva con su id y el teléfono o documento del contacto. Devuelve solo los datos mínimos (reservaId, fecha, hora, personas, estado y restaurante): nunca nombre, teléfono ni documento. Para no permitir enumeración, un id inexistente y un contacto que no coincide responden el mismo 404. Límite por IP: 10 peticiones por minuto (`RESERVA_CONSULTA_MAX_REQ_PER_MIN`), 429 al excederlo. Fechas de respuesta en DD-MM-YYYY.
+// @Tags reservas
+// @Accept json
+// @Produce json
+// @Param reservaId query int true "ID de la reserva (entero positivo)" example(12)
+// @Param contacto query string true "Teléfono o documento del contacto de la reserva" example(3001234567)
+// @Success 200 {object} models.ApiResponse{data=models.ReservaConsultaResponse} "Reserva encontrada"
+// @Failure 400 {object} models.ApiResponse "reservaId o contacto ausentes o inválidos"
+// @Failure 404 {object} models.ApiResponse "Reserva no encontrada (id inexistente o contacto no coincide)"
+// @Failure 429 {object} models.ApiResponse "Demasiadas consultas desde esta IP"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Router /reservas/consulta [get]
+func (c *ReservaController) Consulta() {
+	if !consultaRL.Allow(clientip.FromRequest(c.Ctx.Request, clientip.HopsFromEnv())) {
+		httpx.Fail(&c.Controller, http.StatusTooManyRequests, "Demasiadas consultas, intente más tarde", nil)
+		return
+	}
+	id, err := httpx.PositiveInt64Param(&c.Controller, "reservaId")
+	if err != nil {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'reservaId' es inválido o está ausente", err)
+		return
+	}
+	contacto := strings.TrimSpace(c.GetString("contacto"))
+	if normalizaTelefono(contacto) == "" {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'contacto' (teléfono o documento) es requerido", nil)
+		return
+	}
+	reserva, apiErr := loadReserva(orm.NewOrm(), id)
+	if apiErr != nil {
+		c.fail("reservas.consulta.db_error", apiErr)
+		return
+	}
+	if !contactoCoincide(reserva.PK_ID_CONTACTO, contacto) {
+		c.fail("reservas.consulta.no_coincide", noEncontrada())
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusOK, "Reserva encontrada", consultaView(reserva))
 }

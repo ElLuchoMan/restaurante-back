@@ -115,7 +115,7 @@ func TestClientIP_RemoteAddrWithoutPort(t *testing.T) {
 		{
 			name:       "X-Forwarded-For present",
 			remoteAddr: "10.0.0.1:8080",
-			xForwarded: "203.0.113.1, 198.51.100.1",
+			xForwarded: "6.6.6.6, 203.0.113.1, 198.51.100.1",
 			expected:   "203.0.113.1",
 		},
 	}
@@ -145,12 +145,12 @@ func TestAllowLogin_RateLimitReset(t *testing.T) {
 	req.RemoteAddr = "10.0.0.1:12345"
 
 	for i := 0; i < loginMaxReq; i++ {
-		if !allowLogin(req) {
+		if ok, _ := allowLogin(req); !ok {
 			t.Fatalf("Expected request %d to be allowed", i+1)
 		}
 	}
 
-	if allowLogin(req) {
+	if ok, _ := allowLogin(req); ok {
 		t.Error("Expected request to be rate limited")
 	}
 }

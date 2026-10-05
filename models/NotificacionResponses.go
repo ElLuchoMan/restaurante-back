@@ -11,6 +11,19 @@ type ValidarCuponResponse struct {
 	Motivo         *string `json:"motivo,omitempty"`
 }
 
+// DescuentoAplicadoResponse es el `data` de POST /descuentos/pedidos: el
+// descuento registrado más los importes recalculados por el servidor.
+// `total` es lo que debe pagarse (subtotal menos descuento, nunca negativo);
+// si el pedido tiene pago, `pagoId` indica el pago cuyo `monto` se actualizó
+// a ese total.
+type DescuentoAplicadoResponse struct {
+	Descuento      *PedidoDescuentoAplicado `json:"descuento"`
+	Subtotal       int64                    `json:"subtotal"`
+	MontoDescuento int64                    `json:"montoDescuento"`
+	Total          int64                    `json:"total"`
+	PagoId         *int64                   `json:"pagoId,omitempty"`
+}
+
 type OfertaActivaResponse struct {
 	OfertaId       int64         `json:"ofertaId"`
 	Titulo         string        `json:"titulo"`

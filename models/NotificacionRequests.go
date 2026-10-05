@@ -65,10 +65,15 @@ type CrearCuponRequest struct {
 	PkDocumentoCliente *int64        `json:"documentoCliente,omitempty"`
 }
 
+// ValidarCuponRequest es el cuerpo de POST /cupones/validar. Un Cliente no envía
+// `clienteId` (sale del token; un valor distinto responde 403); un trabajador
+// debe indicarlo. Con `pedidoId` el servidor ignora `items` y evalúa el
+// detalle real del pedido (que debe pertenecer al cliente); sin `pedidoId`
+// `items` es obligatorio y el resultado es solo una vista previa.
 type ValidarCuponRequest struct {
 	PedidoId  *int64                    `json:"pedidoId,omitempty"`
-	ClienteId int64                     `json:"clienteId" valid:"required"`
-	Items     []ValidarCuponItemRequest `json:"items" valid:"required"`
+	ClienteId int64                     `json:"clienteId,omitempty"`
+	Items     []ValidarCuponItemRequest `json:"items,omitempty"`
 	Codigo    string                    `json:"codigo" valid:"required"`
 }
 
@@ -78,8 +83,12 @@ type ValidarCuponItemRequest struct {
 	Precio     int64 `json:"precio" valid:"required,min(0)"`
 }
 
+// RedimirCuponRequest es el cuerpo de POST /cupones/{codigo}/redimir. Un Cliente
+// no envía `clienteId` (sale del token; un valor distinto responde 403); un
+// trabajador debe indicarlo. `pedidoId` es obligatorio y el pedido debe
+// pertenecer al cliente.
 type RedimirCuponRequest struct {
-	ClienteId int64  `json:"clienteId" valid:"required"`
+	ClienteId int64  `json:"clienteId,omitempty"`
 	PedidoId  *int64 `json:"pedidoId,omitempty"`
 }
 
@@ -99,11 +108,15 @@ type AsociarProductoOfertaRequest struct {
 	ProductoId int64 `json:"productoId" valid:"required"`
 }
 
+// AplicarDescuentoRequest es el cuerpo de POST /descuentos/pedidos. El monto del
+// descuento NUNCA lo informa el cliente: lo calcula el servidor. Un Cliente no
+// envía `clienteId` (sale del token; un valor distinto responde 403); un
+// trabajador debe indicarlo.
 type AplicarDescuentoRequest struct {
-	PkIdCupon      *int64          `json:"cuponId,omitempty"`
-	PkIdOferta     *int64          `json:"ofertaId,omitempty"`
-	MontoDescuento int64           `json:"montoDescuento" valid:"required,min(0)"`
-	Detalle        json.RawMessage `json:"detalle,omitempty" swaggertype:"object"`
+	PkIdCupon  *int64          `json:"cuponId,omitempty"`
+	PkIdOferta *int64          `json:"ofertaId,omitempty"`
+	ClienteId  int64           `json:"clienteId,omitempty"`
+	Detalle    json.RawMessage `json:"detalle,omitempty" swaggertype:"object"`
 }
 
 type TipoRemitente string

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"restaurante/internal/authz"
 	"restaurante/internal/dberr"
 	"restaurante/internal/httpx"
 	"restaurante/logging"
@@ -207,7 +208,7 @@ func (c *OfertaController) validar(op string, o *models.Oferta) bool {
 
 // @Title Post
 // @Summary Crear oferta
-// @Description Crea una oferta activa. Errores de validación de negocio (tipo, fechas, horas, porcentaje 1-100, días válidos, título, restauranteId) responden 422; un `restauranteId` inexistente responde 400 y un título repetido 409. Fechas YYYY-MM-DD, horas HH:MM o HH:MM:SS; `diasSemana` vacío significa todos los días. Devuelve la oferta con `restauranteId` como objeto restaurante.
+// @Description Solo Administrador. Crea una oferta activa. Errores de validación de negocio (tipo, fechas, horas, porcentaje 1-100, días válidos, título, restauranteId) responden 422; un `restauranteId` inexistente responde 400 y un título repetido 409. Fechas YYYY-MM-DD, horas HH:MM o HH:MM:SS; `diasSemana` vacío significa todos los días. Devuelve la oferta con `restauranteId` como objeto restaurante.
 // @Tags ofertas
 // @Accept json
 // @Produce json
@@ -215,12 +216,16 @@ func (c *OfertaController) validar(op string, o *models.Oferta) bool {
 // @Success 201 {object} models.ApiResponse{data=models.OfertaDoc} "Oferta creada"
 // @Failure 400 {object} models.ApiResponse "JSON inválido o restaurante inexistente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 409 {object} models.ApiResponse "Ya existe una oferta con ese título"
 // @Failure 422 {object} models.ApiResponse "Error de validación"
 // @Failure 500 {object} models.ApiResponse "Error al crear la oferta"
 // @Security BearerAuth
 // @Router /ofertas [post]
 func (c *OfertaController) Post() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	var req models.CrearOfertaRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.post.bad_json", err, nil)
@@ -360,7 +365,7 @@ func (c *OfertaController) aplicar(body []byte, req *models.ActualizarOfertaRequ
 
 // @Title Put
 // @Summary Actualizar oferta
-// @Description Actualización parcial (merge): los campos ausentes se conservan (cuerpo `models.ActualizarOfertaRequest`). `horaInicio` y `horaFin` admiten null explícito para quitar el horario (deben limpiarse juntos); null en cualquier otro campo responde 400. `diasSemana: []` significa todos los días. `activo` permite reactivar una oferta desactivada. Un cuerpo sin cambios responde 200. Validación de negocio incumplida: 422.
+// @Description Solo Administrador. Actualización parcial (merge): los campos ausentes se conservan (cuerpo `models.ActualizarOfertaRequest`). `horaInicio` y `horaFin` admiten null explícito para quitar el horario (deben limpiarse juntos); null en cualquier otro campo responde 400. `diasSemana: []` significa todos los días. `activo` permite reactivar una oferta desactivada. Un cuerpo sin cambios responde 200. Validación de negocio incumplida: 422.
 // @Tags ofertas
 // @Accept json
 // @Produce json
@@ -369,6 +374,7 @@ func (c *OfertaController) aplicar(body []byte, req *models.ActualizarOfertaRequ
 // @Success 200 {object} models.ApiResponse{data=models.OfertaDoc} "Oferta actualizada"
 // @Failure 400 {object} models.ApiResponse "id o JSON inválido, null en campo no anulable, restaurante inexistente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Oferta no encontrada"
 // @Failure 409 {object} models.ApiResponse "Ya existe una oferta con ese título"
 // @Failure 422 {object} models.ApiResponse "Error de validación"
@@ -376,6 +382,9 @@ func (c *OfertaController) aplicar(body []byte, req *models.ActualizarOfertaRequ
 // @Security BearerAuth
 // @Router /ofertas [put]
 func (c *OfertaController) Put() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	oferta, ok := c.load("put")
 	if !ok {
 		return
@@ -406,7 +415,7 @@ func (c *OfertaController) Put() {
 
 // @Title Delete
 // @Summary Desactivar oferta
-// @Description No elimina la fila: desactiva la oferta (`activo = false`; se reactiva con PUT `activo: true`). Si ya estaba desactivada responde 400.
+// @Description Solo Administrador. No elimina la fila: desactiva la oferta (`activo = false`; se reactiva con PUT `activo: true`). Si ya estaba desactivada responde 400.
 // @Tags ofertas
 // @Accept json
 // @Produce json
@@ -414,11 +423,15 @@ func (c *OfertaController) Put() {
 // @Success 200 {object} models.ApiResponse "Oferta desactivada"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o oferta ya desactivada"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Oferta no encontrada"
 // @Failure 500 {object} models.ApiResponse "Error al desactivar la oferta"
 // @Security BearerAuth
 // @Router /ofertas [delete]
 func (c *OfertaController) Delete() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	oferta, ok := c.load("delete")
 	if !ok {
 		return
@@ -498,7 +511,7 @@ func (c *OfertaController) ObtenerOfertasActivas() {
 
 // @Title AsociarProducto
 // @Summary Asociar producto a oferta
-// @Description Asocia un producto existente a una oferta existente. 404 si no existe la oferta o el producto; 409 si ya estaban asociados. `data` devuelve `{ofertaId, productoId}`.
+// @Description Solo Administrador. Asocia un producto existente a una oferta existente. 404 si no existe la oferta o el producto; 409 si ya estaban asociados. `data` devuelve `{ofertaId, productoId}`.
 // @Tags ofertas
 // @Accept json
 // @Produce json
@@ -507,12 +520,16 @@ func (c *OfertaController) ObtenerOfertasActivas() {
 // @Success 201 {object} models.ApiResponse{data=models.OfertaProductoAsociacionDoc} "Producto asociado"
 // @Failure 400 {object} models.ApiResponse "id o JSON inválido, productoId no positivo"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Oferta o producto no encontrado"
 // @Failure 409 {object} models.ApiResponse "El producto ya está asociado a la oferta"
 // @Failure 500 {object} models.ApiResponse "Error al asociar el producto"
 // @Security BearerAuth
 // @Router /ofertas/productos [post]
 func (c *OfertaController) AsociarProducto() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	ofertaID, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.asociar.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
@@ -564,7 +581,7 @@ func (c *OfertaController) assocReadError(what, notFound string, id int64, err e
 
 // @Title DesasociarProducto
 // @Summary Desasociar producto de oferta
-// @Description Elimina la asociación entre la oferta y el producto. 404 si la asociación no existe.
+// @Description Solo Administrador. Elimina la asociación entre la oferta y el producto. 404 si la asociación no existe.
 // @Tags ofertas
 // @Accept json
 // @Produce json
@@ -573,11 +590,15 @@ func (c *OfertaController) assocReadError(what, notFound string, id int64, err e
 // @Success 200 {object} models.ApiResponse "Producto desasociado"
 // @Failure 400 {object} models.ApiResponse "id o producto_id inválido o ausente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Asociación no encontrada"
 // @Failure 500 {object} models.ApiResponse "Error al desasociar el producto"
 // @Security BearerAuth
 // @Router /ofertas/productos [delete]
 func (c *OfertaController) DesasociarProducto() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	ofertaID, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.desasociar.bad_oferta_id", err, map[string]interface{}{"id": c.GetString("id")})

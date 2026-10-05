@@ -131,6 +131,15 @@ type PedidoDescuentoDoc struct {
 	CreatedAt         string        `json:"createdAt" example:"31-01-2025 18:30:00"`
 }
 
+// DescuentoAplicadoDoc es la forma JSON de DescuentoAplicadoResponse.
+type DescuentoAplicadoDoc struct {
+	Descuento      PedidoDescuentoDoc `json:"descuento"`
+	Subtotal       int64              `json:"subtotal" example:"50000"`
+	MontoDescuento int64              `json:"montoDescuento" example:"5000"`
+	Total          int64              `json:"total" example:"45000"`
+	PagoId         *int64             `json:"pagoId,omitempty" example:"4"`
+}
+
 // OfertaPaginadaDoc, CuponPaginadoDoc y CuponRedencionPaginadaDoc documentan la
 // forma de PaginatedResponse para cada listado.
 type OfertaPaginadaDoc struct {

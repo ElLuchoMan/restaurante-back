@@ -13,21 +13,33 @@ func pedidoVals() map[string]driver.Value {
 	return map[string]driver.Value{
 		"pk_id_pedido": int64(9), "fecha": time.Date(2025, 1, 31, 0, 0, 0, 0, time.UTC), "hora": time.Date(2000, 1, 1, 18, 30, 0, 0, time.UTC),
 		"delivery": false, "estado_pedido": "INICIADO", "updated_at": time.Date(2025, 1, 31, 18, 30, 0, 0, time.UTC),
+		"pk_documento_cliente": int64(7),
 	}
 }
 
 func cuponVals() map[string]driver.Value {
 	return map[string]driver.Value{
 		"pk_id_cupon": int64(1), "codigo": "VERANO10", "scope": "GLOBAL", "tipo_descuento": "PORCENTAJE", "valor_descuento": int64(10),
-		"fecha_inicio": time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), "fecha_fin": time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC), "activo": true,
+		"fecha_inicio": time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), "fecha_fin": time.Date(2999, 12, 31, 0, 0, 0, 0, time.UTC), "activo": true,
 	}
 }
 
 func ofertaVals() map[string]driver.Value {
 	return map[string]driver.Value{
 		"pk_id_oferta": int64(2), "titulo": "Martes", "tipo_descuento": "MONTO", "valor_descuento": int64(500),
-		"fecha_inicio": time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), "fecha_fin": time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC), "dias_semana": "{Martes}", "activo": true,
+		"fecha_inicio": time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), "fecha_fin": time.Date(2999, 12, 31, 0, 0, 0, 0, time.UTC), "dias_semana": "", "activo": true,
 	}
+}
+
+func with(base map[string]driver.Value, kv ...interface{}) map[string]driver.Value {
+	out := map[string]driver.Value{}
+	for k, v := range base {
+		out[k] = v
+	}
+	for i := 0; i < len(kv); i += 2 {
+		out[kv[i].(string)] = kv[i+1]
+	}
+	return out
 }
 
 // setup: pedido 9 existente, cupón 1 y oferta 2 existentes, sin descuentos aplicados.
@@ -36,6 +48,8 @@ func setup() *db {
 	d.rows["pedido"] = []map[string]driver.Value{pedidoVals()}
 	d.rows["cupon"] = []map[string]driver.Value{cuponVals()}
 	d.rows["oferta"] = []map[string]driver.Value{ofertaVals()}
+	d.rows["oferta_producto"] = []map[string]driver.Value{{"pk_id_oferta": int64(2), "pk_id_producto": int64(3)}}
+	d.rows["detalle_pedido"] = []map[string]driver.Value{{"pk_id_producto": int64(3), "cantidad": int64(2), "precio": int64(5000)}}
 	return d
 }
 
@@ -74,6 +88,7 @@ var (
 
 func TestGetAll(t *testing.T) {
 	defer resetFake()
+	defer asAdmin()
 	for _, q := range []string{"", "?pedido_id=x", "?pedido_id=0"} {
 		call(t, http.MethodGet, "/descuentos/pedidos"+q, "", getAll, http.StatusBadRequest)
 	}
@@ -105,44 +120,114 @@ func TestGetAll(t *testing.T) {
 	call(t, http.MethodGet, "/descuentos/pedidos?pedido_id=9", "", getAll, http.StatusInternalServerError)
 }
 
+func TestGetAll_Permisos(t *testing.T) {
+	defer resetFake()
+	defer asAdmin()
+	setup()
+	const url = "/descuentos/pedidos?pedido_id=9"
+	as(7, "Cliente") // dueño del pedido
+	call(t, http.MethodGet, url, "", getAll, http.StatusOK)
+	as(8, "Cliente") // otro cliente
+	call(t, http.MethodGet, url, "", getAll, http.StatusForbidden)
+	as(3, "Mesero") // trabajador: cualquier pedido
+	call(t, http.MethodGet, url, "", getAll, http.StatusOK)
+	// Pedido sin cliente: un cliente no lo ve.
+	d := setup()
+	d.rows["pedido"][0]["pk_documento_cliente"] = nil
+	as(7, "Cliente")
+	call(t, http.MethodGet, url, "", getAll, http.StatusForbidden)
+	actor.doc = 0
+	call(t, http.MethodGet, url, "", getAll, http.StatusUnauthorized)
+}
+
 func TestPost(t *testing.T) {
 	defer resetFake()
+	defer asAdmin()
 	for _, q := range []string{"", "?pedido_id=x", "?pedido_id=0"} {
-		call(t, http.MethodPost, "/descuentos/pedidos"+q, `{"cuponId":1}`, post, http.StatusBadRequest)
+		call(t, http.MethodPost, "/descuentos/pedidos"+q, `{"clienteId":7,"cuponId":1}`, post, http.StatusBadRequest)
 	}
 	url := "/descuentos/pedidos?pedido_id=9"
 	call(t, http.MethodPost, url, "", post, http.StatusBadRequest)
 	call(t, http.MethodPost, url, "nojson", post, http.StatusBadRequest)
-	call(t, http.MethodPost, url, `{"cuponId":0}`, post, http.StatusBadRequest)
-	call(t, http.MethodPost, url, `{"ofertaId":-1}`, post, http.StatusBadRequest)
-	for _, b := range []string{`{}`, `{"cuponId":1,"ofertaId":2}`, `{"cuponId":1,"montoDescuento":-5}`, `{"cuponId":1,"detalle":[1]}`, `{"cuponId":1,"detalle":"x"}`} {
+	call(t, http.MethodPost, url, `{"clienteId":0,"cuponId":1}`, post, http.StatusBadRequest) // trabajador sin clienteId
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":0}`, post, http.StatusBadRequest)
+	call(t, http.MethodPost, url, `{"clienteId":7,"ofertaId":-1}`, post, http.StatusBadRequest)
+	for _, b := range []string{`{"clienteId":7}`, `{"clienteId":7,"cuponId":1,"ofertaId":2}`, `{"clienteId":7,"cuponId":1,"detalle":[1]}`, `{"clienteId":7,"cuponId":1,"detalle":"x"}`} {
 		call(t, http.MethodPost, url, b, post, http.StatusUnprocessableEntity)
 	}
 
 	d := newDB().install()
-	call(t, http.MethodPost, url, `{"cuponId":1,"montoDescuento":1000}`, post, http.StatusNotFound) // pedido
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusNotFound) // pedido
 	d = setup()
 	d.rows["cupon"] = nil
-	call(t, http.MethodPost, url, `{"cuponId":1,"montoDescuento":1000}`, post, http.StatusNotFound)
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusNotFound)
 	d.rows["oferta"] = nil
-	call(t, http.MethodPost, url, `{"ofertaId":2,"montoDescuento":1000}`, post, http.StatusNotFound)
+	call(t, http.MethodPost, url, `{"clienteId":7,"ofertaId":2}`, post, http.StatusNotFound)
 
+	// Éxito: el monto lo calcula el servidor (10 % de 2 x 5000), aunque el cliente envíe otro.
 	d = setup()
-	b := call(t, http.MethodPost, url, `{"cuponId":1,"montoDescuento":1000,"detalle":{"nota":"x"}}`, post, http.StatusCreated)
-	contains(t, b, `"pedidoDescuentoId":7`, `"montoDescuento":1000`, `"tipo":"cupon"`, `"nota":"x"`, `"codigo":"VERANO10"`)
-	b = call(t, http.MethodPost, url, `{"ofertaId":2,"montoDescuento":500}`, post, http.StatusCreated)
-	contains(t, b, `"tipo":"oferta"`, `"titulo":"Martes"`)
+	b := call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1,"montoDescuento":99999,"detalle":{"nota":"x"}}`, post, http.StatusCreated)
+	contains(t, b, `"pedidoDescuentoId":7`, `"montoDescuento":1000`, `"subtotal":10000`, `"total":9000`, `"tipo":"cupon"`, `"nota":"x"`, `"codigo":"VERANO10"`)
+	if strings.Contains(b, "99999") {
+		t.Fatalf("no debe usar el monto del cliente: %s", b)
+	}
+	b = call(t, http.MethodPost, url, `{"clienteId":7,"ofertaId":2}`, post, http.StatusCreated)
+	contains(t, b, `"tipo":"oferta"`, `"titulo":"Martes"`, `"montoDescuento":500`, `"total":9500`)
 
+	// Conflictos y no aplicables.
 	d.counts["pedido_descuento_aplicado"] = 1
-	call(t, http.MethodPost, url, `{"cuponId":1,"montoDescuento":1000}`, post, http.StatusConflict)
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusConflict)
 	d.counts["pedido_descuento_aplicado"] = 0
+	d.counts["cupon_redencion"] = 1
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusConflict)
+	d.counts["cupon_redencion"] = 0
+	d.rows["cupon"] = []map[string]driver.Value{with(cuponVals(), "activo", false)}
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusUnprocessableEntity)
+	d.rows["oferta"] = []map[string]driver.Value{with(ofertaVals(), "activo", false)}
+	call(t, http.MethodPost, url, `{"clienteId":7,"ofertaId":2}`, post, http.StatusUnprocessableEntity)
+	d.rows["cupon"] = []map[string]driver.Value{cuponVals()}
+	for estado, status := range map[string]int{"CANCELADO": http.StatusConflict, "TERMINADO": http.StatusConflict} {
+		d.rows["pedido"][0]["estado_pedido"] = estado
+		call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, status)
+	}
+	d.rows["pedido"][0]["estado_pedido"] = "INICIADO"
+
+	// Pedido ya pagado: 409.
+	d.rows["pedido"][0]["pk_id_pago"] = int64(4)
+	d.rows["pago"] = []map[string]driver.Value{{"pk_id_pago": int64(4), "monto": int64(10000), "estado_pago": "PAGADO"}}
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusConflict)
+	d.rows["pago"][0]["estado_pago"] = "PENDIENTE"
+	b = call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusCreated)
+	contains(t, b, `"pagoId":4`, `"total":9000`)
 
 	execErrOn("INSERT INTO", "duplicate key value (23505)")
-	call(t, http.MethodPost, url, `{"cuponId":1,"montoDescuento":1000}`, post, http.StatusConflict)
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusConflict)
 	resetFake()
 	d = setup()
 	execErrOn("INSERT INTO", "boom")
-	call(t, http.MethodPost, url, `{"cuponId":1,"montoDescuento":1000}`, post, http.StatusInternalServerError)
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusInternalServerError)
 	d.errs["pedido"] = errors.New("boom")
-	call(t, http.MethodPost, url, `{"cuponId":1,"montoDescuento":1000}`, post, http.StatusInternalServerError)
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusInternalServerError)
+}
+
+func TestPost_ClienteDelToken(t *testing.T) {
+	defer resetFake()
+	defer asAdmin()
+	setup()
+	const url = "/descuentos/pedidos?pedido_id=9"
+	as(7, "Cliente")
+	// Sin clienteId: manda el documento del token.
+	call(t, http.MethodPost, url, `{"cuponId":1}`, post, http.StatusCreated)
+	// clienteId distinto al del token: 403, aunque sea el dueño real del pedido.
+	call(t, http.MethodPost, url, `{"clienteId":8,"cuponId":1}`, post, http.StatusForbidden)
+	// Pedido de otro cliente: 403.
+	as(8, "Cliente")
+	call(t, http.MethodPost, url, `{"cuponId":1}`, post, http.StatusForbidden)
+	// Un trabajador puede actuar en nombre del dueño, pero no de otro cliente.
+	as(3, "Mesero")
+	call(t, http.MethodPost, url, `{"clienteId":7,"cuponId":1}`, post, http.StatusCreated)
+	call(t, http.MethodPost, url, `{"clienteId":8,"cuponId":1}`, post, http.StatusForbidden)
+	// Sin token: 401.
+	actor.doc = 0
+	call(t, http.MethodPost, url, `{"cuponId":1}`, post, http.StatusUnauthorized)
 }
