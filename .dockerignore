@@ -7,3 +7,4 @@ coverage*
 docs/*.md
 tools
 node_modules
+swagger/*.map

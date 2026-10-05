@@ -1,6 +1,10 @@
 package routers
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	ch "restaurante/controllers/cambioshorario"
 	cat "restaurante/controllers/categoria"
 	cli "restaurante/controllers/cliente"
@@ -41,7 +45,27 @@ const (
 	httpMethodDelete = "DELETE"
 )
 
+// registerSwaggerAssets sirve desde disco los archivos estaticos del Swagger UI (css, js, iconos).
+// Beego los atiende antes que el router, asi que no dependen del sistema de archivos
+// embebido de http-swagger (en Render devolvia 404 para estos recursos).
+// index.html y doc.json los sigue sirviendo http-swagger.
+func registerSwaggerAssets(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || name == "index.html" || strings.HasSuffix(name, ".map") || strings.HasSuffix(name, ".json") {
+			continue
+		}
+		beego.SetStaticPath("/swagger/"+name, filepath.Join(dir, name))
+	}
+}
+
 func init() {
+
+	registerSwaggerAssets("swagger")
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowAllOrigins:  true,

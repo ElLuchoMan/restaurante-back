@@ -12,6 +12,7 @@ WORKDIR /app
 COPY --from=build /out/restaurante-back /app/restaurante-back
 COPY conf ./conf
 COPY static ./static
+COPY swagger ./swagger
 USER app
 ENV BEEGO_RUNMODE=prod TZ=America/Bogota
 EXPOSE 8080
