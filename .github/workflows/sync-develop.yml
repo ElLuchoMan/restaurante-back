@@ -1,0 +1,87 @@
+name: Sync develop con master
+
+# Cuando master recibe cambios (merge de un PR develop -> master), lleva master de vuelta
+# a develop para que ambas ramas queden niveladas (el "Merge branch 'master' into develop"
+# que antes se hacia a mano).
+#   1. Intenta el merge directo en develop.
+#   2. Si hay conflictos o develop esta protegida, abre un PR master -> develop.
+# Requisito para el paso 2: Settings > Actions > General > "Allow GitHub Actions to create
+# and approve pull requests".
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-develop
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: master -> develop
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Comprobar si develop esta atrasada
+        id: check
+        run: |
+          git fetch origin develop master
+          if git merge-base --is-ancestor origin/master origin/develop; then
+            echo "behind=false" >> "$GITHUB_OUTPUT"
+            echo "develop ya contiene master; nada que hacer."
+          else
+            echo "behind=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge directo master -> develop
+        id: merge
+        if: steps.check.outputs.behind == 'true'
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B develop origin/develop
+          git merge --no-ff origin/master -m "Merge branch 'master' into develop"
+          git push origin develop
+
+      - name: Abrir PR master -> develop (si el merge directo no fue posible)
+        if: steps.check.outputs.behind == 'true' && steps.merge.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh pr list --base develop --head master --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            echo "Ya existe el PR #$existing (master -> develop)."
+            exit 0
+          fi
+          gh pr create --base develop --head master \
+            --title "chore: sincronizar develop con master" \
+            --body "Backport automatico: lleva a develop lo que se acaba de mergear en master.
+
+          ## Título del cambio
+
+          Sincronizar develop con master.
+
+          ## Descripción del cambio
+
+          Backport automatico tras un merge a master (el merge directo no fue posible: conflictos o rama protegida).
+
+          ## Type
+
+          - [x] Fix
+
+          ## Checklist
+
+          - [x] Test unitarios
+          - [x] Gofmt
+          - [x] Golangci-lint"
