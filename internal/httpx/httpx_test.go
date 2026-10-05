@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"restaurante/models"
@@ -98,5 +99,34 @@ func TestPresentEIsNull(t *testing.T) {
 	}
 	if !IsNull([]byte(`{"b": null}`), "b") || IsNull([]byte(`{"b":1}`), "b") || IsNull([]byte(`{}`), "b") || IsNull([]byte(`x`), "b") {
 		t.Fatalf("IsNull incorrecto")
+	}
+}
+
+func TestPositiveInt64Param(t *testing.T) {
+	cases := map[string]bool{"": false, "abc": false, "0": false, "-3": false, "7": true, " 9 ": true}
+	for raw, ok := range cases {
+		c, _ := newCtl()
+		c.Ctx.Request.URL.RawQuery = "id=" + url.QueryEscape(raw)
+		v, err := PositiveInt64Param(c, "id")
+		if ok && (err != nil || v <= 0) {
+			t.Fatalf("%q debía ser válido: %d %v", raw, v, err)
+		}
+		if !ok && (err == nil || v != 0) {
+			t.Fatalf("%q debía fallar: %d %v", raw, v, err)
+		}
+	}
+}
+
+func TestIsPGConflict(t *testing.T) {
+	for _, m := range []string{"pq: duplicate key value (23505)", "ERROR: 23503", "violates foreign key constraint", "duplicate key"} {
+		if !IsPGConflict(errors.New(m)) {
+			t.Fatalf("%q debía ser conflicto", m)
+		}
+	}
+	if IsPGConflict(nil) || IsPGConflict(errors.New("otro")) {
+		t.Fatalf("no debía ser conflicto")
+	}
+	if ErrNotFound == nil {
+		t.Fatalf("centinela nulo")
 	}
 }

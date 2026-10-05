@@ -27,13 +27,7 @@ func TestOferta_SerializeDiasSemana(t *testing.T) {
 
 	assert.NotEmpty(t, oferta.DiasSemana)
 
-	var diasArray []string
-	err := json.Unmarshal([]byte(oferta.DiasSemana), &diasArray)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(diasArray))
-	assert.Equal(t, "Lunes", diasArray[0])
-	assert.Equal(t, "Martes", diasArray[1])
-	assert.Equal(t, "Miércoles", diasArray[2])
+	assert.Equal(t, `{"Lunes","Martes","Miércoles"}`, oferta.DiasSemana)
 }
 
 func TestOferta_SerializeDiasSemana_Empty(t *testing.T) {
@@ -43,7 +37,7 @@ func TestOferta_SerializeDiasSemana_Empty(t *testing.T) {
 
 	oferta.serializeDiasSemana()
 
-	assert.Equal(t, "", oferta.DiasSemana)
+	assert.Equal(t, "{}", oferta.DiasSemana)
 }
 
 func TestOferta_DeserializeDiasSemana(t *testing.T) {
@@ -140,4 +134,33 @@ func TestOferta_JSONSerialization(t *testing.T) {
 
 	_, exists := jsonMap["dias_semana"]
 	assert.False(t, exists)
+}
+
+func TestOferta_DeserializeDiasSemana_Formatos(t *testing.T) {
+	casos := []struct {
+		raw  string
+		want []string
+	}{
+		{`{Lunes,"Miércoles"}`, []string{"Lunes", "Miércoles"}},
+		{`{ Lunes , Martes }`, []string{"Lunes", "Martes"}},
+		{`{"a\"b","c\\d",""}`, []string{`a"b`, `c\d`, ""}},
+		{`{}`, []string{}},
+		{`["Lunes","Martes"]`, []string{"Lunes", "Martes"}},
+		{`["Lunes"`, []string{}},
+		{`null`, []string{}},
+		{`Martes`, []string{}},
+	}
+	for _, c := range casos {
+		o := &Oferta{DiasSemana: c.raw}
+		o.AfterLoad()
+		assert.Equal(t, c.want, o.DiasSemanaArray, c.raw)
+	}
+}
+
+func TestOferta_SerializeDiasSemana_Escapes(t *testing.T) {
+	o := &Oferta{DiasSemanaArray: []string{`a"b`, `c\d`}}
+	o.BeforeUpdate()
+	assert.Equal(t, `{"a\"b","c\\d"}`, o.DiasSemana)
+	o.AfterLoad()
+	assert.Equal(t, []string{`a"b`, `c\d`}, o.DiasSemanaArray)
 }

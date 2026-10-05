@@ -76,3 +76,21 @@ func TestRegisterSwaggerAssets(t *testing.T) {
 		t.Fatalf("asset no servido: %d %q", w.Code, w.Body.String())
 	}
 }
+
+// Los endpoints PATCH de push exigen token y el preflight CORS debe permitir PATCH.
+func TestPushPatchRoutesRequireTokenAndCORSAllowsPatch(t *testing.T) {
+	for _, p := range []string{"/restaurante/v1/push/dispositivos/visto", "/restaurante/v1/push/dispositivos/topics"} {
+		if w := serve(http.MethodPatch, p); w.Code != http.StatusUnauthorized {
+			t.Fatalf("PATCH %s: esperado 401, obtenido %d", p, w.Code)
+		}
+	}
+
+	r, _ := http.NewRequest(http.MethodOptions, "/restaurante/v1/push/dispositivos/visto", nil)
+	r.Header.Set("Origin", "http://localhost:4200")
+	r.Header.Set("Access-Control-Request-Method", "PATCH")
+	w := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(w, r)
+	if !strings.Contains(w.Header().Get("Access-Control-Allow-Methods"), "PATCH") {
+		t.Fatalf("el preflight no permite PATCH: %v", w.Header())
+	}
+}

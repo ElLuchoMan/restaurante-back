@@ -55,9 +55,10 @@ func (s *OfertaService) ObtenerOfertasActivas(ctx context.Context, restauranteId
 		return nil, fmt.Errorf("error al obtener ofertas: %w", err)
 	}
 
-	var ofertasActivas []*models.OfertaActivaResponse
+	ofertasActivas := []*models.OfertaActivaResponse{}
 
 	for _, oferta := range ofertas {
+		oferta.AfterLoad()
 
 		if len(oferta.DiasSemanaArray) > 0 {
 			diaValido := false
@@ -144,7 +145,7 @@ func (s *OfertaService) ValidarReglasNegocioOferta(oferta *models.Oferta) error 
 		}
 	}
 
-	if len(oferta.DiasSemana) > 0 {
+	if len(oferta.DiasSemanaArray) > 0 {
 		diasValidos := map[string]bool{
 			string(models.DiaLunes):     true,
 			string(models.DiaMartes):    true,
@@ -206,7 +207,7 @@ func (s *OfertaService) obtenerProductosOferta(ofertaId int64) ([]int64, error) 
 		return nil, err
 	}
 
-	var productosIds []int64
+	productosIds := []int64{}
 	for _, op := range ofertaProductos {
 		if op.PkIdProducto != nil {
 			productosIds = append(productosIds, op.PkIdProducto.PK_ID_PRODUCTO)

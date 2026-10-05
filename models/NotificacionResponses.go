@@ -27,6 +27,28 @@ type PaginatedResponse struct {
 	TotalPages int         `json:"totalPages"`
 }
 
+// PushDispositivosPage describe (solo para Swagger) la forma real de
+// GET /push/dispositivos: un PaginatedResponse cuyo data es la lista de
+// dispositivos ([] cuando no hay resultados).
+type PushDispositivosPage struct {
+	Data       []PushDispositivo `json:"data"`
+	Total      int64             `json:"total"`
+	Page       int               `json:"page"`
+	PageSize   int               `json:"pageSize"`
+	TotalPages int               `json:"totalPages"`
+}
+
+// PushEnviosPage describe (solo para Swagger) la forma real de
+// GET /push/envios: un PaginatedResponse cuyo data es la lista de envíos
+// ([] cuando no hay resultados).
+type PushEnviosPage struct {
+	Data       []PushEnvio `json:"data"`
+	Total      int64       `json:"total"`
+	Page       int         `json:"page"`
+	PageSize   int         `json:"pageSize"`
+	TotalPages int         `json:"totalPages"`
+}
+
 type ValidationErrorResponse struct {
 	Message string                 `json:"message"`
 	Errors  map[string]interface{} `json:"errors,omitempty"`
@@ -251,7 +273,7 @@ type EnviarNotificacionResponse struct {
 
 type DetalleEnvioNotificacion struct {
 	PushDispositivoId   int64   `json:"pushDispositivoId"`
-	Plataforma          string  `json:"plataforma"`
+	Plataforma          string  `json:"plataforma" enums:"WEB,ANDROID,IOS"`
 	Exito               bool    `json:"exito"`
 	StatusCode          *int    `json:"statusCode,omitempty"`
 	ErrorCode           *string `json:"errorCode,omitempty"`

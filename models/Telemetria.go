@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 type DashboardData struct {
 	TotalPedidos        int64   `json:"totalPedidos"`
 	TotalIngresos       int64   `json:"totalIngresos"`
@@ -45,7 +47,18 @@ type ProductoVendido struct {
 	CantidadVendida int64  `json:"cantidadVendida"`
 	IngresoTotal    int64  `json:"ingresoTotal"`
 	Precio          int64  `json:"precio"`
-	Imagen          string `json:"imagen"`
+	// Imagen en base64; solo se rellena en GET /productos-populares, en el resto de endpoints llega "".
+	Imagen string `json:"imagen"`
+}
+
+// ProductoDisponible es cada elemento de GET /productos-disponibles.
+type ProductoDisponible struct {
+	ProductoId     int64  `json:"productoId"`
+	NombreProducto string `json:"nombreProducto"`
+	Precio         int64  `json:"precio"`
+	Estado         string `json:"estado" enums:"DISPONIBLE,NO_DISPONIBLE"`
+	// TotalVendido suma las unidades de pedidos en estado TERMINADO.
+	TotalVendido int64 `json:"totalVendido"`
 }
 
 type EstadisticasProductos struct {
@@ -279,4 +292,100 @@ type EstadisticasPedidos struct {
 	HoraMasPedidos            string  `json:"horaMasPedidos"`
 	IngresoPromedioHora       float64 `json:"ingresoPromedioHora"`
 	TasaCompletamientoGeneral float64 `json:"tasaCompletamientoGeneral"`
+}
+
+// emptySliceIfNil devuelve s o, si es nil, un slice vacío para que se
+// serialice como [] y nunca como null.
+func emptySliceIfNil[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
+}
+
+// MarshalJSON garantiza que las listas de SalesData se serialicen como [] y nunca como null.
+func (d SalesData) MarshalJSON() ([]byte, error) {
+	type plain SalesData
+	p := plain(d)
+	p.VentasPorMetodoPago = emptySliceIfNil(p.VentasPorMetodoPago)
+	p.TendenciaVentas = emptySliceIfNil(p.TendenciaVentas)
+	return json.Marshal(p)
+}
+
+// MarshalJSON garantiza que las listas de ProductsData se serialicen como [] y nunca como null.
+func (d ProductsData) MarshalJSON() ([]byte, error) {
+	type plain ProductsData
+	p := plain(d)
+	p.ProductosMasVendidos = emptySliceIfNil(p.ProductosMasVendidos)
+	p.ProductosMenosVendidos = emptySliceIfNil(p.ProductosMenosVendidos)
+	return json.Marshal(p)
+}
+
+// MarshalJSON garantiza que las listas de UsersData se serialicen como [] y nunca como null.
+func (d UsersData) MarshalJSON() ([]byte, error) {
+	type plain UsersData
+	p := plain(d)
+	p.UsuariosFrecuentes = emptySliceIfNil(p.UsuariosFrecuentes)
+	p.UsuariosInactivos = emptySliceIfNil(p.UsuariosInactivos)
+	return json.Marshal(p)
+}
+
+// MarshalJSON garantiza que las listas de TimeAnalysisData se serialicen como [] y nunca como null.
+func (d TimeAnalysisData) MarshalJSON() ([]byte, error) {
+	type plain TimeAnalysisData
+	p := plain(d)
+	p.VentasPorHora = emptySliceIfNil(p.VentasPorHora)
+	p.VentasPorDiaSemana = emptySliceIfNil(p.VentasPorDiaSemana)
+	p.VentasPorMes = emptySliceIfNil(p.VentasPorMes)
+	return json.Marshal(p)
+}
+
+// MarshalJSON garantiza que las listas de RentabilidadData se serialicen como [] y nunca como null.
+func (d RentabilidadData) MarshalJSON() ([]byte, error) {
+	type plain RentabilidadData
+	p := plain(d)
+	p.ProductosRentables = emptySliceIfNil(p.ProductosRentables)
+	p.ProductosMenosRentables = emptySliceIfNil(p.ProductosMenosRentables)
+	return json.Marshal(p)
+}
+
+// MarshalJSON garantiza que las listas de SegmentacionData se serialicen como [] y nunca como null.
+func (d SegmentacionData) MarshalJSON() ([]byte, error) {
+	type plain SegmentacionData
+	p := plain(d)
+	p.ClientesVIP = emptySliceIfNil(p.ClientesVIP)
+	p.ClientesRegulares = emptySliceIfNil(p.ClientesRegulares)
+	p.ClientesOcasionales = emptySliceIfNil(p.ClientesOcasionales)
+	p.ClientesNuevos = emptySliceIfNil(p.ClientesNuevos)
+	return json.Marshal(p)
+}
+
+// MarshalJSON garantiza que las listas de EficienciaData se serialicen como [] y nunca como null.
+func (d EficienciaData) MarshalJSON() ([]byte, error) {
+	type plain EficienciaData
+	p := plain(d)
+	p.TiemposEntrega = emptySliceIfNil(p.TiemposEntrega)
+	p.RendimientoTrabajadores = emptySliceIfNil(p.RendimientoTrabajadores)
+	p.AnalisisPorHora = emptySliceIfNil(p.AnalisisPorHora)
+	return json.Marshal(p)
+}
+
+// MarshalJSON garantiza que las listas de ReservasAnalisisData se serialicen como [] y nunca como null.
+func (d ReservasAnalisisData) MarshalJSON() ([]byte, error) {
+	type plain ReservasAnalisisData
+	p := plain(d)
+	p.ReservasPorDia = emptySliceIfNil(p.ReservasPorDia)
+	p.ReservasPorHora = emptySliceIfNil(p.ReservasPorHora)
+	p.ReservasPorDiaSemana = emptySliceIfNil(p.ReservasPorDiaSemana)
+	return json.Marshal(p)
+}
+
+// MarshalJSON garantiza que las listas de PedidosAnalisisData se serialicen como [] y nunca como null.
+func (d PedidosAnalisisData) MarshalJSON() ([]byte, error) {
+	type plain PedidosAnalisisData
+	p := plain(d)
+	p.PedidosPorDia = emptySliceIfNil(p.PedidosPorDia)
+	p.PedidosPorHora = emptySliceIfNil(p.PedidosPorHora)
+	p.PedidosPorDiaSemana = emptySliceIfNil(p.PedidosPorDiaSemana)
+	return json.Marshal(p)
 }

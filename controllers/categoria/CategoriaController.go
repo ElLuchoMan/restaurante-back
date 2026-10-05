@@ -2,7 +2,12 @@ package categoria
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
+
+	"restaurante/internal/dberr"
+	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
 
@@ -10,64 +15,66 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type categoriaQuerySeter interface {
-	All(interface{}, ...string) (int64, error)
-}
-
-type categoriaOrmer interface {
-	QueryTable(interface{}) categoriaQuerySeter
-	Insert(interface{}) (int64, error)
-	Read(interface{}, ...string) error
-	Update(interface{}, ...string) (int64, error)
-	Delete(interface{}, ...string) (int64, error)
-}
-
-type catQSAdapter struct{ qs orm.QuerySeter }
-
-func (a catQSAdapter) All(res interface{}, cols ...string) (int64, error) {
-	return a.qs.All(res, cols...)
-}
-
-type catOrmAdapter struct{ o orm.Ormer }
-
-func (a catOrmAdapter) QueryTable(i interface{}) categoriaQuerySeter {
-	return catQSAdapter{qs: a.o.QueryTable(i)}
-}
-func (a catOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
-func (a catOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a catOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
-	return a.o.Update(v, cols...)
-}
-func (a catOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
-	return a.o.Delete(v, cols...)
-}
-
-var catOrmNew = func() categoriaOrmer { return catOrmAdapter{o: orm.NewOrm()} }
-
+// CategoriaController gestiona /categorias.
 type CategoriaController struct {
 	web.Controller
 }
 
+const msgIDInvalido = "El parámetro 'id' es inválido o está ausente"
+
 // @Title GetAll
 // @Summary Obtener todas las categorías
+// @Description Devuelve todas las categorías. Sin resultados, `data` es una lista vacía `[]`.
 // @Tags categorias
 // @Accept json
 // @Produce json
-// @Success 200 {object} models.ApiResponse{data=[]models.Categoria}
-// @Failure 500 {object} models.ApiResponse
+// @Success 200 {object} models.ApiResponse{data=[]models.Categoria} "Lista de categorías (puede ser vacía)"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /categorias [get]
 func (c *CategoriaController) GetAll() {
-	o := catOrmNew()
 	var categorias []models.Categoria
-	if _, err := o.QueryTable(new(models.Categoria)).All(&categorias); err != nil {
+	if _, err := orm.NewOrm().QueryTable(new(models.Categoria)).All(&categorias); err != nil {
 		logging.LogControllerError(c.Ctx, "categorias.getall.db_error", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener categorías", Cause: err.Error()}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener categorías", err)
 		return
 	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categorías obtenidas", Data: categorias}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Categorías obtenidas", httpx.List(categorias))
+}
+
+// load valida el query param `id` y lee la categoría; responde el error y
+// devuelve false si falla (400 id inválido, 404 inexistente, 500 BD).
+func (c *CategoriaController) load(op string) (models.Categoria, bool) {
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "categorias."+op+".bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgIDInvalido, err)
+		return models.Categoria{}, false
+	}
+	cat := models.Categoria{PK_ID_CATEGORIA: id}
+	if err := orm.NewOrm().Read(&cat); err != nil {
+		if errors.Is(err, orm.ErrNoRows) {
+			httpx.Fail(&c.Controller, http.StatusNotFound, "Categoría no encontrada", nil)
+			return cat, false
+		}
+		logging.LogControllerError(c.Ctx, "categorias."+op+".read_error", err, map[string]interface{}{"id": id})
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error interno del servidor", err)
+		return cat, false
+	}
+	return cat, true
+}
+
+// writeError traduce un fallo de escritura: unicidad -> 409, FK -> 409 (en uso)
+// y cualquier otro -> 500.
+func (c *CategoriaController) writeError(op, msg string, err error) {
+	logging.LogControllerError(c.Ctx, "categorias."+op, err, nil)
+	switch {
+	case dberr.IsUnique(err):
+		httpx.Fail(&c.Controller, http.StatusConflict, "Ya existe una categoría con ese nombre", err)
+	case dberr.IsForeignKey(err):
+		httpx.Fail(&c.Controller, http.StatusConflict, "La categoría tiene subcategorías o cupones asociados", err)
+	default:
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, msg, err)
+	}
 }
 
 // @Title GetById
@@ -75,171 +82,121 @@ func (c *CategoriaController) GetAll() {
 // @Tags categorias
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la categoría"
-// @Success 200 {object} models.ApiResponse{data=models.Categoria}
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la categoría (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=models.Categoria} "Categoría encontrada"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 404 {object} models.ApiResponse "Categoría no encontrada"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /categorias/search [get]
 func (c *CategoriaController) GetById() {
-	o := catOrmNew()
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "categorias.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
-		_ = c.ServeJSON()
+	cat, ok := c.load("getbyid")
+	if !ok {
 		return
 	}
-	cat := models.Categoria{PK_ID_CATEGORIA: id}
-	if err := o.Read(&cat); err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
-			_ = c.ServeJSON()
-			return
-		}
-		logging.LogControllerError(c.Ctx, "categorias.getbyid.read_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error interno del servidor", Cause: err.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría encontrada", Data: cat}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Categoría encontrada", cat)
 }
 
 // @Title Post
 // @Summary Crear categoría
+// @Description `nombre` es obligatorio y no puede estar vacío.
 // @Tags categorias
 // @Accept json
 // @Produce json
 // @Param body body models.CategoriaCreateRequest true "Datos de categoría"
-// @Success 201 {object} models.ApiResponse{data=models.Categoria}
-// @Failure 400 {object} models.ApiResponse
-// @Failure 500 {object} models.ApiResponse
+// @Success 201 {object} models.ApiResponse{data=models.Categoria} "Categoría creada"
+// @Failure 400 {object} models.ApiResponse "JSON inválido o nombre vacío"
+// @Failure 409 {object} models.ApiResponse "Ya existe una categoría con ese nombre"
+// @Failure 500 {object} models.ApiResponse "Error al crear la categoría"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Security BearerAuth
 // @Router /categorias [post]
 func (c *CategoriaController) Post() {
-	o := catOrmNew()
-	var in struct {
-		Nombre string `json:"nombre"`
-	}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" {
+	var in models.CategoriaCreateRequest
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		logging.LogControllerError(c.Ctx, "categorias.post.bad_json", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o nombre requerido"}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "JSON inválido", err)
+		return
+	}
+	in.Nombre = strings.TrimSpace(in.Nombre)
+	if in.Nombre == "" {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El campo 'nombre' es obligatorio", nil)
 		return
 	}
 	cat := models.Categoria{NOMBRE: in.Nombre}
-	if _, err := o.Insert(&cat); err != nil {
-		logging.LogControllerError(c.Ctx, "categorias.post.insert_error", err, map[string]interface{}{"nombre": in.Nombre})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear categoría", Cause: err.Error()}
-		_ = c.ServeJSON()
+	if _, err := orm.NewOrm().Insert(&cat); err != nil {
+		c.writeError("post.insert_error", "Error al crear categoría", err)
 		return
 	}
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Categoría creada", Data: cat}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusCreated, "Categoría creada", cat)
 }
 
 // @Title Put
 // @Summary Actualizar categoría
+// @Description Actualización parcial (merge): los campos ausentes se conservan. `nombre` no es anulable (null responde 400) ni puede quedar vacío. Un cuerpo sin cambios responde 200 con la categoría.
 // @Tags categorias
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la categoría"
-// @Param body body models.CategoriaUpdateRequest true "Datos a actualizar"
-// @Success 200 {object} models.ApiResponse{data=models.Categoria}
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la categoría (entero positivo)"
+// @Param body body models.CategoriaUpdateRequest true "Campos a modificar (opcionales, ninguno anulable)"
+// @Success 200 {object} models.ApiResponse{data=models.Categoria} "Categoría actualizada"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido, JSON inválido, null en campo no anulable o nombre vacío"
+// @Failure 404 {object} models.ApiResponse "Categoría no encontrada"
+// @Failure 409 {object} models.ApiResponse "Ya existe una categoría con ese nombre"
+// @Failure 500 {object} models.ApiResponse "Error al actualizar la categoría"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Security BearerAuth
 // @Router /categorias [put]
 func (c *CategoriaController) Put() {
-	o := catOrmNew()
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "categorias.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
-		_ = c.ServeJSON()
+	cat, ok := c.load("put")
+	if !ok {
 		return
 	}
-	cat := models.Categoria{PK_ID_CATEGORIA: id}
-	if err := o.Read(&cat); err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
-			_ = c.ServeJSON()
-			return
-		}
-		logging.LogControllerError(c.Ctx, "categorias.put.read_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error interno del servidor", Cause: err.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	var in struct {
-		Nombre *string `json:"nombre"`
-	}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
-		logging.LogControllerError(c.Ctx, "categorias.put.bad_json", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-		_ = c.ServeJSON()
+	var in models.CategoriaUpdateRequest
+	if err := httpx.DecodeMerge(c.Ctx.Input.RequestBody, &in); err != nil {
+		logging.LogControllerError(c.Ctx, "categorias.put.bad_json", err, map[string]interface{}{"id": cat.PK_ID_CATEGORIA})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "JSON inválido", err)
 		return
 	}
 	if in.Nombre != nil {
-		cat.NOMBRE = *in.Nombre
+		nombre := strings.TrimSpace(*in.Nombre)
+		if nombre == "" {
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "El campo 'nombre' no puede estar vacío", nil)
+			return
+		}
+		cat.NOMBRE = nombre
+		if _, err := orm.NewOrm().Update(&cat, "NOMBRE"); err != nil {
+			c.writeError("put.update_error", "Error al actualizar categoría", err)
+			return
+		}
 	}
-	if _, err := o.Update(&cat, "NOMBRE"); err != nil {
-		logging.LogControllerError(c.Ctx, "categorias.put.update_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar categoría", Cause: err.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría actualizada", Data: cat}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Categoría actualizada", cat)
 }
 
 // @Title Delete
 // @Summary Eliminar categoría
+// @Description Elimina físicamente la categoría. Si tiene subcategorías o cupones asociados responde 409.
 // @Tags categorias
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la categoría"
-// @Success 200 {object} models.ApiResponse
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la categoría (entero positivo)"
+// @Success 200 {object} models.ApiResponse "Categoría eliminada"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 404 {object} models.ApiResponse "Categoría no encontrada"
+// @Failure 409 {object} models.ApiResponse "La categoría tiene elementos asociados"
+// @Failure 500 {object} models.ApiResponse "Error al eliminar la categoría"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Security BearerAuth
 // @Router /categorias [delete]
 func (c *CategoriaController) Delete() {
-	o := catOrmNew()
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "categorias.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "ID inválido o ausente"}
-		_ = c.ServeJSON()
+	cat, ok := c.load("delete")
+	if !ok {
 		return
 	}
-	cat := models.Categoria{PK_ID_CATEGORIA: id}
-	if err := o.Read(&cat); err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Categoría no encontrada"}
-			_ = c.ServeJSON()
-			return
-		}
-		logging.LogControllerError(c.Ctx, "categorias.delete.read_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error interno del servidor", Cause: err.Error()}
-		_ = c.ServeJSON()
+	// Raw y no orm.Delete: el ORM borraría en cascada subcategorías y productos
+	// por su cuenta; así la llave foránea de la BD protege los datos (409).
+	if _, err := orm.NewOrm().Raw("DELETE FROM categoria WHERE pk_id_categoria = ?", cat.PK_ID_CATEGORIA).Exec(); err != nil {
+		c.writeError("delete.delete_error", "Error al eliminar categoría", err)
 		return
 	}
-	if _, err := o.Delete(&cat); err != nil {
-		logging.LogControllerError(c.Ctx, "categorias.delete.delete_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al eliminar categoría", Cause: err.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Categoría eliminada"}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Categoría eliminada", nil)
 }

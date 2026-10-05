@@ -19,7 +19,7 @@ const docTemplate = `{
     "paths": {
         "/auth/refresh": {
             "post": {
-                "description": "Permite obtener un nuevo access token utilizando un refresh token válido",
+                "description": "Permite obtener un nuevo access token (y un nuevo refresh token) utilizando un refresh token válido enviado en el header Authorization (con o sin prefijo \"Bearer \"). Un access token no sirve como refresh token. ` + "`" + `expires_in` + "`" + ` son los segundos de vida del access token (7200 = 120 min) como string.",
                 "consumes": [
                     "application/json"
                 ],
@@ -65,7 +65,13 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Refresh token inválido o expirado",
+                        "description": "Refresh token inválido, expirado o no es un refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al generar los tokens",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -80,7 +86,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene un listado de todos los cambios de horario registrados en la base de datos",
+                "description": "Devuelve todos los cambios de horario ordenados por fecha (fechas DD-MM-YYYY, horas HH:MM:SS). Sin resultados responde 200 con ` + "`" + `data: []` + "`" + `. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -90,10 +96,10 @@ const docTemplate = `{
                 "tags": [
                     "cambios_horario"
                 ],
-                "summary": "Obtener todos los cambios de horario",
+                "summary": "Listar cambios de horario",
                 "responses": {
                     "200": {
-                        "description": "Listado de cambios de horario",
+                        "description": "Listado de cambios de horario (puede ser vacío)",
                         "schema": {
                             "allOf": [
                                 {
@@ -105,13 +111,18 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "type": "object",
-                                                "additionalProperties": true
+                                                "$ref": "#/definitions/models.CambiosHorarioResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -128,7 +139,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de un cambio de horario existente.",
+                "description": "Actualización parcial con merge: los campos ausentes se CONSERVAN y null en cualquiera responde 400 (no hay campos anulables). Si el resultado es abierto=false las horas se fuerzan a 00:00:00 - 23:59:59. Si pasa de cerrado a abierto, horaApertura y horaCierre son obligatorias en la petición. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -142,13 +153,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del cambio de horario",
+                        "description": "ID del cambio de horario (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos del cambio de horario a actualizar (sólo campos a modificar)",
+                        "description": "Campos a modificar (todos opcionales)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -169,8 +180,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "object",
-                                            "additionalProperties": true
+                                            "$ref": "#/definitions/models.CambiosHorarioResponse"
                                         }
                                     }
                                 }
@@ -178,13 +188,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "Solicitud inválida (id, JSON, null, fecha u hora)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Cambio de horario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe un cambio de horario para esa fecha",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -203,7 +225,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo cambio de horario en la base de datos.",
+                "description": "Crea un cambio de horario. Obligatorios: fechaCambioHorario (YYYY-MM-DD) y abierto. Si abierto=true, horaApertura y horaCierre (HH:MM o HH:MM:SS) son obligatorias; si abierto=false se ignoran y se fijan 00:00:00 - 23:59:59. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -213,10 +235,10 @@ const docTemplate = `{
                 "tags": [
                     "cambios_horario"
                 ],
-                "summary": "Crear un nuevo cambio de horario",
+                "summary": "Crear un cambio de horario",
                 "parameters": [
                     {
-                        "description": "Datos del cambio de horario (fecha YYYY-MM-DD, horas HH:MM:SS)",
+                        "description": "Datos del cambio de horario",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -237,8 +259,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "object",
-                                            "additionalProperties": true
+                                            "$ref": "#/definitions/models.CambiosHorarioResponse"
                                         }
                                     }
                                 }
@@ -246,7 +267,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "Solicitud inválida (JSON, campos obligatorios, fecha u hora)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe un cambio de horario para esa fecha",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -265,7 +298,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un cambio de horario de la base de datos.",
+                "description": "Elimina un cambio de horario. Si algún restaurante lo referencia responde 409. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -279,7 +312,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del cambio de horario",
+                        "description": "ID del cambio de horario (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -292,8 +325,26 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "400": {
+                        "description": "ID inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Cambio de horario no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El cambio de horario está en uso",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -309,7 +360,7 @@ const docTemplate = `{
         },
         "/cambios_horario/actual": {
             "get": {
-                "description": "Obtiene el cambio de horario que aplica para la fecha actual, si existe.",
+                "description": "Endpoint público (sin token). Devuelve el cambio de horario que aplica a la fecha actual en Colombia (UTC-5). Si no hay ninguno para hoy responde 404.",
                 "consumes": [
                     "application/json"
                 ],
@@ -319,9 +370,27 @@ const docTemplate = `{
                 "tags": [
                     "cambios_horario"
                 ],
-                "summary": "Consultar cambios de horario para la fecha actual",
+                "summary": "Consultar el cambio de horario de hoy",
                 "responses": {
                     "200": {
+                        "description": "Cambio de horario de hoy",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.CambiosHorarioResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
                         "description": "No hay cambios de horario para la fecha actual",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
@@ -338,6 +407,7 @@ const docTemplate = `{
         },
         "/categorias": {
             "get": {
+                "description": "Devuelve todas las categorías. Sin resultados, ` + "`" + `data` + "`" + ` es una lista vacía ` + "`" + `[]` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -350,7 +420,7 @@ const docTemplate = `{
                 "summary": "Obtener todas las categorías",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Lista de categorías (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -371,7 +441,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -379,6 +449,12 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualización parcial (merge): los campos ausentes se conservan. ` + "`" + `nombre` + "`" + ` no es anulable (null responde 400) ni puede quedar vacío. Un cuerpo sin cambios responde 200 con la categoría.",
                 "consumes": [
                     "application/json"
                 ],
@@ -392,13 +468,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la categoría",
+                        "description": "ID de la categoría (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos a actualizar",
+                        "description": "Campos a modificar (opcionales, ninguno anulable)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -409,7 +485,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Categoría actualizada",
                         "schema": {
                             "allOf": [
                                 {
@@ -426,8 +502,32 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido, JSON inválido, null en campo no anulable o nombre vacío",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Categoría no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una categoría con ese nombre",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar la categoría",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -435,6 +535,12 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "` + "`" + `nombre` + "`" + ` es obligatorio y no puede estar vacío.",
                 "consumes": [
                     "application/json"
                 ],
@@ -458,7 +564,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Categoría creada",
                         "schema": {
                             "allOf": [
                                 {
@@ -476,13 +582,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON inválido o nombre vacío",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una categoría con ese nombre",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error al crear la categoría",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -490,6 +608,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina físicamente la categoría. Si tiene subcategorías o cupones asociados responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -503,7 +627,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la categoría",
+                        "description": "ID de la categoría (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -511,13 +635,37 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Categoría eliminada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Categoría no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "La categoría tiene elementos asociados",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al eliminar la categoría",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -540,7 +688,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la categoría",
+                        "description": "ID de la categoría (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -548,7 +696,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Categoría encontrada",
                         "schema": {
                             "allOf": [
                                 {
@@ -565,8 +713,20 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Categoría no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -581,7 +741,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los clientes registrados en la base de datos, con opción de retornar solo nombre completo y teléfono.",
+                "description": "Devuelve los clientes (nunca incluye la contraseña) ordenados por documento. Con ` + "`" + `fields=nombre_completo_telefono` + "`" + ` cada elemento es solo {documentoCliente, nombre_completo, telefono} (ver models.ClienteResumenResponse). Si se omite ` + "`" + `limit` + "`" + ` se devuelven todos los clientes; si se envía debe estar entre 1 y 100 (0 es inválido) y ` + "`" + `offset` + "`" + ` (\u003e= 0, por defecto 0) permite paginar. Sin resultados responde 200 con ` + "`" + `data: []` + "`" + `. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -591,14 +751,13 @@ const docTemplate = `{
                 "tags": [
                     "clientes"
                 ],
-                "summary": "Obtener todos los clientes con opción de filtrar campos",
+                "summary": "Listar clientes",
                 "parameters": [
                     {
                         "maximum": 100,
                         "minimum": 1,
                         "type": "integer",
-                        "default": 10,
-                        "description": "Cantidad de resultados por página",
+                        "description": "Cantidad de resultados por página (1-100). Si se omite, sin límite",
                         "name": "limit",
                         "in": "query"
                     },
@@ -611,15 +770,18 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "nombre_completo_telefono"
+                        ],
                         "type": "string",
-                        "description": "Campos a incluir en la respuesta (opciones: 'nombre_completo_telefono')",
+                        "description": "Proyección reducida de cada cliente",
                         "name": "fields",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de clientes",
+                        "description": "Lista de clientes (con fields=nombre_completo_telefono, data es []models.ClienteResumenResponse)",
                         "schema": {
                             "allOf": [
                                 {
@@ -639,8 +801,14 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro limit, offset o fields inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "401": {
-                        "description": "No autorizado",
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -659,7 +827,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de un cliente existente.",
+                "description": "Actualización parcial con merge: los campos ausentes se CONSERVAN. ` + "`" + `observaciones` + "`" + ` es el único campo anulable (null lo limpia); null en cualquier otro campo responde 400, igual que nombre, apellido, correo (inválido), telefono o password vacíos. Una ` + "`" + `password` + "`" + ` nueva se guarda hasheada y nunca se devuelve. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -673,13 +841,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Cliente",
+                        "description": "Documento del cliente (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos del cliente a actualizar (sólo campos a modificar)",
+                        "description": "Campos a modificar (todos opcionales)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -707,8 +875,14 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Solicitud inválida (id, JSON, null en campo no anulable, correo, teléfono o contraseña)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "401": {
-                        "description": "No autorizado",
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -720,7 +894,13 @@ const docTemplate = `{
                         }
                     },
                     "409": {
-                        "description": "Correo ya registrado",
+                        "description": "Correo o teléfono ya registrados por otro cliente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -728,7 +908,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Crea un nuevo cliente en la base de datos.",
+                "description": "Endpoint público (sin token) de registro de clientes. Obligatorios: documentoCliente (\u003e 0), nombre, apellido, correo (válido; se guarda en minúsculas), telefono y password (máx. 72 bytes). Opcionales: direccion y observaciones. La respuesta nunca incluye la contraseña.",
                 "consumes": [
                     "application/json"
                 ],
@@ -738,7 +918,7 @@ const docTemplate = `{
                 "tags": [
                     "clientes"
                 ],
-                "summary": "Crear un nuevo cliente",
+                "summary": "Registrar un cliente",
                 "parameters": [
                     {
                         "description": "Datos del cliente a crear",
@@ -770,13 +950,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "Solicitud inválida (JSON, campos obligatorios, correo o contraseña)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "409": {
-                        "description": "Correo ya registrado",
+                        "description": "Ya existe un cliente con ese documento, correo o teléfono",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -789,7 +975,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un cliente de la base de datos.",
+                "description": "Elimina un cliente. Si tiene registros asociados (pedidos, reservas, etc.) responde 409. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -803,7 +989,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Cliente",
+                        "description": "Documento del cliente (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -816,14 +1002,32 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "401": {
-                        "description": "No autorizado",
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Cliente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El cliente tiene registros asociados",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -838,7 +1042,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un cliente específico por ID utilizando query parameters.",
+                "description": "Devuelve un cliente por su documento (nunca incluye la contraseña). Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -848,11 +1052,11 @@ const docTemplate = `{
                 "tags": [
                     "clientes"
                 ],
-                "summary": "Obtener cliente por ID",
+                "summary": "Obtener cliente por documento",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Cliente",
+                        "description": "Documento del cliente (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -877,8 +1081,14 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "401": {
-                        "description": "No autorizado",
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -888,13 +1098,24 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     }
                 }
             }
         },
         "/control_nomina": {
             "get": {
-                "description": "Opcional: filtrar por fecha (YYYY-MM-DD)",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve los registros de control de nómina (estado de generación por fecha), opcionalmente filtrados por fecha. Petición: ` + "`" + `fecha` + "`" + ` en YYYY-MM-DD; respuesta: ` + "`" + `fecha` + "`" + ` en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -908,14 +1129,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Fecha (YYYY-MM-DD)",
+                        "description": "Fecha exacta, formato YYYY-MM-DD",
                         "name": "fecha",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Registros de control (puede ser [])",
                         "schema": {
                             "allOf": [
                                 {
@@ -927,7 +1148,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.ControlNomina"
+                                                "$ref": "#/definitions/models.ControlNominaResponse"
                                             }
                                         }
                                     }
@@ -935,8 +1156,20 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "fecha con formato inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -946,6 +1179,12 @@ const docTemplate = `{
         },
         "/control_nomina/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve un registro de control de nómina por su ID. ` + "`" + `fecha` + "`" + ` se responde como DD-MM-YYYY.",
                 "consumes": [
                     "application/json"
                 ],
@@ -959,7 +1198,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del control",
+                        "description": "ID del control (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -967,7 +1206,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Registro encontrado",
                         "schema": {
                             "allOf": [
                                 {
@@ -977,15 +1216,33 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.ControlNomina"
+                                            "$ref": "#/definitions/models.ControlNominaResponse"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "id ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Registro no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -995,6 +1252,12 @@ const docTemplate = `{
         },
         "/cupones": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista paginada (más recientes primero). ` + "`" + `data.data` + "`" + ` es la lista de cupones (` + "`" + `[]` + "`" + ` si no hay). ` + "`" + `limit` + "`" + ` por defecto 20 (máximo 100) y ` + "`" + `offset` + "`" + ` por defecto 0. ` + "`" + `fecha_desde` + "`" + ` filtra por ` + "`" + `fechaInicio \u003e=` + "`" + ` y ` + "`" + `fecha_hasta` + "`" + ` por ` + "`" + `fechaFin \u003c=` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1008,50 +1271,56 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "boolean",
-                        "description": "Filtrar por estado activo",
+                        "description": "Filtrar por estado activo (true/false)",
                         "name": "activo",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filtrar por código",
+                        "description": "Filtrar por código (contiene, sin distinguir mayúsculas)",
                         "name": "codigo",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "GLOBAL",
+                            "PRODUCTO",
+                            "CATEGORIA",
+                            "CLIENTE"
+                        ],
                         "type": "string",
-                        "description": "Filtrar por scope (GLOBAL, PRODUCTO, CATEGORIA, CLIENTE)",
+                        "description": "Filtrar por scope",
                         "name": "scope",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha desde (YYYY-MM-DD)",
+                        "description": "Fecha de inicio desde (YYYY-MM-DD)",
                         "name": "fecha_desde",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha hasta (YYYY-MM-DD)",
+                        "description": "Fecha de fin hasta (YYYY-MM-DD)",
                         "name": "fecha_hasta",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Límite de resultados (default: 20)",
+                        "description": "Límite de resultados (1-100, por defecto 20)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Offset para paginación (default: 0)",
+                        "description": "Offset para paginación (\u003e= 0, por defecto 0)",
                         "name": "offset",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Cupones obtenidos",
                         "schema": {
                             "allOf": [
                                 {
@@ -1061,7 +1330,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                            "$ref": "#/definitions/models.CuponPaginadoDoc"
                                         }
                                     }
                                 }
@@ -1069,13 +1338,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Parámetros de filtro o paginación inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1083,6 +1358,12 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualización parcial (merge): los campos ausentes se conservan (cuerpo ` + "`" + `models.ActualizarCuponRequest` + "`" + `). ` + "`" + `maxUsos` + "`" + `, ` + "`" + `limitePorCliente` + "`" + `, ` + "`" + `montoMinimo` + "`" + `, ` + "`" + `productoId` + "`" + `, ` + "`" + `categoriaId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` admiten null explícito (se limpian); null en cualquier otro campo responde 400. Al cambiar de ` + "`" + `scope` + "`" + ` debe ajustarse también la relación correspondiente (p. ej. pasar a GLOBAL exige ` + "`" + `productoId` + "`" + `, ` + "`" + `categoriaId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` en null) o la validación responde 422. ` + "`" + `activo` + "`" + ` permite reactivar un cupón desactivado. Un cuerpo sin cambios responde 200.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1096,24 +1377,24 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del cupón",
+                        "description": "ID del cupón (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos actualizados del cupón",
+                        "description": "Campos a modificar",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CrearCuponRequest"
+                            "$ref": "#/definitions/models.ActualizarCuponRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Cupón actualizado",
                         "schema": {
                             "allOf": [
                                 {
@@ -1123,7 +1404,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Cupon"
+                                            "$ref": "#/definitions/models.CuponDoc"
                                         }
                                     }
                                 }
@@ -1131,19 +1412,37 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "id o JSON inválido, null en campo no anulable o referencia inexistente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Cupón no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe un cupón con ese código",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity",
+                        "description": "Error de validación",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar el cupón",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1151,6 +1450,12 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea un cupón activo. Validación de negocio incumplida (scope, tipo, fechas, código de 3 a 50 caracteres, porcentaje 1-100, combinación de producto/categoría/cliente según el scope) responde 422; un producto, categoría o cliente inexistente responde 400 y un código repetido 409. Fechas YYYY-MM-DD. Devuelve el cupón con sus relaciones como objetos.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1174,7 +1479,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Cupón creado",
                         "schema": {
                             "allOf": [
                                 {
@@ -1184,7 +1489,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Cupon"
+                                            "$ref": "#/definitions/models.CuponDoc"
                                         }
                                     }
                                 }
@@ -1192,19 +1497,31 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON inválido o referencia inexistente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe un cupón con ese código",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity",
+                        "description": "Error de validación",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error al crear el cupón",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1212,6 +1529,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "No elimina la fila: desactiva el cupón (` + "`" + `activo = false` + "`" + `; se reactiva con PUT ` + "`" + `activo: true` + "`" + `). Si ya estaba desactivado responde 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1225,7 +1548,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del cupón",
+                        "description": "ID del cupón (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -1233,19 +1556,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Cupón desactivado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Parámetro 'id' inválido o cupón ya desactivado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Cupón no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al desactivar el cupón",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1255,6 +1590,12 @@ const docTemplate = `{
         },
         "/cupones/redenciones": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista paginada (más recientes primero). ` + "`" + `cupon_codigo` + "`" + ` desconocido devuelve una página vacía. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` si no hay resultados. Cada redención trae ` + "`" + `cuponId` + "`" + `, ` + "`" + `documentoCliente` + "`" + ` y ` + "`" + `pedidoId` + "`" + ` como objetos (sin contraseñas).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1274,32 +1615,32 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "ID del cupón",
+                        "description": "ID del cupón (entero positivo)",
                         "name": "cupon_id",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "ID del cliente",
+                        "description": "Documento del cliente (entero positivo)",
                         "name": "cliente_id",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Límite de resultados (default: 20)",
+                        "description": "Límite de resultados (1-100, por defecto 20)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Offset para paginación (default: 0)",
+                        "description": "Offset para paginación (\u003e= 0, por defecto 0)",
                         "name": "offset",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Redenciones obtenidas",
                         "schema": {
                             "allOf": [
                                 {
@@ -1309,7 +1650,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                            "$ref": "#/definitions/models.CuponRedencionPaginadaDoc"
                                         }
                                     }
                                 }
@@ -1317,13 +1658,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Parámetros de filtro o paginación inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1333,6 +1680,12 @@ const docTemplate = `{
         },
         "/cupones/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "` + "`" + `id` + "`" + ` puede ser el id numérico del cupón o su código; se busca primero por id (si es numérico) y luego por código.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1342,11 +1695,11 @@ const docTemplate = `{
                 "tags": [
                     "cupones"
                 ],
-                "summary": "Obtener cupón por ID",
+                "summary": "Obtener cupón por ID o código",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID o código del cupón",
+                        "description": "ID numérico o código del cupón",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -1354,7 +1707,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Cupón encontrado",
                         "schema": {
                             "allOf": [
                                 {
@@ -1364,15 +1717,33 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Cupon"
+                                            "$ref": "#/definitions/models.CuponDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Cupón no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1382,6 +1753,12 @@ const docTemplate = `{
         },
         "/cupones/validar": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Evalúa si un cupón es aplicable a un cliente y a unos ítems. Siempre responde 200 con ` + "`" + `aplicable` + "`" + ` true/false: si es false, ` + "`" + `motivo` + "`" + ` explica por qué (cupón inexistente, inactivo, fuera de vigencia, usos agotados, cliente no permitido, monto mínimo o sin productos aplicables). Requiere ` + "`" + `codigo` + "`" + `, ` + "`" + `clienteId` + "`" + ` positivo y al menos un ítem con ` + "`" + `productoId` + "`" + ` \u003e 0, ` + "`" + `cantidad` + "`" + ` \u003e= 1 y ` + "`" + `precio` + "`" + ` \u003e= 0.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1405,7 +1782,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Resultado de la validación",
                         "schema": {
                             "allOf": [
                                 {
@@ -1423,13 +1800,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON inválido o campos requeridos incorrectos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al validar el cupón",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1439,6 +1822,12 @@ const docTemplate = `{
         },
         "/cupones/{codigo}/redimir": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registra la redención de un cupón para un cliente y un pedido existentes; el descuento se calcula con el detalle del pedido (` + "`" + `detalle_pedido` + "`" + `). Un cupón no puede redimirse dos veces en el mismo pedido. Errores: 400 (JSON inválido, ` + "`" + `clienteId` + "`" + `/` + "`" + `pedidoId` + "`" + ` ausentes o no positivos), 404 (cupón, cliente o pedido inexistente), 409 (cupón agotado, límite por cliente alcanzado o ya redimido en el pedido), 422 (cupón no aplicable: inactivo, fuera de vigencia, cliente no permitido, monto mínimo, sin productos aplicables). La respuesta es el registro de redención con montoDescuento.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1458,7 +1847,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Datos de redención",
+                        "description": "Datos de redención (clienteId y pedidoId obligatorios)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1469,7 +1858,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Cupón redimido",
                         "schema": {
                             "allOf": [
                                 {
@@ -1479,7 +1868,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.CuponRedencion"
+                                            "$ref": "#/definitions/models.CuponRedencionDoc"
                                         }
                                     }
                                 }
@@ -1487,25 +1876,37 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON inválido o ids ausentes/no positivos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Cupón, cliente o pedido no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "Cupón agotado o ya redimido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity",
+                        "description": "Cupón no aplicable",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1515,6 +1916,12 @@ const docTemplate = `{
         },
         "/descuentos/pedidos": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista los descuentos aplicados al pedido. Si el pedido existe pero no tiene descuentos, ` + "`" + `data` + "`" + ` es una lista vacía ` + "`" + `[]` + "`" + `; si no existe responde 404.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1524,11 +1931,11 @@ const docTemplate = `{
                 "tags": [
                     "descuentos"
                 ],
-                "summary": "Obtener descuentos de pedido",
+                "summary": "Obtener descuentos de un pedido",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del pedido",
+                        "description": "ID del pedido (entero positivo)",
                         "name": "pedido_id",
                         "in": "query",
                         "required": true
@@ -1536,7 +1943,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Descuentos del pedido (puede ser vacío)",
                         "schema": {
                             "allOf": [
                                 {
@@ -1548,7 +1955,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.PedidoDescuentoAplicado"
+                                                "$ref": "#/definitions/models.PedidoDescuentoDoc"
                                             }
                                         }
                                     }
@@ -1557,19 +1964,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "pedido_id inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Pedido no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1577,6 +1990,12 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registra un único descuento (cupón u oferta, exactamente uno) sobre un pedido; un pedido admite un solo descuento. No redime el cupón (para eso use POST /cupones/{codigo}/redimir) ni recalcula el monto: ` + "`" + `montoDescuento` + "`" + ` (\u003e= 0) lo informa el cliente. ` + "`" + `detalle` + "`" + ` es opcional y debe ser un objeto JSON; se conserva y se le agregan los datos del cupón/oferta (` + "`" + `tipo` + "`" + `, ` + "`" + `codigo` + "`" + `/` + "`" + `titulo` + "`" + `, ` + "`" + `scope` + "`" + `), que prevalecen. Errores: 400 (pedido_id/ids/JSON inválidos), 404 (pedido, cupón u oferta inexistente), 409 (el pedido ya tiene un descuento), 422 (no se indicó exactamente uno de cupón u oferta, monto negativo o detalle que no es objeto).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1590,7 +2009,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del pedido",
+                        "description": "ID del pedido (entero positivo)",
                         "name": "pedido_id",
                         "in": "query",
                         "required": true
@@ -1607,7 +2026,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Descuento aplicado",
                         "schema": {
                             "allOf": [
                                 {
@@ -1617,7 +2036,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PedidoDescuentoAplicado"
+                                            "$ref": "#/definitions/models.PedidoDescuentoDoc"
                                         }
                                     }
                                 }
@@ -1625,25 +2044,37 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "pedido_id, ids o JSON inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Pedido, cupón u oferta no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "El pedido ya tiene un descuento aplicado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity",
+                        "description": "Solicitud de descuento inválida",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al aplicar el descuento",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1658,7 +2089,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los domicilios registrados en la base de datos, filtrando según criterios específicos.",
+                "description": "Devuelve los domicilios, con filtros opcionales combinables. Un filtro con formato inválido responde 400. Sin resultados responde 200 con ` + "`" + `data` + "`" + ` igual a ` + "`" + `[]` + "`" + `. ` + "`" + `fechaDomicilio` + "`" + ` va como DD-MM-YYYY; ` + "`" + `trabajadorAsignado` + "`" + ` es el trabajador como objeto (solo ` + "`" + `documentoTrabajador` + "`" + ` es fiable) y se omite si no hay domiciliario. Con ` + "`" + `trabajador` + "`" + ` se devuelven solo los NO entregados que no tienen domiciliario o que tiene ese trabajador.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1672,23 +2103,28 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filtrar por dirección",
+                        "description": "Filtrar por dirección (contiene, sin distinguir mayúsculas)",
                         "name": "direccion",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filtrar por teléfono",
+                        "description": "Filtrar por teléfono (exacto)",
                         "name": "telefono",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filtrar por fecha",
+                        "description": "Filtrar por fecha (YYYY-MM-DD)",
                         "name": "fecha",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "PENDIENTE",
+                            "EN_CAMINO",
+                            "ENTREGADO"
+                        ],
                         "type": "string",
                         "description": "Filtrar por estado del domicilio",
                         "name": "estado",
@@ -1696,20 +2132,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filtrar por usuario que realizó la última actualización",
+                        "description": "Filtrar por usuario de la última actualización (contiene)",
                         "name": "updated_by",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "ID del domiciliario solicitante",
+                        "description": "Documento del domiciliario solicitante (entero positivo)",
                         "name": "trabajador",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de domicilios",
+                        "description": "Lista de domicilios (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -1721,12 +2157,24 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Domicilio"
+                                                "$ref": "#/definitions/models.DomicilioDoc"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Algún filtro tiene formato inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -1743,7 +2191,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de un domicilio existente. El campo 'entregado' es calculado automáticamente.",
+                "description": "Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso ` + "`" + `{}` + "`" + `, que solo refresca ` + "`" + `updatedAt` + "`" + `). Campos: ` + "`" + `direccion` + "`" + ` y ` + "`" + `telefono` + "`" + ` (no vacíos), ` + "`" + `estado` + "`" + ` (alias ` + "`" + `estadoDomicilio` + "`" + `: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), ` + "`" + `observaciones` + "`" + `, ` + "`" + `fechaDomicilio` + "`" + ` (YYYY-MM-DD) y ` + "`" + `updatedBy` + "`" + `. Anulables (null los limpia): ` + "`" + `observaciones` + "`" + ` y ` + "`" + `updatedBy` + "`" + `; null en cualquier otro campo responde 400. ` + "`" + `entregado` + "`" + ` lo calcula la base de datos; la respuesta lo trae actualizado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1757,13 +2205,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Domicilio",
+                        "description": "ID del domicilio (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos del domicilio a actualizar (sólo campos a modificar)",
+                        "description": "Campos a modificar (todos opcionales)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1784,15 +2232,39 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Domicilio"
+                                            "$ref": "#/definitions/models.DomicilioDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "id inválido, JSON inválido, null en campo no anulable o valores inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto con datos existentes",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar el domicilio",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1805,7 +2277,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo domicilio en la base de datos. El campo 'entregado' es generado automáticamente y no debe enviarse en la solicitud.",
+                "description": "Crea un domicilio. ` + "`" + `direccion` + "`" + `, ` + "`" + `telefono` + "`" + ` (no vacíos) y ` + "`" + `fechaDomicilio` + "`" + ` (YYYY-MM-DD) son obligatorios; ` + "`" + `estadoDomicilio` + "`" + ` (alias ` + "`" + `estado` + "`" + `) es opcional y, si se omite, aplica el valor por defecto de la base de datos. ` + "`" + `trabajadorAsignado` + "`" + ` es el documento del trabajador (null o 0 = sin asignar; si se envía debe existir, 404 si no). ` + "`" + `entregado` + "`" + ` lo calcula la base de datos y no debe enviarse. Responde 201 con el domicilio creado (` + "`" + `fechaDomicilio` + "`" + ` como DD-MM-YYYY).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1839,7 +2311,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Domicilio"
+                                            "$ref": "#/definitions/models.DomicilioDoc"
                                         }
                                     }
                                 }
@@ -1847,7 +2319,31 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "JSON inválido, campos obligatorios vacíos, fecha o estado inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "El trabajador indicado no existe",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto con datos existentes",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al crear el domicilio",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1860,7 +2356,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un domicilio de la base de datos.",
+                "description": "Elimina un domicilio. Si está asociado a un pedido responde 409. Responde 200 con el mensaje de confirmación (sin ` + "`" + `data` + "`" + `).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1874,18 +2370,45 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Domicilio",
+                        "description": "ID del domicilio (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Domicilio eliminado"
+                    "200": {
+                        "description": "Domicilio eliminado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     },
                     "404": {
                         "description": "Domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El domicilio está asociado a un pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1900,7 +2423,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Un domiciliario puede tomar un pedido si no ha sido asignado previamente",
+                "description": "Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. ` + "`" + `data` + "`" + ` es el domicilio completo actualizado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1910,18 +2433,18 @@ const docTemplate = `{
                 "tags": [
                     "domicilios"
                 ],
-                "summary": "Asignar un domiciliario a un pedido de domicilio",
+                "summary": "Asignar un domiciliario a un domicilio",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del domicilio",
+                        "description": "ID del domicilio (entero positivo)",
                         "name": "domicilio_id",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "ID del domiciliario que lo tomará",
+                        "description": "Documento del domiciliario que lo tomará (entero positivo)",
                         "name": "trabajador_id",
                         "in": "query",
                         "required": true
@@ -1931,11 +2454,41 @@ const docTemplate = `{
                     "200": {
                         "description": "Domicilio asignado",
                         "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.DomicilioDoc"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "domicilio_id o trabajador_id inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Domicilio no encontrado o ya asignado",
+                        "description": "Domicilio o trabajador no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El domicilio ya ha sido asignado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1956,7 +2509,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un domicilio por ID y, si está asociado a un pedido, incluye documento/nombre del cliente y resumen del pedido (monto/productos).",
+                "description": "Devuelve un domicilio por ID y, si está asociado a un pedido, el cliente (` + "`" + `cliente` + "`" + `) y el resumen del último pedido (` + "`" + `pedido` + "`" + `: pago, subtotal, total y productos). ` + "`" + `cliente` + "`" + ` y ` + "`" + `pedido` + "`" + ` se omiten si no hay pedido asociado. ` + "`" + `fechaDomicilio` + "`" + ` va como DD-MM-YYYY.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1970,7 +2523,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Domicilio",
+                        "description": "ID del domicilio (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -1988,7 +2541,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Domicilio"
+                                            "$ref": "#/definitions/models.DomicilioDetalleDoc"
                                         }
                                     }
                                 }
@@ -1996,7 +2549,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Parámetro inválido",
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2006,16 +2565,32 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     }
                 }
             }
         },
         "/estados-pedidos": {
             "get": {
-                "description": "Obtiene el conteo de pedidos agrupados por estado - endpoint público sin autenticación",
+                "description": "Endpoint público (sin autenticación). Devuelve un objeto con el número de pedidos por cada estado existente (` + "`" + `{\"PENDIENTE\": 3, \"TERMINADO\": 10, ...}` + "`" + `; solo aparecen los estados con pedidos) más la clave ` + "`" + `NO_FINALIZADOS` + "`" + `, que suma todos los estados distintos de TERMINADO y CANCELADO (0 si no hay pedidos).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Conteo de pedidos por estado (público)",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Estados de pedidos obtenidos exitosamente",
                         "schema": {
                             "allOf": [
                                 {
@@ -2037,7 +2612,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error interno del servidor",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2047,7 +2622,7 @@ const docTemplate = `{
         },
         "/healthz": {
             "get": {
-                "description": "Retorna 200 OK si la aplicación está en ejecución",
+                "description": "Retorna 200 con el texto plano ` + "`" + `ok` + "`" + ` si la aplicación está en ejecución. Atención: la ruta real está en la raíz del servidor (` + "`" + `/healthz` + "`" + `), no bajo ` + "`" + `/restaurante/v1` + "`" + `. No requiere autenticación.",
                 "produces": [
                     "text/plain"
                 ],
@@ -2072,7 +2647,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista los horarios, opcionalmente filtrados por documento del trabajador.",
+                "description": "Lista los horarios semanales (documentoTrabajador, dia, horaInicio, horaFin en HH:MM:SS), opcionalmente filtrados por documento del trabajador y/o día. Un ` + "`" + `documento` + "`" + ` o ` + "`" + `dia` + "`" + ` inválido responde 400. Sin resultados responde 200 con ` + "`" + `data: []` + "`" + `. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2082,24 +2657,33 @@ const docTemplate = `{
                 "tags": [
                     "horarios_trabajador"
                 ],
-                "summary": "Obtener horarios de trabajadores",
+                "summary": "Listar horarios de trabajadores",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del trabajador",
+                        "description": "Documento del trabajador (entero positivo)",
                         "name": "documento",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "Lunes",
+                            "Martes",
+                            "Miércoles",
+                            "Jueves",
+                            "Viernes",
+                            "Sábado",
+                            "Domingo"
+                        ],
                         "type": "string",
-                        "description": "Día a filtrar",
+                        "description": "Día a filtrar (no distingue mayúsculas)",
                         "name": "dia",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de horarios",
+                        "description": "Lista de horarios (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -2111,12 +2695,24 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.HorarioTrabajador"
+                                                "$ref": "#/definitions/models.HorarioTrabajadorResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro 'documento' o 'dia' inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -2133,7 +2729,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza las horas de inicio o fin para un trabajador y día específico.",
+                "description": "Actualización parcial con merge de un horario (identificado por ` + "`" + `documento` + "`" + ` y ` + "`" + `dia` + "`" + `): ` + "`" + `horaInicio` + "`" + ` y ` + "`" + `horaFin` + "`" + ` ausentes se CONSERVAN; null en cualquiera responde 400 (no hay campos anulables). Formato HH:MM o HH:MM:SS; horaFin debe ser mayor que horaInicio. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2143,16 +2739,25 @@ const docTemplate = `{
                 "tags": [
                     "horarios_trabajador"
                 ],
-                "summary": "Actualizar horario de trabajador",
+                "summary": "Actualizar horario de un trabajador",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del trabajador",
+                        "description": "Documento del trabajador (entero positivo)",
                         "name": "documento",
                         "in": "query",
                         "required": true
                     },
                     {
+                        "enum": [
+                            "Lunes",
+                            "Martes",
+                            "Miércoles",
+                            "Jueves",
+                            "Viernes",
+                            "Sábado",
+                            "Domingo"
+                        ],
                         "type": "string",
                         "description": "Día del horario",
                         "name": "dia",
@@ -2160,7 +2765,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Horas a actualizar (formato HH:MM:SS)",
+                        "description": "Horas a modificar (todas opcionales)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2173,11 +2778,29 @@ const docTemplate = `{
                     "200": {
                         "description": "Horario actualizado",
                         "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.HorarioTrabajadorResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Solicitud inválida",
+                        "description": "Solicitud inválida (parámetros, JSON, null, formato de hora u horas incoherentes)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2202,7 +2825,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un registro de horario para un trabajador.",
+                "description": "Crea el horario de un trabajador para un día (un trabajador solo puede tener un horario por día). Obligatorios: documentoTrabajador, dia, horaInicio y horaFin (HH:MM o HH:MM:SS; horaFin debe ser mayor que horaInicio). Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2212,10 +2835,10 @@ const docTemplate = `{
                 "tags": [
                     "horarios_trabajador"
                 ],
-                "summary": "Crear horario para trabajador",
+                "summary": "Crear horario para un trabajador",
                 "parameters": [
                     {
-                        "description": "Datos del horario (formato hora HH:MM:SS)",
+                        "description": "Datos del horario",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2236,7 +2859,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.HorarioTrabajador"
+                                            "$ref": "#/definitions/models.HorarioTrabajadorResponse"
                                         }
                                     }
                                 }
@@ -2244,7 +2867,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Solicitud inválida",
+                        "description": "Solicitud inválida (JSON, día, horas, o el trabajador no existe)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El trabajador ya tiene horario para ese día",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2263,7 +2898,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un horario de un trabajador y día específico.",
+                "description": "Elimina el horario de un trabajador para un día. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2273,16 +2908,25 @@ const docTemplate = `{
                 "tags": [
                     "horarios_trabajador"
                 ],
-                "summary": "Eliminar horario de trabajador",
+                "summary": "Eliminar horario de un trabajador",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del trabajador",
+                        "description": "Documento del trabajador (entero positivo)",
                         "name": "documento",
                         "in": "query",
                         "required": true
                     },
                     {
+                        "enum": [
+                            "Lunes",
+                            "Martes",
+                            "Miércoles",
+                            "Jueves",
+                            "Viernes",
+                            "Sábado",
+                            "Domingo"
+                        ],
                         "type": "string",
                         "description": "Día del horario",
                         "name": "dia",
@@ -2299,6 +2943,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Parámetros inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2325,7 +2975,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve una lista de todas las incidencias registradas en la base de datos.",
+                "description": "Devuelve todas las incidencias (fechas DD-MM-YYYY). Sin resultados responde 200 con ` + "`" + `data: []` + "`" + `. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2335,10 +2985,10 @@ const docTemplate = `{
                 "tags": [
                     "incidencias"
                 ],
-                "summary": "Obtener todas las incidencias",
+                "summary": "Listar incidencias",
                 "responses": {
                     "200": {
-                        "description": "Lista de incidencias",
+                        "description": "Lista de incidencias (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -2350,12 +3000,18 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Incidencia"
+                                                "$ref": "#/definitions/models.IncidenciaResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -2372,7 +3028,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de una incidencia existente en la base de datos.",
+                "description": "Actualización parcial con merge: los campos ausentes se CONSERVAN y null en cualquiera responde 400 (no hay campos anulables). Fecha en YYYY-MM-DD; monto \u003e= 0; motivo no vacío; documentoTrabajador debe existir. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2386,13 +3042,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la Incidencia",
+                        "description": "ID de la incidencia (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos de la incidencia a actualizar (sólo campos a modificar)",
+                        "description": "Campos a modificar (todos opcionales)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2405,12 +3061,29 @@ const docTemplate = `{
                     "200": {
                         "description": "Incidencia actualizada",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.IncidenciaResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "Solicitud inválida (id, JSON, null, fecha, monto, motivo o trabajador inexistente)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2435,7 +3108,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una nueva incidencia en la base de datos.",
+                "description": "Crea una incidencia para un trabajador existente. Obligatorios: documentoTrabajador (\u003e 0), fechaIncidencia (YYYY-MM-DD), monto (\u003e= 0), resta (booleano) y motivo. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2445,10 +3118,10 @@ const docTemplate = `{
                 "tags": [
                     "incidencias"
                 ],
-                "summary": "Crear una nueva incidencia",
+                "summary": "Crear una incidencia",
                 "parameters": [
                     {
-                        "description": "Datos de la incidencia (fecha YYYY-MM-DD)",
+                        "description": "Datos de la incidencia",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2461,12 +3134,29 @@ const docTemplate = `{
                     "201": {
                         "description": "Incidencia creada",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.IncidenciaResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "Solicitud inválida (JSON, campos obligatorios, fecha o trabajador inexistente)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2485,7 +3175,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina una incidencia de la base de datos.",
+                "description": "Elimina una incidencia. Si no existe responde 404. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2499,7 +3189,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la incidencia",
+                        "description": "ID de la incidencia (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -2512,8 +3202,26 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "400": {
+                        "description": "ID inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Incidencia no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2528,7 +3236,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve una lista de incidencias según los filtros proporcionados.",
+                "description": "Devuelve las incidencias de un trabajador en el mes y año indicados. Todos los parámetros son obligatorios. Si no hay incidencias responde 200 con ` + "`" + `data: []` + "`" + `. Requiere token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2538,25 +3246,27 @@ const docTemplate = `{
                 "tags": [
                     "incidencias"
                 ],
-                "summary": "Obtener incidencias por documento y/o fecha",
+                "summary": "Buscar incidencias de un trabajador en un mes",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del Trabajador",
+                        "description": "Documento del trabajador (entero positivo)",
                         "name": "documento",
                         "in": "query",
                         "required": true
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes de la Incidencia (1-12)",
+                        "description": "Mes de la incidencia (1-12)",
                         "name": "mes",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "Año de la Incidencia",
+                        "description": "Año de la incidencia (1900 hasta el año actual)",
                         "name": "anio",
                         "in": "query",
                         "required": true
@@ -2564,7 +3274,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de incidencias encontradas",
+                        "description": "Incidencias encontradas (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -2576,7 +3286,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Incidencia"
+                                                "$ref": "#/definitions/models.IncidenciaResponse"
                                             }
                                         }
                                     }
@@ -2585,13 +3295,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "Parámetro 'documento', 'mes' o 'anio' inválido o ausente",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
-                    "404": {
-                        "description": "No se encontraron incidencias",
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2607,7 +3317,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "Permite iniciar sesión utilizando el documento y la contraseña, devuelve un JWT con el rol.",
+                "description": "Permite iniciar sesión utilizando el documento y la contraseña (se busca primero entre trabajadores y luego entre clientes). Devuelve un access token JWT (` + "`" + `token` + "`" + ` y ` + "`" + `access_token` + "`" + `, mismo valor, rol incluido en el claim ` + "`" + `rol` + "`" + `; \"Cliente\" para clientes), un ` + "`" + `refresh_token` + "`" + `, ` + "`" + `token_type` + "`" + ` (\"Bearer\") y ` + "`" + `expires_in` + "`" + ` (segundos de vida del access token, 7200 = 120 min, como string). Límite: 10 intentos por minuto y por IP.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2620,7 +3330,7 @@ const docTemplate = `{
                 "summary": "Iniciar sesión para clientes o trabajadores",
                 "parameters": [
                     {
-                        "description": "Documento y Contraseña",
+                        "description": "Documento (número) y contraseña",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2649,7 +3359,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Solicitud incorrecta",
+                        "description": "JSON inválido, o documento/password ausentes",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2665,6 +3375,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Error de base de datos o al generar el token",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     }
                 }
             }
@@ -2676,7 +3392,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los métodos de pago registrados en la base de datos.",
+                "description": "Devuelve todos los métodos de pago. Si no hay ninguno, ` + "`" + `data` + "`" + ` es una lista vacía ` + "`" + `[]` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2689,7 +3405,7 @@ const docTemplate = `{
                 "summary": "Obtener todos los métodos de pago",
                 "responses": {
                     "200": {
-                        "description": "Lista de métodos de pago",
+                        "description": "Lista de métodos de pago (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -2709,6 +3425,12 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -2723,7 +3445,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de un método de pago existente.",
+                "description": "Actualización parcial (merge): los campos ausentes del cuerpo se conservan. ` + "`" + `tipo` + "`" + ` y ` + "`" + `detalle` + "`" + ` no son anulables: enviar ` + "`" + `null` + "`" + ` en cualquiera responde 400. ` + "`" + `tipo` + "`" + ` no puede quedar vacío.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2737,13 +3459,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Método de Pago",
+                        "description": "ID del método de pago (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos del método de pago a actualizar (sólo campos a modificar)",
+                        "description": "Campos a modificar (todos opcionales, ninguno anulable)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2771,8 +3493,32 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido, JSON inválido, null en campo no anulable o ` + "`" + `tipo` + "`" + ` vacío",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Método de pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad en base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar el método de pago",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2785,7 +3531,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo método de pago en la base de datos.",
+                "description": "Crea un método de pago. ` + "`" + `tipo` + "`" + ` es obligatorio y no puede estar vacío; ` + "`" + `detalle` + "`" + ` es opcional (por defecto cadena vacía).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2827,7 +3573,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "JSON inválido o ` + "`" + `tipo` + "`" + ` vacío",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad en base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al crear el método de pago",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2840,7 +3604,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un método de pago de la base de datos.",
+                "description": "Elimina un método de pago. Si está referenciado por pagos responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2854,7 +3618,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Método de Pago",
+                        "description": "ID del método de pago (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -2867,8 +3631,32 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Método de pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El método de pago está en uso por pagos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2883,7 +3671,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un método de pago específico por ID utilizando query parameters.",
+                "description": "Devuelve un método de pago por ID (query param ` + "`" + `id` + "`" + `).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2897,7 +3685,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Método de Pago",
+                        "description": "ID del método de pago (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -2922,8 +3710,26 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Método de pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2938,7 +3744,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene un listado de todas las relaciones nómina-trabajador registradas en la base de datos",
+                "description": "Lista todas las relaciones nómina-trabajador. Cada elemento tiene la forma única ` + "`" + `NominaTrabajadorItem` + "`" + `: las FK se responden como ids numéricos (` + "`" + `documentoTrabajador` + "`" + `, ` + "`" + `nominaId` + "`" + `) y ` + "`" + `montoIncidencias` + "`" + `/` + "`" + `detalles` + "`" + ` nulos como 0 y \"\". Sin resultados: 200 con ` + "`" + `data: []` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2951,7 +3757,7 @@ const docTemplate = `{
                 "summary": "Obtener todas las relaciones nómina-trabajador",
                 "responses": {
                     "200": {
-                        "description": "Listado de relaciones nómina-trabajador",
+                        "description": "Relaciones nómina-trabajador (puede ser [])",
                         "schema": {
                             "allOf": [
                                 {
@@ -2963,12 +3769,18 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.NominaTrabajador"
+                                                "$ref": "#/definitions/models.NominaTrabajadorItem"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -2985,7 +3797,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una nueva relación nómina-trabajador, calculando incidencias y total a pagar basado en el sueldo y las incidencias del trabajador.",
+                "description": "Crea la relación entre el trabajador y la última nómina: sueldo base del trabajador, suma de incidencias (día 20 del mes anterior al día 20 del actual) y detalle los calcula el backend; cualquier otro campo del cuerpo se ignora. Respuesta de forma única (` + "`" + `NominaTrabajadorItem` + "`" + `, con ` + "`" + `nominaTrabajadorId` + "`" + `): 201 si se creó o 200 si ya existía para esa nómina.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2995,10 +3807,10 @@ const docTemplate = `{
                 "tags": [
                     "nomina_trabajador"
                 ],
-                "summary": "Crear una nómina-trabajador con cálculo automático",
+                "summary": "Crear la nómina-trabajador de la última nómina (cálculo automático)",
                 "parameters": [
                     {
-                        "description": "Datos de la nómina-trabajador",
+                        "description": "Documento del trabajador",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -3008,8 +3820,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Nómina-trabajador creada",
+                    "200": {
+                        "description": "La relación ya existía",
                         "schema": {
                             "allOf": [
                                 {
@@ -3019,7 +3831,25 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.NominaTrabajadorResponse"
+                                            "$ref": "#/definitions/models.NominaTrabajadorItem"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "201": {
+                        "description": "Relación creada",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.NominaTrabajadorItem"
                                         }
                                     }
                                 }
@@ -3027,7 +3857,31 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "JSON inválido o documentoTrabajador ausente/inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Trabajador no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "La relación ya existe (concurrencia)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "No hay ninguna nómina generada",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3048,7 +3902,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene todas las relaciones nómina-trabajador del mes actual o de un mes/año específico, incluyendo el nombre y apellido del trabajador.",
+                "description": "Devuelve las relaciones nómina-trabajador del mes/año indicados (por defecto, el mes y año actuales), con el nombre y apellido del trabajador y el ` + "`" + `nominaTrabajadorId` + "`" + `. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3058,24 +3912,24 @@ const docTemplate = `{
                 "tags": [
                     "nomina_trabajador"
                 ],
-                "summary": "Consultar nóminas del mes actual o de un mes/año específico",
+                "summary": "Consultar las nóminas de los trabajadores de un mes",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Mes (1-12) para filtrar nóminas",
+                        "description": "Mes (1-12); por defecto el actual",
                         "name": "mes",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Año (YYYY) para filtrar nóminas",
+                        "description": "Año (YYYY); por defecto el actual",
                         "name": "anio",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Relaciones nómina-trabajador encontradas",
+                        "description": "Relaciones encontradas (puede ser [])",
                         "schema": {
                             "allOf": [
                                 {
@@ -3087,8 +3941,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "type": "object",
-                                                "additionalProperties": true
+                                                "$ref": "#/definitions/models.NominaTrabajadorDetalle"
                                             }
                                         }
                                     }
@@ -3096,8 +3949,14 @@ const docTemplate = `{
                             ]
                         }
                     },
-                    "404": {
-                        "description": "No se encontraron relaciones nómina-trabajador",
+                    "400": {
+                        "description": "mes o anio inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3118,7 +3977,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene las relaciones nómina-trabajador según los filtros aplicados (nómina actual, nóminas pagas, nóminas no pagas, nómina por mes y año, todas las nóminas).",
+                "description": "Devuelve las relaciones de un trabajador (forma ` + "`" + `NominaTrabajadorItem` + "`" + `). Filtros combinables: ` + "`" + `actual` + "`" + ` (solo la última nómina), ` + "`" + `pagas` + "`" + ` / ` + "`" + `no_pagas` + "`" + ` (estado de la nómina; no pueden ir ambos en true), y ` + "`" + `mes` + "`" + ` y/o ` + "`" + `anio` + "`" + ` (por la fecha de la nómina). Sin resultados: 200 con ` + "`" + `data: []` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3128,49 +3987,49 @@ const docTemplate = `{
                 "tags": [
                     "nomina_trabajador"
                 ],
-                "summary": "Obtener relaciones nómina-trabajador según filtros",
+                "summary": "Obtener relaciones nómina-trabajador de un trabajador",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del trabajador",
+                        "description": "Documento del trabajador (entero positivo)",
                         "name": "documento",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "boolean",
-                        "description": "Consultar solo la nómina actual",
+                        "description": "Solo la nómina actual (la más reciente)",
                         "name": "actual",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Consultar solo nóminas pagadas",
+                        "description": "Solo nóminas pagadas",
                         "name": "pagas",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Consultar solo nóminas no pagadas",
+                        "description": "Solo nóminas no pagadas",
                         "name": "no_pagas",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Mes (1-12) para filtrar nóminas",
+                        "description": "Mes (1-12)",
                         "name": "mes",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Año (YYYY) para filtrar nóminas",
+                        "description": "Año (YYYY)",
                         "name": "anio",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Relaciones nómina-trabajador encontradas",
+                        "description": "Relaciones encontradas (puede ser [])",
                         "schema": {
                             "allOf": [
                                 {
@@ -3182,7 +4041,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.NominaTrabajador"
+                                                "$ref": "#/definitions/models.NominaTrabajadorItem"
                                             }
                                         }
                                     }
@@ -3190,8 +4049,14 @@ const docTemplate = `{
                             ]
                         }
                     },
-                    "404": {
-                        "description": "Relación nómina-trabajador no encontrada",
+                    "400": {
+                        "description": "Parámetros ausentes o inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3212,7 +4077,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todas las nóminas registradas en la base de datos, con opción de filtrar por fecha exacta, mes y año.",
+                "description": "Devuelve las nóminas, opcionalmente filtradas por fecha exacta, mes y/o año (los filtros se combinan). Petición: ` + "`" + `fecha` + "`" + ` en YYYY-MM-DD; respuesta: ` + "`" + `fechaNomina` + "`" + ` en DD-MM-YYYY. ` + "`" + `monto` + "`" + ` lo calcula la base de datos. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3226,26 +4091,26 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filtrar por fecha exacta (YYYY-MM-DD)",
+                        "description": "Fecha exacta, formato YYYY-MM-DD",
                         "name": "fecha",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Filtrar por mes (1-12)",
+                        "description": "Mes (1-12)",
                         "name": "mes",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Filtrar por año (YYYY)",
+                        "description": "Año (YYYY)",
                         "name": "anio",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de nóminas",
+                        "description": "Lista de nóminas (puede ser [])",
                         "schema": {
                             "allOf": [
                                 {
@@ -3257,12 +4122,24 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Nomina"
+                                                "$ref": "#/definitions/models.NominaResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "fecha, mes o anio inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -3279,7 +4156,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Cambia el estado de una nómina existente a \"PAGO\".",
+                "description": "Cambia el estado de una nómina. El cuerpo es opcional: sin cuerpo (o sin ` + "`" + `estadoNomina` + "`" + `) la nómina se marca PAGO. ` + "`" + `estadoNomina` + "`" + ` es el único campo editable y no admite null (400); ` + "`" + `fechaNomina` + "`" + `, ` + "`" + `monto` + "`" + ` y ` + "`" + `nominaId` + "`" + ` se ignoran. Si la nómina ya tenía ese estado responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3293,10 +4170,18 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la Nómina",
+                        "description": "ID de la nómina (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "description": "Campos a modificar (opcional)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/models.NominaUpdateRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -3311,7 +4196,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Nomina"
+                                            "$ref": "#/definitions/models.NominaResponse"
                                         }
                                     }
                                 }
@@ -3319,13 +4204,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "id, JSON, null o estado inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Nómina no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "La nómina ya tenía ese estado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3344,7 +4241,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Inserta un registro en la tabla \"NOMINA\"; el trigger genera automáticamente los cálculos.",
+                "description": "Inserta una nómina; el trigger de la base de datos calcula ` + "`" + `monto` + "`" + ` (el cliente no puede enviarlo; ` + "`" + `nominaId` + "`" + ` y ` + "`" + `monto` + "`" + ` en el cuerpo se ignoran). El cuerpo es opcional: por defecto fechaNomina es hoy y estadoNomina NO_PAGO. Petición: ` + "`" + `fechaNomina` + "`" + ` en YYYY-MM-DD (el día debe ser \u003e= 20); respuesta: ` + "`" + `fechaNomina` + "`" + ` en DD-MM-YYYY. Si ya existe una nómina en ese mes no se crea otra: se marca el control como REGENERADA y se devuelve la existente con 200.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3357,16 +4254,33 @@ const docTemplate = `{
                 "summary": "Crear una nueva nómina",
                 "parameters": [
                     {
-                        "description": "Datos de la nómina a crear (sin 'MONTO'; fecha YYYY-MM-DD)",
+                        "description": "Datos de la nómina (opcional)",
                         "name": "body",
                         "in": "body",
-                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.NominaCreateRequest"
                         }
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "description": "Ya existía una nómina en el mes; marcada como REGENERADA",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.NominaResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
                     "201": {
                         "description": "Nómina creada",
                         "schema": {
@@ -3378,7 +4292,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Nomina"
+                                            "$ref": "#/definitions/models.NominaResponse"
                                         }
                                     }
                                 }
@@ -3386,7 +4300,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "JSON, fecha o estado inválidos, o día anterior al 20",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una nómina con esa fecha",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3405,7 +4331,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Marca una nómina como \"NO_PAGO\" en lugar de eliminarla físicamente.",
+                "description": "No borra la nómina: la marca como NO_PAGO y devuelve la nómina actualizada. Si ya estaba en NO_PAGO responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3419,7 +4345,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la Nómina",
+                        "description": "ID de la nómina (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -3427,7 +4353,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Nómina eliminada lógicamente",
+                        "description": "Nómina marcada como NO_PAGO",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.NominaResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "id ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3437,12 +4387,30 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
+                    },
+                    "409": {
+                        "description": "La nómina ya estaba en NO_PAGO",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
                     }
                 }
             }
         },
         "/ofertas": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista paginada (más recientes primero). ` + "`" + `data.data` + "`" + ` es la lista de ofertas (` + "`" + `[]` + "`" + ` si no hay) y cada una trae ` + "`" + `restauranteId` + "`" + ` como objeto restaurante. ` + "`" + `limit` + "`" + ` por defecto 20 (máximo 100) y ` + "`" + `offset` + "`" + ` por defecto 0.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3456,38 +4424,38 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "boolean",
-                        "description": "Filtrar por estado activo",
+                        "description": "Filtrar por estado activo (true/false)",
                         "name": "activo",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "ID del restaurante",
+                        "description": "ID del restaurante (entero positivo)",
                         "name": "restaurante_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filtrar por título",
+                        "description": "Filtrar por título (contiene, sin distinguir mayúsculas)",
                         "name": "titulo",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Límite de resultados (default: 20)",
+                        "description": "Límite de resultados (1-100, por defecto 20; valores mayores se limitan a 100)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Offset para paginación (default: 0)",
+                        "description": "Offset para paginación (\u003e= 0, por defecto 0)",
                         "name": "offset",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Ofertas obtenidas",
                         "schema": {
                             "allOf": [
                                 {
@@ -3497,7 +4465,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                            "$ref": "#/definitions/models.OfertaPaginadaDoc"
                                         }
                                     }
                                 }
@@ -3505,13 +4473,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Parámetros de filtro o paginación inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3519,6 +4493,12 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualización parcial (merge): los campos ausentes se conservan (cuerpo ` + "`" + `models.ActualizarOfertaRequest` + "`" + `). ` + "`" + `horaInicio` + "`" + ` y ` + "`" + `horaFin` + "`" + ` admiten null explícito para quitar el horario (deben limpiarse juntos); null en cualquier otro campo responde 400. ` + "`" + `diasSemana: []` + "`" + ` significa todos los días. ` + "`" + `activo` + "`" + ` permite reactivar una oferta desactivada. Un cuerpo sin cambios responde 200. Validación de negocio incumplida: 422.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3532,24 +4512,24 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la oferta",
+                        "description": "ID de la oferta (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos actualizados de la oferta",
+                        "description": "Campos a modificar",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CrearOfertaRequest"
+                            "$ref": "#/definitions/models.ActualizarOfertaRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Oferta actualizada",
                         "schema": {
                             "allOf": [
                                 {
@@ -3559,7 +4539,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Oferta"
+                                            "$ref": "#/definitions/models.OfertaDoc"
                                         }
                                     }
                                 }
@@ -3567,19 +4547,37 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "id o JSON inválido, null en campo no anulable, restaurante inexistente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Oferta no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una oferta con ese título",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity",
+                        "description": "Error de validación",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar la oferta",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3587,6 +4585,12 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea una oferta activa. Errores de validación de negocio (tipo, fechas, horas, porcentaje 1-100, días válidos, título, restauranteId) responden 422; un ` + "`" + `restauranteId` + "`" + ` inexistente responde 400 y un título repetido 409. Fechas YYYY-MM-DD, horas HH:MM o HH:MM:SS; ` + "`" + `diasSemana` + "`" + ` vacío significa todos los días. Devuelve la oferta con ` + "`" + `restauranteId` + "`" + ` como objeto restaurante.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3610,7 +4614,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Oferta creada",
                         "schema": {
                             "allOf": [
                                 {
@@ -3620,7 +4624,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Oferta"
+                                            "$ref": "#/definitions/models.OfertaDoc"
                                         }
                                     }
                                 }
@@ -3628,19 +4632,31 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON inválido o restaurante inexistente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una oferta con ese título",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity",
+                        "description": "Error de validación",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error al crear la oferta",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3648,6 +4664,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "No elimina la fila: desactiva la oferta (` + "`" + `activo = false` + "`" + `; se reactiva con PUT ` + "`" + `activo: true` + "`" + `). Si ya estaba desactivada responde 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3661,7 +4683,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la oferta",
+                        "description": "ID de la oferta (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -3669,19 +4691,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Oferta desactivada",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Parámetro 'id' inválido o oferta ya desactivada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Oferta no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al desactivar la oferta",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3691,6 +4725,7 @@ const docTemplate = `{
         },
         "/ofertas/activas": {
             "get": {
+                "description": "Ruta pública (sin token). Ofertas activas del restaurante vigentes en la fecha y hora indicadas (por defecto, ahora en hora de Bogotá), con los ids de sus productos (` + "`" + `productosIds` + "`" + `, ` + "`" + `[]` + "`" + ` si no tiene). Con ` + "`" + `producto_id` + "`" + ` solo las que incluyen ese producto. Sin resultados, ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3704,33 +4739,33 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del restaurante",
+                        "description": "ID del restaurante (entero positivo)",
                         "name": "restaurante_id",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Fecha a consultar (YYYY-MM-DD, default: hoy)",
+                        "description": "Fecha a consultar (YYYY-MM-DD, por defecto hoy)",
                         "name": "fecha",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora a consultar (HH:MM, default: ahora)",
+                        "description": "Hora a consultar (HH:MM o HH:MM:SS, por defecto ahora)",
                         "name": "hora",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "ID del producto específico",
+                        "description": "ID del producto específico (entero positivo)",
                         "name": "producto_id",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Ofertas activas (puede ser vacío)",
                         "schema": {
                             "allOf": [
                                 {
@@ -3751,13 +4786,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Parámetros inválidos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3767,6 +4802,12 @@ const docTemplate = `{
         },
         "/ofertas/productos": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Asocia un producto existente a una oferta existente. 404 si no existe la oferta o el producto; 409 si ya estaban asociados. ` + "`" + `data` + "`" + ` devuelve ` + "`" + `{ofertaId, productoId}` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3780,7 +4821,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la oferta",
+                        "description": "ID de la oferta (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -3797,25 +4838,49 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Producto asociado",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.OfertaProductoAsociacionDoc"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "id o JSON inválido, productoId no positivo",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Oferta o producto no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "El producto ya está asociado a la oferta",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al asociar el producto",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3823,6 +4888,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina la asociación entre la oferta y el producto. 404 si la asociación no existe.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3836,14 +4907,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la oferta",
+                        "description": "ID de la oferta (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "ID del producto",
+                        "description": "ID del producto (entero positivo)",
                         "name": "producto_id",
                         "in": "query",
                         "required": true
@@ -3851,19 +4922,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Producto desasociado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "id o producto_id inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Asociación no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al desasociar el producto",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3873,6 +4956,11 @@ const docTemplate = `{
         },
         "/ofertas/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -3886,7 +4974,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la oferta",
+                        "description": "ID de la oferta (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -3894,7 +4982,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Oferta encontrada",
                         "schema": {
                             "allOf": [
                                 {
@@ -3904,15 +4992,33 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Oferta"
+                                            "$ref": "#/definitions/models.OfertaDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Oferta no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3927,7 +5033,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los pagos registrados en la base de datos, con opción de filtrar por fecha exacta, mes, año y estado.",
+                "description": "Devuelve los pagos, con filtros opcionales por fecha exacta, día, mes, año, estado y método de pago. Cada pago incluye ` + "`" + `metodoPagoId` + "`" + ` como objeto (las relaciones embebidas solo garantizan su id). En la respuesta ` + "`" + `fechaPago` + "`" + ` va como DD-MM-YYYY, ` + "`" + `horaPago` + "`" + ` como HH:MM:SS y ` + "`" + `updatedAt` + "`" + ` como DD-MM-YYYY HH:MM:SS (Bogotá). Sin resultados, ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + ` (HTTP 200).",
                 "consumes": [
                     "application/json"
                 ],
@@ -3941,44 +5047,49 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filtrar por fecha exacta (YYYY-MM-DD)",
+                        "description": "Fecha exacta (YYYY-MM-DD)",
                         "name": "fecha",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Filtrar por dia (1-31)",
+                        "description": "Día del mes (1-31)",
                         "name": "dia",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Filtrar por mes (1-12)",
+                        "description": "Mes (1-12)",
                         "name": "mes",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Filtrar por año (YYYY)",
+                        "description": "Año (YYYY)",
                         "name": "anio",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "PAGADO",
+                            "PENDIENTE",
+                            "NO_PAGO"
+                        ],
                         "type": "string",
-                        "description": "Filtrar por estado del pago (PAGADO, PENDIENTE, NO_PAGO)",
+                        "description": "Estado del pago",
                         "name": "estado",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Filtrar por metodo de pago",
+                        "description": "ID del método de pago (entero positivo)",
                         "name": "metodo_pago",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de pagos",
+                        "description": "Lista de pagos (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -3990,12 +5101,24 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Pago"
+                                                "$ref": "#/definitions/models.PagoDoc"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Algún filtro tiene formato inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -4012,7 +5135,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de un pago existente.",
+                "description": "Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso ` + "`" + `{}` + "`" + `). Claves: ` + "`" + `fechaPago` + "`" + ` (YYYY-MM-DD), ` + "`" + `horaPago` + "`" + ` (HH:MM[:SS]), ` + "`" + `monto` + "`" + ` (entero \u003e 0), ` + "`" + `estadoPago` + "`" + `, ` + "`" + `metodoPagoId` + "`" + ` (debe existir, 404 si no) y ` + "`" + `updatedBy` + "`" + `. Por compatibilidad se aceptan también ` + "`" + `fecha` + "`" + ` y ` + "`" + `hora` + "`" + ` como alias. Solo ` + "`" + `updatedBy` + "`" + ` es anulable (null lo limpia); null en cualquier otro campo responde 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4026,13 +5149,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Pago",
+                        "description": "ID del pago (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos del pago a actualizar (sólo campos a modificar, formatos: fecha YYYY-MM-DD, hora HH:MM:SS)",
+                        "description": "Campos a modificar (todos opcionales)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -4053,15 +5176,39 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Pago"
+                                            "$ref": "#/definitions/models.PagoDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "id inválido, JSON inválido, null en campo no anulable o valores inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Pago no encontrado",
+                        "description": "Pago o método de pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad en base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar el pago",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4074,7 +5221,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo pago en la base de datos.",
+                "description": "Crea un pago. Todos los campos salvo ` + "`" + `updatedBy` + "`" + ` son obligatorios: ` + "`" + `fechaPago` + "`" + ` YYYY-MM-DD, ` + "`" + `horaPago` + "`" + ` HH:MM[:SS], ` + "`" + `monto` + "`" + ` entero \u003e 0, ` + "`" + `estadoPago` + "`" + ` PAGADO|PENDIENTE|NO_PAGO y ` + "`" + `metodoPagoId` + "`" + ` de un método existente (404 si no existe). La respuesta devuelve ` + "`" + `fechaPago` + "`" + ` como DD-MM-YYYY.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4087,7 +5234,7 @@ const docTemplate = `{
                 "summary": "Crear un nuevo pago",
                 "parameters": [
                     {
-                        "description": "Datos del pago a crear (fecha YYYY-MM-DD, hora HH:MM:SS)",
+                        "description": "Datos del pago a crear",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -4108,7 +5255,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Pago"
+                                            "$ref": "#/definitions/models.PagoDoc"
                                         }
                                     }
                                 }
@@ -4116,7 +5263,31 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "JSON inválido o campos ausentes/inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "El método de pago indicado no existe",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad en base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al crear el pago",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4129,7 +5300,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un pago de la base de datos.",
+                "description": "Elimina un pago. Si está asociado a un pedido responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4143,7 +5314,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Pago",
+                        "description": "ID del pago (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -4156,8 +5327,32 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El pago está asociado a un pedido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4172,7 +5367,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un pago específico por ID.",
+                "description": "Devuelve un pago por ID. ` + "`" + `fechaPago` + "`" + ` va como DD-MM-YYYY y ` + "`" + `horaPago` + "`" + ` como HH:MM:SS.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4186,7 +5381,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Pago",
+                        "description": "ID del pago (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -4204,15 +5399,33 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Pago"
+                                            "$ref": "#/definitions/models.PagoDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4227,7 +5440,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve pedidos filtrados según varios criterios: fecha, rango de fechas, usuario (cliente), tipo de método de pago, si tienen domicilio, etc.",
+                "description": "Devuelve pedidos filtrados por fecha, rango de fechas (` + "`" + `desde` + "`" + ` y ` + "`" + `hasta` + "`" + ` solo se aplican juntos), mes/año, cliente, tipo de método de pago y si tienen domicilio. Todos los filtros son opcionales; un filtro con formato inválido responde 400. Sin resultados responde 200 con ` + "`" + `data` + "`" + ` igual a ` + "`" + `[]` + "`" + `. En cada pedido ` + "`" + `fechaPedido` + "`" + ` va como DD-MM-YYYY, ` + "`" + `horaPedido` + "`" + ` como HH:MM:SS y las relaciones (` + "`" + `pagoId` + "`" + `, ` + "`" + `domicilioId` + "`" + `, ` + "`" + `restauranteId` + "`" + `, ` + "`" + `documentoCliente` + "`" + `) como objetos en los que solo el id es fiable.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4241,19 +5454,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Fecha específica en formato YYYY-MM-DD",
+                        "description": "Fecha específica (YYYY-MM-DD)",
                         "name": "fecha",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicial del rango en formato YYYY-MM-DD",
+                        "description": "Fecha inicial del rango (YYYY-MM-DD); requiere ` + "`" + `hasta` + "`" + `",
                         "name": "desde",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha final del rango en formato YYYY-MM-DD",
+                        "description": "Fecha final del rango (YYYY-MM-DD); requiere ` + "`" + `desde` + "`" + `",
                         "name": "hasta",
                         "in": "query"
                     },
@@ -4265,32 +5478,32 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Año para el filtro de mes",
+                        "description": "Año (YYYY); se combina con ` + "`" + `mes` + "`" + ` si ambos se envían",
                         "name": "anio",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "ID del cliente (PK_DOCUMENTO_CLIENTE)",
+                        "description": "Documento del cliente (entero positivo)",
                         "name": "cliente",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Tipo de método de pago (NEQUI, DAVIPLATA, EFECTIVO)",
+                        "description": "Tipo de método de pago (p. ej. NEQUI, DAVIPLATA, EFECTIVO); sin distinguir mayúsculas",
                         "name": "metodo_pago",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Indica si el pedido tiene domicilio (true/false)",
+                        "description": "true: solo pedidos con domicilio; false: solo pedidos sin domicilio",
                         "name": "domicilio",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Pedidos obtenidos exitosamente, cada uno con pagoId, metodoPagoId, domicilioId y documentoCliente cuando apliquen",
+                        "description": "Pedidos obtenidos (puede ser lista vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -4302,7 +5515,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Pedido"
+                                                "$ref": "#/definitions/models.PedidoDoc"
                                             }
                                         }
                                     }
@@ -4311,7 +5524,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en los parámetros de filtro",
+                        "description": "Algún filtro tiene formato inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4330,7 +5549,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo pedido. Fuerza FECHA/HORA (Bogotá) y ESTADO_PEDIDO=INICIADO. Lee 'delivery' del JSON.",
+                "description": "Crea un pedido. El servidor fija ` + "`" + `fechaPedido` + "`" + `/` + "`" + `horaPedido` + "`" + ` (Bogotá) y ` + "`" + `estadoPedido` + "`" + `=INICIADO. Todos los campos del cuerpo son opcionales: ` + "`" + `delivery` + "`" + ` (por defecto false; si es true exige ` + "`" + `pk_id_domicilio` + "`" + `), ` + "`" + `pk_id_domicilio` + "`" + `, ` + "`" + `restauranteId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Responde 201 con el pedido creado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4343,7 +5562,7 @@ const docTemplate = `{
                 "summary": "Crear un nuevo pedido",
                 "parameters": [
                     {
-                        "description": "Datos del pedido (sólo se respeta 'delivery')",
+                        "description": "Datos del pedido",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -4353,8 +5572,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Pedido creado con identificadores pagoId, metodoPagoId, domicilioId y documentoCliente cuando existan",
+                    "201": {
+                        "description": "Pedido creado",
                         "schema": {
                             "allOf": [
                                 {
@@ -4364,7 +5583,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Pedido"
+                                            "$ref": "#/definitions/models.PedidoDoc"
                                         }
                                     }
                                 }
@@ -4372,7 +5591,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Datos inválidos",
+                        "description": "JSON inválido, ids no positivos o ` + "`" + `delivery` + "`" + ` sin domicilio",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "El domicilio, el restaurante o el cliente indicado no existe",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto con datos existentes (p. ej. el domicilio ya pertenece a otro pedido)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4393,7 +5630,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza el estado de un pedido existente.",
+                "description": "Actualiza el estado de un pedido existente (sin cuerpo: ` + "`" + `pedido_id` + "`" + ` y ` + "`" + `estado` + "`" + ` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4407,12 +5644,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del pedido",
+                        "description": "ID del pedido (entero positivo)",
                         "name": "pedido_id",
                         "in": "query",
                         "required": true
                     },
                     {
+                        "enum": [
+                            "INICIADO",
+                            "EN_PREPARACION",
+                            "LISTO",
+                            "TERMINADO",
+                            "CANCELADO"
+                        ],
                         "type": "string",
                         "description": "Nuevo estado del pedido",
                         "name": "estado",
@@ -4423,6 +5667,30 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "Estado actualizado",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PedidoDoc"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "pedido_id inválido o estado inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4449,7 +5717,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un domicilio existente a un pedido (sólo setea PK_ID_DOMICILIO).",
+                "description": "Asigna un domicilio existente a un pedido y marca ` + "`" + `delivery` + "`" + `=true. Responde con el pedido completo actualizado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4463,14 +5731,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del pedido",
+                        "description": "ID del pedido (entero positivo)",
                         "name": "pedido_id",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "ID del domicilio",
+                        "description": "ID del domicilio (entero positivo)",
                         "name": "domicilio_id",
                         "in": "query",
                         "required": true
@@ -4480,11 +5748,41 @@ const docTemplate = `{
                     "200": {
                         "description": "Domicilio asignado al pedido",
                         "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PedidoDoc"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "pedido_id o domicilio_id inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Pedido o domicilio no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto con datos existentes",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4505,7 +5803,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un pago existente a un pedido. Por defecto actualiza el estado del pedido a \"TERMINADO\" y el pago a \"PAGADO\", pero esto se puede controlar con el parámetro cambiar_estado.",
+                "description": "Asigna un pago existente a un pedido. Por defecto (` + "`" + `cambiar_estado=true` + "`" + `) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con ` + "`" + `cambiar_estado=false` + "`" + ` solo vincula el pago. Responde con el pedido completo actualizado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4519,14 +5817,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del pedido",
+                        "description": "ID del pedido (entero positivo)",
                         "name": "pedido_id",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "ID del pago",
+                        "description": "ID del pago (entero positivo)",
                         "name": "pago_id",
                         "in": "query",
                         "required": true
@@ -4534,7 +5832,7 @@ const docTemplate = `{
                     {
                         "type": "boolean",
                         "default": true,
-                        "description": "Si es true (defecto), cambia estado del pedido a TERMINADO y pago a PAGADO. Si es false, solo vincula el pago sin cambiar estados",
+                        "description": "true (defecto): pedido TERMINADO y pago PAGADO; false: solo vincula el pago",
                         "name": "cambiar_estado",
                         "in": "query"
                     }
@@ -4543,11 +5841,41 @@ const docTemplate = `{
                     "200": {
                         "description": "Pago asignado al pedido",
                         "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PedidoDoc"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "pedido_id, pago_id o cambiar_estado inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Pedido o pago no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto con datos existentes",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4568,7 +5896,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve la información del pedido, tipo de pago y los productos asociados.",
+                "description": "Devuelve el pedido con su método de pago y sus productos. A diferencia de ` + "`" + `GET /pedidos` + "`" + `, las relaciones van como número (0 cuando no existen), ` + "`" + `fechaPedido` + "`" + ` como DD-MM-YYYY, ` + "`" + `horaPedido` + "`" + ` como HH:MM:SS y ` + "`" + `productos` + "`" + ` es un string con un JSON (` + "`" + `[]` + "`" + ` si no hay productos) cuyos elementos son {pk_id_producto, nombre, cantidad, precio, subtotal}.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4582,9 +5910,10 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del pedido (filtrar por pedido específico)",
+                        "description": "ID del pedido (entero positivo)",
                         "name": "pedido_id",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -4607,7 +5936,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en los parámetros de filtro",
+                        "description": "pedido_id ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4629,7 +5964,12 @@ const docTemplate = `{
         },
         "/precio_producto_hist": {
             "get": {
-                "description": "Opcional: filtrar por producto y/o fecha_vigencia (YYYY-MM-DD). Devuelve nombre, estadoProducto, precio y fechaVigencia.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista el historial ordenado por fechaVigencia ascendente. Filtros opcionales: ` + "`" + `producto_id` + "`" + ` (entero positivo) y ` + "`" + `fecha` + "`" + ` (YYYY-MM-DD). Cada elemento trae ` + "`" + `precioHistId` + "`" + `, ` + "`" + `productoId` + "`" + `, ` + "`" + `nombre` + "`" + `, ` + "`" + `estadoProducto` + "`" + `, ` + "`" + `precio` + "`" + ` y ` + "`" + `fechaVigencia` + "`" + ` (DD-MM-YYYY). Sin resultados, ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4643,7 +5983,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del producto",
+                        "description": "ID del producto (entero positivo)",
                         "name": "producto_id",
                         "in": "query"
                     },
@@ -4656,13 +5996,40 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Historial de precios (puede ser vacío)",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.PrecioHistItemDoc"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "producto_id o fecha inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4672,7 +6039,12 @@ const docTemplate = `{
         },
         "/precio_producto_hist/search": {
             "get": {
-                "description": "Devuelve nombre, estadoProducto, precio y fechaVigencia para el registro indicado.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve ` + "`" + `precioHistId` + "`" + `, ` + "`" + `productoId` + "`" + `, ` + "`" + `nombre` + "`" + `, ` + "`" + `estadoProducto` + "`" + `, ` + "`" + `precio` + "`" + ` y ` + "`" + `fechaVigencia` + "`" + ` (DD-MM-YYYY) del registro indicado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4686,7 +6058,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del historial",
+                        "description": "ID del historial (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -4694,13 +6066,43 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Historial encontrado",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PrecioHistItemDoc"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Historial no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4715,7 +6117,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve los productos consolidados en un pedido específico",
+                "description": "Devuelve las líneas (detalles) de un pedido. Un pedido existente sin productos responde 200 con ` + "`" + `detalles` + "`" + ` igual a ` + "`" + `[]` + "`" + `; un pedido inexistente responde 404. En cada línea ` + "`" + `pedidoId` + "`" + ` y ` + "`" + `productoId` + "`" + ` son objetos de la relación (solo el id es fiable) y ` + "`" + `precio` + "`" + ` es el precio unitario.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4729,7 +6131,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del pedido",
+                        "description": "ID del pedido (entero positivo)",
                         "name": "pedido_id",
                         "in": "query",
                         "required": true
@@ -4737,7 +6139,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de productos del pedido",
+                        "description": "Productos del pedido (` + "`" + `detalles` + "`" + ` puede ser vacío)",
                         "schema": {
                             "allOf": [
                                 {
@@ -4747,15 +6149,27 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/models.ProductoPedidoDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "pedido_id ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "No se encontraron productos asociados a este pedido",
+                        "description": "Pedido no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4774,7 +6188,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Permite agregar o modificar productos en un pedido consolidado",
+                "description": "Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con ` + "`" + `cantidad` + "`" + ` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; ` + "`" + `productoId` + "`" + ` \u003c= 0 o ` + "`" + `cantidad` + "`" + ` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (` + "`" + `data` + "`" + ` lista {productoId, requerido, disponible}).",
                 "consumes": [
                     "application/json"
                 ],
@@ -4784,17 +6198,17 @@ const docTemplate = `{
                 "tags": [
                     "producto_pedido"
                 ],
-                "summary": "Actualizar productos en un pedido consolidado",
+                "summary": "Reemplazar los productos de un pedido",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del pedido a actualizar",
+                        "description": "ID del pedido (entero positivo)",
                         "name": "pedido_id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Lista actualizada de productos",
+                        "description": "Lista completa de productos que debe quedar en el pedido",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -4818,7 +6232,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/models.ProductoPedidoDoc"
                                         }
                                     }
                                 }
@@ -4826,15 +6240,42 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Datos inválidos",
+                        "description": "pedido_id inválido, cuerpo que no es un arreglo, lista vacía, productoId \u003c= 0 o cantidad negativa",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Pedido no encontrado",
+                        "description": "Pedido o producto no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Inventario insuficiente (con detalle en ` + "`" + `data` + "`" + `)",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.InventarioInsuficienteDoc"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -4851,7 +6292,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un registro de productos consolidados en un pedido",
+                "description": "Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de ` + "`" + `cantidad` + "`" + ` 0 se ignoran (debe quedar al menos una con ` + "`" + `cantidad` + "`" + ` \u003e 0); ` + "`" + `productoId` + "`" + ` \u003c= 0 o ` + "`" + `cantidad` + "`" + ` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (` + "`" + `data` + "`" + ` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).",
                 "consumes": [
                     "application/json"
                 ],
@@ -4861,10 +6302,10 @@ const docTemplate = `{
                 "tags": [
                     "producto_pedido"
                 ],
-                "summary": "Crear un pedido con productos consolidados",
+                "summary": "Agregar productos a un pedido",
                 "parameters": [
                     {
-                        "description": "Datos del pedido con productos",
+                        "description": "Pedido y sus productos",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -4875,7 +6316,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Pedido con productos agregado exitosamente",
+                        "description": "Productos agregados exitosamente",
                         "schema": {
                             "allOf": [
                                 {
@@ -4885,7 +6326,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/productopedido.ProductoPedidoResponse"
+                                            "$ref": "#/definitions/models.ProductoPedidoDoc"
                                         }
                                     }
                                 }
@@ -4893,9 +6334,42 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Datos inválidos",
+                        "description": "JSON inválido, pedidoId inválido, sin líneas válidas, productoId \u003c= 0 o cantidad negativa",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido o producto no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Inventario insuficiente (con detalle en ` + "`" + `data` + "`" + `) o producto ya presente en el pedido",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.InventarioInsuficienteDoc"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -4909,7 +6383,7 @@ const docTemplate = `{
         },
         "/productos": {
             "get": {
-                "description": "Devuelve productos registrados con filtros opcionales para imágenes y disponibilidad.",
+                "description": "Devuelve los productos con filtros opcionales para imágenes y disponibilidad. Sin resultados, ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `. ` + "`" + `subcategoriaId` + "`" + ` es el id (número) o null si el producto no tiene subcategoría.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4923,20 +6397,20 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "boolean",
-                        "description": "Incluir imágenes Base64 en la respuesta (true o false, por defecto es false)",
+                        "description": "Incluir imágenes Base64 en la respuesta (true/false, por defecto false)",
                         "name": "includeImage",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Filtrar solo productos disponibles (true o false, por defecto es false)",
+                        "description": "Solo productos DISPONIBLE (true/false, por defecto false)",
                         "name": "onlyActive",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de productos",
+                        "description": "Lista de productos (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -4948,12 +6422,18 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Producto"
+                                                "$ref": "#/definitions/models.ProductoDoc"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "includeImage u onlyActive no son booleanos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -4970,7 +6450,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza un producto. Puedes enviar JSON (imagen en Base64) o multipart/form-data con archivo.",
+                "description": "Actualización parcial (merge): los campos ausentes se conservan (incluida ` + "`" + `subcategoriaId` + "`" + `). ` + "`" + `calorias` + "`" + `, ` + "`" + `descripcion` + "`" + `, ` + "`" + `imagen` + "`" + ` y ` + "`" + `subcategoriaId` + "`" + ` admiten null explícito (se limpian); null en cualquier otro campo responde 400. Un cuerpo sin cambios responde 200 con el producto actual (no 304). Si cambia ` + "`" + `precio` + "`" + ` se registra en el historial (misma transacción). Acepta JSON (` + "`" + `models.ProductoUpdateRequest` + "`" + `, imagen Base64) o ` + "`" + `multipart/form-data` + "`" + ` con los mismos campos como texto y ` + "`" + `imagen` + "`" + ` como archivo (solo se aplican los campos no vacíos).",
                 "consumes": [
                     "application/json",
                     "multipart/form-data"
@@ -4985,63 +6465,24 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Producto",
+                        "description": "ID del producto (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Nombre del producto",
-                        "name": "nombre",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Calorías",
-                        "name": "calorias",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Descripción",
-                        "name": "descripcion",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Precio",
-                        "name": "precio",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "DISPONIBLE | NO_DISPONIBLE",
-                        "name": "estadoProducto",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Cantidad",
-                        "name": "cantidad",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID de subcategoría",
-                        "name": "subcategoriaId",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "file",
-                        "description": "Archivo de imagen",
-                        "name": "imagen",
-                        "in": "formData"
+                        "description": "Campos a modificar (JSON). En multipart, los mismos campos como form-data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductoUpdateRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Producto actualizado",
+                        "description": "Producto actualizado (o sin cambios)",
                         "schema": {
                             "allOf": [
                                 {
@@ -5051,15 +6492,39 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Producto"
+                                            "$ref": "#/definitions/models.ProductoDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "id inválido, JSON/form inválido, null en campo no anulable, validación o subcategoría inexistente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Producto no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar el producto",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5072,7 +6537,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo producto. Puedes enviar JSON (imagen en Base64) o multipart/form-data con archivo.",
+                "description": "Crea un producto y registra su precio inicial en el historial (ambas escrituras en una transacción). Acepta JSON (cuerpo ` + "`" + `models.ProductoCreateRequest` + "`" + `, imagen en Base64, tolera prefijo ` + "`" + `data:image/...;base64,` + "`" + `) o ` + "`" + `multipart/form-data` + "`" + ` con los mismos campos como texto y ` + "`" + `imagen` + "`" + ` como archivo. ` + "`" + `nombre` + "`" + ` obligatorio, ` + "`" + `precio` + "`" + ` \u003e 0, ` + "`" + `cantidad` + "`" + ` \u003e= 0, ` + "`" + `estadoProducto` + "`" + ` DISPONIBLE o NO_DISPONIBLE; ` + "`" + `calorias` + "`" + `, ` + "`" + `descripcion` + "`" + `, ` + "`" + `imagen` + "`" + ` y ` + "`" + `subcategoriaId` + "`" + ` son opcionales (sin subcategoría queda null). Respuesta 201 con el producto creado.",
                 "consumes": [
                     "application/json",
                     "multipart/form-data"
@@ -5086,52 +6551,13 @@ const docTemplate = `{
                 "summary": "Crear un nuevo producto",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Nombre del producto",
-                        "name": "nombre",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Calorías",
-                        "name": "calorias",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Descripción",
-                        "name": "descripcion",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Precio",
-                        "name": "precio",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "DISPONIBLE | NO_DISPONIBLE",
-                        "name": "estadoProducto",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Cantidad",
-                        "name": "cantidad",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID de subcategoría",
-                        "name": "subcategoriaId",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "file",
-                        "description": "Archivo de imagen",
-                        "name": "imagen",
-                        "in": "formData"
+                        "description": "Datos del producto (JSON). En multipart, los mismos campos como form-data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductoCreateRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -5146,7 +6572,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Producto"
+                                            "$ref": "#/definitions/models.ProductoDoc"
                                         }
                                     }
                                 }
@@ -5154,7 +6580,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "JSON/form inválido, imagen Base64 inválida, validación o subcategoría inexistente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al crear el producto",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5167,7 +6611,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Desactiva un producto en la base de datos (borrado lógico).",
+                "description": "Borrado lógico: pone ` + "`" + `estadoProducto` + "`" + ` en NO_DISPONIBLE (no elimina la fila). Si ya estaba desactivado responde 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5181,7 +6625,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Producto",
+                        "description": "ID del producto (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -5190,6 +6634,18 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "Producto desactivado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o producto ya desactivado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5211,10 +6667,20 @@ const docTemplate = `{
         },
         "/productos-disponibles": {
             "get": {
-                "description": "Obtiene todos los productos disponibles en el sistema - endpoint público sin autenticación",
+                "description": "Endpoint público (sin autenticación). Lista todos los productos del sistema (de cualquier estado, ver ` + "`" + `estado` + "`" + `) con las unidades vendidas en pedidos TERMINADO, ordenados por ` + "`" + `totalVendido` + "`" + ` descendente y luego por nombre. ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + ` si no hay productos.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Productos con unidades vendidas (público)",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Productos disponibles obtenidos exitosamente",
                         "schema": {
                             "allOf": [
                                 {
@@ -5226,8 +6692,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "type": "object",
-                                                "additionalProperties": true
+                                                "$ref": "#/definitions/models.ProductoDisponible"
                                             }
                                         }
                                     }
@@ -5236,7 +6701,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error interno del servidor",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5246,24 +6711,47 @@ const docTemplate = `{
         },
         "/productos-populares": {
             "get": {
-                "description": "Obtiene los productos más vendidos - endpoint público sin autenticación",
+                "description": "Endpoint público (sin autenticación). Devuelve los productos más vendidos (pedidos TERMINADO con pago PAGADO) del período, con su imagen en base64 (` + "`" + `imagen` + "`" + `, \"\" si no tiene). ` + "`" + `productosPopulares` + "`" + ` es ` + "`" + `[]` + "`" + ` si no hay ventas.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telemetria"
+                ],
+                "summary": "Productos más vendidos (público)",
                 "parameters": [
                     {
+                        "maximum": 100,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Número de productos a retornar (default: 4)",
+                        "default": 4,
+                        "description": "Máximo de productos; un valor inválido o menor a 1 se reemplaza por 4 y los mayores a 100 se reducen a 100",
                         "name": "limit",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "hoy",
+                            "ultima_semana",
+                            "ultimo_mes",
+                            "ultimos_3_meses",
+                            "ultimos_6_meses",
+                            "ultimo_año",
+                            "historico"
+                        ],
                         "type": "string",
-                        "description": "Filtro temporal: hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico",
+                        "default": "ultimo_mes",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01). Cualquier otro valor se trata como ultimo_mes (este endpoint no admite mes_año ni rango_fechas)",
                         "name": "periodo",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Productos populares obtenidos exitosamente",
                         "schema": {
                             "allOf": [
                                 {
@@ -5281,7 +6769,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error interno del servidor",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5291,7 +6779,7 @@ const docTemplate = `{
         },
         "/productos/search": {
             "get": {
-                "description": "Devuelve un producto específico por ID, incluyendo la imagen en formato Base64.",
+                "description": "Devuelve un producto por ID, incluyendo la imagen en Base64.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5305,7 +6793,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Producto",
+                        "description": "ID del producto (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -5323,15 +6811,27 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Producto"
+                                            "$ref": "#/definitions/models.ProductoDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Producto no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5341,6 +6841,12 @@ const docTemplate = `{
         },
         "/push/dispositivos": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista paginada de dispositivos push registrados, del más reciente al más antiguo. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` cuando no hay resultados. ` + "`" + `documentoCliente` + "`" + ` y ` + "`" + `documentoTrabajador` + "`" + ` son el número de documento (no el objeto completo).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5350,42 +6856,52 @@ const docTemplate = `{
                 "tags": [
                     "push_notifications"
                 ],
-                "summary": "Obtener dispositivos push",
+                "summary": "Listar dispositivos push",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del cliente",
+                        "description": "Filtra por documento del cliente",
                         "name": "cliente_id",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "ID del trabajador",
+                        "description": "Filtra por documento del trabajador",
                         "name": "trabajador_id",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "WEB",
+                            "ANDROID",
+                            "IOS"
+                        ],
                         "type": "string",
-                        "description": "Plataforma (WEB, ANDROID, IOS)",
+                        "description": "Filtra por plataforma",
                         "name": "plataforma",
                         "in": "query"
                     },
                     {
+                        "maximum": 100,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Límite de resultados (default: 20)",
+                        "default": 20,
+                        "description": "Tamaño de página (1-100; los valores mayores se reducen a 100)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
+                        "minimum": 0,
                         "type": "integer",
-                        "description": "Offset para paginación (default: 0)",
+                        "default": 0,
+                        "description": "Desplazamiento para paginación",
                         "name": "offset",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Dispositivos obtenidos exitosamente",
                         "schema": {
                             "allOf": [
                                 {
@@ -5395,7 +6911,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                            "$ref": "#/definitions/models.PushDispositivosPage"
                                         }
                                     }
                                 }
@@ -5403,13 +6919,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Parámetros inválidos (cliente_id, trabajador_id, plataforma, limit u offset)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5417,6 +6939,12 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualización parcial (merge): los campos ausentes se conservan (p. ej. ` + "`" + `{\"enabled\":false}` + "`" + ` solo cambia ` + "`" + `enabled` + "`" + `). ` + "`" + `locale` + "`" + `, ` + "`" + `timeZone` + "`" + `, ` + "`" + `appVersion` + "`" + ` y ` + "`" + `userAgent` + "`" + ` aceptan ` + "`" + `null` + "`" + ` para limpiarse; ` + "`" + `enabled` + "`" + ` y ` + "`" + `subscribedTopics` + "`" + ` no admiten ` + "`" + `null` + "`" + ` (400). Devuelve el dispositivo actualizado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5436,30 +6964,54 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Nuevo estado",
+                        "description": "Campos a actualizar",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ActualizarEstadoDispositivoRequest"
+                            "$ref": "#/definitions/models.ActualizarDispositivoRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Dispositivo actualizado",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PushDispositivo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "ID o JSON inválido, o null en un campo no anulable",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Dispositivo no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5467,6 +7019,12 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registra un dispositivo (upsert por ` + "`" + `fcmToken` + "`" + `/` + "`" + `endpoint` + "`" + `). Si el token ya existe se reactiva, se actualizan sus datos y se reasigna al propietario indicado (responde 200 en vez de 201). Debe indicarse exactamente uno entre ` + "`" + `documentoCliente` + "`" + ` y ` + "`" + `documentoTrabajador` + "`" + `. WEB exige ` + "`" + `endpoint` + "`" + `, ` + "`" + `p256dh` + "`" + ` y ` + "`" + `auth` + "`" + ` y no admite ` + "`" + `fcmToken` + "`" + `; ANDROID/IOS exigen ` + "`" + `fcmToken` + "`" + ` y no admiten los campos web.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5489,8 +7047,26 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "description": "Dispositivo ya existente: re-registrado y reactivado",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PushDispositivo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
                     "201": {
-                        "description": "Created",
+                        "description": "Dispositivo nuevo registrado",
                         "schema": {
                             "allOf": [
                                 {
@@ -5508,19 +7084,31 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON o datos inválidos (plataforma, cliente/trabajador, token o endpoint)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "El cliente o trabajador indicado no existe",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad detectado por la base de datos (fcmToken o endpoint duplicado en una carrera)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5528,6 +7116,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina el dispositivo y, en cascada, su historial de envíos.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5549,19 +7143,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Dispositivo eliminado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "ID inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Dispositivo no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5571,6 +7177,11 @@ const docTemplate = `{
         },
         "/push/dispositivos/search": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -5580,7 +7191,7 @@ const docTemplate = `{
                 "tags": [
                     "push_notifications"
                 ],
-                "summary": "Obtener dispositivo por ID",
+                "summary": "Obtener dispositivo push por ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -5592,7 +7203,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Dispositivo encontrado",
                         "schema": {
                             "allOf": [
                                 {
@@ -5609,8 +7220,26 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "ID inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Dispositivo no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5620,6 +7249,12 @@ const docTemplate = `{
         },
         "/push/dispositivos/topics": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reemplaza la lista de topics del dispositivo (` + "`" + `[]` + "`" + ` los elimina todos). ` + "`" + `subscribedTopics` + "`" + ` es obligatorio y no admite null.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5629,7 +7264,7 @@ const docTemplate = `{
                 "tags": [
                     "push_notifications"
                 ],
-                "summary": "Actualizar topics suscritos del dispositivo",
+                "summary": "Reemplazar topics suscritos del dispositivo",
                 "parameters": [
                     {
                         "type": "integer",
@@ -5650,19 +7285,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Topics actualizados",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "ID o JSON inválido, o subscribedTopics ausente/null",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Dispositivo no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5672,6 +7319,12 @@ const docTemplate = `{
         },
         "/push/dispositivos/visto": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Marca ` + "`" + `lastSeenAt` + "`" + ` del dispositivo con la hora actual.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5693,19 +7346,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Última vista actualizada",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "ID inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Dispositivo no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5715,6 +7380,12 @@ const docTemplate = `{
         },
         "/push/enviar": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Envía la notificación a los dispositivos habilitados que coincidan con ` + "`" + `destinatarios` + "`" + ` y registra cada envío. Responde 200 aun cuando algún dispositivo falle (ver ` + "`" + `enviosFallidos` + "`" + ` y ` + "`" + `detalleEnvios` + "`" + `).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5738,7 +7409,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Notificación procesada",
                         "schema": {
                             "allOf": [
                                 {
@@ -5756,13 +7427,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON o datos inválidos (título/mensaje, remitente o destinatarios)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "El trabajador remitente no existe",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5772,6 +7455,12 @@ const docTemplate = `{
         },
         "/push/envios": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista paginada de envíos, del más reciente al más antiguo. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` cuando no hay resultados. ` + "`" + `pushDispositivoId` + "`" + ` es el id numérico del dispositivo y ` + "`" + `sentAt` + "`" + ` tiene formato DD-MM-YYYY HH:MM:SS (hora de Bogotá).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5785,38 +7474,45 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del dispositivo",
+                        "description": "Filtra por ID del dispositivo",
                         "name": "dispositivo_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha desde (YYYY-MM-DD)",
+                        "format": "date",
+                        "description": "Envíos desde esta fecha, inclusive (YYYY-MM-DD)",
                         "name": "fecha_desde",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha hasta (YYYY-MM-DD)",
+                        "format": "date",
+                        "description": "Envíos hasta esta fecha, inclusive (YYYY-MM-DD)",
                         "name": "fecha_hasta",
                         "in": "query"
                     },
                     {
+                        "maximum": 100,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Límite de resultados (default: 20)",
+                        "default": 20,
+                        "description": "Tamaño de página (1-100; los valores mayores se reducen a 100)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
+                        "minimum": 0,
                         "type": "integer",
-                        "description": "Offset para paginación (default: 0)",
+                        "default": 0,
+                        "description": "Desplazamiento para paginación",
                         "name": "offset",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Envíos obtenidos exitosamente",
                         "schema": {
                             "allOf": [
                                 {
@@ -5826,7 +7522,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PaginatedResponse"
+                                            "$ref": "#/definitions/models.PushEnviosPage"
                                         }
                                     }
                                 }
@@ -5834,13 +7530,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Parámetros inválidos (dispositivo_id, fechas, limit u offset)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5848,6 +7550,12 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registra manualmente el resultado de un envío ya realizado a un dispositivo.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5871,7 +7579,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Envío registrado",
                         "schema": {
                             "allOf": [
                                 {
@@ -5889,13 +7597,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON o datos inválidos (pushDispositivoId, proveedor)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "401": {
+                        "description": "Token no proporcionado o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "El dispositivo indicado no existe",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5905,7 +7625,7 @@ const docTemplate = `{
         },
         "/readyz": {
             "get": {
-                "description": "Retorna 200 OK si la aplicación puede conectarse a la base de datos",
+                "description": "Retorna 200 con el texto plano ` + "`" + `ok` + "`" + ` si la base de datos responde al ping y 503 (` + "`" + `unavailable` + "`" + `) si no hay conexión configurada o el ping falla. Atención: la ruta real está en la raíz del servidor (` + "`" + `/readyz` + "`" + `), no bajo ` + "`" + `/restaurante/v1` + "`" + `. No requiere autenticación.",
                 "produces": [
                     "text/plain"
                 ],
@@ -5931,6 +7651,7 @@ const docTemplate = `{
         },
         "/reserva_contacto": {
             "get": {
+                "description": "Devuelve los contactos de reserva, opcionalmente filtrados por documento de invitado y/o de cliente registrado. ` + "`" + `documentoCliente` + "`" + ` se responde como objeto ` + "`" + `{documentoCliente}` + "`" + ` (solo el documento; nunca datos del cliente ni contraseña). Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5944,20 +7665,20 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del contacto",
+                        "description": "Documento del contacto invitado (entero positivo)",
                         "name": "documento_contacto",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Documento del cliente",
+                        "description": "Documento del cliente registrado (entero positivo)",
                         "name": "documento_cliente",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Lista de contactos (puede ser [])",
                         "schema": {
                             "allOf": [
                                 {
@@ -5969,7 +7690,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.ReservaContacto"
+                                                "$ref": "#/definitions/models.ReservaContactoResponse"
                                             }
                                         }
                                     }
@@ -5977,8 +7698,14 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "documento_contacto o documento_cliente inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5988,6 +7715,7 @@ const docTemplate = `{
         },
         "/reserva_contacto/search": {
             "get": {
+                "description": "Devuelve un contacto de reserva por su ID. Público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6001,7 +7729,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del contacto",
+                        "description": "ID del contacto (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -6009,7 +7737,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Contacto encontrado",
                         "schema": {
                             "allOf": [
                                 {
@@ -6019,15 +7747,27 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.ReservaContacto"
+                                            "$ref": "#/definitions/models.ReservaContactoResponse"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "id ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Contacto no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6037,7 +7777,7 @@ const docTemplate = `{
         },
         "/reservas": {
             "get": {
-                "description": "Devuelve todas las reservas registradas en la base de datos.",
+                "description": "Devuelve todas las reservas con su contacto (nombreCompleto, teléfono, documentos; nunca contraseñas) y su restaurante ya cargados. Lista vacía: ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS, createdAt/updatedAt DD-MM-YYYY HH:MM:SS. Público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6050,12 +7790,24 @@ const docTemplate = `{
                 "summary": "Obtener todas las reservas",
                 "responses": {
                     "200": {
-                        "description": "Lista de reservas",
+                        "description": "Lista de reservas (puede ser [])",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Reserva"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.ReservaResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
@@ -6072,7 +7824,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de una reserva existente.",
+                "description": "Actualiza solo los campos enviados; los ausentes se conservan. ` + "`" + `indicaciones` + "`" + ` y ` + "`" + `updatedBy` + "`" + ` admiten ` + "`" + `null` + "`" + ` (limpian el campo); ` + "`" + `null` + "`" + ` en cualquier otro campo devuelve 400. Para cambiar el contacto envíe ` + "`" + `documentoContacto` + "`" + ` o ` + "`" + `documentoCliente` + "`" + ` (se busca o crea el contacto; ` + "`" + `contactoId` + "`" + ` NO se acepta). Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas \u003e= 1. La respuesta devuelve la reserva completa (fechas DD-MM-YYYY).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6082,17 +7834,17 @@ const docTemplate = `{
                 "tags": [
                     "reservas"
                 ],
-                "summary": "Actualizar una reserva",
+                "summary": "Actualizar una reserva (merge parcial)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la Reserva",
+                        "description": "ID de la reserva (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos de la reserva a actualizar (sólo campos a modificar)",
+                        "description": "Campos a modificar",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -6105,11 +7857,41 @@ const docTemplate = `{
                     "200": {
                         "description": "Reserva actualizada",
                         "schema": {
-                            "$ref": "#/definitions/models.Reserva"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ReservaResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "id, JSON, null no permitido, fecha, hora, personas, estado o contacto inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Reserva no encontrada",
+                        "description": "Reserva, restaurante o cliente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6117,7 +7899,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Crea una nueva reserva en la base de datos.",
+                "description": "Crea una reserva. El contacto se resuelve con ` + "`" + `documentoContacto` + "`" + ` (invitado; si no existe se crea y exige ` + "`" + `nombreCompleto` + "`" + `) o con ` + "`" + `documentoCliente` + "`" + ` (cliente registrado); si se envían ambos prevalece ` + "`" + `documentoContacto` + "`" + `. ` + "`" + `contactoId` + "`" + ` NO se acepta. Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas \u003e= 1, estadoReserva opcional (por defecto PENDIENTE). La respuesta devuelve la reserva con contacto y restaurante (sin contraseñas); fechas de respuesta en DD-MM-YYYY. Público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6130,7 +7912,7 @@ const docTemplate = `{
                 "summary": "Crear una nueva reserva",
                 "parameters": [
                     {
-                        "description": "Datos de la reserva a crear (fecha YYYY-MM-DD, hora HH:MM:SS)",
+                        "description": "Datos de la reserva a crear",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -6143,11 +7925,35 @@ const docTemplate = `{
                     "201": {
                         "description": "Reserva creada",
                         "schema": {
-                            "$ref": "#/definitions/models.Reserva"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ReservaResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "JSON, campos obligatorios, fecha, hora, personas, estado o contacto inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Restaurante o cliente no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6160,7 +7966,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza el estado de una reserva a \"CANCELADA\".",
+                "description": "No borra la reserva: cambia su estado a CANCELADA y devuelve la reserva actualizada. Si ya estaba cancelada responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6174,7 +7980,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la Reserva",
+                        "description": "ID de la reserva (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -6184,11 +7990,47 @@ const docTemplate = `{
                     "200": {
                         "description": "Reserva cancelada",
                         "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ReservaResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "id ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Reserva no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "La reserva ya estaba cancelada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6198,7 +8040,7 @@ const docTemplate = `{
         },
         "/reservas/cliente": {
             "get": {
-                "description": "Devuelve las reservas asociadas a un documento de cliente registrado, opcionalmente filtradas por fecha.",
+                "description": "Devuelve las reservas de un cliente registrado, opcionalmente filtradas por fecha (YYYY-MM-DD). Fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6212,30 +8054,42 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del Cliente Registrado",
+                        "description": "Documento del cliente registrado (entero positivo)",
                         "name": "documentoCliente",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Fecha de la reserva (YYYY-MM-DD) (Opcional)",
+                        "description": "Fecha de la reserva, formato YYYY-MM-DD",
                         "name": "fecha",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de reservas encontradas",
+                        "description": "Lista de reservas (puede ser [])",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Reserva"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.ReservaResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Error en los parámetros",
+                        "description": "documentoCliente o fecha inválidos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6251,7 +8105,7 @@ const docTemplate = `{
         },
         "/reservas/documento": {
             "get": {
-                "description": "Busca reservas por documento de cliente registrado o documento de contacto. Intenta primero como cliente registrado, luego como contacto.",
+                "description": "Busca reservas por documento: primero como cliente registrado y, si no hay resultados, como documento de contacto (invitado). Filtro ` + "`" + `fecha` + "`" + ` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6261,34 +8115,46 @@ const docTemplate = `{
                 "tags": [
                     "reservas"
                 ],
-                "summary": "Obtener reservas por documento (cliente loggeado o no loggeado)",
+                "summary": "Obtener reservas por documento (cliente registrado o invitado)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del Cliente o Contacto",
+                        "description": "Documento del cliente o del contacto (entero positivo)",
                         "name": "documento",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Fecha de la reserva (YYYY-MM-DD) (Opcional)",
+                        "description": "Fecha de la reserva, formato YYYY-MM-DD",
                         "name": "fecha",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de reservas encontradas",
+                        "description": "Lista de reservas (puede ser [])",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Reserva"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.ReservaResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Error en los parámetros",
+                        "description": "documento o fecha inválidos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6304,7 +8170,7 @@ const docTemplate = `{
         },
         "/reservas/parameter": {
             "get": {
-                "description": "Devuelve las reservas asociadas a un contacto en una fecha específica, todas sus reservas si no se especifica la fecha, o todas las reservas en una fecha específica si no se especifica el contacto.",
+                "description": "Devuelve las reservas de un contacto en una fecha, todas las de un contacto, o todas las de una fecha. Sin ningún filtro devuelve todas. Cada reserva trae contacto y restaurante cargados. Filtro ` + "`" + `fecha` + "`" + ` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6318,29 +8184,41 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Contacto (Opcional)",
+                        "description": "ID del contacto (entero positivo)",
                         "name": "contactoId",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha de la reserva (YYYY-MM-DD) (Opcional)",
+                        "description": "Fecha de la reserva, formato YYYY-MM-DD",
                         "name": "fecha",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de reservas encontradas",
+                        "description": "Lista de reservas (puede ser [])",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Reserva"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.ReservaResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Error en los parámetros",
+                        "description": "contactoId o fecha inválidos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6356,7 +8234,7 @@ const docTemplate = `{
         },
         "/reservas/search": {
             "get": {
-                "description": "Devuelve una reserva específica por ID utilizando query parameters.",
+                "description": "Devuelve una reserva por ID con contacto y restaurante cargados. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS. Público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6370,7 +8248,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la Reserva",
+                        "description": "ID de la reserva (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -6380,11 +8258,35 @@ const docTemplate = `{
                     "200": {
                         "description": "Reserva encontrada",
                         "schema": {
-                            "$ref": "#/definitions/models.Reserva"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ReservaResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "id ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Reserva no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6394,7 +8296,7 @@ const docTemplate = `{
         },
         "/restaurante_dia": {
             "get": {
-                "description": "Devuelve restauranteId, nombreRestaurante, horaApertura y dia.",
+                "description": "Devuelve cada fila de restaurante_dia con su id (` + "`" + `restauranteDiaId` + "`" + `), el restaurante y su hora de apertura (HH:MM:SS). Sin resultados, ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `. Endpoint público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6408,26 +8310,56 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del restaurante",
+                        "description": "Filtrar por ID del restaurante (entero positivo)",
                         "name": "restaurante_id",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "Lunes",
+                            "Martes",
+                            "Miércoles",
+                            "Jueves",
+                            "Viernes",
+                            "Sábado",
+                            "Domingo"
+                        ],
                         "type": "string",
-                        "description": "Día del enum (Lunes..Domingo)",
+                        "description": "Filtrar por día",
                         "name": "dia",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Lista de días (puede ser vacía)",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.RestauranteDiaView"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "restaurante_id o dia inválidos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6437,7 +8369,7 @@ const docTemplate = `{
         },
         "/restaurante_dia/search": {
             "get": {
-                "description": "Devuelve restauranteId, nombreRestaurante, horaApertura y dia.",
+                "description": "Devuelve la fila de restaurante_dia cuyo ` + "`" + `restauranteDiaId` + "`" + ` coincide con ` + "`" + `id` + "`" + `. Endpoint público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6447,11 +8379,11 @@ const docTemplate = `{
                 "tags": [
                     "restaurante_dia"
                 ],
-                "summary": "Obtener registro por ID",
+                "summary": "Obtener registro de restaurante_dia por ID",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del registro",
+                        "description": "ID del registro (restauranteDiaId, entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -6459,13 +8391,37 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Registro encontrado",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.RestauranteDiaView"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Registro no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6475,7 +8431,7 @@ const docTemplate = `{
         },
         "/restaurantes": {
             "get": {
-                "description": "Devuelve todos los restaurantes registrados en la base de datos.",
+                "description": "Devuelve los restaurantes registrados. ` + "`" + `horaApertura` + "`" + ` va como HH:MM:SS y ` + "`" + `cambioHorarioId` + "`" + ` (si existe) como objeto de cambio de horario. Sin resultados, ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `. Endpoint público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6488,7 +8444,7 @@ const docTemplate = `{
                 "summary": "Obtener todos los restaurantes",
                 "responses": {
                     "200": {
-                        "description": "Lista de restaurantes",
+                        "description": "Lista de restaurantes (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -6500,7 +8456,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Restaurante"
+                                                "$ref": "#/definitions/models.RestauranteDoc"
                                             }
                                         }
                                     }
@@ -6515,151 +8471,11 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "put": {
-                "description": "Actualiza los datos de un restaurante existente.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "restaurantes"
-                ],
-                "summary": "Actualizar un restaurante",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Restaurante",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "description": "Datos del restaurante a actualizar (sólo campos a modificar)",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.RestauranteUpdateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Restaurante actualizado",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Restaurante"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "404": {
-                        "description": "Restaurante no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Crea un nuevo restaurante en la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "restaurantes"
-                ],
-                "summary": "Crear un nuevo restaurante",
-                "parameters": [
-                    {
-                        "description": "Datos del restaurante a crear",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.RestauranteCreateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Restaurante creado",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Restaurante"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Error en la solicitud",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Elimina un restaurante de la base de datos.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "restaurantes"
-                ],
-                "summary": "Eliminar un restaurante",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID del Restaurante",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Restaurante eliminado"
-                    },
-                    "404": {
-                        "description": "Restaurante no encontrado",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApiResponse"
-                        }
-                    }
-                }
             }
         },
         "/restaurantes/search": {
             "get": {
-                "description": "Devuelve un restaurante específico por ID utilizando query parameters.",
+                "description": "Devuelve un restaurante por ID (query param ` + "`" + `id` + "`" + `). Endpoint público (no exige token).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6673,7 +8489,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Restaurante",
+                        "description": "ID del restaurante (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -6691,15 +8507,27 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Restaurante"
+                                            "$ref": "#/definitions/models.RestauranteDoc"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Restaurante no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6709,6 +8537,7 @@ const docTemplate = `{
         },
         "/subcategorias": {
             "get": {
+                "description": "Devuelve las subcategorías, opcionalmente filtradas por categoría. Cada una trae ` + "`" + `categoriaId` + "`" + ` como objeto categoría. Sin resultados, ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6722,14 +8551,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Filtrar por categoría",
+                        "description": "Filtrar por categoría (entero positivo)",
                         "name": "categoria_id",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Lista de subcategorías (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -6749,8 +8578,14 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "categoria_id inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6758,6 +8593,12 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualización parcial (merge): los campos ausentes se conservan. Ningún campo admite null (400); ` + "`" + `nombre` + "`" + ` no puede quedar vacío y ` + "`" + `categoriaId` + "`" + ` debe ser una categoría existente. Un cuerpo sin cambios responde 200.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6771,13 +8612,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la subcategoría",
+                        "description": "ID de la subcategoría (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos a actualizar",
+                        "description": "Campos a modificar (opcionales, ninguno anulable)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -6788,7 +8629,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Subcategoría actualizada",
                         "schema": {
                             "allOf": [
                                 {
@@ -6805,8 +8646,32 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "id inválido, JSON inválido, null en campo no anulable, validación o categoría inexistente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Subcategoría no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al actualizar la subcategoría",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6814,6 +8679,12 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "` + "`" + `nombre` + "`" + ` y ` + "`" + `categoriaId` + "`" + ` (entero positivo de una categoría existente) son obligatorios.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6837,7 +8708,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Subcategoría creada",
                         "schema": {
                             "allOf": [
                                 {
@@ -6855,13 +8726,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "JSON inválido, campos faltantes o categoría inexistente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto de unicidad",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error al crear la subcategoría",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6869,6 +8752,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina físicamente la subcategoría. Si tiene productos asociados responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6882,7 +8771,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la subcategoría",
+                        "description": "ID de la subcategoría (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -6890,13 +8779,37 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Subcategoría eliminada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Subcategoría no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "La subcategoría tiene productos asociados",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error al eliminar la subcategoría",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6919,7 +8832,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID de la subcategoría",
+                        "description": "ID de la subcategoría (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -6927,7 +8840,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Subcategoría encontrada",
                         "schema": {
                             "allOf": [
                                 {
@@ -6944,8 +8857,20 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Subcategoría no encontrada",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6986,43 +8911,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -7091,7 +9022,7 @@ const docTemplate = `{
                         "minimum": 1,
                         "type": "integer",
                         "default": 10,
-                        "description": "Límite de registros por sección",
+                        "description": "Máximo de elementos de tiemposEntrega y rendimientoTrabajadores; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100",
                         "name": "limit",
                         "in": "query"
                     },
@@ -7109,43 +9040,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -7214,7 +9151,7 @@ const docTemplate = `{
                         "minimum": 1,
                         "type": "integer",
                         "default": 10,
-                        "description": "Límite de registros por sección",
+                        "description": "Máximo de elementos de pedidosPorDia y pedidosPorHora; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100",
                         "name": "limit",
                         "in": "query"
                     },
@@ -7232,43 +9169,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -7337,7 +9280,7 @@ const docTemplate = `{
                         "minimum": 1,
                         "type": "integer",
                         "default": 10,
-                        "description": "Límite de productos a mostrar",
+                        "description": "Máximo de productos por lista; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100",
                         "name": "limit",
                         "in": "query"
                     },
@@ -7355,43 +9298,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -7460,7 +9409,7 @@ const docTemplate = `{
                         "minimum": 1,
                         "type": "integer",
                         "default": 10,
-                        "description": "Límite de productos a mostrar",
+                        "description": "Máximo de productos por lista; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100",
                         "name": "limit",
                         "in": "query"
                     },
@@ -7478,43 +9427,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -7583,7 +9538,7 @@ const docTemplate = `{
                         "minimum": 1,
                         "type": "integer",
                         "default": 10,
-                        "description": "Límite de registros por sección",
+                        "description": "Máximo de elementos de reservasPorDia y reservasPorHora; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100",
                         "name": "limit",
                         "in": "query"
                     },
@@ -7601,43 +9556,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -7715,43 +9676,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -7820,7 +9787,7 @@ const docTemplate = `{
                         "minimum": 1,
                         "type": "integer",
                         "default": 10,
-                        "description": "Límite de clientes por segmento",
+                        "description": "Máximo de clientes por segmento; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100",
                         "name": "limit",
                         "in": "query"
                     },
@@ -7838,43 +9805,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -7952,43 +9925,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -8057,7 +10036,7 @@ const docTemplate = `{
                         "minimum": 1,
                         "type": "integer",
                         "default": 10,
-                        "description": "Límite de usuarios a mostrar",
+                        "description": "Máximo de usuarios por lista; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100",
                         "name": "limit",
                         "in": "query"
                     },
@@ -8075,43 +10054,49 @@ const docTemplate = `{
                         ],
                         "type": "string",
                         "default": "ultimo_mes",
-                        "description": "Período de tiempo",
+                        "description": "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)",
                         "name": "periodo",
                         "in": "query"
                     },
                     {
+                        "maximum": 12,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "Mes (1-12) para filtro mes_año",
+                        "description": "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1",
                         "name": "mes",
                         "in": "query"
                     },
                     {
+                        "maximum": 2100,
+                        "minimum": 1900,
                         "type": "integer",
-                        "description": "Año para filtro mes_año",
+                        "description": "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso",
                         "name": "año",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes",
                         "name": "fecha_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fecha fin (YYYY-MM-DD) para filtro rango_fechas",
+                        "format": "date",
+                        "description": "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy",
                         "name": "fecha_fin",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados",
+                        "description": "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto",
                         "name": "hora_fin",
                         "in": "query"
                     }
@@ -8163,7 +10148,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve todos los trabajadores registrados en la base de datos, con opción de filtrar por fecha de ingreso, rol, estado de retiro, o solo retirados.",
+                "description": "Devuelve los trabajadores (nunca incluye la contraseña), cada uno con su lista ` + "`" + `horarios` + "`" + ` (` + "`" + `[]` + "`" + ` si no tiene). Por defecto excluye a los retirados. Las fechas se devuelven en formato DD-MM-YYYY; el filtro ` + "`" + `fecha_ingreso` + "`" + ` se envía en YYYY-MM-DD. Si no hay coincidencias responde 200 con ` + "`" + `data: []` + "`" + `. Requiere token de un usuario con rol Administrador.",
                 "consumes": [
                     "application/json"
                 ],
@@ -8173,36 +10158,45 @@ const docTemplate = `{
                 "tags": [
                     "trabajadores"
                 ],
-                "summary": "Obtener todos los trabajadores con filtros",
+                "summary": "Listar trabajadores (solo administrador)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filtrar por fecha exacta de ingreso (YYYY-MM-DD)",
+                        "description": "Filtrar por fecha exacta de ingreso (YYYY-MM-DD). También se acepta el alias fechaIngreso",
                         "name": "fecha_ingreso",
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "Administrador",
+                            "Mesero",
+                            "Cocinero",
+                            "Domiciliario",
+                            "Oficios_varios"
+                        ],
                         "type": "string",
-                        "description": "Filtrar por rol del trabajador",
+                        "description": "Filtrar por rol",
                         "name": "rol",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
+                        "default": false,
                         "description": "Incluir trabajadores retirados (true/false)",
                         "name": "incluir_retirados",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Ver solo trabajadores retirados (true/false)",
+                        "default": false,
+                        "description": "Ver solo trabajadores retirados (true/false); tiene prioridad sobre incluir_retirados",
                         "name": "solo_retirados",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Lista de trabajadores",
+                        "description": "Lista de trabajadores (puede ser vacía)",
                         "schema": {
                             "allOf": [
                                 {
@@ -8214,12 +10208,30 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Trabajador"
+                                                "$ref": "#/definitions/models.TrabajadorResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro inválido (fecha, rol o booleano)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario no es administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
@@ -8236,7 +10248,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza los datos de un trabajador existente.",
+                "description": "Actualización parcial con merge: los campos ausentes se CONSERVAN. Un campo anulable enviado como null se limpia (telefono, fechaNacimiento, fechaRetiro y restauranteId); null en cualquier otro campo responde 400, igual que las cadenas vacías en nombre, apellido o password. Fechas en YYYY-MM-DD en la petición y DD-MM-YYYY en la respuesta. Una ` + "`" + `password` + "`" + ` nueva se guarda hasheada y nunca se devuelve. Un teléfono vacío equivale a null. Requiere rol Administrador (un no administrador no puede modificar roles).",
                 "consumes": [
                     "application/json"
                 ],
@@ -8246,17 +10258,17 @@ const docTemplate = `{
                 "tags": [
                     "trabajadores"
                 ],
-                "summary": "Actualizar un trabajador",
+                "summary": "Actualizar un trabajador (solo administrador)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Trabajador",
+                        "description": "Documento del trabajador (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "description": "Datos del trabajador a actualizar (sólo campos a modificar)",
+                        "description": "Campos a modificar (todos opcionales)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -8269,11 +10281,53 @@ const docTemplate = `{
                     "200": {
                         "description": "Trabajador actualizado",
                         "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.TrabajadorResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud inválida (id, JSON, null en campo no anulable, rol, fechas, password, restauranteId inexistente)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario no es administrador",
+                        "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Trabajador no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El teléfono ya está registrado por otro trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -8286,7 +10340,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un nuevo trabajador en la base de datos.",
+                "description": "Crea un trabajador. Solo un administrador puede hacerlo (y por tanto crear otro administrador). Obligatorios: documentoTrabajador, nombre, apellido, rol, fechaIngreso (YYYY-MM-DD), sueldo (\u003e= 0) y password (máx. 72 bytes). Opcionales: nuevo (booleano; si se omite queda en false), telefono (cadena vacía equivale a no informado), restauranteId y fechaNacimiento (YYYY-MM-DD). La respuesta (fechas en DD-MM-YYYY) nunca incluye la contraseña y trae ` + "`" + `horarios: []` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -8296,10 +10350,10 @@ const docTemplate = `{
                 "tags": [
                     "trabajadores"
                 ],
-                "summary": "Crear un nuevo trabajador",
+                "summary": "Crear un trabajador (solo administrador)",
                 "parameters": [
                     {
-                        "description": "Datos del trabajador a crear (fecha YYYY-MM-DD)",
+                        "description": "Datos del trabajador a crear (fechas YYYY-MM-DD)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -8320,7 +10374,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Trabajador"
+                                            "$ref": "#/definitions/models.TrabajadorResponse"
                                         }
                                     }
                                 }
@@ -8328,7 +10382,31 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "Solicitud inválida (JSON, campos obligatorios, rol, fechas, password o restauranteId inexistente)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario no es administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe un trabajador con ese documento o teléfono",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -8341,7 +10419,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un trabajador de la base de datos.",
+                "description": "Baja lógica: no borra el registro, fija ` + "`" + `fechaRetiro` + "`" + ` a la fecha actual (UTC) y el trabajador deja de aparecer en el listado por defecto. Si ya estaba retirado responde 409 para no sobrescribir su fecha de retiro (use PUT con fechaRetiro para corregirla). Devuelve el trabajador actualizado (fechas DD-MM-YYYY, sin contraseña). Requiere rol Administrador.",
                 "consumes": [
                     "application/json"
                 ],
@@ -8351,11 +10429,11 @@ const docTemplate = `{
                 "tags": [
                     "trabajadores"
                 ],
-                "summary": "Eliminar un trabajador",
+                "summary": "Retirar un trabajador (solo administrador)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Trabajador",
+                        "description": "Documento del trabajador (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -8363,13 +10441,55 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Trabajador eliminado",
+                        "description": "Trabajador retirado",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.TrabajadorResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario no es administrador",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "404": {
                         "description": "Trabajador no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "El trabajador ya estaba retirado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -8384,7 +10504,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un trabajador específico por ID utilizando query parameters.",
+                "description": "Devuelve un trabajador (incluso retirado) por su documento, con su lista ` + "`" + `horarios` + "`" + `. Nunca incluye la contraseña. Fechas en DD-MM-YYYY. Requiere rol Administrador.",
                 "consumes": [
                     "application/json"
                 ],
@@ -8394,11 +10514,11 @@ const docTemplate = `{
                 "tags": [
                     "trabajadores"
                 ],
-                "summary": "Obtener trabajador por ID",
+                "summary": "Obtener trabajador por documento (solo administrador)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID del Trabajador",
+                        "description": "Documento del trabajador (entero positivo)",
                         "name": "id",
                         "in": "query",
                         "required": true
@@ -8416,15 +10536,39 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Trabajador"
+                                            "$ref": "#/definitions/models.TrabajadorResponse"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Parámetro 'id' inválido o ausente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario no es administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Trabajador no encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -8434,16 +10578,184 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.ActualizarEstadoDispositivoRequest": {
+        "models.ActualizarCuponRequest": {
             "type": "object",
             "properties": {
+                "activo": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "categoriaId": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 1
+                },
+                "codigo": {
+                    "type": "string",
+                    "example": "VERANO10"
+                },
+                "documentoCliente": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 1001
+                },
+                "fechaFin": {
+                    "type": "string",
+                    "example": "2025-12-31"
+                },
+                "fechaInicio": {
+                    "type": "string",
+                    "example": "2025-01-01"
+                },
+                "limitePorCliente": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 1
+                },
+                "maxUsos": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 100
+                },
+                "montoMinimo": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 20000
+                },
+                "productoId": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 1
+                },
+                "scope": {
+                    "enum": [
+                        "GLOBAL",
+                        "PRODUCTO",
+                        "CATEGORIA",
+                        "CLIENTE"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.CuponScope"
+                        }
+                    ],
+                    "example": "GLOBAL"
+                },
+                "tipoDescuento": {
+                    "enum": [
+                        "PORCENTAJE",
+                        "MONTO"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TipoDescuento"
+                        }
+                    ],
+                    "example": "PORCENTAJE"
+                },
+                "valorDescuento": {
+                    "type": "integer",
+                    "example": 10
+                }
+            }
+        },
+        "models.ActualizarDispositivoRequest": {
+            "type": "object",
+            "properties": {
+                "appVersion": {
+                    "type": "string"
+                },
                 "enabled": {
                     "type": "boolean"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "subscribedTopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timeZone": {
+                    "type": "string"
+                },
+                "userAgent": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ActualizarOfertaRequest": {
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "diasSemana": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "Lunes",
+                            "Martes",
+                            "Miércoles",
+                            "Jueves",
+                            "Viernes",
+                            "Sábado",
+                            "Domingo"
+                        ]
+                    }
+                },
+                "fechaFin": {
+                    "type": "string",
+                    "example": "2025-12-31"
+                },
+                "fechaInicio": {
+                    "type": "string",
+                    "example": "2025-01-01"
+                },
+                "horaFin": {
+                    "type": "string",
+                    "x-nullable": true,
+                    "example": "18:00"
+                },
+                "horaInicio": {
+                    "type": "string",
+                    "x-nullable": true,
+                    "example": "08:00"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "tipoDescuento": {
+                    "enum": [
+                        "PORCENTAJE",
+                        "MONTO"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TipoDescuento"
+                        }
+                    ],
+                    "example": "PORCENTAJE"
+                },
+                "titulo": {
+                    "type": "string",
+                    "example": "Martes de gaseosas"
+                },
+                "valorDescuento": {
+                    "type": "integer",
+                    "example": 30
                 }
             }
         },
         "models.ActualizarTopicsRequest": {
             "type": "object",
+            "required": [
+                "subscribedTopics"
+            ],
             "properties": {
                 "subscribedTopics": {
                     "type": "array",
@@ -8502,13 +10814,17 @@ const docTemplate = `{
                 },
                 "expires_in": {
                     "type": "string",
-                    "example": "1800"
+                    "example": "7200"
                 },
                 "nombre": {
                     "type": "string",
                     "example": "Juan Pérez"
                 },
                 "refresh_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "token": {
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
@@ -8520,6 +10836,10 @@ const docTemplate = `{
         },
         "models.CambiosHorarioCreateRequest": {
             "type": "object",
+            "required": [
+                "abierto",
+                "fechaCambioHorario"
+            ],
             "properties": {
                 "abierto": {
                     "type": "boolean",
@@ -8528,6 +10848,31 @@ const docTemplate = `{
                 "fechaCambioHorario": {
                     "type": "string",
                     "example": "2025-01-31"
+                },
+                "horaApertura": {
+                    "type": "string",
+                    "example": "08:00:00"
+                },
+                "horaCierre": {
+                    "type": "string",
+                    "example": "18:00:00"
+                }
+            }
+        },
+        "models.CambiosHorarioResponse": {
+            "type": "object",
+            "properties": {
+                "abierto": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "cambioHorarioId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "fechaCambioHorario": {
+                    "type": "string",
+                    "example": "31-01-2025"
                 },
                 "horaApertura": {
                     "type": "string",
@@ -8609,9 +10954,6 @@ const docTemplate = `{
                 "observaciones": {
                     "type": "string"
                 },
-                "password": {
-                    "type": "string"
-                },
                 "telefono": {
                     "type": "string"
                 }
@@ -8619,6 +10961,14 @@ const docTemplate = `{
         },
         "models.ClienteCreateRequest": {
             "type": "object",
+            "required": [
+                "apellido",
+                "correo",
+                "documentoCliente",
+                "nombre",
+                "password",
+                "telefono"
+            ],
             "properties": {
                 "apellido": {
                     "type": "string",
@@ -8626,6 +10976,7 @@ const docTemplate = `{
                 },
                 "correo": {
                     "type": "string",
+                    "format": "email",
                     "example": "juan.perez@example.com"
                 },
                 "direccion": {
@@ -8646,11 +10997,49 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
+                    "maxLength": 72,
                     "example": "MiPassSegura!"
                 },
                 "telefono": {
                     "type": "string",
                     "example": "3001234567"
+                }
+            }
+        },
+        "models.ClienteRefDoc": {
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string"
+                },
+                "correo": {
+                    "type": "string"
+                },
+                "direccion": {
+                    "type": "string"
+                },
+                "documentoCliente": {
+                    "type": "integer",
+                    "example": 1001
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "x-nullable": true
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ClienteRefResponse": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer",
+                    "example": 1015466495
                 }
             }
         },
@@ -8695,6 +11084,7 @@ const docTemplate = `{
                 },
                 "correo": {
                     "type": "string",
+                    "format": "email",
                     "example": "juan.perez@example.com"
                 },
                 "direccion": {
@@ -8711,6 +11101,7 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
+                    "maxLength": 72,
                     "example": "NuevaPass!"
                 },
                 "telefono": {
@@ -8721,29 +11112,45 @@ const docTemplate = `{
         },
         "models.ContenidoNotificacion": {
             "type": "object",
+            "required": [
+                "mensaje",
+                "titulo"
+            ],
             "properties": {
                 "datos": {
                     "type": "object"
                 },
                 "mensaje": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500,
+                    "minLength": 1
                 },
                 "titulo": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
                 }
             }
         },
-        "models.ControlNomina": {
+        "models.ControlNominaResponse": {
             "type": "object",
             "properties": {
                 "controlNominaId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 2
                 },
                 "estado": {
-                    "$ref": "#/definitions/models.EstadoControlNomina"
+                    "type": "string",
+                    "enum": [
+                        "NO GENERADA",
+                        "GENERADA",
+                        "REGENERADA"
+                    ],
+                    "example": "GENERADA"
                 },
                 "fecha": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "20-01-2025"
                 }
             }
         },
@@ -8823,72 +11230,141 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Cupon": {
+        "models.CuponDoc": {
             "type": "object",
             "properties": {
                 "activo": {
                     "type": "boolean"
                 },
                 "categoriaId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Categoria"
                 },
                 "codigo": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "VERANO10"
                 },
                 "cuponId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "documentoCliente": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.ClienteRefDoc"
                 },
                 "fechaFin": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "31-12-2025"
                 },
                 "fechaInicio": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "01-01-2025"
                 },
                 "limitePorCliente": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "maxUsos": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 100
                 },
                 "montoMinimo": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 20000
                 },
                 "productoId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.ProductoDoc"
                 },
                 "scope": {
-                    "$ref": "#/definitions/models.CuponScope"
+                    "type": "string",
+                    "enum": [
+                        "GLOBAL",
+                        "PRODUCTO",
+                        "CATEGORIA",
+                        "CLIENTE"
+                    ],
+                    "example": "GLOBAL"
                 },
                 "tipoDescuento": {
-                    "$ref": "#/definitions/models.TipoDescuento"
+                    "type": "string",
+                    "enum": [
+                        "PORCENTAJE",
+                        "MONTO"
+                    ],
+                    "example": "PORCENTAJE"
                 },
                 "valorDescuento": {
+                    "type": "integer",
+                    "example": 10
+                }
+            }
+        },
+        "models.CuponPaginadoDoc": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.CuponDoc"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
                     "type": "integer"
                 }
             }
         },
-        "models.CuponRedencion": {
+        "models.CuponRedencionDoc": {
             "type": "object",
             "properties": {
                 "createdAt": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "31-01-2025 18:30:00"
                 },
                 "cuponId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.CuponDoc"
                 },
                 "cuponRedencionId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "documentoCliente": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.ClienteRefDoc"
                 },
                 "montoDescuento": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 5000
                 },
                 "pedidoId": {
+                    "$ref": "#/definitions/models.PedidoRefDoc"
+                }
+            }
+        },
+        "models.CuponRedencionPaginadaDoc": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.CuponRedencionDoc"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
                     "type": "integer"
                 }
             }
@@ -8933,6 +11409,9 @@ const docTemplate = `{
         },
         "models.DestinatariosNotificacion": {
             "type": "object",
+            "required": [
+                "tipo"
+            ],
             "properties": {
                 "documentoCliente": {
                     "type": "integer"
@@ -8941,7 +11420,19 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "tipo": {
-                    "$ref": "#/definitions/models.TipoDestinatario"
+                    "enum": [
+                        "TODOS",
+                        "CLIENTE",
+                        "TRABAJADOR",
+                        "TOPIC",
+                        "CLIENTES",
+                        "TRABAJADORES"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TipoDestinatario"
+                        }
+                    ]
                 },
                 "topic": {
                     "type": "string"
@@ -8964,13 +11455,66 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "plataforma": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "WEB",
+                        "ANDROID",
+                        "IOS"
+                    ]
                 },
                 "pushDispositivoId": {
                     "type": "integer"
                 },
                 "statusCode": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.DetallePedidoDoc": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "detalleId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "pedidoId": {
+                    "$ref": "#/definitions/models.PedidoDoc"
+                },
+                "precio": {
+                    "type": "integer",
+                    "example": 25000
+                },
+                "productoId": {
+                    "$ref": "#/definitions/models.ProductoDoc"
+                }
+            }
+        },
+        "models.DetalleProductoDoc": {
+            "type": "object",
+            "properties": {
+                "cantidad": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Bandeja Paisa"
+                },
+                "pk_id_producto": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "precio": {
+                    "type": "integer",
+                    "example": 25000
+                },
+                "subtotal": {
+                    "type": "integer",
+                    "example": 50000
                 }
             }
         },
@@ -8995,44 +11539,20 @@ const docTemplate = `{
                 "DiaDomingo"
             ]
         },
-        "models.Domicilio": {
+        "models.DomicilioClienteDoc": {
             "type": "object",
             "properties": {
-                "createdAt": {
-                    "type": "string"
+                "apellido": {
+                    "type": "string",
+                    "example": "Pérez"
                 },
-                "createdBy": {
-                    "type": "string"
+                "documento": {
+                    "type": "integer",
+                    "example": 1234567890
                 },
-                "direccion": {
-                    "type": "string"
-                },
-                "domicilioId": {
-                    "type": "integer"
-                },
-                "entregado": {
-                    "type": "boolean"
-                },
-                "estadoDomicilio": {
-                    "$ref": "#/definitions/models.EstadoDomicilio"
-                },
-                "fechaDomicilio": {
-                    "type": "string"
-                },
-                "observaciones": {
-                    "type": "string"
-                },
-                "telefono": {
-                    "type": "string"
-                },
-                "trabajadorAsignado": {
-                    "type": "integer"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "updatedBy": {
-                    "type": "string"
+                "nombre": {
+                    "type": "string",
+                    "example": "Juan"
                 }
             }
         },
@@ -9073,6 +11593,109 @@ const docTemplate = `{
                 }
             }
         },
+        "models.DomicilioDetalleDoc": {
+            "type": "object",
+            "properties": {
+                "cliente": {
+                    "$ref": "#/definitions/models.DomicilioClienteDoc"
+                },
+                "domicilio": {
+                    "$ref": "#/definitions/models.DomicilioDoc"
+                },
+                "pedido": {
+                    "$ref": "#/definitions/models.DomicilioPedidoDoc"
+                }
+            }
+        },
+        "models.DomicilioDoc": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string",
+                    "example": "31-01-2025 18:30:00"
+                },
+                "createdBy": {
+                    "type": "string",
+                    "example": "admin@example.com"
+                },
+                "direccion": {
+                    "type": "string",
+                    "example": "Calle 123 #45-67"
+                },
+                "domicilioId": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "entregado": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "estadoDomicilio": {
+                    "type": "string",
+                    "enum": [
+                        "PENDIENTE",
+                        "EN_CAMINO",
+                        "ENTREGADO"
+                    ],
+                    "example": "PENDIENTE"
+                },
+                "fechaDomicilio": {
+                    "type": "string",
+                    "example": "31-01-2025"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "example": "Dejar en portería"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001234567"
+                },
+                "trabajadorAsignado": {
+                    "$ref": "#/definitions/models.TrabajadorResponse"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "31-01-2025 18:30:00"
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
+        "models.DomicilioPedidoDoc": {
+            "type": "object",
+            "properties": {
+                "montoPago": {
+                    "type": "number",
+                    "example": 50000
+                },
+                "pagoId": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 4
+                },
+                "pedidoId": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "productos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DetalleProductoDoc"
+                    }
+                },
+                "subtotalProductos": {
+                    "type": "number",
+                    "example": 50000
+                },
+                "total": {
+                    "type": "number",
+                    "example": 50000
+                }
+            }
+        },
         "models.DomicilioUpdateRequest": {
             "type": "object",
             "properties": {
@@ -9080,12 +11703,42 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Calle 45 #12-34"
                 },
+                "estado": {
+                    "type": "string",
+                    "enum": [
+                        "PENDIENTE",
+                        "EN_CAMINO",
+                        "ENTREGADO"
+                    ],
+                    "example": "ENTREGADO"
+                },
+                "estadoDomicilio": {
+                    "description": "alias de estado",
+                    "type": "string",
+                    "enum": [
+                        "PENDIENTE",
+                        "EN_CAMINO",
+                        "ENTREGADO"
+                    ],
+                    "example": "ENTREGADO"
+                },
+                "fechaDomicilio": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "x-nullable": true,
+                    "example": "Entregado en portería"
+                },
                 "telefono": {
                     "type": "string",
                     "example": "3001112233"
                 },
                 "updatedBy": {
                     "type": "string",
+                    "x-nullable": true,
                     "example": "operador@example.com"
                 }
             }
@@ -9138,6 +11791,11 @@ const docTemplate = `{
         },
         "models.EnviarNotificacionRequest": {
             "type": "object",
+            "required": [
+                "destinatarios",
+                "notificacion",
+                "remitente"
+            ],
             "properties": {
                 "destinatarios": {
                     "$ref": "#/definitions/models.DestinatariosNotificacion"
@@ -9327,19 +11985,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.EstadoControlNomina": {
-            "type": "string",
-            "enum": [
-                "NO GENERADA",
-                "GENERADA",
-                "REGENERADA"
-            ],
-            "x-enum-varnames": [
-                "EstadoControlNominaNoGenerada",
-                "EstadoControlNominaGenerada",
-                "EstadoControlNominaReGenerada"
-            ]
-        },
         "models.EstadoDomicilio": {
             "type": "string",
             "enum": [
@@ -9353,98 +11998,26 @@ const docTemplate = `{
                 "EstadoDomicilioEntregado"
             ]
         },
-        "models.EstadoNomina": {
-            "type": "string",
-            "enum": [
-                "PAGO",
-                "NO_PAGO"
-            ],
-            "x-enum-varnames": [
-                "EstadoNominaPago",
-                "EstadoNominaNoPago"
-            ]
-        },
-        "models.EstadoPago": {
-            "type": "string",
-            "enum": [
-                "PAGADO",
-                "PENDIENTE",
-                "NO_PAGO"
-            ],
-            "x-enum-varnames": [
-                "EstadoPagoPagado",
-                "EstadoPagoPendiente",
-                "EstadoPagoNoPago"
-            ]
-        },
-        "models.EstadoPedido": {
-            "type": "string",
-            "enum": [
-                "INICIADO",
-                "EN_PREPARACION",
-                "LISTO",
-                "TERMINADO",
-                "CANCELADO"
-            ],
-            "x-enum-varnames": [
-                "EstadoPedidoIniciado",
-                "EstadoPedidoEnPreparacion",
-                "EstadoPedidoListo",
-                "EstadoPedidoTerminado",
-                "EstadoPedidoCancelado"
-            ]
-        },
-        "models.EstadoProducto": {
-            "type": "string",
-            "enum": [
-                "DISPONIBLE",
-                "NO_DISPONIBLE"
-            ],
-            "x-enum-varnames": [
-                "EstadoProductoDisponible",
-                "EstadoProductoNoDisponible"
-            ]
-        },
-        "models.EstadoReserva": {
-            "type": "string",
-            "enum": [
-                "PENDIENTE",
-                "CONFIRMADA",
-                "CANCELADA",
-                "CUMPLIDA"
-            ],
-            "x-enum-varnames": [
-                "EstadoReservaPendiente",
-                "EstadoReservaConfirmada",
-                "EstadoReservaCancelada",
-                "EstadoReservaCumplida"
-            ]
-        },
-        "models.HorarioTrabajador": {
-            "type": "object",
-            "properties": {
-                "dia": {
-                    "$ref": "#/definitions/models.DiaSemana"
-                },
-                "documentoTrabajador": {
-                    "type": "integer"
-                },
-                "horaFin": {
-                    "type": "string"
-                },
-                "horaInicio": {
-                    "type": "string"
-                },
-                "horarioTrabajadorId": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.HorarioTrabajadorCreateRequest": {
             "type": "object",
+            "required": [
+                "dia",
+                "documentoTrabajador",
+                "horaFin",
+                "horaInicio"
+            ],
             "properties": {
                 "dia": {
                     "type": "string",
+                    "enum": [
+                        "Lunes",
+                        "Martes",
+                        "Miércoles",
+                        "Jueves",
+                        "Viernes",
+                        "Sábado",
+                        "Domingo"
+                    ],
                     "example": "Lunes"
                 },
                 "documentoTrabajador": {
@@ -9454,6 +12027,36 @@ const docTemplate = `{
                 "horaFin": {
                     "type": "string",
                     "example": "12:00:00"
+                },
+                "horaInicio": {
+                    "type": "string",
+                    "example": "08:00:00"
+                }
+            }
+        },
+        "models.HorarioTrabajadorResponse": {
+            "type": "object",
+            "properties": {
+                "dia": {
+                    "type": "string",
+                    "enum": [
+                        "Lunes",
+                        "Martes",
+                        "Miércoles",
+                        "Jueves",
+                        "Viernes",
+                        "Sábado",
+                        "Domingo"
+                    ],
+                    "example": "Lunes"
+                },
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000
+                },
+                "horaFin": {
+                    "type": "string",
+                    "example": "16:00:00"
                 },
                 "horaInicio": {
                     "type": "string",
@@ -9474,31 +12077,15 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Incidencia": {
-            "type": "object",
-            "properties": {
-                "documentoTrabajador": {
-                    "type": "integer"
-                },
-                "fechaIncidencia": {
-                    "type": "string"
-                },
-                "incidenciaId": {
-                    "type": "integer"
-                },
-                "monto": {
-                    "type": "integer"
-                },
-                "motivo": {
-                    "type": "string"
-                },
-                "resta": {
-                    "type": "boolean"
-                }
-            }
-        },
         "models.IncidenciaCreateRequest": {
             "type": "object",
+            "required": [
+                "documentoTrabajador",
+                "fechaIncidencia",
+                "monto",
+                "motivo",
+                "resta"
+            ],
             "properties": {
                 "documentoTrabajador": {
                     "type": "integer",
@@ -9507,6 +12094,35 @@ const docTemplate = `{
                 "fechaIncidencia": {
                     "type": "string",
                     "example": "2025-01-31"
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 50000
+                },
+                "motivo": {
+                    "type": "string",
+                    "example": "Descuento por retraso"
+                },
+                "resta": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "models.IncidenciaResponse": {
+            "type": "object",
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000
+                },
+                "fechaIncidencia": {
+                    "type": "string",
+                    "example": "31-01-2025"
+                },
+                "incidenciaId": {
+                    "type": "integer",
+                    "example": 1
                 },
                 "monto": {
                     "type": "integer",
@@ -9544,6 +12160,23 @@ const docTemplate = `{
                 "resta": {
                     "type": "boolean",
                     "example": false
+                }
+            }
+        },
+        "models.InventarioInsuficienteDoc": {
+            "type": "object",
+            "properties": {
+                "disponible": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "productoId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "requerido": {
+                    "type": "integer",
+                    "example": 5
                 }
             }
         },
@@ -9585,6 +12218,23 @@ const docTemplate = `{
                 }
             }
         },
+        "models.MetodoPagoDoc": {
+            "type": "object",
+            "properties": {
+                "detalle": {
+                    "type": "string",
+                    "example": "Cuenta 3001234567"
+                },
+                "metodoPagoId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "tipo": {
+                    "type": "string",
+                    "example": "NEQUI"
+                }
+            }
+        },
         "models.MetodoPagoUpdateRequest": {
             "type": "object",
             "properties": {
@@ -9598,78 +12248,59 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Nomina": {
-            "type": "object",
-            "properties": {
-                "estadoNomina": {
-                    "$ref": "#/definitions/models.EstadoNomina"
-                },
-                "fechaNomina": {
-                    "type": "string"
-                },
-                "monto": {
-                    "type": "integer"
-                },
-                "nominaId": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.NominaCreateRequest": {
             "type": "object",
             "properties": {
                 "estadoNomina": {
                     "type": "string",
+                    "default": "NO_PAGO",
+                    "enum": [
+                        "PAGO",
+                        "NO_PAGO"
+                    ],
                     "example": "NO_PAGO"
                 },
-                "fecha": {
+                "fechaNomina": {
                     "type": "string",
-                    "example": "2025-01-31"
+                    "example": "2025-01-20"
                 }
             }
         },
-        "models.NominaTrabajador": {
+        "models.NominaResponse": {
             "type": "object",
             "properties": {
-                "detalles": {
-                    "type": "string"
+                "estadoNomina": {
+                    "type": "string",
+                    "enum": [
+                        "PAGO",
+                        "NO_PAGO"
+                    ],
+                    "example": "NO_PAGO"
                 },
-                "documentoTrabajador": {
-                    "type": "integer"
+                "fechaNomina": {
+                    "type": "string",
+                    "example": "20-01-2025"
                 },
-                "montoIncidencias": {
-                    "type": "integer"
+                "monto": {
+                    "type": "integer",
+                    "example": 4500000
                 },
                 "nominaId": {
-                    "type": "integer"
-                },
-                "nominaTrabajadorId": {
-                    "type": "integer"
-                },
-                "sueldoBase": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.NominaTrabajadorRequest": {
-            "type": "object",
-            "properties": {
-                "detalles": {
-                    "type": "string",
-                    "example": "Pago correspondiente al mes de enero"
-                },
-                "documentoTrabajador": {
                     "type": "integer",
-                    "example": 1015466494
+                    "example": 5
                 }
             }
         },
-        "models.NominaTrabajadorResponse": {
+        "models.NominaTrabajadorDetalle": {
             "type": "object",
             "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Pérez"
+                },
                 "detalles": {
                     "type": "string",
-                    "example": "Pago correspondiente al mes de enero"
+                    "example": "Nómina del mes de Enero de 2025 más incidencias si aplica"
                 },
                 "documentoTrabajador": {
                     "type": "integer",
@@ -9679,50 +12310,76 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 50000
                 },
+                "nombre": {
+                    "type": "string",
+                    "example": "Juan"
+                },
+                "nominaId": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "nominaTrabajadorId": {
+                    "type": "integer",
+                    "example": 15
+                },
                 "sueldoBase": {
                     "type": "integer",
                     "example": 2000000
                 }
             }
         },
-        "models.Oferta": {
+        "models.NominaTrabajadorItem": {
             "type": "object",
             "properties": {
-                "activo": {
-                    "type": "boolean"
+                "detalles": {
+                    "type": "string",
+                    "example": "Nómina del mes de Enero de 2025 más incidencias si aplica"
                 },
-                "diasSemana": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 1015466494
                 },
-                "fechaFin": {
-                    "type": "string"
+                "montoIncidencias": {
+                    "type": "integer",
+                    "example": 50000
                 },
-                "fechaInicio": {
-                    "type": "string"
+                "nominaId": {
+                    "type": "integer",
+                    "example": 5
                 },
-                "horaFin": {
-                    "type": "string"
+                "nominaTrabajadorId": {
+                    "type": "integer",
+                    "example": 15
                 },
-                "horaInicio": {
-                    "type": "string"
-                },
-                "ofertaId": {
-                    "type": "integer"
-                },
-                "restauranteId": {
-                    "type": "integer"
-                },
-                "tipoDescuento": {
-                    "$ref": "#/definitions/models.TipoDescuento"
-                },
-                "titulo": {
-                    "type": "string"
-                },
-                "valorDescuento": {
-                    "type": "integer"
+                "sueldoBase": {
+                    "type": "integer",
+                    "example": 2000000
+                }
+            }
+        },
+        "models.NominaTrabajadorRequest": {
+            "type": "object",
+            "required": [
+                "documentoTrabajador"
+            ],
+            "properties": {
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 1015466494
+                }
+            }
+        },
+        "models.NominaUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "estadoNomina": {
+                    "type": "string",
+                    "default": "PAGO",
+                    "enum": [
+                        "PAGO",
+                        "NO_PAGO"
+                    ],
+                    "example": "PAGO"
                 }
             }
         },
@@ -9749,10 +12406,77 @@ const docTemplate = `{
                 }
             }
         },
-        "models.PaginatedResponse": {
+        "models.OfertaDoc": {
             "type": "object",
             "properties": {
-                "data": {},
+                "activo": {
+                    "type": "boolean"
+                },
+                "diasSemana": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "Lunes",
+                            "Martes",
+                            "Miércoles",
+                            "Jueves",
+                            "Viernes",
+                            "Sábado",
+                            "Domingo"
+                        ]
+                    }
+                },
+                "fechaFin": {
+                    "type": "string",
+                    "example": "31-12-2025"
+                },
+                "fechaInicio": {
+                    "type": "string",
+                    "example": "01-01-2025"
+                },
+                "horaFin": {
+                    "type": "string",
+                    "example": "18:00:00"
+                },
+                "horaInicio": {
+                    "type": "string",
+                    "example": "08:00:00"
+                },
+                "ofertaId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "restauranteId": {
+                    "$ref": "#/definitions/models.RestauranteRefDoc"
+                },
+                "tipoDescuento": {
+                    "type": "string",
+                    "enum": [
+                        "PORCENTAJE",
+                        "MONTO"
+                    ],
+                    "example": "PORCENTAJE"
+                },
+                "titulo": {
+                    "type": "string",
+                    "example": "Martes de gaseosas"
+                },
+                "valorDescuento": {
+                    "type": "integer",
+                    "example": 30
+                }
+            }
+        },
+        "models.OfertaPaginadaDoc": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.OfertaDoc"
+                    }
+                },
                 "page": {
                     "type": "integer"
                 },
@@ -9767,32 +12491,16 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Pago": {
+        "models.OfertaProductoAsociacionDoc": {
             "type": "object",
             "properties": {
-                "estadoPago": {
-                    "$ref": "#/definitions/models.EstadoPago"
+                "ofertaId": {
+                    "type": "integer",
+                    "example": 1
                 },
-                "fechaPago": {
-                    "type": "string"
-                },
-                "horaPago": {
-                    "type": "string"
-                },
-                "metodoPagoId": {
-                    "type": "integer"
-                },
-                "monto": {
-                    "type": "integer"
-                },
-                "pagoId": {
-                    "type": "integer"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "updatedBy": {
-                    "type": "string"
+                "productoId": {
+                    "type": "integer",
+                    "example": 2
                 }
             }
         },
@@ -9801,23 +12509,73 @@ const docTemplate = `{
             "properties": {
                 "estadoPago": {
                     "type": "string",
+                    "enum": [
+                        "PAGADO",
+                        "PENDIENTE",
+                        "NO_PAGO"
+                    ],
+                    "example": "PAGADO"
+                },
+                "fechaPago": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaPago": {
+                    "description": "HH:MM o HH:MM:SS",
+                    "type": "string",
+                    "example": "14:30:00"
+                },
+                "metodoPagoId": {
+                    "description": "debe existir",
+                    "type": "integer",
+                    "example": 1
+                },
+                "monto": {
+                    "description": "entero \u003e 0",
+                    "type": "integer",
+                    "example": 50000
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
+        "models.PagoDoc": {
+            "type": "object",
+            "properties": {
+                "estadoPago": {
+                    "type": "string",
+                    "enum": [
+                        "PAGADO",
+                        "PENDIENTE",
+                        "NO_PAGO"
+                    ],
                     "example": "PAGADO"
                 },
                 "fechaPago": {
                     "type": "string",
-                    "example": "2025-01-31"
+                    "example": "31-01-2025"
                 },
                 "horaPago": {
                     "type": "string",
                     "example": "14:30:00"
                 },
                 "metodoPagoId": {
-                    "type": "integer",
-                    "example": 1
+                    "$ref": "#/definitions/models.MetodoPagoDoc"
                 },
                 "monto": {
                     "type": "integer",
                     "example": 50000
+                },
+                "pagoId": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "31-01-2025 14:30:00"
                 },
                 "updatedBy": {
                     "type": "string",
@@ -9830,65 +12588,47 @@ const docTemplate = `{
             "properties": {
                 "estadoPago": {
                     "type": "string",
+                    "enum": [
+                        "PAGADO",
+                        "PENDIENTE",
+                        "NO_PAGO"
+                    ],
                     "example": "PENDIENTE"
                 },
                 "fecha": {
+                    "description": "alias de fechaPago",
+                    "type": "string",
+                    "example": "2025-02-01"
+                },
+                "fechaPago": {
+                    "description": "YYYY-MM-DD",
                     "type": "string",
                     "example": "2025-02-01"
                 },
                 "hora": {
+                    "description": "alias de horaPago",
+                    "type": "string",
+                    "example": "15:00:00"
+                },
+                "horaPago": {
+                    "description": "HH:MM o HH:MM:SS",
                     "type": "string",
                     "example": "15:00:00"
                 },
                 "metodoPagoId": {
+                    "description": "debe existir",
                     "type": "integer",
                     "example": 2
                 },
                 "monto": {
+                    "description": "entero \u003e 0",
                     "type": "integer",
                     "example": 60000
                 },
                 "updatedBy": {
                     "type": "string",
+                    "x-nullable": true,
                     "example": "operador@example.com"
-                }
-            }
-        },
-        "models.Pedido": {
-            "type": "object",
-            "properties": {
-                "delivery": {
-                    "type": "boolean"
-                },
-                "documentoCliente": {
-                    "type": "integer"
-                },
-                "domicilioId": {
-                    "type": "integer"
-                },
-                "estadoPedido": {
-                    "$ref": "#/definitions/models.EstadoPedido"
-                },
-                "fechaPedido": {
-                    "type": "string"
-                },
-                "horaPedido": {
-                    "type": "string"
-                },
-                "pagoId": {
-                    "type": "integer"
-                },
-                "pedidoId": {
-                    "type": "integer"
-                },
-                "restauranteId": {
-                    "type": "integer"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "updatedBy": {
-                    "type": "string"
                 }
             }
         },
@@ -9896,42 +12636,53 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "delivery": {
+                    "description": "por defecto false; si es true exige pk_id_domicilio",
                     "type": "boolean",
                     "example": false
                 },
-                "pk_id_domicilio": {
+                "documentoCliente": {
+                    "description": "opcional; si se envía debe existir",
                     "type": "integer",
-                    "example": 0
+                    "example": 1234567890
+                },
+                "pk_id_domicilio": {
+                    "description": "id de un domicilio existente (entero \u003e 0)",
+                    "type": "integer",
+                    "example": 3
                 },
                 "restauranteId": {
+                    "description": "opcional; si se envía debe existir",
                     "type": "integer",
                     "example": 1
                 }
             }
         },
-        "models.PedidoDescuentoAplicado": {
+        "models.PedidoDescuentoDoc": {
             "type": "object",
             "properties": {
                 "createdAt": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "31-01-2025 18:30:00"
                 },
                 "cuponId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.CuponDoc"
                 },
                 "detalle": {
                     "type": "object"
                 },
                 "montoDescuento": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 5000
                 },
                 "ofertaId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.OfertaDoc"
                 },
                 "pedidoDescuentoId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "pedidoId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.PedidoRefDoc"
                 }
             }
         },
@@ -9939,36 +12690,120 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "delivery": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": false
                 },
                 "documentoCliente": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1234567890
                 },
                 "domicilioId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 3
                 },
                 "estadoPedido": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "INICIADO",
+                        "EN_PREPARACION",
+                        "LISTO",
+                        "TERMINADO",
+                        "CANCELADO"
+                    ],
+                    "example": "INICIADO"
                 },
                 "fechaPedido": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "31-01-2025"
                 },
                 "horaPedido": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "18:30:00"
                 },
                 "metodoPago": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "NEQUI"
                 },
                 "metodoPagoId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "pagoId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 4
                 },
                 "pedidoId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 10
                 },
                 "productos": {
+                    "type": "string",
+                    "example": "[{\"pk_id_producto\":1,\"nombre\":\"Bandeja Paisa\",\"cantidad\":2,\"precio\":25000,\"subtotal\":50000}]"
+                }
+            }
+        },
+        "models.PedidoDoc": {
+            "type": "object",
+            "properties": {
+                "delivery": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "documentoCliente": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ClienteRefDoc"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "domicilioId": {
+                    "$ref": "#/definitions/models.DomicilioDoc"
+                },
+                "estadoPedido": {
+                    "type": "string",
+                    "enum": [
+                        "INICIADO",
+                        "EN_PREPARACION",
+                        "LISTO",
+                        "TERMINADO",
+                        "CANCELADO"
+                    ],
+                    "example": "INICIADO"
+                },
+                "fechaPedido": {
+                    "type": "string",
+                    "example": "31-01-2025"
+                },
+                "horaPedido": {
+                    "type": "string",
+                    "example": "18:30:00"
+                },
+                "pagoId": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.PagoDoc"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "pedidoId": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "restauranteId": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.RestauranteRefDoc"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "31-01-2025 18:30:00"
+                },
+                "updatedBy": {
                     "type": "string"
                 }
             }
@@ -10033,6 +12868,59 @@ const docTemplate = `{
                 }
             }
         },
+        "models.PedidoRefDoc": {
+            "type": "object",
+            "properties": {
+                "delivery": {
+                    "type": "boolean"
+                },
+                "documentoCliente": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ClienteRefDoc"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "domicilioId": {
+                    "type": "object"
+                },
+                "estadoPedido": {
+                    "type": "string"
+                },
+                "fechaPedido": {
+                    "type": "string",
+                    "example": "31-01-2025"
+                },
+                "horaPedido": {
+                    "type": "string",
+                    "example": "18:30:00"
+                },
+                "pagoId": {
+                    "type": "object",
+                    "x-nullable": true
+                },
+                "pedidoId": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "restauranteId": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.RestauranteRefDoc"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "31-01-2025 18:30:00"
+                },
+                "updatedBy": {
+                    "type": "string"
+                }
+            }
+        },
         "models.PedidosAnalisisData": {
             "type": "object",
             "properties": {
@@ -10072,25 +12960,101 @@ const docTemplate = `{
                 "PlataformaIOS"
             ]
         },
-        "models.Producto": {
+        "models.PrecioHistItemDoc": {
             "type": "object",
             "properties": {
-                "calorias": {
-                    "type": "integer"
-                },
-                "cantidad": {
-                    "type": "integer"
-                },
-                "descripcion": {
-                    "type": "string"
-                },
                 "estadoProducto": {
-                    "$ref": "#/definitions/models.EstadoProducto"
+                    "type": "string",
+                    "enum": [
+                        "DISPONIBLE",
+                        "NO_DISPONIBLE"
+                    ],
+                    "example": "DISPONIBLE"
                 },
-                "imagen": {
-                    "type": "string"
+                "fechaVigencia": {
+                    "type": "string",
+                    "example": "31-01-2025"
                 },
                 "nombre": {
+                    "type": "string",
+                    "example": "Bandeja Paisa"
+                },
+                "precio": {
+                    "type": "integer",
+                    "example": 25000
+                },
+                "precioHistId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "productoId": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "models.ProductoCreateRequest": {
+            "type": "object",
+            "required": [
+                "estadoProducto",
+                "nombre",
+                "precio"
+            ],
+            "properties": {
+                "calorias": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 850
+                },
+                "cantidad": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 10
+                },
+                "descripcion": {
+                    "type": "string",
+                    "x-nullable": true,
+                    "example": "Descripción del producto"
+                },
+                "estadoProducto": {
+                    "type": "string",
+                    "enum": [
+                        "DISPONIBLE",
+                        "NO_DISPONIBLE"
+                    ],
+                    "example": "DISPONIBLE"
+                },
+                "imagen": {
+                    "type": "string",
+                    "example": "BASE64..."
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Bandeja Paisa"
+                },
+                "precio": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 25000
+                },
+                "subcategoriaId": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 1
+                }
+            }
+        },
+        "models.ProductoDisponible": {
+            "type": "object",
+            "properties": {
+                "estado": {
+                    "type": "string",
+                    "enum": [
+                        "DISPONIBLE",
+                        "NO_DISPONIBLE"
+                    ]
+                },
+                "nombreProducto": {
                     "type": "string"
                 },
                 "precio": {
@@ -10099,8 +13063,56 @@ const docTemplate = `{
                 "productoId": {
                     "type": "integer"
                 },
-                "subcategoriaId": {
+                "totalVendido": {
+                    "description": "TotalVendido suma las unidades de pedidos en estado TERMINADO.",
                     "type": "integer"
+                }
+            }
+        },
+        "models.ProductoDoc": {
+            "type": "object",
+            "properties": {
+                "calorias": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 850
+                },
+                "cantidad": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "descripcion": {
+                    "type": "string",
+                    "example": "Plato típico"
+                },
+                "estadoProducto": {
+                    "type": "string",
+                    "enum": [
+                        "DISPONIBLE",
+                        "NO_DISPONIBLE"
+                    ],
+                    "example": "DISPONIBLE"
+                },
+                "imagen": {
+                    "type": "string",
+                    "example": "iVBORw0KGgo..."
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Bandeja Paisa"
+                },
+                "precio": {
+                    "type": "integer",
+                    "example": 25000
+                },
+                "productoId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "subcategoriaId": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 1
                 }
             }
         },
@@ -10116,6 +13128,21 @@ const docTemplate = `{
                 "pedidoId": {
                     "type": "integer",
                     "example": 1
+                }
+            }
+        },
+        "models.ProductoPedidoDoc": {
+            "type": "object",
+            "properties": {
+                "detalles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DetallePedidoDoc"
+                    }
+                },
+                "pedidoId": {
+                    "type": "integer",
+                    "example": 10
                 }
             }
         },
@@ -10158,6 +13185,53 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ProductoUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "calorias": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 850
+                },
+                "cantidad": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 8
+                },
+                "descripcion": {
+                    "type": "string",
+                    "x-nullable": true,
+                    "example": "Nueva descripción"
+                },
+                "estadoProducto": {
+                    "type": "string",
+                    "enum": [
+                        "DISPONIBLE",
+                        "NO_DISPONIBLE"
+                    ],
+                    "example": "NO_DISPONIBLE"
+                },
+                "imagen": {
+                    "type": "string",
+                    "x-nullable": true,
+                    "example": "BASE64..."
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Bandeja Paisa"
+                },
+                "precio": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 26000
+                },
+                "subcategoriaId": {
+                    "type": "integer",
+                    "x-nullable": true,
+                    "example": 2
+                }
+            }
+        },
         "models.ProductoVendido": {
             "type": "object",
             "properties": {
@@ -10165,6 +13239,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "imagen": {
+                    "description": "Imagen en base64; solo se rellena en GET /productos-populares, en el resto de endpoints llega \"\".",
                     "type": "string"
                 },
                 "ingresoTotal": {
@@ -10222,7 +13297,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "createdAt": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "05-10-2026 14:30:00"
                 },
                 "documentoCliente": {
                     "type": "integer"
@@ -10240,7 +13316,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "lastSeenAt": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "05-10-2026 14:30:00"
                 },
                 "locale": {
                     "type": "string"
@@ -10249,7 +13326,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "plataforma": {
-                    "$ref": "#/definitions/models.PlataformaNotificacion"
+                    "enum": [
+                        "WEB",
+                        "ANDROID",
+                        "IOS"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.PlataformaNotificacion"
+                        }
+                    ]
                 },
                 "pushDispositivoId": {
                     "type": "integer"
@@ -10268,6 +13354,29 @@ const docTemplate = `{
                 }
             }
         },
+        "models.PushDispositivosPage": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PushDispositivo"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.PushEnvio": {
             "type": "object",
             "properties": {
@@ -10281,7 +13390,15 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "proveedor": {
-                    "$ref": "#/definitions/models.ProveedorPush"
+                    "enum": [
+                        "WEB_PUSH",
+                        "FCM"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ProveedorPush"
+                        }
+                    ]
                 },
                 "pushDispositivoId": {
                     "type": "integer"
@@ -10290,9 +13407,33 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "sentAt": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "05-10-2026 14:30:00"
                 },
                 "statusCode": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PushEnviosPage": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PushEnvio"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
                     "type": "integer"
                 }
             }
@@ -10310,6 +13451,9 @@ const docTemplate = `{
         },
         "models.RegistrarDispositivoRequest": {
             "type": "object",
+            "required": [
+                "plataforma"
+            ],
             "properties": {
                 "appVersion": {
                     "type": "string"
@@ -10336,7 +13480,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "plataforma": {
-                    "$ref": "#/definitions/models.PlataformaNotificacion"
+                    "enum": [
+                        "WEB",
+                        "ANDROID",
+                        "IOS"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.PlataformaNotificacion"
+                        }
+                    ]
                 },
                 "subscribedTopics": {
                     "type": "array",
@@ -10354,6 +13507,10 @@ const docTemplate = `{
         },
         "models.RegistrarEnvioRequest": {
             "type": "object",
+            "required": [
+                "proveedor",
+                "pushDispositivoId"
+            ],
             "properties": {
                 "data": {
                     "type": "object"
@@ -10365,7 +13522,15 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "proveedor": {
-                    "$ref": "#/definitions/models.ProveedorPush"
+                    "enum": [
+                        "WEB_PUSH",
+                        "FCM"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ProveedorPush"
+                        }
+                    ]
                 },
                 "pushDispositivoId": {
                     "type": "integer"
@@ -10377,6 +13542,9 @@ const docTemplate = `{
         },
         "models.RemitenteNotificacion": {
             "type": "object",
+            "required": [
+                "tipo"
+            ],
             "properties": {
                 "documentoTrabajador": {
                     "type": "integer"
@@ -10385,7 +13553,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tipo": {
-                    "$ref": "#/definitions/models.TipoRemitente"
+                    "enum": [
+                        "TRABAJADOR",
+                        "SISTEMA"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TipoRemitente"
+                        }
+                    ]
                 }
             }
         },
@@ -10432,80 +13608,60 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Reserva": {
+        "models.ReservaContactoResponse": {
             "type": "object",
             "properties": {
                 "contactoId": {
-                    "type": "integer"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "createdBy": {
-                    "type": "string"
-                },
-                "estadoReserva": {
-                    "$ref": "#/definitions/models.EstadoReserva"
-                },
-                "fechaReserva": {
-                    "type": "string"
-                },
-                "horaReserva": {
-                    "type": "string"
-                },
-                "indicaciones": {
-                    "type": "string"
-                },
-                "personas": {
-                    "type": "integer"
-                },
-                "reservaId": {
-                    "type": "integer"
-                },
-                "restauranteId": {
-                    "type": "integer"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "updatedBy": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ReservaContacto": {
-            "type": "object",
-            "properties": {
-                "contactoId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 3
                 },
                 "documentoCliente": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.ClienteRefResponse"
                 },
                 "documentoContacto": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1015466494
                 },
                 "nombreCompleto": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Ana Gómez"
                 },
                 "telefono": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "3001234567"
                 }
             }
         },
         "models.ReservaCreateRequest": {
             "type": "object",
+            "required": [
+                "fechaReserva",
+                "horaReserva",
+                "personas",
+                "restauranteId"
+            ],
             "properties": {
-                "contactoId": {
-                    "type": "integer",
-                    "example": 1
-                },
                 "createdBy": {
                     "type": "string",
                     "example": "admin@example.com"
                 },
+                "documentoCliente": {
+                    "type": "integer",
+                    "example": 1015466495
+                },
+                "documentoContacto": {
+                    "type": "integer",
+                    "example": 1015466494
+                },
                 "estadoReserva": {
                     "type": "string",
+                    "default": "PENDIENTE",
+                    "enum": [
+                        "PENDIENTE",
+                        "CONFIRMADA",
+                        "CANCELADA",
+                        "CUMPLIDA"
+                    ],
                     "example": "PENDIENTE"
                 },
                 "fechaReserva": {
@@ -10520,13 +13676,22 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Mesa cerca a la ventana"
                 },
+                "nombreCompleto": {
+                    "type": "string",
+                    "example": "Ana Gómez"
+                },
                 "personas": {
                     "type": "integer",
+                    "minimum": 1,
                     "example": 4
                 },
                 "restauranteId": {
                     "type": "integer",
                     "example": 1
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001234567"
                 }
             }
         },
@@ -10590,15 +13755,82 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ReservaUpdateRequest": {
+        "models.ReservaResponse": {
             "type": "object",
             "properties": {
                 "contactoId": {
-                    "type": "integer",
-                    "example": 1
+                    "$ref": "#/definitions/models.ReservaContactoResponse"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "example": "31-01-2025 10:15:00"
+                },
+                "createdBy": {
+                    "type": "string",
+                    "example": "admin@example.com"
                 },
                 "estadoReserva": {
                     "type": "string",
+                    "enum": [
+                        "PENDIENTE",
+                        "CONFIRMADA",
+                        "CANCELADA",
+                        "CUMPLIDA"
+                    ],
+                    "example": "PENDIENTE"
+                },
+                "fechaReserva": {
+                    "type": "string",
+                    "example": "31-01-2025"
+                },
+                "horaReserva": {
+                    "type": "string",
+                    "example": "18:30:00"
+                },
+                "indicaciones": {
+                    "type": "string",
+                    "example": "Mesa cerca a la ventana"
+                },
+                "personas": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "reservaId": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "restauranteId": {
+                    "$ref": "#/definitions/models.RestauranteReservaResponse"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "31-01-2025 10:15:00"
+                },
+                "updatedBy": {
+                    "type": "string",
+                    "example": "operador@example.com"
+                }
+            }
+        },
+        "models.ReservaUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "type": "integer",
+                    "example": 1015466495
+                },
+                "documentoContacto": {
+                    "type": "integer",
+                    "example": 1015466494
+                },
+                "estadoReserva": {
+                    "type": "string",
+                    "enum": [
+                        "PENDIENTE",
+                        "CONFIRMADA",
+                        "CANCELADA",
+                        "CUMPLIDA"
+                    ],
                     "example": "CONFIRMADA"
                 },
                 "fechaReserva": {
@@ -10613,13 +13845,22 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Mesa al fondo"
                 },
+                "nombreCompleto": {
+                    "type": "string",
+                    "example": "Ana Gómez"
+                },
                 "personas": {
                     "type": "integer",
+                    "minimum": 1,
                     "example": 5
                 },
                 "restauranteId": {
                     "type": "integer",
                     "example": 1
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001234567"
                 },
                 "updatedBy": {
                     "type": "string",
@@ -10653,29 +13894,50 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Restaurante": {
+        "models.RestauranteDiaView": {
             "type": "object",
             "properties": {
-                "cambioHorarioId": {
-                    "type": "integer"
+                "dia": {
+                    "enum": [
+                        "Lunes",
+                        "Martes",
+                        "Miércoles",
+                        "Jueves",
+                        "Viernes",
+                        "Sábado",
+                        "Domingo"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.DiaSemana"
+                        }
+                    ],
+                    "example": "Lunes"
                 },
                 "horaApertura": {
-                    "type": "string"
+                    "description": "HH:MM:SS",
+                    "type": "string",
+                    "example": "08:00:00"
                 },
                 "nombreRestaurante": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "El Fogón de María"
+                },
+                "restauranteDiaId": {
+                    "type": "integer",
+                    "example": 1
                 },
                 "restauranteId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
-        "models.RestauranteCreateRequest": {
+        "models.RestauranteDoc": {
             "type": "object",
             "properties": {
                 "cambioHorarioId": {
-                    "type": "integer",
-                    "example": 1
+                    "$ref": "#/definitions/models.CambiosHorarioResponse"
                 },
                 "horaApertura": {
                     "type": "string",
@@ -10684,23 +13946,55 @@ const docTemplate = `{
                 "nombreRestaurante": {
                     "type": "string",
                     "example": "El Fogón de María"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
-        "models.RestauranteUpdateRequest": {
+        "models.RestauranteRef": {
+            "type": "object",
+            "properties": {
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "models.RestauranteRefDoc": {
             "type": "object",
             "properties": {
                 "cambioHorarioId": {
-                    "type": "integer",
-                    "example": 2
+                    "type": "object"
                 },
                 "horaApertura": {
                     "type": "string",
-                    "example": "09:00:00"
+                    "example": "08:00:00"
+                },
+                "nombreRestaurante": {
+                    "type": "string"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "models.RestauranteReservaResponse": {
+            "type": "object",
+            "properties": {
+                "horaApertura": {
+                    "type": "string",
+                    "example": "08:00:00"
                 },
                 "nombreRestaurante": {
                     "type": "string",
-                    "example": "El Fogón Centro"
+                    "example": "Sazón Criolla"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -10729,23 +14023,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "models.RolTrabajador": {
-            "type": "string",
-            "enum": [
-                "Administrador",
-                "Mesero",
-                "Cocinero",
-                "Domiciliario",
-                "Oficios_varios"
-            ],
-            "x-enum-varnames": [
-                "RolAdministrador",
-                "RolMesero",
-                "RolCocinero",
-                "RolDomiciliario",
-                "RolOficiosVarios"
-            ]
         },
         "models.SalesData": {
             "type": "object",
@@ -10803,7 +14080,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "categoriaId": {
-                    "type": "integer"
+                    "$ref": "#/definitions/models.Categoria"
                 },
                 "nombre": {
                     "type": "string"
@@ -10929,55 +14206,17 @@ const docTemplate = `{
                 "RemitenteSistema"
             ]
         },
-        "models.Trabajador": {
-            "type": "object",
-            "properties": {
-                "apellido": {
-                    "type": "string"
-                },
-                "documentoTrabajador": {
-                    "type": "integer"
-                },
-                "fechaIngreso": {
-                    "type": "string"
-                },
-                "fechaNacimiento": {
-                    "type": "string"
-                },
-                "fechaRetiro": {
-                    "type": "string"
-                },
-                "horarios": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.HorarioTrabajador"
-                    }
-                },
-                "nombre": {
-                    "type": "string"
-                },
-                "nuevo": {
-                    "type": "boolean"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "restauranteId": {
-                    "type": "integer"
-                },
-                "rol": {
-                    "$ref": "#/definitions/models.RolTrabajador"
-                },
-                "sueldo": {
-                    "type": "integer"
-                },
-                "telefono": {
-                    "type": "string"
-                }
-            }
-        },
         "models.TrabajadorCreateRequest": {
             "type": "object",
+            "required": [
+                "apellido",
+                "documentoTrabajador",
+                "fechaIngreso",
+                "nombre",
+                "password",
+                "rol",
+                "sueldo"
+            ],
             "properties": {
                 "apellido": {
                     "type": "string",
@@ -10999,8 +14238,13 @@ const docTemplate = `{
                     "type": "string",
                     "example": "María"
                 },
+                "nuevo": {
+                    "type": "boolean",
+                    "example": false
+                },
                 "password": {
                     "type": "string",
+                    "maxLength": 72,
                     "example": "Secreta123"
                 },
                 "restauranteId": {
@@ -11009,6 +14253,74 @@ const docTemplate = `{
                 },
                 "rol": {
                     "type": "string",
+                    "enum": [
+                        "Administrador",
+                        "Mesero",
+                        "Cocinero",
+                        "Domiciliario",
+                        "Oficios_varios"
+                    ],
+                    "example": "Mesero"
+                },
+                "sueldo": {
+                    "type": "integer",
+                    "example": 2000000
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3012223344"
+                }
+            }
+        },
+        "models.TrabajadorResponse": {
+            "type": "object",
+            "properties": {
+                "apellido": {
+                    "type": "string",
+                    "example": "Gómez"
+                },
+                "documentoTrabajador": {
+                    "type": "integer",
+                    "example": 10000000
+                },
+                "fechaIngreso": {
+                    "type": "string",
+                    "example": "31-01-2025"
+                },
+                "fechaNacimiento": {
+                    "type": "string",
+                    "example": "20-05-1990"
+                },
+                "fechaRetiro": {
+                    "type": "string",
+                    "example": "31-12-2025"
+                },
+                "horarios": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.HorarioTrabajadorResponse"
+                    }
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "María"
+                },
+                "nuevo": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "restauranteId": {
+                    "$ref": "#/definitions/models.RestauranteRef"
+                },
+                "rol": {
+                    "type": "string",
+                    "enum": [
+                        "Administrador",
+                        "Mesero",
+                        "Cocinero",
+                        "Domiciliario",
+                        "Oficios_varios"
+                    ],
                     "example": "Mesero"
                 },
                 "sueldo": {
@@ -11050,10 +14362,22 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
+                    "maxLength": 72,
                     "example": "NuevaSecreta!"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
                 },
                 "rol": {
                     "type": "string",
+                    "enum": [
+                        "Administrador",
+                        "Mesero",
+                        "Cocinero",
+                        "Domiciliario",
+                        "Oficios_varios"
+                    ],
                     "example": "Cocinero"
                 },
                 "sueldo": {
@@ -11237,15 +14561,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "productopedido.ProductoPedidoResponse": {
-            "type": "object",
-            "properties": {
-                "detalles": {},
-                "pedidoId": {
                     "type": "integer"
                 }
             }

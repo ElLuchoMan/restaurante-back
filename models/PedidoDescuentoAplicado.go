@@ -9,9 +9,9 @@ import (
 
 type PedidoDescuentoAplicado struct {
 	PkIdPedidoDescuento int64           `orm:"column(pk_id_pedido_descuento);pk;auto" json:"pedidoDescuentoId"`
-	PkIdPedido          *Pedido         `orm:"column(pk_id_pedido);rel(fk)" json:"pedidoId" swaggertype:"integer"`
-	PkIdCupon           *Cupon          `orm:"column(pk_id_cupon);rel(fk);null" json:"cuponId,omitempty" swaggertype:"integer"`
-	PkIdOferta          *Oferta         `orm:"column(pk_id_oferta);rel(fk);null" json:"ofertaId,omitempty" swaggertype:"integer"`
+	PkIdPedido          *Pedido         `orm:"column(pk_id_pedido);rel(fk)" json:"pedidoId"`
+	PkIdCupon           *Cupon          `orm:"column(pk_id_cupon);rel(fk);null" json:"cuponId,omitempty"`
+	PkIdOferta          *Oferta         `orm:"column(pk_id_oferta);rel(fk);null" json:"ofertaId,omitempty"`
 	MontoDescuento      int64           `orm:"column(monto_descuento);type(bigint)" json:"montoDescuento"`
 	Detalle             string          `orm:"column(detalle);type(jsonb);null" json:"-"`
 	DetalleObj          json.RawMessage `orm:"-" json:"detalle,omitempty" swaggertype:"object"`
@@ -58,11 +58,11 @@ func (p PedidoDescuentoAplicado) MarshalJSON() ([]byte, error) {
 
 	createdAtStr := FormatTimestampBogota(p.CreatedAt)
 
-	return json.Marshal(&struct {
+	return marshalSeguro(&struct {
 		PkIdPedidoDescuento int64           `json:"pedidoDescuentoId"`
-		PkIdPedido          *Pedido         `json:"pedidoId" swaggertype:"integer"`
-		PkIdCupon           *Cupon          `json:"cuponId,omitempty" swaggertype:"integer"`
-		PkIdOferta          *Oferta         `json:"ofertaId,omitempty" swaggertype:"integer"`
+		PkIdPedido          *Pedido         `json:"pedidoId"`
+		PkIdCupon           *Cupon          `json:"cuponId,omitempty"`
+		PkIdOferta          *Oferta         `json:"ofertaId,omitempty"`
 		MontoDescuento      int64           `json:"montoDescuento"`
 		DetalleObj          json.RawMessage `json:"detalle,omitempty" swaggertype:"object"`
 		CreatedAt           string          `json:"createdAt"`

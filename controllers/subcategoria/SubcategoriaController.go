@@ -2,7 +2,12 @@ package subcategoria
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
+
+	"restaurante/internal/dberr"
+	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
 
@@ -10,71 +15,88 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type subcatQuerySeter interface {
-	All(interface{}, ...string) (int64, error)
-	Filter(string, ...interface{}) subcatQuerySeter
-}
-
-type subcatOrmer interface {
-	QueryTable(interface{}) subcatQuerySeter
-	Insert(interface{}) (int64, error)
-	Read(interface{}, ...string) error
-	Update(interface{}, ...string) (int64, error)
-	Delete(interface{}, ...string) (int64, error)
-}
-
-type subQSAdapter struct{ qs orm.QuerySeter }
-
-func (a subQSAdapter) All(res interface{}, cols ...string) (int64, error) {
-	return a.qs.All(res, cols...)
-}
-func (a subQSAdapter) Filter(field string, args ...interface{}) subcatQuerySeter {
-	return subQSAdapter{qs: a.qs.Filter(field, args...)}
-}
-
-type subOrmAdapter struct{ o orm.Ormer }
-
-func (a subOrmAdapter) QueryTable(i interface{}) subcatQuerySeter {
-	return subQSAdapter{qs: a.o.QueryTable(i)}
-}
-func (a subOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
-func (a subOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a subOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
-	return a.o.Update(v, cols...)
-}
-func (a subOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
-	return a.o.Delete(v, cols...)
-}
-
-var subcatOrmNew = func() subcatOrmer { return subOrmAdapter{o: orm.NewOrm()} }
-
+// SubcategoriaController gestiona /subcategorias. En todas las respuestas
+// `categoriaId` es el objeto categoría completo ({categoriaId, nombre}).
 type SubcategoriaController struct{ web.Controller }
+
+const msgIDInvalido = "El parámetro 'id' es inválido o está ausente"
+
+// porID lee la subcategoría junto con su categoría (RelatedSel).
+func porID(id int64) (models.Subcategoria, error) {
+	var s models.Subcategoria
+	err := orm.NewOrm().QueryTable(new(models.Subcategoria)).Filter("PK_ID_SUBCATEGORIA", id).RelatedSel("PK_ID_CATEGORIA").One(&s)
+	return s, err
+}
+
+// load valida `id` y lee la subcategoría (400 / 404 / 500).
+func (c *SubcategoriaController) load(op string) (models.Subcategoria, bool) {
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "subcategorias."+op+".bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgIDInvalido, err)
+		return models.Subcategoria{}, false
+	}
+	s, err := porID(id)
+	if err != nil {
+		c.readError(op, id, err)
+		return s, false
+	}
+	return s, true
+}
+
+func (c *SubcategoriaController) readError(op string, id int64, err error) {
+	if errors.Is(err, orm.ErrNoRows) {
+		httpx.Fail(&c.Controller, http.StatusNotFound, "Subcategoría no encontrada", nil)
+		return
+	}
+	logging.LogControllerError(c.Ctx, "subcategorias."+op+".read_error", err, map[string]interface{}{"id": id})
+	httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error interno del servidor", err)
+}
+
+// writeError: unicidad -> 409; FK en insert/update (categoría inexistente) ->
+// 400; FK en delete (tiene productos o cupones) -> 409; otro -> 500.
+func (c *SubcategoriaController) writeError(op, msg string, err error) {
+	logging.LogControllerError(c.Ctx, "subcategorias."+op, err, nil)
+	switch {
+	case dberr.IsUnique(err):
+		httpx.Fail(&c.Controller, http.StatusConflict, "Ya existe una subcategoría con esos datos", err)
+	case dberr.IsForeignKey(err) && strings.HasPrefix(op, "delete"):
+		httpx.Fail(&c.Controller, http.StatusConflict, "La subcategoría tiene productos asociados", err)
+	case dberr.IsForeignKey(err):
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "La categoría indicada no existe", err)
+	default:
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, msg, err)
+	}
+}
 
 // @Title GetAll
 // @Summary Obtener todas las subcategorías
+// @Description Devuelve las subcategorías, opcionalmente filtradas por categoría. Cada una trae `categoriaId` como objeto categoría. Sin resultados, `data` es `[]`.
 // @Tags subcategorias
 // @Accept json
 // @Produce json
-// @Param categoria_id query int false "Filtrar por categoría"
-// @Success 200 {object} models.ApiResponse{data=[]models.Subcategoria}
-// @Failure 500 {object} models.ApiResponse
+// @Param categoria_id query int false "Filtrar por categoría (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=[]models.Subcategoria} "Lista de subcategorías (puede ser vacía)"
+// @Failure 400 {object} models.ApiResponse "categoria_id inválido"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /subcategorias [get]
 func (c *SubcategoriaController) GetAll() {
-	o := subcatOrmNew()
-	qs := o.QueryTable(new(models.Subcategoria))
-	if catID, err := c.GetInt64("categoria_id"); err == nil && catID > 0 {
+	qs := orm.NewOrm().QueryTable(new(models.Subcategoria)).RelatedSel("PK_ID_CATEGORIA")
+	if strings.TrimSpace(c.GetString("categoria_id")) != "" {
+		catID, err := httpx.PositiveInt64Param(&c.Controller, "categoria_id")
+		if err != nil {
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'categoria_id' es inválido", err)
+			return
+		}
 		qs = qs.Filter("PK_ID_CATEGORIA", catID)
 	}
 	var subs []models.Subcategoria
 	if _, err := qs.All(&subs); err != nil {
 		logging.LogControllerError(c.Ctx, "subcategorias.getall.db_error", err, map[string]interface{}{"categoria_id": c.GetString("categoria_id")})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al obtener subcategorías", Cause: err.Error()}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener subcategorías", err)
 		return
 	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategorías obtenidas", Data: subs}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Subcategorías obtenidas", httpx.List(subs))
 }
 
 // @Title GetById
@@ -82,134 +104,145 @@ func (c *SubcategoriaController) GetAll() {
 // @Tags subcategorias
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la subcategoría"
-// @Success 200 {object} models.ApiResponse{data=models.Subcategoria}
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la subcategoría (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=models.Subcategoria} "Subcategoría encontrada"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 404 {object} models.ApiResponse "Subcategoría no encontrada"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /subcategorias/search [get]
 func (c *SubcategoriaController) GetById() {
-	o := subcatOrmNew()
-	id, _ := c.GetInt64("id")
-	s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
-	if err := o.Read(&s); err != nil {
-		if err != orm.ErrNoRows {
-			logging.LogControllerError(c.Ctx, "subcategorias.getbyid.db_error", err, map[string]interface{}{"id": id})
-		}
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		_ = c.ServeJSON()
+	s, ok := c.load("getbyid")
+	if !ok {
 		return
 	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría encontrada", Data: s}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Subcategoría encontrada", s)
 }
 
 // @Title Post
 // @Summary Crear subcategoría
+// @Description `nombre` y `categoriaId` (entero positivo de una categoría existente) son obligatorios.
 // @Tags subcategorias
 // @Accept json
 // @Produce json
 // @Param body body models.SubcategoriaCreateRequest true "Datos de subcategoría"
-// @Success 201 {object} models.ApiResponse{data=models.Subcategoria}
-// @Failure 400 {object} models.ApiResponse
-// @Failure 500 {object} models.ApiResponse
+// @Success 201 {object} models.ApiResponse{data=models.Subcategoria} "Subcategoría creada"
+// @Failure 400 {object} models.ApiResponse "JSON inválido, campos faltantes o categoría inexistente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 409 {object} models.ApiResponse "Conflicto de unicidad"
+// @Failure 500 {object} models.ApiResponse "Error al crear la subcategoría"
+// @Security BearerAuth
 // @Router /subcategorias [post]
 func (c *SubcategoriaController) Post() {
-	o := subcatOrmNew()
-	var in struct {
-		Nombre      string `json:"nombre"`
-		CategoriaId int64  `json:"categoriaId"`
+	var in models.SubcategoriaCreateRequest
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
+		logging.LogControllerError(c.Ctx, "subcategorias.post.bad_json", err, nil)
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "JSON inválido", err)
+		return
 	}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil || in.Nombre == "" || in.CategoriaId == 0 {
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "subcategorias.post.bad_json", err, nil)
-		}
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido o campos requeridos faltantes"}
-		_ = c.ServeJSON()
+	in.Nombre = strings.TrimSpace(in.Nombre)
+	if in.Nombre == "" || in.CategoriaId <= 0 {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "Los campos 'nombre' y 'categoriaId' son obligatorios", nil)
 		return
 	}
 	s := models.Subcategoria{NOMBRE: in.Nombre, PK_ID_CATEGORIA: &models.Categoria{PK_ID_CATEGORIA: in.CategoriaId}}
-	if _, err := o.Insert(&s); err != nil {
-		logging.LogControllerError(c.Ctx, "subcategorias.post.insert_error", err, map[string]interface{}{"nombre": in.Nombre, "categoriaId": in.CategoriaId})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear subcategoría", Cause: err.Error()}
-		_ = c.ServeJSON()
+	if _, err := orm.NewOrm().Insert(&s); err != nil {
+		c.writeError("post.insert_error", "Error al crear subcategoría", err)
 		return
 	}
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Subcategoría creada", Data: s}
-	_ = c.ServeJSON()
+	creada, err := porID(s.PK_ID_SUBCATEGORIA)
+	if err != nil {
+		c.readError("post", s.PK_ID_SUBCATEGORIA, err)
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusCreated, "Subcategoría creada", creada)
 }
 
 // @Title Put
 // @Summary Actualizar subcategoría
+// @Description Actualización parcial (merge): los campos ausentes se conservan. Ningún campo admite null (400); `nombre` no puede quedar vacío y `categoriaId` debe ser una categoría existente. Un cuerpo sin cambios responde 200.
 // @Tags subcategorias
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la subcategoría"
-// @Param body body models.SubcategoriaUpdateRequest true "Datos a actualizar"
-// @Success 200 {object} models.ApiResponse{data=models.Subcategoria}
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la subcategoría (entero positivo)"
+// @Param body body models.SubcategoriaUpdateRequest true "Campos a modificar (opcionales, ninguno anulable)"
+// @Success 200 {object} models.ApiResponse{data=models.Subcategoria} "Subcategoría actualizada"
+// @Failure 400 {object} models.ApiResponse "id inválido, JSON inválido, null en campo no anulable, validación o categoría inexistente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Subcategoría no encontrada"
+// @Failure 409 {object} models.ApiResponse "Conflicto de unicidad"
+// @Failure 500 {object} models.ApiResponse "Error al actualizar la subcategoría"
+// @Security BearerAuth
 // @Router /subcategorias [put]
 func (c *SubcategoriaController) Put() {
-	o := subcatOrmNew()
-	id, _ := c.GetInt64("id")
-	s := models.Subcategoria{PK_ID_SUBCATEGORIA: id}
-	if err := o.Read(&s); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		_ = c.ServeJSON()
+	s, ok := c.load("put")
+	if !ok {
 		return
 	}
-	var in struct {
-		Nombre      *string `json:"nombre"`
-		CategoriaId *int64  `json:"categoriaId"`
-	}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
-		logging.LogControllerError(c.Ctx, "subcategorias.put.bad_json", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "JSON inválido", Cause: err.Error()}
-		_ = c.ServeJSON()
+	var in models.SubcategoriaUpdateRequest
+	if err := httpx.DecodeMerge(c.Ctx.Input.RequestBody, &in); err != nil {
+		logging.LogControllerError(c.Ctx, "subcategorias.put.bad_json", err, map[string]interface{}{"id": s.PK_ID_SUBCATEGORIA})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "JSON inválido", err)
 		return
 	}
 	cols := []string{}
 	if in.Nombre != nil {
-		s.NOMBRE = *in.Nombre
+		nombre := strings.TrimSpace(*in.Nombre)
+		if nombre == "" {
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "El campo 'nombre' no puede estar vacío", nil)
+			return
+		}
+		s.NOMBRE = nombre
 		cols = append(cols, "NOMBRE")
 	}
 	if in.CategoriaId != nil {
+		if *in.CategoriaId <= 0 {
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "El campo 'categoriaId' debe ser un entero positivo", nil)
+			return
+		}
 		s.PK_ID_CATEGORIA = &models.Categoria{PK_ID_CATEGORIA: *in.CategoriaId}
 		cols = append(cols, "PK_ID_CATEGORIA")
 	}
-	if _, err := o.Update(&s, cols...); err != nil {
-		logging.LogControllerError(c.Ctx, "subcategorias.put.update_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar subcategoría", Cause: err.Error()}
-		_ = c.ServeJSON()
+	if len(cols) == 0 {
+		httpx.Send(&c.Controller, http.StatusOK, "Subcategoría actualizada", s)
 		return
 	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría actualizada", Data: s}
-	_ = c.ServeJSON()
+	if _, err := orm.NewOrm().Update(&s, cols...); err != nil {
+		c.writeError("put.update_error", "Error al actualizar subcategoría", err)
+		return
+	}
+	actualizada, err := porID(s.PK_ID_SUBCATEGORIA)
+	if err != nil {
+		c.readError("put", s.PK_ID_SUBCATEGORIA, err)
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusOK, "Subcategoría actualizada", actualizada)
 }
 
 // @Title Delete
 // @Summary Eliminar subcategoría
+// @Description Elimina físicamente la subcategoría. Si tiene productos asociados responde 409.
 // @Tags subcategorias
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la subcategoría"
-// @Success 200 {object} models.ApiResponse
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la subcategoría (entero positivo)"
+// @Success 200 {object} models.ApiResponse "Subcategoría eliminada"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Subcategoría no encontrada"
+// @Failure 409 {object} models.ApiResponse "La subcategoría tiene productos asociados"
+// @Failure 500 {object} models.ApiResponse "Error al eliminar la subcategoría"
+// @Security BearerAuth
 // @Router /subcategorias [delete]
 func (c *SubcategoriaController) Delete() {
-	o := subcatOrmNew()
-	id, _ := c.GetInt64("id")
-	if _, err := o.Delete(&models.Subcategoria{PK_ID_SUBCATEGORIA: id}); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Subcategoría no encontrada"}
-		_ = c.ServeJSON()
+	s, ok := c.load("delete")
+	if !ok {
 		return
 	}
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Subcategoría eliminada"}
-	_ = c.ServeJSON()
+	// Raw y no orm.Delete: el ORM borraría en cascada los productos por su
+	// cuenta; así la llave foránea de la BD protege los datos (409).
+	if _, err := orm.NewOrm().Raw("DELETE FROM subcategoria WHERE pk_id_subcategoria = ?", s.PK_ID_SUBCATEGORIA).Exec(); err != nil {
+		c.writeError("delete.delete_error", "Error al eliminar subcategoría", err)
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusOK, "Subcategoría eliminada", nil)
 }

@@ -1,11 +1,9 @@
-//go:build !unit
-// +build !unit
-
 package services
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"restaurante/internal/dberr"
+	"restaurante/internal/httpx"
 	"restaurante/models"
 
 	webpush "github.com/SherClockHolmes/webpush-go"
@@ -25,6 +25,60 @@ import (
 
 // keyNotification es la clave JSON del payload de notificación.
 const keyNotification = "notification"
+
+// ValidationError indica entrada inválida (el controlador responde 400).
+type ValidationError struct{ Msg string }
+
+func (e *ValidationError) Error() string { return e.Msg }
+
+// NotFoundError indica que un recurso pedido o referenciado no existe (404).
+type NotFoundError struct{ Msg string }
+
+func (e *NotFoundError) Error() string { return e.Msg }
+
+// ConflictError indica un conflicto con el estado actual (409), p. ej. un
+// fcmToken/endpoint duplicado detectado por la base de datos.
+type ConflictError struct{ Msg string }
+
+func (e *ConflictError) Error() string { return e.Msg }
+
+// IsConflictError informa si err (o alguna causa envuelta) es un ConflictError.
+func IsConflictError(err error) bool {
+	var c *ConflictError
+	return errors.As(err, &c)
+}
+
+// clasificarDB traduce violaciones de unicidad (409) y de llave foránea (404)
+// en errores tipados; cualquier otro error se envuelve con msg.
+func clasificarDB(err error, msg string) error {
+	switch {
+	case dberr.IsUnique(err):
+		return &ConflictError{Msg: "el dispositivo ya está registrado (fcmToken o endpoint duplicado)"}
+	case dberr.IsForeignKey(err):
+		return notFoundf("el cliente, trabajador o dispositivo indicado no existe")
+	}
+	return fmt.Errorf("%s: %w", msg, err)
+}
+
+func validationf(format string, args ...any) error {
+	return &ValidationError{Msg: fmt.Sprintf(format, args...)}
+}
+
+func notFoundf(format string, args ...any) error {
+	return &NotFoundError{Msg: fmt.Sprintf(format, args...)}
+}
+
+// IsValidationError informa si err (o alguna causa envuelta) es un ValidationError.
+func IsValidationError(err error) bool {
+	var v *ValidationError
+	return errors.As(err, &v)
+}
+
+// IsNotFoundError informa si err (o alguna causa envuelta) es un NotFoundError.
+func IsNotFoundError(err error) bool {
+	var n *NotFoundError
+	return errors.As(err, &n)
+}
 
 type PushService struct {
 	ormer orm.Ormer
@@ -61,58 +115,102 @@ func NewPushService(ormer orm.Ormer) *PushService {
 	return &PushService{ormer: ormer}
 }
 
+func vacio(v *string) bool {
+	return v == nil || strings.TrimSpace(*v) == ""
+}
+
 func (s *PushService) ValidarRegistroDispositivo(req *models.RegistrarDispositivoRequest) error {
 
 	if (req.PkDocumentoCliente == nil && req.PkDocumentoTrabajador == nil) ||
 		(req.PkDocumentoCliente != nil && req.PkDocumentoTrabajador != nil) {
-		return fmt.Errorf("debe especificar exactamente uno de cliente o trabajador")
+		return validationf("debe especificar exactamente uno de cliente o trabajador")
+	}
+	if (req.PkDocumentoCliente != nil && *req.PkDocumentoCliente <= 0) ||
+		(req.PkDocumentoTrabajador != nil && *req.PkDocumentoTrabajador <= 0) {
+		return validationf("el documento del cliente o trabajador debe ser positivo")
 	}
 
 	switch req.Plataforma {
 	case models.PlataformaWeb:
-		if req.Endpoint == nil || req.P256dh == nil || req.Auth == nil {
-			return fmt.Errorf("para plataforma WEB se requieren endpoint, p256dh y auth")
+		if vacio(req.Endpoint) || vacio(req.P256dh) || vacio(req.Auth) {
+			return validationf("para plataforma WEB se requieren endpoint, p256dh y auth")
 		}
 		if req.FcmToken != nil {
-			return fmt.Errorf("para plataforma WEB no se debe especificar fcmToken")
+			return validationf("para plataforma WEB no se debe especificar fcmToken")
 		}
 	case models.PlataformaAndroid, models.PlataformaIOS:
-		if req.FcmToken == nil {
-			return fmt.Errorf("para plataformas ANDROID/IOS se requiere fcmToken")
+		if vacio(req.FcmToken) {
+			return validationf("para plataformas ANDROID/IOS se requiere fcmToken")
 		}
 		if req.Endpoint != nil || req.P256dh != nil || req.Auth != nil {
-			return fmt.Errorf("para plataformas ANDROID/IOS no se deben especificar endpoint, p256dh o auth")
+			return validationf("para plataformas ANDROID/IOS no se deben especificar endpoint, p256dh o auth")
 		}
 	default:
-		return fmt.Errorf("plataforma no válida: %s", req.Plataforma)
+		return validationf("plataforma no válida: %s", req.Plataforma)
 	}
 
 	return nil
 }
 
-func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.RegistrarDispositivoRequest) (*models.PushDispositivo, error) {
+// buscarPorToken devuelve el dispositivo ya registrado con ese fcm_token o
+// endpoint (nil si no existe).
+func (s *PushService) buscarPorToken(req *models.RegistrarDispositivoRequest) (*models.PushDispositivo, error) {
+	column, value := "endpoint", req.Endpoint
+	if req.Plataforma != models.PlataformaWeb {
+		column, value = "fcm_token", req.FcmToken
+	}
+	device := &models.PushDispositivo{}
+	err := s.ormer.QueryTable("push_dispositivo").Filter(column, *value).One(device)
+	if err == orm.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error al buscar dispositivo: %w", err)
+	}
+	device.AfterLoad()
+	return device, nil
+}
+
+// verificarPropietario comprueba que el cliente o trabajador indicado exista.
+func (s *PushService) verificarPropietario(req *models.RegistrarDispositivoRequest) error {
+	if req.PkDocumentoCliente != nil {
+		err := s.ormer.Read(&models.Cliente{PK_DOCUMENTO_CLIENTE: *req.PkDocumentoCliente})
+		if err == orm.ErrNoRows {
+			return notFoundf("cliente no encontrado")
+		}
+		if err != nil {
+			return fmt.Errorf("error al buscar cliente: %w", err)
+		}
+	}
+	if req.PkDocumentoTrabajador != nil {
+		err := s.ormer.Read(&models.Trabajador{PK_DOCUMENTO_TRABAJADOR: *req.PkDocumentoTrabajador})
+		if err == orm.ErrNoRows {
+			return notFoundf("trabajador no encontrado")
+		}
+		if err != nil {
+			return fmt.Errorf("error al buscar trabajador: %w", err)
+		}
+	}
+	return nil
+}
+
+// RegistrarDispositivo da de alta un dispositivo o, si su fcmToken/endpoint ya
+// existe, lo re-registra (upsert: se reasigna el propietario y se reactiva).
+// created indica si se insertó uno nuevo.
+func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.RegistrarDispositivoRequest) (dispositivo *models.PushDispositivo, created bool, err error) {
 
 	if err := s.ValidarRegistroDispositivo(req); err != nil {
-		return nil, err
+		return nil, false, err
+	}
+	if err := s.verificarPropietario(req); err != nil {
+		return nil, false, err
 	}
 
 	now := time.Now()
 
-	var existingDevice *models.PushDispositivo
-	if req.FcmToken != nil && *req.FcmToken != "" {
-
-		device := &models.PushDispositivo{}
-		err := s.ormer.QueryTable("push_dispositivo").Filter("fcm_token", *req.FcmToken).One(device)
-		if err == nil {
-			existingDevice = device
-		}
-	} else if req.Endpoint != nil && *req.Endpoint != "" {
-
-		device := &models.PushDispositivo{}
-		err := s.ormer.QueryTable("push_dispositivo").Filter("endpoint", *req.Endpoint).One(device)
-		if err == nil {
-			existingDevice = device
-		}
+	existingDevice, err := s.buscarPorToken(req)
+	if err != nil {
+		return nil, false, err
 	}
 
 	if existingDevice != nil {
@@ -130,29 +228,27 @@ func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.Regi
 		existingDevice.SubscribedTopicsArray = req.SubscribedTopics
 		existingDevice.LastSeenAt = &now
 
+		existingDevice.PkDocumentoCliente = nil
 		if req.PkDocumentoCliente != nil {
 			existingDevice.PkDocumentoCliente = &models.Cliente{PK_DOCUMENTO_CLIENTE: *req.PkDocumentoCliente}
-		} else {
-			existingDevice.PkDocumentoCliente = nil
 		}
 
+		existingDevice.PkDocumentoTrabajador = nil
 		if req.PkDocumentoTrabajador != nil {
 			existingDevice.PkDocumentoTrabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: *req.PkDocumentoTrabajador}
-		} else {
-			existingDevice.PkDocumentoTrabajador = nil
 		}
 
 		existingDevice.BeforeUpdate()
 
-		_, err := s.ormer.Update(existingDevice)
-		if err != nil {
-			return nil, fmt.Errorf("error al actualizar dispositivo: %w", err)
+		if _, err := s.ormer.Update(existingDevice); err != nil {
+			return nil, false, clasificarDB(err, "error al actualizar dispositivo")
 		}
+		existingDevice.AfterLoad()
 
-		return existingDevice, nil
+		return existingDevice, false, nil
 	}
 
-	dispositivo := &models.PushDispositivo{
+	dispositivo = &models.PushDispositivo{
 		Plataforma:            req.Plataforma,
 		Endpoint:              req.Endpoint,
 		P256dh:                req.P256dh,
@@ -178,29 +274,36 @@ func (s *PushService) RegistrarDispositivo(ctx context.Context, req *models.Regi
 
 	dispositivo.BeforeInsert()
 
-	_, err := s.ormer.Insert(dispositivo)
-	if err != nil {
-		return nil, fmt.Errorf("error al registrar dispositivo: %w", err)
+	if _, err := s.ormer.Insert(dispositivo); err != nil {
+		return nil, false, clasificarDB(err, "error al registrar dispositivo")
 	}
 
+	return dispositivo, true, nil
+}
+
+// leerDispositivo carga un dispositivo por id (NotFoundError si no existe).
+func (s *PushService) leerDispositivo(dispositivoId int64) (*models.PushDispositivo, error) {
+	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: dispositivoId}
+	if err := s.ormer.Read(dispositivo); err != nil {
+		if err == orm.ErrNoRows {
+			return nil, notFoundf("dispositivo no encontrado")
+		}
+		return nil, fmt.Errorf("error al buscar dispositivo: %w", err)
+	}
+	dispositivo.AfterLoad()
 	return dispositivo, nil
 }
 
 func (s *PushService) ActualizarUltimaVista(ctx context.Context, dispositivoId int64) error {
-	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: dispositivoId}
-	err := s.ormer.Read(dispositivo)
+	dispositivo, err := s.leerDispositivo(dispositivoId)
 	if err != nil {
-		if err == orm.ErrNoRows {
-			return fmt.Errorf("dispositivo no encontrado")
-		}
-		return fmt.Errorf("error al buscar dispositivo: %w", err)
+		return err
 	}
 
 	now := time.Now()
 	dispositivo.LastSeenAt = &now
 
-	_, err = s.ormer.Update(dispositivo, "LastSeenAt")
-	if err != nil {
+	if _, err = s.ormer.Update(dispositivo, "LastSeenAt"); err != nil {
 		return fmt.Errorf("error al actualizar última vista: %w", err)
 	}
 
@@ -208,39 +311,75 @@ func (s *PushService) ActualizarUltimaVista(ctx context.Context, dispositivoId i
 }
 
 func (s *PushService) ActualizarEstadoDispositivo(ctx context.Context, dispositivoId int64, enabled bool) error {
-	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: dispositivoId}
-	err := s.ormer.Read(dispositivo)
+	dispositivo, err := s.leerDispositivo(dispositivoId)
 	if err != nil {
-		if err == orm.ErrNoRows {
-			return fmt.Errorf("dispositivo no encontrado")
-		}
-		return fmt.Errorf("error al buscar dispositivo: %w", err)
+		return err
 	}
 
 	dispositivo.Enabled = enabled
 
-	_, err = s.ormer.Update(dispositivo, "Enabled")
-	if err != nil {
+	if _, err = s.ormer.Update(dispositivo, "Enabled"); err != nil {
 		return fmt.Errorf("error al actualizar estado del dispositivo: %w", err)
 	}
 
 	return nil
 }
 
-func (s *PushService) ActualizarTopicsDispositivo(ctx context.Context, dispositivoId int64, topics []string) error {
-	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: dispositivoId}
-	err := s.ormer.Read(dispositivo)
+// ActualizarDispositivo aplica en modo merge el JSON body (ver
+// models.ActualizarDispositivoRequest) sobre el dispositivo y lo devuelve ya
+// actualizado. Los campos ausentes se conservan; null limpia solo locale,
+// timeZone, appVersion y userAgent.
+func (s *PushService) ActualizarDispositivo(ctx context.Context, dispositivoId int64, body []byte) (*models.PushDispositivo, error) {
+	var req models.ActualizarDispositivoRequest
+	if err := httpx.DecodeMerge(body, &req, "locale", "timeZone", "appVersion", "userAgent"); err != nil {
+		return nil, validationf("JSON inválido: %v", err)
+	}
+	// DecodeMerge ya validó que body es un objeto JSON.
+	presentes, _ := httpx.Present(body)
+
+	dispositivo, err := s.leerDispositivo(dispositivoId)
 	if err != nil {
-		if err == orm.ErrNoRows {
-			return fmt.Errorf("dispositivo no encontrado")
-		}
-		return fmt.Errorf("error al buscar dispositivo: %w", err)
+		return nil, err
+	}
+
+	if req.Enabled != nil {
+		dispositivo.Enabled = *req.Enabled
+	}
+	if presentes["locale"] {
+		dispositivo.Locale = req.Locale
+	}
+	if presentes["timeZone"] {
+		dispositivo.TimeZone = req.TimeZone
+	}
+	if presentes["appVersion"] {
+		dispositivo.AppVersion = req.AppVersion
+	}
+	if presentes["userAgent"] {
+		dispositivo.UserAgent = req.UserAgent
+	}
+	if presentes["subscribedTopics"] {
+		dispositivo.SubscribedTopicsArray = req.SubscribedTopics
+	}
+
+	dispositivo.BeforeUpdate()
+	if _, err = s.ormer.Update(dispositivo, "Enabled", "Locale", "TimeZone", "AppVersion", "UserAgent", "SubscribedTopics"); err != nil {
+		return nil, fmt.Errorf("error al actualizar dispositivo: %w", err)
+	}
+	dispositivo.AfterLoad()
+
+	return dispositivo, nil
+}
+
+func (s *PushService) ActualizarTopicsDispositivo(ctx context.Context, dispositivoId int64, topics []string) error {
+	dispositivo, err := s.leerDispositivo(dispositivoId)
+	if err != nil {
+		return err
 	}
 
 	dispositivo.SubscribedTopicsArray = topics
+	dispositivo.BeforeUpdate()
 
-	_, err = s.ormer.Update(dispositivo, "SubscribedTopicsArray")
-	if err != nil {
+	if _, err = s.ormer.Update(dispositivo, "SubscribedTopics"); err != nil {
 		return fmt.Errorf("error al actualizar topics del dispositivo: %w", err)
 	}
 
@@ -249,17 +388,16 @@ func (s *PushService) ActualizarTopicsDispositivo(ctx context.Context, dispositi
 
 func (s *PushService) RegistrarEnvio(ctx context.Context, req *models.RegistrarEnvioRequest) (*models.PushEnvio, error) {
 
-	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: req.PkIdPushDispositivo}
-	err := s.ormer.Read(dispositivo)
-	if err != nil {
-		if err == orm.ErrNoRows {
-			return nil, fmt.Errorf("dispositivo no encontrado")
-		}
-		return nil, fmt.Errorf("error al buscar dispositivo: %w", err)
+	if req.PkIdPushDispositivo <= 0 {
+		return nil, validationf("pushDispositivoId es requerido")
+	}
+	if !req.Proveedor.IsValid() {
+		return nil, validationf("proveedor no válido: %s", req.Proveedor)
 	}
 
-	if !req.Proveedor.IsValid() {
-		return nil, fmt.Errorf("proveedor no válido: %s", req.Proveedor)
+	dispositivo, err := s.leerDispositivo(req.PkIdPushDispositivo)
+	if err != nil {
+		return nil, err
 	}
 
 	envio := &models.PushEnvio{
@@ -271,10 +409,10 @@ func (s *PushService) RegistrarEnvio(ctx context.Context, req *models.RegistrarE
 		ErrorCode:           req.ErrorCode,
 		SentAt:              time.Now(),
 	}
+	envio.BeforeInsert()
 
-	_, err = s.ormer.Insert(envio)
-	if err != nil {
-		return nil, fmt.Errorf("error al registrar envío: %w", err)
+	if _, err = s.ormer.Insert(envio); err != nil {
+		return nil, clasificarDB(err, "error al registrar envío")
 	}
 
 	return envio, nil
@@ -332,18 +470,26 @@ func (s *PushService) EnviarNotificacion(req *models.EnviarNotificacionRequest) 
 }
 
 func (s *PushService) validarRemitente(remitente *models.RemitenteNotificacion) error {
-	if remitente.Tipo == models.RemitenteTrabajador {
+	switch remitente.Tipo {
+	case models.RemitenteSistema:
+		return nil
+	case models.RemitenteTrabajador:
 		if remitente.DocumentoTrabajador == nil {
-			return fmt.Errorf("documentoTrabajador es requerido para remitente TRABAJADOR")
+			return validationf("documentoTrabajador es requerido para remitente TRABAJADOR")
 		}
 
 		trabajador := &models.Trabajador{}
 		err := s.ormer.QueryTable("trabajador").Filter("pk_documento_trabajador", *remitente.DocumentoTrabajador).One(trabajador)
-		if err != nil {
-			return fmt.Errorf("trabajador no encontrado")
+		if err == orm.ErrNoRows {
+			return notFoundf("trabajador no encontrado")
 		}
+		if err != nil {
+			return fmt.Errorf("error al buscar trabajador: %w", err)
+		}
+		return nil
+	default:
+		return validationf("tipo de remitente no válido: %s", remitente.Tipo)
 	}
-	return nil
 }
 
 func (s *PushService) obtenerDispositivosDestinatarios(destinatarios *models.DestinatariosNotificacion) ([]models.PushDispositivo, error) {
@@ -355,7 +501,7 @@ func (s *PushService) obtenerDispositivosDestinatarios(destinatarios *models.Des
 		break
 	case models.DestinatarioCliente:
 		if destinatarios.DocumentoCliente == nil {
-			return nil, fmt.Errorf("documentoCliente es requerido para destinatario CLIENTE")
+			return nil, validationf("documentoCliente es requerido para destinatario CLIENTE")
 		}
 		qs = qs.Filter("pk_documento_cliente", *destinatarios.DocumentoCliente)
 	case models.DestinatarioClientes:
@@ -364,7 +510,7 @@ func (s *PushService) obtenerDispositivosDestinatarios(destinatarios *models.Des
 		qs = qs.Filter("pk_documento_trabajador__isnull", true)
 	case models.DestinatarioTrabajador:
 		if destinatarios.DocumentoTrabajador == nil {
-			return nil, fmt.Errorf("documentoTrabajador es requerido para destinatario TRABAJADOR")
+			return nil, validationf("documentoTrabajador es requerido para destinatario TRABAJADOR")
 		}
 		qs = qs.Filter("pk_documento_trabajador", *destinatarios.DocumentoTrabajador)
 	case models.DestinatarioTrabajadores:
@@ -373,12 +519,12 @@ func (s *PushService) obtenerDispositivosDestinatarios(destinatarios *models.Des
 		qs = qs.Filter("pk_documento_cliente__isnull", true)
 	case models.DestinatarioTopic:
 		if destinatarios.Topic == nil {
-			return nil, fmt.Errorf("topic es requerido para destinatario TOPIC")
+			return nil, validationf("topic es requerido para destinatario TOPIC")
 		}
 
 		qs = qs.Filter("subscribed_topics__contains", *destinatarios.Topic)
 	default:
-		return nil, fmt.Errorf("tipo de destinatario no válido: %s", destinatarios.Tipo)
+		return nil, validationf("tipo de destinatario no válido: %s", destinatarios.Tipo)
 	}
 
 	var dispositivos []models.PushDispositivo
@@ -737,7 +883,10 @@ func (s *PushService) registrarEnvioNotificacion(dispositivo *models.PushDisposi
 		SentAt:              time.Now(),
 	}
 
-	_, _ = s.ormer.Insert(envio)
+	envio.BeforeInsert()
+	if _, err := s.ormer.Insert(envio); err != nil {
+		logs.Error("[Push] Error al registrar el envío del dispositivo %d: %v", dispositivo.PkIdPushDispositivo, err)
+	}
 }
 
 func (s *PushService) obtenerProveedor(plataforma models.PlataformaNotificacion) models.ProveedorPush {

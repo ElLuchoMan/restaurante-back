@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 )
 
+// RegistrarDispositivoRequest registra (o re-registra) un dispositivo push.
+// Debe indicarse exactamente uno entre documentoCliente y documentoTrabajador.
+// WEB exige endpoint, p256dh y auth (y no admite fcmToken); ANDROID/IOS exigen
+// fcmToken (y no admiten endpoint, p256dh ni auth).
 type RegistrarDispositivoRequest struct {
-	Plataforma            PlataformaNotificacion `json:"plataforma" valid:"required"`
+	Plataforma            PlataformaNotificacion `json:"plataforma" valid:"required" validate:"required" enums:"WEB,ANDROID,IOS"`
 	Endpoint              *string                `json:"endpoint,omitempty"`
 	P256dh                *string                `json:"p256dh,omitempty"`
 	Auth                  *string                `json:"auth,omitempty"`
@@ -19,19 +23,29 @@ type RegistrarDispositivoRequest struct {
 	PkDocumentoTrabajador *int64                 `json:"documentoTrabajador,omitempty"`
 }
 
-type ActualizarEstadoDispositivoRequest struct {
-	Enabled bool `json:"enabled" valid:"required"`
+// ActualizarDispositivoRequest es el cuerpo de PUT /push/dispositivos. Es un
+// merge: los campos ausentes se conservan; locale, timeZone, appVersion y
+// userAgent admiten null para limpiarse; enabled y subscribedTopics no admiten
+// null (400). Cualquier otro campo se ignora.
+type ActualizarDispositivoRequest struct {
+	Enabled          *bool    `json:"enabled,omitempty"`
+	Locale           *string  `json:"locale,omitempty"`
+	TimeZone         *string  `json:"timeZone,omitempty"`
+	AppVersion       *string  `json:"appVersion,omitempty"`
+	UserAgent        *string  `json:"userAgent,omitempty"`
+	SubscribedTopics []string `json:"subscribedTopics,omitempty" swaggertype:"array,string"`
 }
 
 type ActualizarTopicsRequest struct {
-	SubscribedTopics []string `json:"subscribedTopics" valid:"required" swaggertype:"array,string"`
+	SubscribedTopics []string `json:"subscribedTopics" valid:"required" validate:"required" swaggertype:"array,string"`
 }
 
+// RegistrarEnvioRequest registra manualmente un envío ya realizado.
 type RegistrarEnvioRequest struct {
-	PkIdPushDispositivo int64           `json:"pushDispositivoId" valid:"required"`
-	Proveedor           ProveedorPush   `json:"proveedor" valid:"required"`
+	PkIdPushDispositivo int64           `json:"pushDispositivoId" valid:"required" validate:"required"`
+	Proveedor           ProveedorPush   `json:"proveedor" valid:"required" validate:"required" enums:"WEB_PUSH,FCM"`
 	Data                json.RawMessage `json:"data,omitempty" swaggertype:"object"`
-	Exito               bool            `json:"exito" valid:"required"`
+	Exito               bool            `json:"exito"`
 	StatusCode          *int            `json:"statusCode,omitempty"`
 	ErrorCode           *string         `json:"errorCode,omitempty"`
 }
@@ -111,26 +125,26 @@ const (
 )
 
 type RemitenteNotificacion struct {
-	Tipo                TipoRemitente `json:"tipo" valid:"required,in(TRABAJADOR|SISTEMA)"`
+	Tipo                TipoRemitente `json:"tipo" valid:"required,in(TRABAJADOR|SISTEMA)" validate:"required" enums:"TRABAJADOR,SISTEMA"`
 	DocumentoTrabajador *int64        `json:"documentoTrabajador,omitempty"`
 	Nombre              *string       `json:"nombre,omitempty"`
 }
 
 type DestinatariosNotificacion struct {
-	Tipo                TipoDestinatario `json:"tipo" valid:"required,in(TODOS|CLIENTE|TRABAJADOR|TOPIC|CLIENTES|TRABAJADORES)"`
+	Tipo                TipoDestinatario `json:"tipo" valid:"required,in(TODOS|CLIENTE|TRABAJADOR|TOPIC|CLIENTES|TRABAJADORES)" validate:"required" enums:"TODOS,CLIENTE,TRABAJADOR,TOPIC,CLIENTES,TRABAJADORES"`
 	DocumentoCliente    *int64           `json:"documentoCliente,omitempty"`
 	DocumentoTrabajador *int64           `json:"documentoTrabajador,omitempty"`
 	Topic               *string          `json:"topic,omitempty"`
 }
 
 type ContenidoNotificacion struct {
-	Titulo  string          `json:"titulo" valid:"required,length(1|100)"`
-	Mensaje string          `json:"mensaje" valid:"required,length(1|500)"`
+	Titulo  string          `json:"titulo" valid:"required,length(1|100)" validate:"required" minLength:"1" maxLength:"100"`
+	Mensaje string          `json:"mensaje" valid:"required,length(1|500)" validate:"required" minLength:"1" maxLength:"500"`
 	Datos   json.RawMessage `json:"datos,omitempty" swaggertype:"object"`
 }
 
 type EnviarNotificacionRequest struct {
-	Remitente     RemitenteNotificacion     `json:"remitente" valid:"required"`
-	Destinatarios DestinatariosNotificacion `json:"destinatarios" valid:"required"`
-	Notificacion  ContenidoNotificacion     `json:"notificacion" valid:"required"`
+	Remitente     RemitenteNotificacion     `json:"remitente" valid:"required" validate:"required"`
+	Destinatarios DestinatariosNotificacion `json:"destinatarios" valid:"required" validate:"required"`
+	Notificacion  ContenidoNotificacion     `json:"notificacion" valid:"required" validate:"required"`
 }

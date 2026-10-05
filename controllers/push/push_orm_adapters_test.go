@@ -10,6 +10,8 @@ import (
 	"restaurante/models"
 	"restaurante/services"
 
+	"github.com/beego/beego/v2/client/orm"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,9 +23,8 @@ func resetFakeDB(t *testing.T) {
 }
 
 func TestDefaultProvidersReturnRealOrm(t *testing.T) {
-	assert.NotNil(t, defaultOrmProvider())
+	assert.NotNil(t, orm.NewOrm())
 	assert.NotNil(t, newServiceOrm())
-	assert.NotNil(t, pushServiceOrmFactory())
 	assert.NotNil(t, newPushService(newServiceOrm()))
 
 	_, ok := newPushService(newServiceOrm()).(*services.PushService)
@@ -31,13 +32,13 @@ func TestDefaultProvidersReturnRealOrm(t *testing.T) {
 
 	// init() de PushController_test.go reemplaza pushOrmNew; el adaptador
 	// real se valida construyéndolo con el proveedor por defecto.
-	a := pushOrmAdapter{o: defaultOrmProvider()}
+	a := pushOrmAdapter{o: orm.NewOrm()}
 	assert.NotNil(t, a.QueryTable("push_dispositivo"))
 }
 
 func TestPushOrmAdapterQueryTableChain(t *testing.T) {
 	resetFakeDB(t)
-	a := pushOrmAdapter{o: defaultOrmProvider()}
+	a := pushOrmAdapter{o: orm.NewOrm()}
 
 	qs := a.QueryTable("push_dispositivo").
 		Filter("enabled", true).
@@ -65,7 +66,7 @@ func TestPushOrmAdapterCountAndOneErrors(t *testing.T) {
 	resetFakeDB(t)
 	boom := errors.New("db down")
 	mockQueryHook = func(string) (driver.Rows, error) { return nil, boom }
-	a := pushOrmAdapter{o: defaultOrmProvider()}
+	a := pushOrmAdapter{o: orm.NewOrm()}
 	qs := a.QueryTable("push_dispositivo")
 
 	_, err := qs.Count()
@@ -78,7 +79,7 @@ func TestPushOrmAdapterCountAndOneErrors(t *testing.T) {
 
 func TestPushOrmAdapterCRUD(t *testing.T) {
 	resetFakeDB(t)
-	a := pushOrmAdapter{o: defaultOrmProvider()}
+	a := pushOrmAdapter{o: orm.NewOrm()}
 
 	d := &models.PushDispositivo{PkIdPushDispositivo: 5}
 	require.NoError(t, a.Read(d))

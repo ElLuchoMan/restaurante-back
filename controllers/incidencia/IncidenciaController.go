@@ -2,454 +2,295 @@ package incidencia
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
+	"time"
+
+	"restaurante/internal/dberr"
+	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
-	"strconv"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 )
 
+// IncidenciaController gestiona /incidencias (requiere token).
 type IncidenciaController struct {
 	web.Controller
 }
 
-type incidenciaOrmer interface {
-	QueryTable(interface{}) orm.QuerySeter
-	Insert(interface{}) (int64, error)
-	Read(interface{}, ...string) error
-	Update(interface{}, ...string) (int64, error)
-	Delete(interface{}, ...string) (int64, error)
-}
-type incidenciaOrmAdapter struct{ o orm.Ormer }
-
-func (a incidenciaOrmAdapter) QueryTable(i interface{}) orm.QuerySeter  { return a.o.QueryTable(i) }
-func (a incidenciaOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
-func (a incidenciaOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a incidenciaOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
-	return a.o.Update(v, cols...)
-}
-func (a incidenciaOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
-	return a.o.Delete(v, cols...)
+// fail registra el error y responde con el status indicado (code == status HTTP).
+func (c *IncidenciaController) fail(status int, event, message string, err error, fields map[string]interface{}) {
+	logging.LogControllerError(c.Ctx, event, err, fields)
+	httpx.Fail(&c.Controller, status, message, err)
 }
 
-var incidenciaOrmNew = func() incidenciaOrmer { return incidenciaOrmAdapter{o: orm.NewOrm()} }
+// writeError traduce errores de escritura: FK inexistente -> 400, resto -> 500.
+func (c *IncidenciaController) writeError(op, message string, err error, fields map[string]interface{}) {
+	if dberr.IsForeignKey(err) {
+		c.fail(http.StatusBadRequest, "incidencias."+op+".fk_error", "El trabajador indicado no existe", err, fields)
+		return
+	}
+	c.fail(http.StatusInternalServerError, "incidencias."+op+".db_error", message, err, fields)
+}
 
 // @Title GetAll
-// @Summary Obtener todas las incidencias
-// @Description Devuelve una lista de todas las incidencias registradas en la base de datos.
+// @Summary Listar incidencias
+// @Description Devuelve todas las incidencias (fechas DD-MM-YYYY). Sin resultados responde 200 con `data: []`. Requiere token.
 // @Tags incidencias
 // @Accept json
 // @Produce json
-// @Success 200 {object} models.ApiResponse{data=[]models.Incidencia} "Lista de incidencias"
+// @Success 200 {object} models.ApiResponse{data=[]models.IncidenciaResponse} "Lista de incidencias (puede ser vacía)"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [get]
 func (c *IncidenciaController) GetAll() {
-	o := incidenciaOrmNew()
 	var incidencias []models.Incidencia
-
-	_, err := o.QueryTable(new(models.Incidencia)).All(&incidencias)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "incidencias.getall.db_error", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener incidencias",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	if _, err := orm.NewOrm().QueryTable(new(models.Incidencia)).OrderBy("PK_ID_INCIDENCIA").All(&incidencias); err != nil {
+		c.fail(http.StatusInternalServerError, "incidencias.getall.db_error", "Error al obtener incidencias", err, nil)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Incidencias obtenidas correctamente",
-		Data:    incidencias,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Incidencias obtenidas correctamente", httpx.List(incidencias))
 }
 
 // @Title GetByDocumentAndDate
-// @Summary Obtener incidencias por documento y/o fecha
-// @Description Devuelve una lista de incidencias según los filtros proporcionados.
+// @Summary Buscar incidencias de un trabajador en un mes
+// @Description Devuelve las incidencias de un trabajador en el mes y año indicados. Todos los parámetros son obligatorios. Si no hay incidencias responde 200 con `data: []`. Requiere token.
 // @Tags incidencias
 // @Accept json
 // @Produce json
-// @Param   documento     query    int     true   "Documento del Trabajador"
-// @Param   mes           query    int     true   "Mes de la Incidencia (1-12)"
-// @Param   anio          query    int     true   "Año de la Incidencia"
-// @Success 200 {object} models.ApiResponse{data=[]models.Incidencia} "Lista de incidencias encontradas"
-// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
-// @Failure 404 {object} models.ApiResponse "No se encontraron incidencias"
+// @Param   documento     query    int     true   "Documento del trabajador (entero positivo)"
+// @Param   mes           query    int     true   "Mes de la incidencia (1-12)" minimum(1) maximum(12)
+// @Param   anio          query    int     true   "Año de la incidencia (1900 hasta el año actual)"
+// @Success 200 {object} models.ApiResponse{data=[]models.IncidenciaResponse} "Incidencias encontradas (puede ser vacía)"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'documento', 'mes' o 'anio' inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias/search [get]
 func (c *IncidenciaController) GetByDocumentAndDate() {
-	o := incidenciaOrmNew()
-
-	documento, err := c.GetInt64("documento")
-	if err != nil || documento == 0 {
-		logging.LogControllerError(c.Ctx, "incidencias.search.bad_request", err, map[string]interface{}{"documento": c.GetString("documento")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'documento' es inválido o ausente",
-		}
-		_ = c.ServeJSON()
+	documento, err := httpx.PositiveInt64Param(&c.Controller, "documento")
+	if err != nil {
+		c.fail(http.StatusBadRequest, "incidencias.search.bad_request", "El parámetro 'documento' es inválido o ausente", err, map[string]interface{}{"documento": c.GetString("documento")})
 		return
 	}
 
 	mes, err := c.GetInt("mes")
 	if err != nil || mes < 1 || mes > 12 {
-		logging.LogControllerError(c.Ctx, "incidencias.search.bad_request", err, map[string]interface{}{"mes": c.GetString("mes")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'mes' es inválido. Debe estar entre 1 y 12",
-		}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "incidencias.search.bad_request", "El parámetro 'mes' es inválido. Debe estar entre 1 y 12", err, map[string]interface{}{"mes": c.GetString("mes")})
 		return
 	}
 
 	anio, err := c.GetInt("anio")
 	if err != nil || anio < 1900 || anio > time.Now().Year() {
-		logging.LogControllerError(c.Ctx, "incidencias.search.bad_request", err, map[string]interface{}{"anio": c.GetString("anio")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'anio' es inválido o ausente",
-		}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "incidencias.search.bad_request", "El parámetro 'anio' es inválido o ausente", err, map[string]interface{}{"anio": c.GetString("anio")})
 		return
 	}
 
 	fechaInicio := time.Date(anio, time.Month(mes), 1, 12, 0, 0, 0, time.UTC)
-	fechaFin := time.Date(anio, time.Month(mes+1), 1, 12, 0, 0, 0, time.UTC).AddDate(0, 0, -1)
+	fechaFin := fechaInicio.AddDate(0, 1, -1)
 
 	var incidencias []models.Incidencia
-	_, err = o.QueryTable(new(models.Incidencia)).
+	if _, err := orm.NewOrm().QueryTable(new(models.Incidencia)).
 		Filter("PK_DOCUMENTO_TRABAJADOR", documento).
 		Filter("FECHA__gte", fechaInicio).
 		Filter("FECHA__lte", fechaFin).
-		All(&incidencias)
-
-	if err == orm.ErrNoRows || len(incidencias) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "No se encontraron incidencias para los parámetros proporcionados",
-		}
-		_ = c.ServeJSON()
-		return
-	} else if err != nil {
-		logging.LogControllerError(c.Ctx, "incidencias.search.db_error", err, map[string]interface{}{"documento": documento, "mes": mes, "anio": anio})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al buscar incidencias",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		OrderBy("FECHA", "PK_ID_INCIDENCIA").
+		All(&incidencias); err != nil {
+		c.fail(http.StatusInternalServerError, "incidencias.search.db_error", "Error al buscar incidencias", err, map[string]interface{}{"documento": documento, "mes": mes, "anio": anio})
 		return
 	}
 
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Incidencias encontradas",
-		Data:    incidencias,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Incidencias encontradas", httpx.List(incidencias))
 }
 
 // @Title Post
-// @Summary Crear una nueva incidencia
-// @Description Crea una nueva incidencia en la base de datos.
+// @Summary Crear una incidencia
+// @Description Crea una incidencia para un trabajador existente. Obligatorios: documentoTrabajador (> 0), fechaIncidencia (YYYY-MM-DD), monto (>= 0), resta (booleano) y motivo. Requiere token.
 // @Tags incidencias
 // @Accept json
 // @Produce json
-// @Param body body models.IncidenciaCreateRequest true "Datos de la incidencia (fecha YYYY-MM-DD)"
-// @Success 201 {object} map[string]interface{} "Incidencia creada"
-// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Param body body models.IncidenciaCreateRequest true "Datos de la incidencia"
+// @Success 201 {object} models.ApiResponse{data=models.IncidenciaResponse} "Incidencia creada"
+// @Failure 400 {object} models.ApiResponse "Solicitud inválida (JSON, campos obligatorios, fecha o trabajador inexistente)"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [post]
 func (c *IncidenciaController) Post() {
-	o := incidenciaOrmNew()
-	var input map[string]interface{}
-	var incidencia models.Incidencia
-
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-		logging.LogControllerError(c.Ctx, "incidencias.post.bad_json", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al procesar la solicitud",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	body := c.Ctx.Input.RequestBody
+	var in models.IncidenciaCreateRequest
+	if err := json.Unmarshal(body, &in); err != nil {
+		c.fail(http.StatusBadRequest, "incidencias.post.bad_json", "Error al procesar la solicitud", err, nil)
 		return
 	}
-
-	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
-		parsedDate, err := models.ParseDateToNoonUTC(fechaStr)
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "incidencias.post.bad_fecha", err, map[string]interface{}{"fechaIncidencia": fechaStr})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para fechaIncidencia",
-				Cause:   err.Error(),
-			}
-			_ = c.ServeJSON()
-			return
-		}
-		incidencia.FECHA = parsedDate
-	} else {
-		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "fechaIncidencia"})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo fechaIncidencia es obligatorio",
-		}
-		_ = c.ServeJSON()
-		return
+	present, _ := httpx.Present(body)
+	bad := func(field, message string, err error) {
+		c.fail(http.StatusBadRequest, "incidencias.post.validation_error", message, err, map[string]interface{}{"field": field})
 	}
 
-	if monto, ok := input["monto"].(float64); ok {
-		incidencia.MONTO = int64(monto)
-	} else {
-		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "monto"})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo monto es obligatorio y debe ser un número",
-		}
-		_ = c.ServeJSON()
+	if strings.TrimSpace(in.FechaIncidencia) == "" {
+		bad("fechaIncidencia", "El campo fechaIncidencia es obligatorio", nil)
 		return
 	}
-
-	if resta, ok := input["resta"].(bool); ok {
-		incidencia.RESTA = resta
-	} else {
-		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "resta"})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo resta es obligatorio",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
-		incidencia.MOTIVO = motivo
-	} else {
-		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "motivo"})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo motivo es obligatorio",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
-		doc := int64(documento)
-		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
-	} else {
-		logging.LogControllerError(c.Ctx, "incidencias.post.validation_error", nil, map[string]interface{}{"missing": "documentoTrabajador"})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo documentoTrabajador es obligatorio",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	_, err := o.Insert(&incidencia)
+	fecha, err := models.ParseDateToNoonUTC(in.FechaIncidencia)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "incidencias.post.insert_error", err, map[string]interface{}{"fecha": incidencia.FECHA, "doc": incidencia.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear la incidencia",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		bad("fechaIncidencia", "Formato de fecha inválido para fechaIncidencia, use YYYY-MM-DD", err)
+		return
+	}
+	if !present["monto"] {
+		bad("monto", "El campo monto es obligatorio", nil)
+		return
+	}
+	if in.Monto < 0 {
+		bad("monto", "El campo monto no puede ser negativo", nil)
+		return
+	}
+	if !present["resta"] {
+		bad("resta", "El campo resta es obligatorio", nil)
+		return
+	}
+	motivo := strings.TrimSpace(in.Motivo)
+	if motivo == "" {
+		bad("motivo", "El campo motivo es obligatorio", nil)
+		return
+	}
+	if in.DocumentoTrabajador <= 0 {
+		bad("documentoTrabajador", "El campo documentoTrabajador es obligatorio y debe ser un número positivo", nil)
 		return
 	}
 
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Incidencia creada correctamente",
-		Data:    incidencia,
+	incidencia := models.Incidencia{
+		FECHA:                   fecha,
+		MONTO:                   in.Monto,
+		RESTA:                   in.Resta,
+		MOTIVO:                  motivo,
+		PK_DOCUMENTO_TRABAJADOR: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: in.DocumentoTrabajador},
 	}
-	_ = c.ServeJSON()
+	if _, err := orm.NewOrm().Insert(&incidencia); err != nil {
+		c.writeError("post", "Error al crear la incidencia", err, map[string]interface{}{"fecha": in.FechaIncidencia, "doc": in.DocumentoTrabajador})
+		return
+	}
+
+	httpx.Send(&c.Controller, http.StatusCreated, "Incidencia creada correctamente", incidencia)
 }
 
 // @Title Update
 // @Summary Actualizar una incidencia
-// @Description Actualiza los datos de una incidencia existente en la base de datos.
+// @Description Actualización parcial con merge: los campos ausentes se CONSERVAN y null en cualquiera responde 400 (no hay campos anulables). Fecha en YYYY-MM-DD; monto >= 0; motivo no vacío; documentoTrabajador debe existir. Requiere token.
 // @Tags incidencias
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la Incidencia"
-// @Param body body models.IncidenciaUpdateRequest true "Datos de la incidencia a actualizar (sólo campos a modificar)"
-// @Success 200 {object} map[string]interface{} "Incidencia actualizada"
-// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Param id query int true "ID de la incidencia (entero positivo)"
+// @Param body body models.IncidenciaUpdateRequest true "Campos a modificar (todos opcionales)"
+// @Success 200 {object} models.ApiResponse{data=models.IncidenciaResponse} "Incidencia actualizada"
+// @Failure 400 {object} models.ApiResponse "Solicitud inválida (id, JSON, null, fecha, monto, motivo o trabajador inexistente)"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 404 {object} models.ApiResponse "Incidencia no encontrada"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [put]
 func (c *IncidenciaController) Put() {
-	o := incidenciaOrmNew()
-
-	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "incidencias.put.bad_request", err, map[string]interface{}{"id": idStr})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-		}
-		_ = c.ServeJSON()
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		c.fail(http.StatusBadRequest, "incidencias.put.bad_request", "El parámetro 'id' es inválido o está ausente", err, map[string]interface{}{"id": c.GetString("id")})
 		return
 	}
 
-	incidencia := models.Incidencia{PK_ID_INCIDENCIA: int64(id)}
-	if err := o.Read(&incidencia); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Incidencia no encontrada",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	var input map[string]interface{}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-		logging.LogControllerError(c.Ctx, "incidencias.put.bad_json", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al decodificar la solicitud",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	if fechaStr, ok := input["fechaIncidencia"].(string); ok && fechaStr != "" {
-		parsedDate, err := models.ParseDateToNoonUTC(fechaStr)
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "incidencias.put.bad_fecha", err, map[string]interface{}{"id": id, "fechaIncidencia": fechaStr})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Formato de fecha inválido para fechaIncidencia",
-				Cause:   err.Error(),
-			}
-			_ = c.ServeJSON()
+	o := orm.NewOrm()
+	incidencia := models.Incidencia{PK_ID_INCIDENCIA: id}
+	if err := o.Read(&incidencia); err != nil {
+		if errors.Is(err, orm.ErrNoRows) {
+			httpx.Fail(&c.Controller, http.StatusNotFound, "Incidencia no encontrada", nil)
 			return
 		}
-		incidencia.FECHA = parsedDate
+		c.fail(http.StatusInternalServerError, "incidencias.put.db_read_error", "Error al buscar la incidencia", err, map[string]interface{}{"id": id})
+		return
 	}
 
-	if monto, ok := input["monto"].(float64); ok {
-		incidencia.MONTO = int64(monto)
+	var in models.IncidenciaUpdateRequest
+	if err := httpx.DecodeMerge(c.Ctx.Input.RequestBody, &in); err != nil {
+		c.fail(http.StatusBadRequest, "incidencias.put.bad_json", "Error al decodificar la solicitud", err, map[string]interface{}{"id": id})
+		return
 	}
-	if resta, ok := input["resta"].(bool); ok {
-		incidencia.RESTA = resta
+	bad := func(message string, err error) {
+		c.fail(http.StatusBadRequest, "incidencias.put.validation_error", message, err, map[string]interface{}{"id": id})
 	}
-	if motivo, ok := input["motivo"].(string); ok && motivo != "" {
+
+	if in.FechaIncidencia != nil {
+		fecha, err := models.ParseDateToNoonUTC(strings.TrimSpace(*in.FechaIncidencia))
+		if err != nil {
+			bad("Formato de fecha inválido para fechaIncidencia, use YYYY-MM-DD", err)
+			return
+		}
+		incidencia.FECHA = fecha
+	}
+	if in.Monto != nil {
+		if *in.Monto < 0 {
+			bad("El campo monto no puede ser negativo", nil)
+			return
+		}
+		incidencia.MONTO = *in.Monto
+	}
+	if in.Resta != nil {
+		incidencia.RESTA = *in.Resta
+	}
+	if in.Motivo != nil {
+		motivo := strings.TrimSpace(*in.Motivo)
+		if motivo == "" {
+			bad("El campo motivo no puede estar vacío", nil)
+			return
+		}
 		incidencia.MOTIVO = motivo
 	}
-	if documento, ok := input["documentoTrabajador"].(float64); ok && documento != 0 {
-		doc := int64(documento)
-		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: doc}
+	if in.DocumentoTrabajador != nil {
+		if *in.DocumentoTrabajador <= 0 {
+			bad("El campo documentoTrabajador debe ser un número positivo", nil)
+			return
+		}
+		incidencia.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: *in.DocumentoTrabajador}
 	}
 
 	if _, err := o.Update(&incidencia); err != nil {
-		logging.LogControllerError(c.Ctx, "incidencias.put.update_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar la incidencia",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.writeError("put", "Error al actualizar la incidencia", err, map[string]interface{}{"id": id})
 		return
 	}
 
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Incidencia actualizada correctamente",
-		Data:    incidencia,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Incidencia actualizada correctamente", incidencia)
 }
 
 // @Title Delete
 // @Summary Eliminar una incidencia
-// @Description Elimina una incidencia de la base de datos.
+// @Description Elimina una incidencia. Si no existe responde 404. Requiere token.
 // @Tags incidencias
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID de la incidencia"
+// @Param   id     query    int     true        "ID de la incidencia (entero positivo)"
 // @Success 200 {object} models.ApiResponse "Incidencia eliminada"
+// @Failure 400 {object} models.ApiResponse "ID inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 404 {object} models.ApiResponse "Incidencia no encontrada"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /incidencias [delete]
 func (c *IncidenciaController) Delete() {
-	o := incidenciaOrmNew()
-	id, err := c.GetInt64("id")
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "incidencias.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID inválido o ausente",
-		}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "incidencias.delete.bad_request", "ID inválido o ausente", err, map[string]interface{}{"id": c.GetString("id")})
 		return
 	}
 
-	_, err = o.Delete(&models.Incidencia{PK_ID_INCIDENCIA: id})
-	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Incidencia no encontrada",
-		}
-		_ = c.ServeJSON()
-		return
-	} else if err != nil {
-		logging.LogControllerError(c.Ctx, "incidencias.delete.db_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al eliminar la incidencia",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	n, err := orm.NewOrm().Delete(&models.Incidencia{PK_ID_INCIDENCIA: id})
+	if err != nil {
+		c.fail(http.StatusInternalServerError, "incidencias.delete.db_error", "Error al eliminar la incidencia", err, map[string]interface{}{"id": id})
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Incidencia eliminada correctamente",
+	if n == 0 {
+		httpx.Fail(&c.Controller, http.StatusNotFound, "Incidencia no encontrada", nil)
+		return
 	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Incidencia eliminada correctamente", nil)
 }

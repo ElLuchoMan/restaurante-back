@@ -2,21 +2,32 @@ package reserva
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
+
+	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 )
 
+// ReservaController expone las reservas. Las respuestas siempre llevan el
+// envoltorio models.ApiResponse y el status HTTP coincide con su `code`.
 type ReservaController struct {
 	web.Controller
 }
 
-var ormNew = func() orm.Ormer { return orm.NewOrm() }
+const (
+	layoutFecha = "2006-01-02"
+	layoutHora  = "15:04:05"
+
+	msgEstadoInvalido = "El estado debe ser uno de: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA"
+)
 
 var estadosPermitidos = map[models.EstadoReserva]bool{
 	models.EstadoReservaPendiente:  true,
@@ -25,804 +36,635 @@ var estadosPermitidos = map[models.EstadoReserva]bool{
 	models.EstadoReservaCumplida:   true,
 }
 
-var queryAllReservas = func(o orm.Ormer, reservas *[]models.Reserva) (int64, error) {
-	return o.QueryTable(new(models.Reserva)).
-		RelatedSel("PK_ID_CONTACTO").
-		RelatedSel("PK_ID_RESTAURANTE").
-		All(reservas)
+// apiError es un error de negocio ya traducido a status HTTP.
+type apiError struct {
+	status  int
+	message string
+	cause   error
 }
 
-var readReserva = func(o orm.Ormer, r *models.Reserva) error {
-	return o.Read(r)
+func newErr(status int, message string, cause error) *apiError {
+	return &apiError{status: status, message: message, cause: cause}
 }
 
-var insertReserva = func(o orm.Ormer, r *models.Reserva) (int64, error) {
-	return o.Insert(r)
-}
-
-var updateReserva = func(o orm.Ormer, r *models.Reserva, cols ...string) (int64, error) {
-	return o.Update(r, cols...)
-}
-
-var queryReservasByParam = func(o orm.Ormer, contactoID int64, fecha time.Time, useContacto, useFecha bool, reservas *[]models.Reserva) (int64, error) {
-	qs := o.QueryTable(new(models.Reserva))
-	if useContacto {
-		qs = qs.Filter("PK_ID_CONTACTO", contactoID)
+func (c *ReservaController) fail(event string, e *apiError) {
+	if e.status >= http.StatusInternalServerError {
+		logging.LogControllerError(c.Ctx, event, e.cause, nil)
 	}
-	if useFecha {
+	httpx.Fail(&c.Controller, e.status, e.message, e.cause)
+}
 
-		dateStr := fecha.Format("2006-01-02")
-		qs = qs.Filter("FECHA__exact", dateStr)
+// reservasConRelaciones devuelve la consulta base con contacto y restaurante
+// cargados (así contactoId y restauranteId llegan completos, sin N+1).
+func reservasConRelaciones(o orm.Ormer) orm.QuerySeter {
+	return o.QueryTable(new(models.Reserva)).RelatedSel("PK_ID_CONTACTO", "PK_ID_RESTAURANTE")
+}
+
+// loadReserva carga una reserva con sus relaciones: 404 si no existe.
+func loadReserva(o orm.Ormer, id int64) (*models.Reserva, *apiError) {
+	var r models.Reserva
+	err := reservasConRelaciones(o).Filter("PK_ID_RESERVA", id).One(&r)
+	if errors.Is(err, orm.ErrNoRows) {
+		return nil, newErr(http.StatusNotFound, "Reserva no encontrada", err)
 	}
-	return qs.All(reservas)
-}
-
-var queryReservasByDocumentoCliente = func(o orm.Ormer, documentoCliente int64, fecha time.Time, useFecha bool, reservas *[]models.Reserva) (int64, error) {
-	qs := o.QueryTable(new(models.Reserva)).
-		RelatedSel("PK_ID_CONTACTO").
-		RelatedSel("PK_ID_RESTAURANTE").
-		Filter("PK_ID_CONTACTO__PKDocumentoCliente", documentoCliente)
-
-	if useFecha {
-		qs = qs.Filter("FECHA", fecha)
+	if err != nil {
+		return nil, newErr(http.StatusInternalServerError, "Error al obtener la reserva", err)
 	}
-
-	return qs.All(reservas)
+	return &r, nil
 }
 
-var queryReservasByDocumentoContacto = func(o orm.Ormer, documentoContacto int64, fecha time.Time, useFecha bool, reservas *[]models.Reserva) (int64, error) {
-	qs := o.QueryTable(new(models.Reserva)).
-		RelatedSel("PK_ID_CONTACTO").
-		RelatedSel("PK_ID_RESTAURANTE").
-		Filter("PK_ID_CONTACTO__DocumentoContacto", documentoContacto)
-
-	if useFecha {
-		qs = qs.Filter("FECHA", fecha)
+func parseFecha(s string) (time.Time, *apiError) {
+	parsed, err := time.Parse(layoutFecha, s)
+	if err != nil {
+		return time.Time{}, newErr(http.StatusBadRequest, "Formato de fecha inválido (use YYYY-MM-DD)", err)
 	}
-
-	return qs.All(reservas)
+	return time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 12, 0, 0, 0, time.UTC), nil
 }
 
-var insertReservaContacto = func(o orm.Ormer, rc *models.ReservaContacto) (int64, error) {
-	return o.Insert(rc)
+func parseHora(s string) (time.Time, *apiError) {
+	parsed, err := time.Parse(layoutHora, s)
+	if err != nil {
+		return time.Time{}, newErr(http.StatusBadRequest, "Formato de hora inválido (use HH:MM:SS)", err)
+	}
+	return parsed, nil
 }
 
-var queryReservaContactoByDocumento = func(o orm.Ormer, documento int64, rc *models.ReservaContacto) error {
-	return o.QueryTable(new(models.ReservaContacto)).Filter("DocumentoContacto", documento).One(rc)
+func parseEstado(s string) (models.EstadoReserva, *apiError) {
+	estado := models.EstadoReserva(s)
+	if !estadosPermitidos[estado] {
+		return "", newErr(http.StatusBadRequest, "Estado de reserva inválido", errors.New(msgEstadoInvalido))
+	}
+	return estado, nil
 }
 
-var queryReservaContactoByCliente = func(o orm.Ormer, clienteDoc int64, rc *models.ReservaContacto) error {
-	return o.QueryTable(new(models.ReservaContacto)).Filter("PKDocumentoCliente", clienteDoc).One(rc)
+func checkPersonas(n int) *apiError {
+	if n <= 0 {
+		return newErr(http.StatusBadRequest, "El campo personas debe ser un número mayor a 0", nil)
+	}
+	return nil
 }
 
-var readCliente = func(o orm.Ormer, c *models.Cliente) error {
-	return o.Read(c)
+// checkRestaurante valida que el restaurante exista (404 si no).
+func checkRestaurante(o orm.Ormer, id int64) (*models.Restaurante, *apiError) {
+	if id <= 0 {
+		return nil, newErr(http.StatusBadRequest, "El campo restauranteId debe ser un entero positivo", nil)
+	}
+	rest := models.Restaurante{PK_ID_RESTAURANTE: id}
+	err := o.Read(&rest)
+	if errors.Is(err, orm.ErrNoRows) {
+		return nil, newErr(http.StatusNotFound, "Restaurante no encontrado", err)
+	}
+	if err != nil {
+		return nil, newErr(http.StatusInternalServerError, "Error al consultar el restaurante", err)
+	}
+	return &rest, nil
 }
 
-func createOrFindReservaContacto(o orm.Ormer, input map[string]interface{}) (*models.ReservaContacto, error) {
+// contactoInput agrupa los datos de contacto aceptados en POST y PUT.
+type contactoInput struct {
+	documentoContacto *int64
+	documentoCliente  *int64
+	nombreCompleto    *string
+	telefono          *string
+}
+
+func (in contactoInput) provided() bool {
+	return in.documentoContacto != nil || in.documentoCliente != nil
+}
+
+// resolveContacto busca (o crea) el contacto: por documentoContacto (invitado)
+// o, si no viene, por documentoCliente (cliente registrado).
+func resolveContacto(o orm.Ormer, in contactoInput) (*models.ReservaContacto, *apiError) {
+	if in.documentoContacto != nil {
+		return contactoInvitado(o, *in.documentoContacto, in)
+	}
+	if in.documentoCliente != nil {
+		return contactoCliente(o, *in.documentoCliente)
+	}
+	return nil, newErr(http.StatusBadRequest, "Error al procesar contacto", errors.New("debe proporcionar documentoContacto o documentoCliente"))
+}
+
+func contactoInvitado(o orm.Ormer, documento int64, in contactoInput) (*models.ReservaContacto, *apiError) {
+	if documento <= 0 {
+		return nil, newErr(http.StatusBadRequest, "Error al procesar contacto", errors.New("documentoContacto debe ser un entero positivo"))
+	}
 	var contacto models.ReservaContacto
-
-	if docContacto, ok := input["documentoContacto"].(float64); ok {
-		documento := int64(docContacto)
-
-		err := queryReservaContactoByDocumento(o, documento, &contacto)
-		if err == nil {
-
-			return &contacto, nil
-		}
-		if err != orm.ErrNoRows {
-
-			return nil, err
-		}
-
-		contacto = models.ReservaContacto{
-			DocumentoContacto: &documento,
-		}
-
-		if nombre, ok := input["nombreCompleto"].(string); ok && nombre != "" {
-			contacto.NombreCompleto = nombre
-		} else {
-			return nil, fmt.Errorf("nombreCompleto es requerido para usuarios no registrados")
-		}
-
-		if telefono, ok := input["telefono"].(string); ok && telefono != "" {
-			contacto.Telefono = &telefono
-		}
-
-		id, err := insertReservaContacto(o, &contacto)
-		if err != nil {
-			return nil, err
-		}
-		contacto.PKIDContacto = id
+	err := o.QueryTable(new(models.ReservaContacto)).Filter("DocumentoContacto", documento).One(&contacto)
+	if err == nil {
 		return &contacto, nil
 	}
+	if !errors.Is(err, orm.ErrNoRows) {
+		return nil, newErr(http.StatusInternalServerError, "Error al consultar el contacto", err)
+	}
+	if in.nombreCompleto == nil || strings.TrimSpace(*in.nombreCompleto) == "" {
+		return nil, newErr(http.StatusBadRequest, "Error al procesar contacto", errors.New("nombreCompleto es requerido para usuarios no registrados"))
+	}
+	contacto = models.ReservaContacto{DocumentoContacto: &documento, NombreCompleto: strings.TrimSpace(*in.nombreCompleto)}
+	if in.telefono != nil && *in.telefono != "" {
+		contacto.Telefono = in.telefono
+	}
+	return insertContacto(o, &contacto)
+}
 
-	if docCliente, ok := input["documentoCliente"].(float64); ok {
-		clienteDoc := int64(docCliente)
-
-		err := queryReservaContactoByCliente(o, clienteDoc, &contacto)
-		if err == nil {
-
-			return &contacto, nil
-		}
-		if err != orm.ErrNoRows {
-
-			return nil, err
-		}
-
-		cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: clienteDoc}
-		if err := readCliente(o, &cliente); err != nil {
-			return nil, fmt.Errorf("cliente no encontrado: %w", err)
-		}
-
-		contacto = models.ReservaContacto{
-			PKDocumentoCliente: &cliente,
-			NombreCompleto:     cliente.NOMBRE + " " + cliente.APELLIDO,
-		}
-		if cliente.TELEFONO != "" {
-			contacto.Telefono = &cliente.TELEFONO
-		}
-
-		id, err := insertReservaContacto(o, &contacto)
-		if err != nil {
-			return nil, err
-		}
-		contacto.PKIDContacto = id
+func contactoCliente(o orm.Ormer, documento int64) (*models.ReservaContacto, *apiError) {
+	if documento <= 0 {
+		return nil, newErr(http.StatusBadRequest, "Error al procesar contacto", errors.New("documentoCliente debe ser un entero positivo"))
+	}
+	var contacto models.ReservaContacto
+	err := o.QueryTable(new(models.ReservaContacto)).Filter("PKDocumentoCliente", documento).One(&contacto)
+	if err == nil {
 		return &contacto, nil
 	}
+	if !errors.Is(err, orm.ErrNoRows) {
+		return nil, newErr(http.StatusInternalServerError, "Error al consultar el contacto", err)
+	}
+	cliente := models.Cliente{PK_DOCUMENTO_CLIENTE: documento}
+	if err := o.Read(&cliente); err != nil {
+		if errors.Is(err, orm.ErrNoRows) {
+			return nil, newErr(http.StatusNotFound, "Cliente no encontrado", err)
+		}
+		return nil, newErr(http.StatusInternalServerError, "Error al consultar el cliente", err)
+	}
+	contacto = models.ReservaContacto{
+		PKDocumentoCliente: &models.Cliente{PK_DOCUMENTO_CLIENTE: documento},
+		NombreCompleto:     strings.TrimSpace(cliente.NOMBRE + " " + cliente.APELLIDO),
+	}
+	if cliente.TELEFONO != "" {
+		contacto.Telefono = &cliente.TELEFONO
+	}
+	return insertContacto(o, &contacto)
+}
 
-	return nil, fmt.Errorf("debe proporcionar documentoContacto o documentoCliente")
+func insertContacto(o orm.Ormer, contacto *models.ReservaContacto) (*models.ReservaContacto, *apiError) {
+	id, err := o.Insert(contacto)
+	if err != nil {
+		return nil, newErr(http.StatusInternalServerError, "Error al crear el contacto", err)
+	}
+	contacto.PKIDContacto = id
+	return contacto, nil
+}
+
+// optionalDate lee el query param opcional `fecha` (YYYY-MM-DD).
+func optionalDate(c *ReservaController) (string, *apiError) {
+	fecha := c.GetString("fecha")
+	if fecha == "" {
+		return "", nil
+	}
+	if _, err := time.Parse(layoutFecha, fecha); err != nil {
+		return "", newErr(http.StatusBadRequest, "El parámetro 'fecha' debe tener el formato YYYY-MM-DD", err)
+	}
+	return fecha, nil
+}
+
+func (c *ReservaController) sendList(reservas []models.Reserva, vacio, lleno string) {
+	msg := lleno
+	if len(reservas) == 0 {
+		msg = vacio
+	}
+	httpx.Send(&c.Controller, http.StatusOK, msg, httpx.List(reservas))
 }
 
 // @Title GetAll
 // @Summary Obtener todas las reservas
-// @Description Devuelve todas las reservas registradas en la base de datos.
+// @Description Devuelve todas las reservas con su contacto (nombreCompleto, teléfono, documentos; nunca contraseñas) y su restaurante ya cargados. Lista vacía: `data` es `[]`. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS, createdAt/updatedAt DD-MM-YYYY HH:MM:SS. Público (no exige token).
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Reserva "Lista de reservas"
+// @Success 200 {object} models.ApiResponse{data=[]models.ReservaResponse} "Lista de reservas (puede ser [])"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas [get]
 func (c *ReservaController) GetAll() {
-	o := ormNew()
+	o := orm.NewOrm()
 	var reservas []models.Reserva
-
-	_, err := queryAllReservas(o, &reservas)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.getall.db_error", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener reservas de la base de datos",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	if _, err := reservasConRelaciones(o).All(&reservas); err != nil {
+		c.fail("reservas.getall.db_error", newErr(http.StatusInternalServerError, "Error al obtener reservas de la base de datos", err))
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Reservas obtenidas exitosamente",
-		Data:    reservas,
-	}
-	_ = c.ServeJSON()
+	c.sendList(reservas, "No se encontraron reservas", "Reservas obtenidas exitosamente")
 }
 
 // @Title GetById
 // @Summary Obtener reserva por ID
-// @Description Devuelve una reserva específica por ID utilizando query parameters.
+// @Description Devuelve una reserva por ID con contacto y restaurante cargados. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS. Público (no exige token).
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID de la Reserva"
-// @Success 200 {object} models.Reserva "Reserva encontrada"
+// @Param   id     query    int     true        "ID de la reserva (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=models.ReservaResponse} "Reserva encontrada"
+// @Failure 400 {object} models.ApiResponse "id ausente o inválido"
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas/search [get]
 func (c *ReservaController) GetById() {
-	o := ormNew()
-	id, err := c.GetInt64("id")
-
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "reservas.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'id' es inválido o está ausente", err)
 		return
 	}
-
-	reserva := models.Reserva{PK_ID_RESERVA: id}
-
-	err = readReserva(o, &reserva)
-	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Reserva no encontrada",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	reserva, apiErr := loadReserva(orm.NewOrm(), id)
+	if apiErr != nil {
+		c.fail("reservas.getbyid.db_error", apiErr)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Reserva encontrada",
-		Data:    reserva,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Reserva encontrada", reserva)
 }
 
 // @Title Create
 // @Summary Crear una nueva reserva
-// @Description Crea una nueva reserva en la base de datos.
+// @Description Crea una reserva. El contacto se resuelve con `documentoContacto` (invitado; si no existe se crea y exige `nombreCompleto`) o con `documentoCliente` (cliente registrado); si se envían ambos prevalece `documentoContacto`. `contactoId` NO se acepta. Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1, estadoReserva opcional (por defecto PENDIENTE). La respuesta devuelve la reserva con contacto y restaurante (sin contraseñas); fechas de respuesta en DD-MM-YYYY. Público (no exige token).
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param   body  body   models.ReservaCreateRequest true  "Datos de la reserva a crear (fecha YYYY-MM-DD, hora HH:MM:SS)"
-// @Success 201 {object} models.Reserva "Reserva creada"
-// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Param   body  body   models.ReservaCreateRequest true  "Datos de la reserva a crear"
+// @Success 201 {object} models.ApiResponse{data=models.ReservaResponse} "Reserva creada"
+// @Failure 400 {object} models.ApiResponse "JSON, campos obligatorios, fecha, hora, personas, estado o contacto inválidos"
+// @Failure 404 {object} models.ApiResponse "Restaurante o cliente no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas [post]
 func (c *ReservaController) Post() {
-	o := ormNew()
-	var input map[string]interface{}
-
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
-		_ = c.ServeJSON()
+	var in models.ReservaCreateRequest
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
+		c.fail("reservas.post.bad_json", newErr(http.StatusBadRequest, "Error al decodificar la solicitud", err))
 		return
 	}
 
-	contacto, err := createOrFindReservaContacto(o, input)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.post.contacto_error", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar contacto", Cause: err.Error()}
-		_ = c.ServeJSON()
+	reserva, apiErr := validateCreate(&in)
+	if apiErr != nil {
+		c.fail("reservas.post.validation_error", apiErr)
 		return
 	}
 
-	var reserva models.Reserva
-
-	if fechaStr, ok := input["fechaReserva"].(string); ok && fechaStr != "" {
-
-		parsedDateUTC, err := time.Parse("2006-01-02", fechaStr)
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", err, map[string]interface{}{"fechaReserva": fechaStr, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido (use YYYY-MM-DD)", Cause: err.Error()}
-			_ = c.ServeJSON()
-			return
-		}
-
-		fechaMidUTC := time.Date(parsedDateUTC.Year(), parsedDateUTC.Month(), parsedDateUTC.Day(), 12, 0, 0, 0, time.UTC)
-
-		reserva.FECHA = fechaMidUTC
-	} else {
-		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "fechaReserva", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo fechaReserva es requerido"}
-		_ = c.ServeJSON()
+	o := orm.NewOrm()
+	rest, apiErr := checkRestaurante(o, *in.RestauranteId)
+	if apiErr != nil {
+		c.fail("reservas.post.restaurante_error", apiErr)
 		return
 	}
+	reserva.PK_ID_RESTAURANTE = rest
 
-	if horaStr, ok := input["horaReserva"].(string); ok && horaStr != "" {
-
-		parsedHoraUTC, err := time.Parse("15:04:05", horaStr)
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", err, map[string]interface{}{"horaReserva": horaStr, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido (use HH:MM:SS)", Cause: err.Error()}
-			_ = c.ServeJSON()
-			return
-		}
-
-		reserva.HORA = parsedHoraUTC
-	} else {
-		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "horaReserva", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo horaReserva es requerido"}
-		_ = c.ServeJSON()
+	contacto, apiErr := resolveContacto(o, contactoInput{
+		documentoContacto: in.DocumentoContacto,
+		documentoCliente:  in.DocumentoCliente,
+		nombreCompleto:    in.NombreCompleto,
+		telefono:          in.Telefono,
+	})
+	if apiErr != nil {
+		c.fail("reservas.post.contacto_error", apiErr)
 		return
 	}
-
-	if personas, ok := input["personas"].(float64); ok && personas > 0 {
-		reserva.PERSONAS = int(personas)
-	} else {
-		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"personas": input["personas"], "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo personas debe ser un número mayor a 0"}
-		_ = c.ServeJSON()
-		return
-	}
-
-	if estadoStr, ok := input["estadoReserva"].(string); ok && estadoStr != "" {
-		estado := models.EstadoReserva(estadoStr)
-		if !estadosPermitidos[estado] {
-			logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"estadoReserva": estadoStr, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Estado de reserva inválido", Cause: "El estado debe ser uno de: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA"}
-			_ = c.ServeJSON()
-			return
-		}
-		reserva.ESTADO_RESERVA = &estado
-	} else {
-
-		estadoDefault := models.EstadoReservaPendiente
-		reserva.ESTADO_RESERVA = &estadoDefault
-	}
-
-	if indicaciones, ok := input["indicaciones"].(string); ok && indicaciones != "" {
-		reserva.INDICACIONES = &indicaciones
-	}
-	if createdBy, ok := input["createdBy"].(string); ok && createdBy != "" {
-		reserva.CREATED_BY = &createdBy
-	}
-
-	if restauranteID, ok := input["restauranteId"].(float64); ok {
-		val := int64(restauranteID)
-		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
-	} else {
-		logging.LogControllerError(c.Ctx, "reservas.post.validation_error", nil, map[string]interface{}{"missing": "restauranteId", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo restauranteId es requerido"}
-		_ = c.ServeJSON()
-		return
-	}
-
 	reserva.PK_ID_CONTACTO = contacto
 
-	reserva.CREATED_AT = time.Now().UTC()
-	reserva.UPDATED_AT = time.Time{}
-
-	if _, err := insertReserva(o, &reserva); err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.post.insert_error", err, map[string]interface{}{"contactoId": contacto.PKIDContacto, "restauranteId": reserva.PK_ID_RESTAURANTE, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear la reserva", Cause: err.Error()}
-		_ = c.ServeJSON()
+	id, err := o.Insert(reserva)
+	if err != nil {
+		c.fail("reservas.post.insert_error", newErr(http.StatusInternalServerError, "Error al crear la reserva", err))
 		return
 	}
 
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{Code: http.StatusCreated, Message: "Reserva creada correctamente", Data: reserva}
-	_ = c.ServeJSON()
+	creada, apiErr := loadReserva(o, id)
+	if apiErr != nil {
+		c.fail("reservas.post.reload_error", apiErr)
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusCreated, "Reserva creada correctamente", creada)
+}
+
+// validateCreate valida el cuerpo de POST y arma la reserva (sin relaciones).
+func validateCreate(in *models.ReservaCreateRequest) (*models.Reserva, *apiError) {
+	var reserva models.Reserva
+	if in.FechaReserva == nil || *in.FechaReserva == "" {
+		return nil, newErr(http.StatusBadRequest, "El campo fechaReserva es requerido", nil)
+	}
+	fecha, apiErr := parseFecha(*in.FechaReserva)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+	reserva.FECHA = fecha
+
+	if in.HoraReserva == nil || *in.HoraReserva == "" {
+		return nil, newErr(http.StatusBadRequest, "El campo horaReserva es requerido", nil)
+	}
+	hora, apiErr := parseHora(*in.HoraReserva)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+	reserva.HORA = hora
+
+	if in.Personas == nil {
+		return nil, newErr(http.StatusBadRequest, "El campo personas debe ser un número mayor a 0", nil)
+	}
+	if apiErr := checkPersonas(*in.Personas); apiErr != nil {
+		return nil, apiErr
+	}
+	reserva.PERSONAS = *in.Personas
+
+	estado := models.EstadoReservaPendiente
+	if in.EstadoReserva != nil && *in.EstadoReserva != "" {
+		estado, apiErr = parseEstado(*in.EstadoReserva)
+		if apiErr != nil {
+			return nil, apiErr
+		}
+	}
+	reserva.ESTADO_RESERVA = &estado
+
+	if in.Indicaciones != nil && *in.Indicaciones != "" {
+		reserva.INDICACIONES = in.Indicaciones
+	}
+	if in.CreatedBy != nil && *in.CreatedBy != "" {
+		reserva.CREATED_BY = in.CreatedBy
+	}
+	if in.RestauranteId == nil {
+		return nil, newErr(http.StatusBadRequest, "El campo restauranteId es requerido", nil)
+	}
+	return &reserva, nil
 }
 
 // @Title Update
-// @Summary Actualizar una reserva
-// @Description Actualiza los datos de una reserva existente.
+// @Summary Actualizar una reserva (merge parcial)
+// @Description Actualiza solo los campos enviados; los ausentes se conservan. `indicaciones` y `updatedBy` admiten `null` (limpian el campo); `null` en cualquier otro campo devuelve 400. Para cambiar el contacto envíe `documentoContacto` o `documentoCliente` (se busca o crea el contacto; `contactoId` NO se acepta). Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1. La respuesta devuelve la reserva completa (fechas DD-MM-YYYY).
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param   id    query    int  true   "ID de la Reserva"
-// @Param   body  body   models.ReservaUpdateRequest true  "Datos de la reserva a actualizar (sólo campos a modificar)"
-// @Success 200 {object} models.Reserva "Reserva actualizada"
-// @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
+// @Param   id    query    int  true   "ID de la reserva (entero positivo)"
+// @Param   body  body   models.ReservaUpdateRequest true  "Campos a modificar"
+// @Success 200 {object} models.ApiResponse{data=models.ReservaResponse} "Reserva actualizada"
+// @Failure 400 {object} models.ApiResponse "id, JSON, null no permitido, fecha, hora, personas, estado o contacto inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Reserva, restaurante o cliente no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /reservas [put]
 func (c *ReservaController) Put() {
-	o := ormNew()
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "reservas.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		cause := "el parámetro 'id' debe ser distinto de cero"
-		if err != nil {
-			cause = err.Error()
-		}
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: cause}
-		_ = c.ServeJSON()
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'id' es inválido o está ausente", err)
+		return
+	}
+	body := c.Ctx.Input.RequestBody
+	var in models.ReservaUpdateRequest
+	if err := httpx.DecodeMerge(body, &in, "indicaciones", "updatedBy"); err != nil {
+		c.fail("reservas.put.bad_json", newErr(http.StatusBadRequest, "Error al decodificar la solicitud", err))
 		return
 	}
 
-	reserva := models.Reserva{PK_ID_RESERVA: id}
-	if err := readReserva(o, &reserva); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Reserva no encontrada"}
-		_ = c.ServeJSON()
+	o := orm.NewOrm()
+	reserva, apiErr := loadReserva(o, id)
+	if apiErr != nil {
+		c.fail("reservas.put.load_error", apiErr)
 		return
 	}
 
-	var input map[string]interface{}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
-		_ = c.ServeJSON()
+	cols, apiErr := applyUpdate(o, reserva, &in, body)
+	if apiErr != nil {
+		c.fail("reservas.put.validation_error", apiErr)
+		return
+	}
+	if _, err := o.Update(reserva, cols...); err != nil {
+		c.fail("reservas.put.update_error", newErr(http.StatusInternalServerError, "Error al actualizar la reserva", err))
 		return
 	}
 
-	if _, hasDocContacto := input["documentoContacto"]; hasDocContacto {
-		contacto, err := createOrFindReservaContacto(o, input)
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "reservas.put.contacto_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar contacto", Cause: err.Error()}
-			_ = c.ServeJSON()
-			return
-		}
-		reserva.PK_ID_CONTACTO = contacto
-	} else if _, hasDocCliente := input["documentoCliente"]; hasDocCliente {
-		contacto, err := createOrFindReservaContacto(o, input)
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "reservas.put.contacto_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar contacto", Cause: err.Error()}
-			_ = c.ServeJSON()
-			return
-		}
-		reserva.PK_ID_CONTACTO = contacto
-	}
-
-	if fechaStr, ok := input["fechaReserva"].(string); ok && fechaStr != "" {
-		if parsed, err := time.Parse("2006-01-02", fechaStr); err == nil {
-
-			reserva.FECHA = time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 12, 0, 0, 0, time.UTC)
-		} else {
-			logging.LogControllerError(c.Ctx, "reservas.put.validation_error", err, map[string]interface{}{"id": id, "fechaReserva": fechaStr, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido (use YYYY-MM-DD)", Cause: err.Error()}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
-	if horaStr, ok := input["horaReserva"].(string); ok && horaStr != "" {
-		if parsed, err := time.Parse("15:04:05", horaStr); err == nil {
-			reserva.HORA = parsed
-		} else {
-			logging.LogControllerError(c.Ctx, "reservas.put.validation_error", err, map[string]interface{}{"id": id, "horaReserva": horaStr, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido (use HH:MM:SS)", Cause: err.Error()}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
-	if personas, ok := input["personas"].(float64); ok && personas > 0 {
-		reserva.PERSONAS = int(personas)
-	}
-
-	if estadoStr, ok := input["estadoReserva"].(string); ok && estadoStr != "" {
-		estado := models.EstadoReserva(estadoStr)
-		if estadosPermitidos[estado] {
-			reserva.ESTADO_RESERVA = &estado
-		} else {
-			logging.LogControllerError(c.Ctx, "reservas.put.validation_error", nil, map[string]interface{}{"id": id, "estadoReserva": estadoStr, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Estado de reserva inválido", Cause: "El estado debe ser uno de: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA"}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
-	if indicaciones, ok := input["indicaciones"].(string); ok {
-		reserva.INDICACIONES = &indicaciones
-	}
-
-	if updatedBy, ok := input["updatedBy"].(string); ok && updatedBy != "" {
-		reserva.UPDATED_BY = &updatedBy
-	}
-
-	if restauranteID, ok := input["restauranteId"].(float64); ok {
-		val := int64(restauranteID)
-		reserva.PK_ID_RESTAURANTE = &models.Restaurante{PK_ID_RESTAURANTE: val}
-	}
-
-	reserva.UPDATED_AT = time.Now().UTC()
-
-	if _, err := updateReserva(o, &reserva); err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar la reserva", Cause: err.Error()}
-		_ = c.ServeJSON()
+	actualizada, apiErr := loadReserva(o, id)
+	if apiErr != nil {
+		c.fail("reservas.put.reload_error", apiErr)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Reserva actualizada correctamente", Data: reserva}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Reserva actualizada correctamente", actualizada)
 }
 
-// @Title GetByCliente
+// applyUpdate aplica sobre reserva los campos presentes en in y devuelve las
+// columnas a actualizar (siempre incluye UPDATED_AT).
+func applyUpdate(o orm.Ormer, reserva *models.Reserva, in *models.ReservaUpdateRequest, body []byte) ([]string, *apiError) {
+	cols := []string{"UPDATED_AT"}
+
+	contacto := contactoInput{
+		documentoContacto: in.DocumentoContacto,
+		documentoCliente:  in.DocumentoCliente,
+		nombreCompleto:    in.NombreCompleto,
+		telefono:          in.Telefono,
+	}
+	if in.FechaReserva != nil {
+		fecha, apiErr := parseFecha(*in.FechaReserva)
+		if apiErr != nil {
+			return nil, apiErr
+		}
+		reserva.FECHA = fecha
+		cols = append(cols, "FECHA")
+	}
+	if in.HoraReserva != nil {
+		hora, apiErr := parseHora(*in.HoraReserva)
+		if apiErr != nil {
+			return nil, apiErr
+		}
+		reserva.HORA = hora
+		cols = append(cols, "HORA")
+	}
+	if in.Personas != nil {
+		if apiErr := checkPersonas(*in.Personas); apiErr != nil {
+			return nil, apiErr
+		}
+		reserva.PERSONAS = *in.Personas
+		cols = append(cols, "PERSONAS")
+	}
+	if in.EstadoReserva != nil {
+		estado, apiErr := parseEstado(*in.EstadoReserva)
+		if apiErr != nil {
+			return nil, apiErr
+		}
+		reserva.ESTADO_RESERVA = &estado
+		cols = append(cols, "ESTADO_RESERVA")
+	}
+	if in.Indicaciones != nil || httpx.IsNull(body, "indicaciones") {
+		reserva.INDICACIONES = in.Indicaciones
+		cols = append(cols, "INDICACIONES")
+	}
+	if in.UpdatedBy != nil || httpx.IsNull(body, "updatedBy") {
+		reserva.UPDATED_BY = in.UpdatedBy
+		cols = append(cols, "UPDATED_BY")
+	}
+	if in.RestauranteId != nil {
+		rest, apiErr := checkRestaurante(o, *in.RestauranteId)
+		if apiErr != nil {
+			return nil, apiErr
+		}
+		reserva.PK_ID_RESTAURANTE = rest
+		cols = append(cols, "PK_ID_RESTAURANTE")
+	}
+	if contacto.provided() {
+		nuevo, apiErr := resolveContacto(o, contacto)
+		if apiErr != nil {
+			return nil, apiErr
+		}
+		reserva.PK_ID_CONTACTO = nuevo
+		cols = append(cols, "PK_ID_CONTACTO")
+	}
+	return cols, nil
+}
+
+// @Title GetByParameter
 // @Summary Obtener reservas por contacto y/o fecha
-// @Description Devuelve las reservas asociadas a un contacto en una fecha específica, todas sus reservas si no se especifica la fecha, o todas las reservas en una fecha específica si no se especifica el contacto.
+// @Description Devuelve las reservas de un contacto en una fecha, todas las de un contacto, o todas las de una fecha. Sin ningún filtro devuelve todas. Cada reserva trae contacto y restaurante cargados. Filtro `fecha` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Público (no exige token).
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param contactoId query int false "ID del Contacto (Opcional)"
-// @Param fecha query string false "Fecha de la reserva (YYYY-MM-DD) (Opcional)"
-// @Success 200 {array} models.Reserva "Lista de reservas encontradas"
-// @Failure 400 {object} models.ApiResponse "Error en los parámetros"
+// @Param contactoId query int false "ID del contacto (entero positivo)"
+// @Param fecha query string false "Fecha de la reserva, formato YYYY-MM-DD"
+// @Success 200 {object} models.ApiResponse{data=[]models.ReservaResponse} "Lista de reservas (puede ser [])"
+// @Failure 400 {object} models.ApiResponse "contactoId o fecha inválidos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas/parameter [get]
 func (c *ReservaController) GetByParameter() {
-	o := ormNew()
-	var reservas []models.Reserva
+	qs := reservasConRelaciones(orm.NewOrm())
 
-	contactoID, errContacto := c.GetInt64("contactoId")
-	fechaReserva := c.GetString("fecha")
-
-	useContacto := errContacto == nil && contactoID != 0
-	var parsedDate time.Time
-	useFecha := false
-	if fechaReserva != "" {
-		var err error
-
-		parsedDate, err = time.Parse("2006-01-02", fechaReserva)
+	if c.GetString("contactoId") != "" {
+		contactoID, err := httpx.PositiveInt64Param(&c.Controller, "contactoId")
 		if err != nil {
-			logging.LogControllerError(c.Ctx, "reservas.parameter.validation_error", err, map[string]interface{}{"fecha": fechaReserva})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El parámetro 'fecha' debe tener el formato YYYY-MM-DD",
-			}
-			_ = c.ServeJSON()
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'contactoId' es inválido", err)
 			return
 		}
-		useFecha = true
+		qs = qs.Filter("PK_ID_CONTACTO", contactoID)
 	}
-
-	_, err := queryReservasByParam(o, contactoID, parsedDate, useContacto, useFecha, &reservas)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.parameter.db_error", err, map[string]interface{}{"contactoId": contactoID, "fecha": fechaReserva})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener reservas",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	fecha, apiErr := optionalDate(c)
+	if apiErr != nil {
+		c.fail("reservas.parameter.validation_error", apiErr)
 		return
 	}
+	if fecha != "" {
+		qs = qs.Filter("FECHA__exact", fecha)
+	}
 
-	if len(reservas) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "No se encontraron reservas",
-			Data:    reservas,
-		}
-		_ = c.ServeJSON()
+	var reservas []models.Reserva
+	if _, err := qs.All(&reservas); err != nil {
+		c.fail("reservas.parameter.db_error", newErr(http.StatusInternalServerError, "Error al obtener reservas", err))
 		return
 	}
+	c.sendList(reservas, "No se encontraron reservas", "Reservas obtenidas exitosamente")
+}
 
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Reservas obtenidas exitosamente",
-		Data:    reservas,
+// reservasPorFiltro ejecuta la consulta con relaciones y el filtro de relación dado.
+func reservasPorFiltro(o orm.Ormer, expr string, documento int64, fecha string) ([]models.Reserva, error) {
+	qs := reservasConRelaciones(o).Filter(expr, documento)
+	if fecha != "" {
+		qs = qs.Filter("FECHA__exact", fecha)
 	}
-	_ = c.ServeJSON()
+	var reservas []models.Reserva
+	_, err := qs.All(&reservas)
+	return reservas, err
 }
 
 // @Title GetByDocumento
-// @Summary Obtener reservas por documento (cliente loggeado o no loggeado)
-// @Description Busca reservas por documento de cliente registrado o documento de contacto. Intenta primero como cliente registrado, luego como contacto.
+// @Summary Obtener reservas por documento (cliente registrado o invitado)
+// @Description Busca reservas por documento: primero como cliente registrado y, si no hay resultados, como documento de contacto (invitado). Filtro `fecha` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Público (no exige token).
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param documento query int true "Documento del Cliente o Contacto"
-// @Param fecha query string false "Fecha de la reserva (YYYY-MM-DD) (Opcional)"
-// @Success 200 {array} models.Reserva "Lista de reservas encontradas"
-// @Failure 400 {object} models.ApiResponse "Error en los parámetros"
+// @Param documento query int true "Documento del cliente o del contacto (entero positivo)"
+// @Param fecha query string false "Fecha de la reserva, formato YYYY-MM-DD"
+// @Success 200 {object} models.ApiResponse{data=[]models.ReservaResponse} "Lista de reservas (puede ser [])"
+// @Failure 400 {object} models.ApiResponse "documento o fecha inválidos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas/documento [get]
 func (c *ReservaController) GetByDocumento() {
-	o := ormNew()
-	var reservas []models.Reserva
-
-	documento, err := c.GetInt64("documento")
-	if err != nil || documento == 0 {
-		logging.LogControllerError(c.Ctx, "reservas.documento.bad_request", err, map[string]interface{}{"documento": c.GetString("documento")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'documento' es requerido y debe ser un número válido",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	fechaReserva := c.GetString("fecha")
-	var parsedDate time.Time
-	useFecha := false
-
-	if fechaReserva != "" {
-		var err error
-		parsedDate, err = time.Parse("2006-01-02", fechaReserva)
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "reservas.documento.validation_error", err, map[string]interface{}{"fecha": fechaReserva, "documento": documento})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El parámetro 'fecha' debe tener el formato YYYY-MM-DD",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-		useFecha = true
-	}
-
-	count, err := queryReservasByDocumentoCliente(o, documento, parsedDate, useFecha, &reservas)
+	documento, err := httpx.PositiveInt64Param(&c.Controller, "documento")
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.documento.db_error_cliente", err, map[string]interface{}{"documento": documento, "fecha": fechaReserva})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener reservas",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'documento' es requerido y debe ser un número válido", err)
+		return
+	}
+	fecha, apiErr := optionalDate(c)
+	if apiErr != nil {
+		c.fail("reservas.documento.validation_error", apiErr)
 		return
 	}
 
-	if count == 0 {
-		_, err = queryReservasByDocumentoContacto(o, documento, parsedDate, useFecha, &reservas)
+	o := orm.NewOrm()
+	reservas, err := reservasPorFiltro(o, "PK_ID_CONTACTO__PKDocumentoCliente", documento, fecha)
+	if err != nil {
+		c.fail("reservas.documento.db_error_cliente", newErr(http.StatusInternalServerError, "Error al obtener reservas", err))
+		return
+	}
+	if len(reservas) == 0 {
+		reservas, err = reservasPorFiltro(o, "PK_ID_CONTACTO__DocumentoContacto", documento, fecha)
 		if err != nil {
-			logging.LogControllerError(c.Ctx, "reservas.documento.db_error_contacto", err, map[string]interface{}{"documento": documento, "fecha": fechaReserva})
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al obtener reservas",
-				Cause:   err.Error(),
-			}
-			_ = c.ServeJSON()
+			c.fail("reservas.documento.db_error_contacto", newErr(http.StatusInternalServerError, "Error al obtener reservas", err))
 			return
 		}
 	}
-
-	if len(reservas) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "No se encontraron reservas para este documento",
-			Data:    reservas,
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Reservas obtenidas exitosamente",
-		Data:    reservas,
-	}
-	_ = c.ServeJSON()
+	c.sendList(reservas, "No se encontraron reservas para este documento", "Reservas obtenidas exitosamente")
 }
 
 // @Title GetByDocumentoCliente
 // @Summary Obtener reservas por documento de cliente registrado
-// @Description Devuelve las reservas asociadas a un documento de cliente registrado, opcionalmente filtradas por fecha.
+// @Description Devuelve las reservas de un cliente registrado, opcionalmente filtradas por fecha (YYYY-MM-DD). Fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con `data: []`. Público (no exige token).
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param documentoCliente query int true "Documento del Cliente Registrado"
-// @Param fecha query string false "Fecha de la reserva (YYYY-MM-DD) (Opcional)"
-// @Success 200 {array} models.Reserva "Lista de reservas encontradas"
-// @Failure 400 {object} models.ApiResponse "Error en los parámetros"
+// @Param documentoCliente query int true "Documento del cliente registrado (entero positivo)"
+// @Param fecha query string false "Fecha de la reserva, formato YYYY-MM-DD"
+// @Success 200 {object} models.ApiResponse{data=[]models.ReservaResponse} "Lista de reservas (puede ser [])"
+// @Failure 400 {object} models.ApiResponse "documentoCliente o fecha inválidos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /reservas/cliente [get]
 func (c *ReservaController) GetByDocumentoCliente() {
-	o := ormNew()
-	var reservas []models.Reserva
-
-	documentoCliente, err := c.GetInt64("documentoCliente")
-	if err != nil || documentoCliente == 0 {
-		logging.LogControllerError(c.Ctx, "reservas.cliente.bad_request", err, map[string]interface{}{"documentoCliente": c.GetString("documentoCliente")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'documentoCliente' es requerido y debe ser un número válido",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	fechaReserva := c.GetString("fecha")
-	var parsedDate time.Time
-	useFecha := false
-
-	if fechaReserva != "" {
-		var err error
-		parsedDate, err = time.Parse("2006-01-02", fechaReserva)
-		if err != nil {
-			logging.LogControllerError(c.Ctx, "reservas.cliente.validation_error", err, map[string]interface{}{"fecha": fechaReserva, "documentoCliente": documentoCliente})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "El parámetro 'fecha' debe tener el formato YYYY-MM-DD",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-		useFecha = true
-	}
-
-	_, err = queryReservasByDocumentoCliente(o, documentoCliente, parsedDate, useFecha, &reservas)
+	documento, err := httpx.PositiveInt64Param(&c.Controller, "documentoCliente")
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.cliente.db_error", err, map[string]interface{}{"documentoCliente": documentoCliente, "fecha": fechaReserva})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener reservas",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'documentoCliente' es requerido y debe ser un número válido", err)
 		return
 	}
-
-	if len(reservas) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "No se encontraron reservas para este cliente",
-			Data:    reservas,
-		}
-		_ = c.ServeJSON()
+	fecha, apiErr := optionalDate(c)
+	if apiErr != nil {
+		c.fail("reservas.cliente.validation_error", apiErr)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Reservas del cliente obtenidas exitosamente",
-		Data:    reservas,
+	reservas, err := reservasPorFiltro(orm.NewOrm(), "PK_ID_CONTACTO__PKDocumentoCliente", documento, fecha)
+	if err != nil {
+		c.fail("reservas.cliente.db_error", newErr(http.StatusInternalServerError, "Error al obtener reservas", err))
+		return
 	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, mensajeCliente(len(reservas)), httpx.List(reservas))
+}
+
+func mensajeCliente(n int) string {
+	if n == 0 {
+		return "No se encontraron reservas para este cliente"
+	}
+	return "Reservas del cliente obtenidas exitosamente"
 }
 
 // @Title Delete
 // @Summary Cancelar una reserva
-// @Description Actualiza el estado de una reserva a "CANCELADA".
+// @Description No borra la reserva: cambia su estado a CANCELADA y devuelve la reserva actualizada. Si ya estaba cancelada responde 409.
 // @Tags reservas
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID de la Reserva"
-// @Success 200 {object} models.ApiResponse "Reserva cancelada"
+// @Param   id     query    int     true        "ID de la reserva (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=models.ReservaResponse} "Reserva cancelada"
+// @Failure 400 {object} models.ApiResponse "id ausente o inválido"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 404 {object} models.ApiResponse "Reserva no encontrada"
+// @Failure 409 {object} models.ApiResponse "La reserva ya estaba cancelada"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /reservas [delete]
 func (c *ReservaController) Delete() {
-	o := ormNew()
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "reservas.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'id' es inválido o está ausente", err)
 		return
 	}
-	reserva := models.Reserva{PK_ID_RESERVA: id}
-	if err := readReserva(o, &reserva); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusNotFound, Message: "Reserva no encontrada"}
-		_ = c.ServeJSON()
+	o := orm.NewOrm()
+	reserva, apiErr := loadReserva(o, id)
+	if apiErr != nil {
+		c.fail("reservas.delete.load_error", apiErr)
 		return
 	}
-	estadoCancelada := models.EstadoReservaCancelada
-	reserva.ESTADO_RESERVA = &estadoCancelada
-	reserva.UPDATED_AT = time.Now()
-	if _, err := updateReserva(o, &reserva, "estadoReserva", "updatedAt"); err != nil {
-		logging.LogControllerError(c.Ctx, "reservas.delete.update_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al cancelar la reserva", Cause: err.Error()}
-		_ = c.ServeJSON()
+	if reserva.ESTADO_RESERVA != nil && *reserva.ESTADO_RESERVA == models.EstadoReservaCancelada {
+		c.fail("reservas.delete.conflict", newErr(http.StatusConflict, "La reserva ya está cancelada", fmt.Errorf("reserva %d en estado %s", id, models.EstadoReservaCancelada)))
 		return
 	}
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Reserva cancelada correctamente", Data: reserva}
-	_ = c.ServeJSON()
+	cancelada := models.EstadoReservaCancelada
+	reserva.ESTADO_RESERVA = &cancelada
+	if _, err := o.Update(reserva, "ESTADO_RESERVA", "UPDATED_AT"); err != nil {
+		c.fail("reservas.delete.update_error", newErr(http.StatusInternalServerError, "Error al cancelar la reserva", err))
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusOK, "Reserva cancelada correctamente", reserva)
 }

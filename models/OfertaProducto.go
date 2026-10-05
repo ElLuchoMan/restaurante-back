@@ -5,8 +5,8 @@ import (
 )
 
 type OfertaProducto struct {
-	PkIdOferta   *Oferta   `orm:"column(pk_id_oferta);rel(fk)" json:"ofertaId" swaggertype:"integer"`
-	PkIdProducto *Producto `orm:"column(pk_id_producto);rel(fk)" json:"productoId" swaggertype:"integer"`
+	PkIdOferta   *Oferta   `orm:"column(pk_id_oferta);rel(fk)" json:"ofertaId"`
+	PkIdProducto *Producto `orm:"column(pk_id_producto);rel(fk)" json:"productoId"`
 }
 
 func (o *OfertaProducto) TableName() string {

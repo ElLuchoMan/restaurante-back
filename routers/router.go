@@ -69,7 +69,7 @@ func init() {
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type", "x-correlation-id"},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"},
 		AllowCredentials: true,
@@ -124,8 +124,10 @@ func init() {
 		beego.NSRouter("/subcategorias", &subc.SubcategoriaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		beego.NSRouter("/subcategorias/search", &subc.SubcategoriaController{}, "get:GetById"),
 
+		// /trabajadores: solo el rol Administrador (401 sin token, 403 si no es admin).
 		beego.NSNamespace("/trabajadores",
-			beego.NSRouter("/", &trab.TrabajadorController{}, "get:GetAll"),
+			beego.NSBefore(loginc.ValidateAdmin),
+			beego.NSRouter("/", &trab.TrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &trab.TrabajadorController{}, "get:GetById"),
 		),
 
@@ -171,7 +173,7 @@ func init() {
 
 		beego.NSNamespace("/pedidos",
 			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &pd.PedidoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/", &pd.PedidoController{}, "get:GetAll;post:Post"),
 			beego.NSRouter("/asignar-domicilio", &pd.PedidoController{}, "post:AssignDomicilio"),
 			beego.NSRouter("/asignar-pago", &pd.PedidoController{}, "post:AssignPago"),
 			beego.NSRouter("/actualizar-estado", &pd.PedidoController{}, "put:UpdateEstadoPedido"),

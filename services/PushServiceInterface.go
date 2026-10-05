@@ -7,11 +7,11 @@ import (
 )
 
 type PushServiceInterface interface {
-	RegistrarDispositivo(ctx context.Context, req *models.RegistrarDispositivoRequest) (*models.PushDispositivo, error)
+	RegistrarDispositivo(ctx context.Context, req *models.RegistrarDispositivoRequest) (dispositivo *models.PushDispositivo, created bool, err error)
 
 	ActualizarUltimaVista(ctx context.Context, dispositivoId int64) error
 
-	ActualizarEstadoDispositivo(ctx context.Context, dispositivoId int64, enabled bool) error
+	ActualizarDispositivo(ctx context.Context, dispositivoId int64, body []byte) (*models.PushDispositivo, error)
 
 	ActualizarTopicsDispositivo(ctx context.Context, dispositivoId int64, topics []string) error
 

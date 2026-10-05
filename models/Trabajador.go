@@ -18,9 +18,9 @@ type Trabajador struct {
 	ROL                     RolTrabajador       `orm:"column(rol);type(text)" json:"rol"`
 	FECHA_INGRESO           time.Time           `orm:"column(fecha_ingreso);type(date)" json:"fechaIngreso"`
 	FECHA_RETIRO            *time.Time          `orm:"column(fecha_retiro);type(date);null" json:"fechaRetiro,omitempty"`
-	PASSWORD                string              `orm:"column(password)" json:"password"`
+	PASSWORD                string              `orm:"column(password)" json:"-"`
 	HORARIOS                []HorarioTrabajador `orm:"-" json:"horarios,omitempty"`
-	PK_ID_RESTAURANTE       *Restaurante        `orm:"column(pk_id_restaurante);rel(fk);null" json:"restauranteId,omitempty" swaggertype:"integer"`
+	PK_ID_RESTAURANTE       *Restaurante        `orm:"column(pk_id_restaurante);rel(fk);null" json:"restauranteId,omitempty"`
 }
 
 func (t *Trabajador) TableName() string {
@@ -29,6 +29,26 @@ func (t *Trabajador) TableName() string {
 
 func init() {
 	orm.RegisterModel(new(Trabajador))
+}
+
+// MarshalJSON produce exactamente la forma documentada en TrabajadorResponse:
+// fechas DD-MM-YYYY, sin password, `restauranteId` como objeto mínimo
+// {"restauranteId": n} y `horarios` solo cuando el controlador los cargó
+// (lista vacía = []).
+// UnmarshalJSON acepta `password` en la entrada (el campo nunca se serializa).
+func (d *Trabajador) UnmarshalJSON(b []byte) error {
+	type plain Trabajador
+	aux := struct {
+		*plain
+		Password *string `json:"password"`
+	}{plain: (*plain)(d)}
+	if err := json.Unmarshal(b, &aux); err != nil {
+		return err
+	}
+	if aux.Password != nil {
+		d.PASSWORD = *aux.Password
+	}
+	return nil
 }
 
 func (d Trabajador) MarshalJSON() ([]byte, error) {
@@ -47,20 +67,29 @@ func (d Trabajador) MarshalJSON() ([]byte, error) {
 		fechaRetiroStr = &str
 	}
 
+	var horarios *[]HorarioTrabajador
+	if d.HORARIOS != nil {
+		horarios = &d.HORARIOS
+	}
+
+	var restaurante *RestauranteRef
+	if d.PK_ID_RESTAURANTE != nil {
+		restaurante = &RestauranteRef{RestauranteId: d.PK_ID_RESTAURANTE.PK_ID_RESTAURANTE}
+	}
+
 	return json.Marshal(&struct {
-		PK_DOCUMENTO_TRABAJADOR int64               `json:"documentoTrabajador"`
-		NOMBRE                  string              `json:"nombre"`
-		APELLIDO                string              `json:"apellido"`
-		SUELDO                  int64               `json:"sueldo"`
-		TELEFONO                *string             `json:"telefono,omitempty"`
-		FECHA_NACIMIENTO        *string             `json:"fechaNacimiento,omitempty"`
-		NUEVO                   bool                `json:"nuevo"`
-		ROL                     RolTrabajador       `json:"rol"`
-		FECHA_INGRESO           string              `json:"fechaIngreso"`
-		FECHA_RETIRO            *string             `json:"fechaRetiro,omitempty"`
-		PASSWORD                string              `json:"password"`
-		HORARIOS                []HorarioTrabajador `json:"horarios,omitempty"`
-		PK_ID_RESTAURANTE       *Restaurante        `json:"restauranteId,omitempty"`
+		PK_DOCUMENTO_TRABAJADOR int64                `json:"documentoTrabajador"`
+		NOMBRE                  string               `json:"nombre"`
+		APELLIDO                string               `json:"apellido"`
+		SUELDO                  int64                `json:"sueldo"`
+		TELEFONO                *string              `json:"telefono,omitempty"`
+		FECHA_NACIMIENTO        *string              `json:"fechaNacimiento,omitempty"`
+		NUEVO                   bool                 `json:"nuevo"`
+		ROL                     RolTrabajador        `json:"rol"`
+		FECHA_INGRESO           string               `json:"fechaIngreso"`
+		FECHA_RETIRO            *string              `json:"fechaRetiro,omitempty"`
+		HORARIOS                *[]HorarioTrabajador `json:"horarios,omitempty"`
+		PK_ID_RESTAURANTE       *RestauranteRef      `json:"restauranteId,omitempty"`
 	}{
 		PK_DOCUMENTO_TRABAJADOR: d.PK_DOCUMENTO_TRABAJADOR,
 		NOMBRE:                  d.NOMBRE,
@@ -72,8 +101,7 @@ func (d Trabajador) MarshalJSON() ([]byte, error) {
 		ROL:                     d.ROL,
 		FECHA_INGRESO:           fechaIngresoStr,
 		FECHA_RETIRO:            fechaRetiroStr,
-		PASSWORD:                d.PASSWORD,
-		HORARIOS:                d.HORARIOS,
-		PK_ID_RESTAURANTE:       d.PK_ID_RESTAURANTE,
+		HORARIOS:                horarios,
+		PK_ID_RESTAURANTE:       restaurante,
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"restaurante/database"
 	_ "restaurante/docs"
@@ -169,7 +170,7 @@ type HealthController struct {
 
 // Healthz verifica disponibilidad básica de la aplicación
 // @Summary Verifica la salud básica de la API
-// @Description Retorna 200 OK si la aplicación está en ejecución
+// @Description Retorna 200 con el texto plano `ok` si la aplicación está en ejecución. Atención: la ruta real está en la raíz del servidor (`/healthz`), no bajo `/restaurante/v1`. No requiere autenticación.
 // @Tags health
 // @Produce plain
 // @Success 200 {string} string "ok"
@@ -180,7 +181,7 @@ func (c *HealthController) Healthz() {
 
 // Readyz verifica si la aplicación está lista para recibir tráfico
 // @Summary Verifica si la aplicación está lista
-// @Description Retorna 200 OK si la aplicación puede conectarse a la base de datos
+// @Description Retorna 200 con el texto plano `ok` si la base de datos responde al ping y 503 (`unavailable`) si no hay conexión configurada o el ping falla. Atención: la ruta real está en la raíz del servidor (`/readyz`), no bajo `/restaurante/v1`. No requiere autenticación.
 // @Tags health
 // @Produce plain
 // @Success 200 {string} string "ok"
@@ -188,13 +189,8 @@ func (c *HealthController) Healthz() {
 // @Router /readyz [get]
 func (c *HealthController) Readyz() {
 	db, err := getSQLPinger()
-	if err != nil || db == nil {
-		c.Ctx.WriteString("ok")
-		return
-	}
-
-	if err := db.Ping(); err != nil {
-		c.Ctx.ResponseWriter.WriteHeader(503)
+	if err != nil || db == nil || db.Ping() != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusServiceUnavailable)
 		c.Ctx.WriteString("unavailable")
 		return
 	}

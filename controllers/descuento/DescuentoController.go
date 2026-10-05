@@ -1,10 +1,12 @@
 package descuento
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"restaurante/internal/dberr"
+	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
 	"restaurante/services"
@@ -13,223 +15,112 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type descuentoService interface {
-	ObtenerDescuentosPedido(ctx context.Context, pedidoId int64) ([]*models.PedidoDescuentoAplicado, error)
-	ValidarExclusividadDescuento(ctx context.Context, pedidoId int64, cuponId *int64, ofertaId *int64) error
-	AplicarDescuento(ctx context.Context, pedidoId int64, req *models.AplicarDescuentoRequest) (*models.PedidoDescuentoAplicado, error)
-}
-
-type descuentoOrmer interface {
-	Read(interface{}, ...string) error
-}
-
-type descOrmAdapter struct {
-	readFn func(interface{}, ...string) error
-}
-
-func (a descOrmAdapter) Read(v interface{}, cols ...string) error { return a.readFn(v, cols...) }
-
-var ormReadProvider = defaultOrmReadProvider
-
-var descBaseReadFunc = func() func(interface{}, ...string) error { return ormReadProvider() }
-
-var descReadFuncFactory = func() func(interface{}, ...string) error { return descBaseReadFunc() }
-
-var descOrmFactory = func() descuentoOrmer { return descOrmAdapter{readFn: descReadFuncFactory()} }
-
-var descOrmNew = func() descuentoOrmer { return descOrmFactory() }
-
-var newDescuentoService = func(o orm.Ormer) descuentoService {
-	return services.NewDescuentoService(o)
-}
-
-var ormProvider = defaultOrmProvider
-
-var descServiceOrmBase = func() orm.Ormer { return ormProvider() }
-
-var descuentoServiceOrmFactory = func() orm.Ormer { return descServiceOrmBase() }
-
+// DescuentoController gestiona /descuentos/pedidos. En las respuestas
+// `pedidoId`, `cuponId` y `ofertaId` son los objetos relacionados (sin
+// contraseñas); `cuponId` y `ofertaId` se omiten si no aplican.
 type DescuentoController struct {
 	web.Controller
 }
 
+const msgPedidoInvalido = "El parámetro 'pedido_id' es inválido o está ausente"
+
 // @Title GetAll
-// @Summary Obtener descuentos de pedido
+// @Summary Obtener descuentos de un pedido
+// @Description Lista los descuentos aplicados al pedido. Si el pedido existe pero no tiene descuentos, `data` es una lista vacía `[]`; si no existe responde 404.
 // @Tags descuentos
 // @Accept json
 // @Produce json
-// @Param pedido_id query int true "ID del pedido"
-// @Success 200 {object} models.ApiResponse{data=[]models.PedidoDescuentoAplicado}
-// @Failure 400 {object} models.ApiResponse
-// @Failure 404 {object} models.ApiResponse
-// @Failure 500 {object} models.ApiResponse
+// @Param pedido_id query int true "ID del pedido (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=[]models.PedidoDescuentoDoc} "Descuentos del pedido (puede ser vacío)"
+// @Failure 400 {object} models.ApiResponse "pedido_id inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /descuentos/pedidos [get]
 func (c *DescuentoController) GetAll() {
-	pedidoId, err := c.GetInt64("pedido_id")
-	if err != nil || pedidoId == 0 {
+	pedidoID, err := httpx.PositiveInt64Param(&c.Controller, "pedido_id")
+	if err != nil {
 		logging.LogControllerError(c.Ctx, "descuentos.getall.bad_request", err, map[string]interface{}{"pedido_id": c.GetString("pedido_id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID de pedido inválido o ausente",
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgPedidoInvalido, err)
 		return
 	}
 
-	o := descOrmNew()
-
-	pedido := &models.Pedido{PK_ID_PEDIDO: pedidoId}
-	err = o.Read(pedido)
-	if err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Pedido no encontrado",
-			}
-			_ = c.ServeJSON()
+	o := orm.NewOrm()
+	if err := o.Read(&models.Pedido{PK_ID_PEDIDO: pedidoID}); err != nil {
+		if errors.Is(err, orm.ErrNoRows) {
+			httpx.Fail(&c.Controller, http.StatusNotFound, "Pedido no encontrado", nil)
 			return
 		}
-		logging.LogControllerError(c.Ctx, "descuentos.getall.read_error", err, map[string]interface{}{"pedido_id": pedidoId})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error interno del servidor",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		logging.LogControllerError(c.Ctx, "descuentos.getall.read_error", err, map[string]interface{}{"pedido_id": pedidoID})
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error interno del servidor", err)
 		return
 	}
 
-	descuentoService := newDescuentoService(descuentoServiceOrmFactory())
-	descuentos, err := descuentoService.ObtenerDescuentosPedido(c.Ctx.Request.Context(), pedidoId)
+	descuentos, err := services.NewDescuentoService(o).ObtenerDescuentosPedido(c.Ctx.Request.Context(), pedidoID)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "descuentos.getall.service_error", err, map[string]interface{}{"pedido_id": pedidoId})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener descuentos",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		logging.LogControllerError(c.Ctx, "descuentos.getall.service_error", err, map[string]interface{}{"pedido_id": pedidoID})
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener descuentos", err)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Descuentos obtenidos exitosamente",
-		Data:    descuentos,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Descuentos obtenidos exitosamente", httpx.List(descuentos))
 }
 
 // @Title Post
 // @Summary Aplicar descuento a pedido
+// @Description Registra un único descuento (cupón u oferta, exactamente uno) sobre un pedido; un pedido admite un solo descuento. No redime el cupón (para eso use POST /cupones/{codigo}/redimir) ni recalcula el monto: `montoDescuento` (>= 0) lo informa el cliente. `detalle` es opcional y debe ser un objeto JSON; se conserva y se le agregan los datos del cupón/oferta (`tipo`, `codigo`/`titulo`, `scope`), que prevalecen. Errores: 400 (pedido_id/ids/JSON inválidos), 404 (pedido, cupón u oferta inexistente), 409 (el pedido ya tiene un descuento), 422 (no se indicó exactamente uno de cupón u oferta, monto negativo o detalle que no es objeto).
 // @Tags descuentos
 // @Accept json
 // @Produce json
-// @Param pedido_id query int true "ID del pedido"
+// @Param pedido_id query int true "ID del pedido (entero positivo)"
 // @Param body body models.AplicarDescuentoRequest true "Datos del descuento a aplicar"
-// @Success 201 {object} models.ApiResponse{data=models.PedidoDescuentoAplicado}
-// @Failure 400 {object} models.ApiResponse
-// @Failure 404 {object} models.ApiResponse
-// @Failure 409 {object} models.ApiResponse
-// @Failure 422 {object} models.ApiResponse
+// @Success 201 {object} models.ApiResponse{data=models.PedidoDescuentoDoc} "Descuento aplicado"
+// @Failure 400 {object} models.ApiResponse "pedido_id, ids o JSON inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Pedido, cupón u oferta no encontrado"
+// @Failure 409 {object} models.ApiResponse "El pedido ya tiene un descuento aplicado"
+// @Failure 422 {object} models.ApiResponse "Solicitud de descuento inválida"
+// @Failure 500 {object} models.ApiResponse "Error al aplicar el descuento"
+// @Security BearerAuth
 // @Router /descuentos/pedidos [post]
 func (c *DescuentoController) Post() {
-	pedidoId, err := c.GetInt64("pedido_id")
-	if err != nil || pedidoId == 0 {
+	pedidoID, err := httpx.PositiveInt64Param(&c.Controller, "pedido_id")
+	if err != nil {
 		logging.LogControllerError(c.Ctx, "descuentos.post.bad_request", err, map[string]interface{}{"pedido_id": c.GetString("pedido_id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID de pedido inválido o ausente",
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgPedidoInvalido, err)
 		return
 	}
 
 	var req models.AplicarDescuentoRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
-		logging.LogControllerError(c.Ctx, "descuentos.post.bad_json", err, map[string]interface{}{"pedido_id": pedidoId})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "JSON inválido",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		logging.LogControllerError(c.Ctx, "descuentos.post.bad_json", err, map[string]interface{}{"pedido_id": pedidoID})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "JSON inválido", err)
+		return
+	}
+	if (req.PkIdCupon != nil && *req.PkIdCupon <= 0) || (req.PkIdOferta != nil && *req.PkIdOferta <= 0) {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "cuponId y ofertaId deben ser enteros positivos", nil)
 		return
 	}
 
-	if (req.PkIdCupon == nil && req.PkIdOferta == nil) || (req.PkIdCupon != nil && req.PkIdOferta != nil) {
-		logging.LogControllerError(c.Ctx, "descuentos.post.invalid_request", nil, map[string]interface{}{"pedido_id": pedidoId, "cupon": req.PkIdCupon, "oferta": req.PkIdOferta})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Debe especificar exactamente uno de cupón o oferta",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	descuentoService := newDescuentoService(descuentoServiceOrmFactory())
-
-	err = descuentoService.ValidarExclusividadDescuento(c.Ctx.Request.Context(), pedidoId, req.PkIdCupon, req.PkIdOferta)
+	aplicado, err := services.NewDescuentoService(orm.NewOrm()).AplicarDescuento(c.Ctx.Request.Context(), pedidoID, &req)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "descuentos.post.exclusivity_error", err, map[string]interface{}{"pedido_id": pedidoId})
-		c.Ctx.Output.SetStatus(http.StatusConflict)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusConflict,
-			Message: err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.aplicarError(pedidoID, err)
 		return
 	}
+	httpx.Send(&c.Controller, http.StatusCreated, "Descuento aplicado exitosamente", aplicado)
+}
 
-	descuentoAplicado, err := descuentoService.AplicarDescuento(c.Ctx.Request.Context(), pedidoId, &req)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "descuentos.post.service_error", err, map[string]interface{}{"pedido_id": pedidoId})
-
-		errorMsg := err.Error()
-		switch errorMsg {
-		case "pedido no encontrado":
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Pedido no encontrado",
-			}
-		case "cupón no encontrado", "oferta no encontrada":
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: errorMsg,
-			}
-		case "ya existe un descuento aplicado para este pedido":
-			c.Ctx.Output.SetStatus(http.StatusConflict)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusConflict,
-				Message: errorMsg,
-			}
-		default:
-			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusUnprocessableEntity,
-				Message: "Error al aplicar descuento",
-				Cause:   errorMsg,
-			}
-		}
-		_ = c.ServeJSON()
-		return
+// aplicarError traduce los errores tipados del servicio a su código HTTP.
+func (c *DescuentoController) aplicarError(pedidoID int64, err error) {
+	logging.LogControllerError(c.Ctx, "descuentos.post.service_error", err, map[string]interface{}{"pedido_id": pedidoID})
+	switch {
+	case errors.Is(err, services.ErrPedidoNoEncontrado), errors.Is(err, services.ErrCuponNoEncontrado), errors.Is(err, services.ErrOfertaNoEncontrada):
+		httpx.Fail(&c.Controller, http.StatusNotFound, err.Error(), nil)
+	case errors.Is(err, services.ErrDescuentoYaAplicado), dberr.IsUnique(err):
+		httpx.Fail(&c.Controller, http.StatusConflict, services.ErrDescuentoYaAplicado.Error(), nil)
+	case errors.Is(err, services.ErrDescuentoInvalido):
+		httpx.Fail(&c.Controller, http.StatusUnprocessableEntity, "Error al aplicar descuento", err)
+	default:
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al aplicar descuento", err)
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Descuento aplicado exitosamente",
-		Data:    descuentoAplicado,
-	}
-	_ = c.ServeJSON()
 }

@@ -2,12 +2,14 @@ package pago
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
-	"restaurante/logging"
-	"restaurante/models"
-	"strconv"
 	"strings"
 	"time"
+
+	"restaurante/internal/httpx"
+	"restaurante/logging"
+	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
@@ -17,478 +19,427 @@ type PagoController struct {
 	web.Controller
 }
 
-type ormer interface {
-	QueryTable(interface{}) orm.QuerySeter
-	Read(interface{}, ...string) error
-	Insert(interface{}) (int64, error)
-	Update(interface{}, ...string) (int64, error)
-	Delete(interface{}, ...string) (int64, error)
+const (
+	msgIDInvalido    = "El parámetro 'id' es inválido o está ausente"
+	msgMetodoNoExist = "Método de pago no encontrado"
+)
+
+// normalizeEstado devuelve el estado en mayúsculas y si pertenece al enum.
+func normalizeEstado(e string) (string, bool) {
+	e = strings.ToUpper(strings.TrimSpace(e))
+	switch e {
+	case models.EstadoPagoPagado, models.EstadoPagoPendiente, models.EstadoPagoNoPago:
+		return e, true
+	}
+	return e, false
 }
 
-var pagoNewOrm = func() ormer { return orm.NewOrm() }
+// sameDay compara solo año, mes y día (UTC).
+func sameDay(a, b time.Time) bool {
+	ay, am, ad := a.UTC().Date()
+	by, bm, bd := b.UTC().Date()
+	return ay == by && am == bm && ad == bd
+}
 
-var estadosPagoPermitidos = map[string]bool{
-	"PAGADO":    true,
-	"PENDIENTE": true,
-	"NO_PAGO":   true,
+// firstNonNil devuelve el primer puntero no nulo (permite aceptar alias).
+func firstNonNil(vals ...*string) *string {
+	for _, v := range vals {
+		if v != nil {
+			return v
+		}
+	}
+	return nil
+}
+
+func (c *PagoController) fail(status int, msg string, err error) {
+	httpx.Fail(&c.Controller, status, msg, err)
+}
+
+// writeError responde 409 si err es un conflicto de PostgreSQL y 500 en otro caso.
+func (c *PagoController) writeError(op, msg string, err error) {
+	logging.LogControllerError(c.Ctx, "pagos."+op, err, nil)
+	if httpx.IsPGConflict(err) {
+		c.fail(http.StatusConflict, msg+": conflicto con datos existentes", err)
+		return
+	}
+	c.fail(http.StatusInternalServerError, msg, err)
+}
+
+// metodoExists comprueba que el método de pago exista: (existe, errorDeBD).
+func metodoExists(o orm.Ormer, id int64) (bool, error) {
+	err := o.Read(&models.MetodoPago{PK_ID_METODO_PAGO: id})
+	if errors.Is(err, orm.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// parseFecha/parseHora validan los formatos de petición (YYYY-MM-DD y HH:MM[:SS]).
+func parseFecha(s string) (time.Time, error) { return models.ParseDateToNoonUTC(strings.TrimSpace(s)) }
+
+// parseHora valida HH:MM[:SS]. Devuelve la hora con año 2000 (no el año 1 de
+// models.ParseTimeToUTC) para que FormatTimeWithLMT, que corrige años < 1900,
+// no le sume 9:52:32 al serializar la respuesta.
+func parseHora(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	if len(s) != len("15:04:05") && len(s) != len("15:04") {
+		return time.Time{}, errors.New("formato esperado HH:MM o HH:MM:SS")
+	}
+	t, err := models.ParseTimeToUTC(s)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Date(2000, 1, 1, t.Hour(), t.Minute(), t.Second(), 0, time.UTC), nil
 }
 
 // @Title GetAll
 // @Summary Obtener todos los pagos con filtros
-// @Description Devuelve todos los pagos registrados en la base de datos, con opción de filtrar por fecha exacta, mes, año y estado.
+// @Description Devuelve los pagos, con filtros opcionales por fecha exacta, día, mes, año, estado y método de pago. Cada pago incluye `metodoPagoId` como objeto (las relaciones embebidas solo garantizan su id). En la respuesta `fechaPago` va como DD-MM-YYYY, `horaPago` como HH:MM:SS y `updatedAt` como DD-MM-YYYY HH:MM:SS (Bogotá). Sin resultados, `data` es `[]` (HTTP 200).
 // @Tags pagos
 // @Accept json
 // @Produce json
-// @Param   fecha    query   string   false   "Filtrar por fecha exacta (YYYY-MM-DD)"
-// @Param   dia      query   int      false   "Filtrar por dia (1-31)"
-// @Param   mes      query   int      false   "Filtrar por mes (1-12)"
-// @Param   anio     query   int      false   "Filtrar por año (YYYY)"
-// @Param   estado   query   string   false   "Filtrar por estado del pago (PAGADO, PENDIENTE, NO_PAGO)"
-// @Param   metodo_pago     query   int      false   "Filtrar por metodo de pago"
-// @Success 200 {object} models.ApiResponse{data=[]models.Pago} "Lista de pagos"
+// @Param   fecha    query   string   false   "Fecha exacta (YYYY-MM-DD)"
+// @Param   dia      query   int      false   "Día del mes (1-31)"
+// @Param   mes      query   int      false   "Mes (1-12)"
+// @Param   anio     query   int      false   "Año (YYYY)"
+// @Param   estado   query   string   false   "Estado del pago" Enums(PAGADO,PENDIENTE,NO_PAGO)
+// @Param   metodo_pago     query   int      false   "ID del método de pago (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=[]models.PagoDoc} "Lista de pagos (puede ser vacía)"
+// @Failure 400 {object} models.ApiResponse "Algún filtro tiene formato inválido"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /pagos [get]
 func (c *PagoController) GetAll() {
-	o := pagoNewOrm()
+	qs := orm.NewOrm().QueryTable(new(models.Pago))
+
+	var fecha time.Time
+	hasFecha := false
+	if raw := c.GetString("fecha"); raw != "" {
+		f, err := parseFecha(raw)
+		if err != nil {
+			c.fail(http.StatusBadRequest, "Parámetro 'fecha' inválido (use YYYY-MM-DD)", err)
+			return
+		}
+		fecha, hasFecha = f, true
+	}
+	// fecha/dia/mes/anio se filtran en memoria (el ORM no expone EXTRACT y la
+	// columna es DATE).
+	var dia, mes, anio int
+	for _, p := range []struct {
+		key      string
+		dst      *int
+		min, max int
+	}{{"dia", &dia, 1, 31}, {"mes", &mes, 1, 12}, {"anio", &anio, 1, 9999}} {
+		if c.GetString(p.key) == "" {
+			continue
+		}
+		v, err := c.GetInt(p.key)
+		if err != nil || v < p.min || v > p.max {
+			c.fail(http.StatusBadRequest, "Parámetro '"+p.key+"' inválido", errors.New("valor fuera de rango o no numérico"))
+			return
+		}
+		*p.dst = v
+	}
+	if estado := c.GetString("estado"); estado != "" {
+		e, ok := normalizeEstado(estado)
+		if !ok {
+			c.fail(http.StatusBadRequest, "Parámetro 'estado' inválido (PAGADO, PENDIENTE o NO_PAGO)", nil)
+			return
+		}
+		qs = qs.Filter("ESTADO_PAGO", e)
+	}
+	if c.GetString("metodo_pago") != "" {
+		m, err := httpx.PositiveInt64Param(&c.Controller, "metodo_pago")
+		if err != nil {
+			c.fail(http.StatusBadRequest, "Parámetro 'metodo_pago' inválido", err)
+			return
+		}
+		qs = qs.Filter("PK_ID_METODO_PAGO", m)
+	}
+
 	var pagos []models.Pago
-
-	_, err := o.QueryTable(new(models.Pago)).All(&pagos)
-	if err != nil {
+	if _, err := qs.OrderBy("PK_ID_PAGO").All(&pagos); err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.getall.db_error", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener pagos de la base de datos",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.fail(http.StatusInternalServerError, "Error al obtener pagos de la base de datos", err)
 		return
 	}
-
-	fecha := c.GetString("fecha")
-	dia, _ := c.GetInt("dia")
-	mes, _ := c.GetInt("mes")
-	anio, _ := c.GetInt("anio")
-	estado := strings.ToUpper(c.GetString("estado"))
-	metodo_pago, _ := c.GetInt("metodo_pago")
-
-	var filteredPagos []models.Pago
-	for _, pago := range pagos {
-		if fecha != "" && pago.FECHA.Format("2006-01-02") != fecha {
+	filtrados := make([]models.Pago, 0, len(pagos))
+	for _, p := range pagos {
+		if (hasFecha && !sameDay(p.FECHA, fecha)) ||
+			(dia > 0 && p.FECHA.UTC().Day() != dia) ||
+			(mes > 0 && int(p.FECHA.UTC().Month()) != mes) ||
+			(anio > 0 && p.FECHA.UTC().Year() != anio) {
 			continue
 		}
-		if dia > 0 && dia <= 31 && pago.FECHA.Day() != dia {
-			continue
-		}
-		if mes > 0 && mes <= 12 && int(pago.FECHA.Month()) != mes {
-			continue
-		}
-		if anio > 0 && pago.FECHA.Year() != anio {
-			continue
-		}
-		if estado != "" && pago.ESTADO_PAGO != estado {
-			continue
-		}
-		if metodo_pago > 0 && (pago.PK_ID_METODO_PAGO == nil || pago.PK_ID_METODO_PAGO.PK_ID_METODO_PAGO != int64(metodo_pago)) {
-			continue
-		}
-
-		filteredPagos = append(filteredPagos, pago)
+		filtrados = append(filtrados, p)
 	}
-
-	if len(filteredPagos) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "No se encontraron pagos que coincidan con los filtros proporcionados",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Pagos obtenidos exitosamente",
-		Data:    filteredPagos,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Pagos obtenidos exitosamente", filtrados)
 }
 
 // @Title GetById
 // @Summary Obtener pago por ID
-// @Description Devuelve un pago específico por ID.
+// @Description Devuelve un pago por ID. `fechaPago` va como DD-MM-YYYY y `horaPago` como HH:MM:SS.
 // @Tags pagos
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID del Pago"
-// @Success 200 {object} models.ApiResponse{data=models.Pago} "Pago encontrado"
+// @Param   id     query    int     true        "ID del pago (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=models.PagoDoc} "Pago encontrado"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /pagos/search [get]
 func (c *PagoController) GetById() {
-	o := pagoNewOrm()
-	id, err := c.GetInt("id")
-
-	if err != nil || id == 0 {
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, msgIDInvalido, err)
 		return
 	}
-
-	pago := models.Pago{PK_ID_PAGO: int64(id)}
-	err = o.Read(&pago)
-	if err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Pago no encontrado",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	pago := models.Pago{PK_ID_PAGO: id}
+	if err := orm.NewOrm().Read(&pago); err != nil {
+		c.readError("getbyid", id, err)
 		return
 	}
+	httpx.Send(&c.Controller, http.StatusOK, "Pago encontrado", pago)
+}
 
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Pago encontrado",
-		Data:    pago,
+// readError traduce un fallo de Read: ErrNoRows -> 404, cualquier otro -> 500.
+func (c *PagoController) readError(op string, id int64, err error) {
+	if errors.Is(err, orm.ErrNoRows) {
+		c.fail(http.StatusNotFound, "Pago no encontrado", nil)
+		return
 	}
-	_ = c.ServeJSON()
+	logging.LogControllerError(c.Ctx, "pagos."+op+".db_error", err, map[string]interface{}{"id": id})
+	c.fail(http.StatusInternalServerError, "Error al consultar el pago", err)
 }
 
 // @Title Create
 // @Summary Crear un nuevo pago
-// @Description Crea un nuevo pago en la base de datos.
+// @Description Crea un pago. Todos los campos salvo `updatedBy` son obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `monto` entero > 0, `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe). La respuesta devuelve `fechaPago` como DD-MM-YYYY.
 // @Tags pagos
 // @Accept json
 // @Produce json
-// @Param   body  body   models.PagoCreateRequest true  "Datos del pago a crear (fecha YYYY-MM-DD, hora HH:MM:SS)"
-// @Success 201 {object} models.ApiResponse{data=models.Pago} "Pago creado"
-// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Param   body  body   models.PagoCreateRequest true  "Datos del pago a crear"
+// @Success 201 {object} models.ApiResponse{data=models.PagoDoc} "Pago creado"
+// @Failure 400 {object} models.ApiResponse "JSON inválido o campos ausentes/inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "El método de pago indicado no existe"
+// @Failure 409 {object} models.ApiResponse "Conflicto de unicidad en base de datos"
+// @Failure 500 {object} models.ApiResponse "Error al crear el pago"
 // @Security BearerAuth
 // @Router /pagos [post]
 func (c *PagoController) Post() {
-	o := pagoNewOrm()
-
-	type pagoIn struct {
-		EstadoPago   string `json:"estadoPago"`
-		FechaPago    string `json:"fechaPago"`
-		HoraPago     string `json:"horaPago"`
-		MetodoPagoId int64  `json:"metodoPagoId"`
-		Monto        int64  `json:"monto"`
-		UpdatedAt    string `json:"updatedAt"`
-		UpdatedBy    string `json:"updatedBy"`
-	}
-
-	var in pagoIn
+	var in models.PagoCreateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al decodificar la solicitud",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "Error al decodificar la solicitud", err)
 		return
 	}
-
 	if in.FechaPago == "" {
-		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", nil, map[string]interface{}{"missing": "fechaPago", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo fechaPago no puede estar vacío"}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "El campo fechaPago no puede estar vacío", nil)
 		return
 	}
-	fecha, err := models.ParseDateToNoonUTC(in.FechaPago)
+	fecha, err := parseFecha(in.FechaPago)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", err, map[string]interface{}{"fechaPago": in.FechaPago, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido (use YYYY-MM-DD)", Cause: err.Error()}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "Formato de fecha inválido (use YYYY-MM-DD)", err)
 		return
 	}
-
 	if in.HoraPago == "" {
-		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", nil, map[string]interface{}{"missing": "horaPago", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo horaPago no puede estar vacío"}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "El campo horaPago no puede estar vacío", nil)
 		return
 	}
-	hora, err := models.ParseTimeToUTC(in.HoraPago)
+	hora, err := parseHora(in.HoraPago)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", err, map[string]interface{}{"horaPago": in.HoraPago, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido, debe ser HH:mm:ss", Cause: err.Error()}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "Formato de hora inválido, debe ser HH:mm:ss", err)
 		return
 	}
-
-	if in.Monto == 0 {
-		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", nil, map[string]interface{}{"missing": "monto", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo monto es obligatorio y debe ser un número"}
-		_ = c.ServeJSON()
+	if in.Monto <= 0 {
+		c.fail(http.StatusBadRequest, "El campo monto es obligatorio y debe ser un entero mayor que 0", nil)
 		return
 	}
-
 	if in.EstadoPago == "" {
-		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", nil, map[string]interface{}{"missing": "estadoPago", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo estadoPago es obligatorio"}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "El campo estadoPago es obligatorio", nil)
 		return
 	}
-	in.EstadoPago = strings.ToUpper(in.EstadoPago)
-	if !estadosPagoPermitidos[in.EstadoPago] {
-		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", nil, map[string]interface{}{"estadoPago": in.EstadoPago, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Estado de pago inválido",
-			Cause:   "El estado debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'",
-		}
-		_ = c.ServeJSON()
+	estado, ok := normalizeEstado(in.EstadoPago)
+	if !ok {
+		c.fail(http.StatusBadRequest, "Estado de pago inválido", errors.New("el estado debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'"))
+		return
+	}
+	if in.MetodoPagoId <= 0 {
+		c.fail(http.StatusBadRequest, "El campo metodoPagoId es obligatorio y debe ser un número válido", nil)
 		return
 	}
 
-	if in.MetodoPagoId == 0 {
-		logging.LogControllerError(c.Ctx, "pagos.post.validation_error", nil, map[string]interface{}{"missing": "metodoPagoId", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo metodoPagoId es obligatorio y debe ser un número válido"}
-		_ = c.ServeJSON()
+	o := orm.NewOrm()
+	if ok, err := metodoExists(o, in.MetodoPagoId); err != nil {
+		logging.LogControllerError(c.Ctx, "pagos.post.metodo_error", err, map[string]interface{}{"metodoPagoId": in.MetodoPagoId})
+		c.fail(http.StatusInternalServerError, "Error al validar el método de pago", err)
 		return
-	}
-
-	var updatedBy *string
-	if in.UpdatedBy != "" {
-		updatedBy = &in.UpdatedBy
+	} else if !ok {
+		c.fail(http.StatusNotFound, msgMetodoNoExist, nil)
+		return
 	}
 
 	pago := models.Pago{
 		FECHA:             fecha,
 		HORA:              hora,
 		MONTO:             in.Monto,
-		ESTADO_PAGO:       in.EstadoPago,
+		ESTADO_PAGO:       estado,
 		PK_ID_METODO_PAGO: &models.MetodoPago{PK_ID_METODO_PAGO: in.MetodoPagoId},
-		UPDATED_BY:        updatedBy,
+		UPDATED_AT:        time.Now().UTC(),
 	}
-
-	pago.UPDATED_AT = time.Now().UTC()
-
+	if in.UpdatedBy != "" {
+		pago.UPDATED_BY = &in.UpdatedBy
+	}
 	if _, err := o.Insert(&pago); err != nil {
-		logging.LogControllerError(c.Ctx, "pagos.post.insert_error", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al crear el pago", Cause: err.Error()}
-		_ = c.ServeJSON()
+		c.writeError("post.insert_error", "Error al crear el pago", err)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Pago creado correctamente",
-		Data:    pago,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusCreated, "Pago creado correctamente", pago)
 }
 
 // @Title Update
 // @Summary Actualizar un pago
-// @Description Actualiza los datos de un pago existente.
+// @Description Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`). Claves: `fechaPago` (YYYY-MM-DD), `horaPago` (HH:MM[:SS]), `monto` (entero > 0), `estadoPago`, `metodoPagoId` (debe existir, 404 si no) y `updatedBy`. Por compatibilidad se aceptan también `fecha` y `hora` como alias. Solo `updatedBy` es anulable (null lo limpia); null en cualquier otro campo responde 400.
 // @Tags pagos
 // @Accept json
 // @Produce json
-// @Param   id    query    int  true   "ID del Pago"
-// @Param   body  body   models.PagoUpdateRequest true  "Datos del pago a actualizar (sólo campos a modificar, formatos: fecha YYYY-MM-DD, hora HH:MM:SS)"
-// @Success 200 {object} models.ApiResponse{data=models.Pago} "Pago actualizado"
-// @Failure 404 {object} models.ApiResponse "Pago no encontrado"
+// @Param   id    query    int  true   "ID del pago (entero positivo)"
+// @Param   body  body   models.PagoUpdateRequest true  "Campos a modificar (todos opcionales)"
+// @Success 200 {object} models.ApiResponse{data=models.PagoDoc} "Pago actualizado"
+// @Failure 400 {object} models.ApiResponse "id inválido, JSON inválido, null en campo no anulable o valores inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Pago o método de pago no encontrado"
+// @Failure 409 {object} models.ApiResponse "Conflicto de unicidad en base de datos"
+// @Failure 500 {object} models.ApiResponse "Error al actualizar el pago"
 // @Security BearerAuth
 // @Router /pagos [put]
 func (c *PagoController) Put() {
-	o := pagoNewOrm()
-
-	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "pagos.put.bad_request", err, map[string]interface{}{"id": idStr, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "pagos.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+		c.fail(http.StatusBadRequest, msgIDInvalido, err)
+		return
+	}
+	o := orm.NewOrm()
+	pago := models.Pago{PK_ID_PAGO: id}
+	if err := o.Read(&pago); err != nil {
+		c.readError("put", id, err)
 		return
 	}
 
-	pago := models.Pago{PK_ID_PAGO: int64(id)}
-	if err := o.Read(&pago); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Pago no encontrado",
-		}
-		_ = c.ServeJSON()
+	var in models.PagoUpdateRequest
+	if err := httpx.DecodeMerge(c.Ctx.Input.RequestBody, &in, "updatedBy"); err != nil {
+		logging.LogControllerError(c.Ctx, "pagos.put.bad_json", err, map[string]interface{}{"id": id})
+		c.fail(http.StatusBadRequest, "Error al decodificar la solicitud", err)
 		return
 	}
 
-	var input map[string]interface{}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-		logging.LogControllerError(c.Ctx, "pagos.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al decodificar la solicitud", Cause: err.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-
-	getStr := func(keys ...string) (string, bool) {
-		for _, k := range keys {
-			if v, ok := input[k].(string); ok && v != "" {
-				return v, true
-			}
-		}
-		return "", false
-	}
-	getFloat := func(keys ...string) (float64, bool) {
-		for _, k := range keys {
-			if v, ok := input[k].(float64); ok {
-				return v, true
-			}
-		}
-		return 0, false
-	}
-
-	if fechaStr, ok := getStr("fecha", "FECHA"); ok {
-		parsedDate, err := models.ParseDateToNoonUTC(fechaStr)
+	// Solo se actualizan las columnas enviadas (no se reescribe el resto).
+	cols := []string{"UPDATED_AT"}
+	if fs := firstNonNil(in.FechaPago, in.Fecha); fs != nil {
+		f, err := parseFecha(*fs)
 		if err != nil {
-			logging.LogControllerError(c.Ctx, "pagos.put.validation_error", err, map[string]interface{}{"id": id, "fecha": fechaStr, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido (YYYY-MM-DD)", Cause: err.Error()}
-			_ = c.ServeJSON()
+			c.fail(http.StatusBadRequest, "Formato de fecha inválido (YYYY-MM-DD)", err)
 			return
 		}
-		pago.FECHA = parsedDate
+		pago.FECHA = f
+		cols = append(cols, "FECHA")
 	}
-
-	if horaStr, ok := getStr("hora", "HORA"); ok {
-		parsedHora, err := models.ParseTimeToUTC(horaStr)
+	if hs := firstNonNil(in.HoraPago, in.Hora); hs != nil {
+		h, err := parseHora(*hs)
 		if err != nil {
-			logging.LogControllerError(c.Ctx, "pagos.put.validation_error", err, map[string]interface{}{"id": id, "hora": horaStr, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de hora inválido (HH:MM[:SS])", Cause: err.Error()}
-			_ = c.ServeJSON()
+			c.fail(http.StatusBadRequest, "Formato de hora inválido (HH:MM[:SS])", err)
 			return
 		}
-		pago.HORA = parsedHora
-	} else {
-		logging.LogControllerError(c.Ctx, "pagos.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "hora", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo hora no puede estar vacío"}
-		_ = c.ServeJSON()
-		return
+		pago.HORA = h
+		cols = append(cols, "HORA")
 	}
-
-	if monto, ok := getFloat("monto", "MONTO"); ok {
-		pago.MONTO = int64(monto)
+	if in.Monto != nil {
+		if *in.Monto <= 0 {
+			c.fail(http.StatusBadRequest, "El campo monto debe ser un entero mayor que 0", nil)
+			return
+		}
+		pago.MONTO = *in.Monto
+		cols = append(cols, "MONTO")
 	}
-
-	if estado, ok := getStr("estadoPago", "ESTADO_PAGO"); ok {
-		estado = strings.ToUpper(estado)
-		if !estadosPagoPermitidos[estado] {
-			logging.LogControllerError(c.Ctx, "pagos.put.validation_error", nil, map[string]interface{}{"id": id, "estado": estado, "body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Estado de pago inválido. Debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'"}
-			_ = c.ServeJSON()
+	if in.EstadoPago != nil {
+		estado, ok := normalizeEstado(*in.EstadoPago)
+		if !ok {
+			c.fail(http.StatusBadRequest, "Estado de pago inválido. Debe ser 'PAGADO', 'PENDIENTE' o 'NO_PAGO'", nil)
 			return
 		}
 		pago.ESTADO_PAGO = estado
+		cols = append(cols, "ESTADO_PAGO")
 	}
-
-	if updatedBy, ok := getStr("updatedBy", "UPDATED_BY"); ok {
-		pago.UPDATED_BY = &updatedBy
+	if in.MetodoPagoId != nil {
+		if *in.MetodoPagoId <= 0 {
+			c.fail(http.StatusBadRequest, "El campo metodoPagoId debe ser un número válido", nil)
+			return
+		}
+		ok, err := metodoExists(o, *in.MetodoPagoId)
+		if err != nil {
+			logging.LogControllerError(c.Ctx, "pagos.put.metodo_error", err, map[string]interface{}{"id": id})
+			c.fail(http.StatusInternalServerError, "Error al validar el método de pago", err)
+			return
+		}
+		if !ok {
+			c.fail(http.StatusNotFound, msgMetodoNoExist, nil)
+			return
+		}
+		pago.PK_ID_METODO_PAGO = &models.MetodoPago{PK_ID_METODO_PAGO: *in.MetodoPagoId}
+		cols = append(cols, "PK_ID_METODO_PAGO")
 	}
-
+	if in.UpdatedBy != nil {
+		pago.UPDATED_BY = in.UpdatedBy
+		cols = append(cols, "UPDATED_BY")
+	} else if httpx.IsNull(c.Ctx.Input.RequestBody, "updatedBy") {
+		pago.UPDATED_BY = nil
+		cols = append(cols, "UPDATED_BY")
+	}
 	pago.UPDATED_AT = time.Now().UTC()
 
-	if v, ok := getFloat("metodoPagoId", "PK_ID_METODO_PAGO"); ok && v != 0 {
-		pago.PK_ID_METODO_PAGO = &models.MetodoPago{PK_ID_METODO_PAGO: int64(v)}
-	} else {
-		logging.LogControllerError(c.Ctx, "pagos.put.validation_error", nil, map[string]interface{}{"id": id, "missing": "metodoPagoId", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El campo metodoPagoId es obligatorio y debe ser un número válido"}
-		_ = c.ServeJSON()
+	if _, err := o.Update(&pago, cols...); err != nil {
+		c.writeError("put.update_error", "Error al actualizar el pago", err)
 		return
 	}
-
-	if _, err := o.Update(&pago); err != nil {
-		logging.LogControllerError(c.Ctx, "pagos.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el pago", Cause: err.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Pago actualizado correctamente", Data: pago}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Pago actualizado correctamente", pago)
 }
 
 // @Title Delete
 // @Summary Eliminar un pago
-// @Description Elimina un pago de la base de datos.
+// @Description Elimina un pago. Si está asociado a un pedido responde 409.
 // @Tags pagos
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID del Pago"
+// @Param   id     query    int     true        "ID del pago (entero positivo)"
 // @Success 200 {object} models.ApiResponse "Pago eliminado"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
+// @Failure 409 {object} models.ApiResponse "El pago está asociado a un pedido"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /pagos [delete]
 func (c *PagoController) Delete() {
-	o := pagoNewOrm()
-
-	idStr := c.GetString("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "pagos.delete.bad_request", err, map[string]interface{}{"id": idStr})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "pagos.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+		c.fail(http.StatusBadRequest, msgIDInvalido, err)
 		return
 	}
-
-	pago := models.Pago{PK_ID_PAGO: int64(id)}
-
-	if _, err := o.Delete(&pago); err == nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Pago eliminado",
-		}
-		_ = c.ServeJSON()
-	} else {
-		logging.LogControllerError(c.Ctx, "pagos.delete.delete_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Pago no encontrado",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	n, err := orm.NewOrm().Delete(&models.Pago{PK_ID_PAGO: id})
+	if err != nil {
+		c.writeError("delete.delete_error", "Error al eliminar el pago", err)
+		return
 	}
+	if n == 0 {
+		c.fail(http.StatusNotFound, "Pago no encontrado", nil)
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusOK, "Pago eliminado", nil)
 }
