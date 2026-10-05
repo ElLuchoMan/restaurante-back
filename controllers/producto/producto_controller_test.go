@@ -1137,3 +1137,49 @@ func TestProductoGetAllIncludeImageTrue(t *testing.T) {
 		t.Errorf("expected image field present: %s", w.Body.String())
 	}
 }
+
+func TestProductoPostInvalidJSONLongBodyTruncated(t *testing.T) {
+	body := "{invalid" + strings.Repeat("x", 300)
+	r := httptest.NewRequest(http.MethodPost, "/productos", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	c.Post()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al procesar los datos del producto") {
+		t.Fatalf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestProductoPutInvalidJSONLongBodyTruncated(t *testing.T) {
+	body := "{invalid" + strings.Repeat("x", 300)
+	r := httptest.NewRequest(http.MethodPut, "/productos?id=1", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	ctx := context.NewContext()
+	ctx.Reset(w, r)
+	ctx.Input.RequestBody = []byte(body)
+	c := ProductoController{}
+	c.Ctx = ctx
+	c.Data = make(map[interface{}]interface{})
+
+	savedRead := readProductoFn
+	readProductoFn = func(o orm.Ormer, p *models.Producto) error { return nil }
+	t.Cleanup(func() { readProductoFn = savedRead })
+
+	c.Put()
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Error al procesar los datos del producto") {
+		t.Fatalf("unexpected body: %s", w.Body.String())
+	}
+}

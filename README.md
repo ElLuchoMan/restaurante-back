@@ -128,11 +128,10 @@ API REST en Go para gestionar operaciones de "El fogón de María": clientes, pe
     $env:JWT_SECRET = "testsecret"; $env:QUIET_TESTS = "1"
     ```
   - El reporte HTML queda en `coverage.html`.
-  - **Estado actual de cobertura**: ≈83-85% total (objetivo >95% alcanzado en módulos core)
-    - Módulos al 100%: `cambiohorario`, `categoria`, `cliente`, `controlnomina`, `domicilio`, `horario`, `incidencia`, `metodopago`, `nominatrabajador`, `pedido`, `preciohistorial`, `producto`, `proveedor`, `reserva`, `reservacontacto`, `restaurante`, `restaurantedia`, `trabajador`, `logging`, `router`, `cron`, `database`, `main`
-    - Módulos con cobertura excelente (>95%): `models` (99.2%), `subcategoria` (98.9%), `productopedido` (98.3%), `login` (96.6%)
-    - Módulos en mejora continua: `cupon` (85.1%), `reserva` (83.7%), `services` (74.8%), `oferta` (71.0%), `push` (60.7%)
-    - Módulos con refactorización pendiente: `descuento` (46.7% - requiere desacoplar servicio), `telemetria` (17.9% - arquitectura compleja)
+  - **Regla del proyecto: todo cambio debe incluir sus tests.** La cobertura global es **100 %** y el CI falla si cualquier función queda por debajo (`go tool cover -func`).
+    - Si 100 % deja de ser sostenible, el mínimo aceptado es 99 %, pero siempre se entregan tests con cada cambio.
+    - Código inalcanzable: se elimina, no se excluye. Para el ORM sin base real, usa un driver SQL falso registrado en `TestMain` (ver `controllers/cupon/orm_mock_driver_test.go`).
+    - Para simular fallos de entorno (p. ej. `time.LoadLocation`) se inyectan variables de paquete (`var loadLocation = time.LoadLocation`).
 
 ### Notas para Windows (race/CGO y variables)
 - `-race` requiere CGO habilitado. En Windows, si deseas correr `go test -race` localmente:

@@ -89,6 +89,9 @@ func (m *mockOfertaOrmer) Delete(md interface{}, cols ...string) (int64, error) 
 var mockOfertOrmer *mockOfertaOrmer
 var mockOfertQS *mockOfertaQuerySeter
 
+var realOfertOrmNew = ofertOrmNew
+var realNewOfertaService = newOfertaService
+
 func init() {
 	ofertOrmNew = func() ofertaOrmer {
 		return mockOfertOrmer

@@ -1127,3 +1127,39 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorProductoNoEnOferta(t *te
 	assert.NoError(t, err)
 	assert.Empty(t, ofertas)
 }
+
+func TestOfertaService_ObtenerOfertasActivas_BogotaZoneFallback(t *testing.T) {
+	original := database.BogotaZone
+	origLoad := loadBogotaLocation
+	t.Cleanup(func() {
+		database.BogotaZone = original
+		loadBogotaLocation = origLoad
+	})
+	database.BogotaZone = nil
+
+	for _, tc := range []struct {
+		name string
+		load func(string) (*time.Location, error)
+	}{
+		{"load ok", time.LoadLocation},
+		{"load error uses fixed zone", func(string) (*time.Location, error) { return nil, assert.AnError }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			loadBogotaLocation = tc.load
+			service := NewOfertaService(&mockOfertaOrmer{
+				queryTableFn: func(string) orm.QuerySeter {
+					return &mockOfertaQuerySeter{
+						filterFn: func(string, ...interface{}) orm.QuerySeter {
+							return &mockOfertaQuerySeter{
+								allFn: func(interface{}, ...string) (int64, error) { return 0, nil },
+							}
+						},
+					}
+				},
+			})
+			ofertas, err := service.ObtenerOfertasActivas(context.Background(), 1, nil, nil, nil)
+			assert.NoError(t, err)
+			assert.Empty(t, ofertas)
+		})
+	}
+}

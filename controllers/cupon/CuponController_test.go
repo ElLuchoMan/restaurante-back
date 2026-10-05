@@ -90,6 +90,9 @@ func (m *mockCuponOrmer) Delete(md interface{}, cols ...string) (int64, error) {
 var mockOrmer *mockCuponOrmer
 var mockQS *mockCuponQuerySeter
 
+var realNewCuponService = newCuponService
+var realCupOrmNew = cupOrmNew
+
 func init() {
 	cupOrmNew = func() cuponOrmer {
 		return mockOrmer

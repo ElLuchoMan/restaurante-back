@@ -732,27 +732,11 @@ func (c *CuponController) RedimirCupon() {
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "cupones.redimir.service_error", err, map[string]interface{}{"codigo": codigo})
 
-		errorMsg := err.Error()
-		switch errorMsg {
-		case "cupón no encontrado":
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Cupón no encontrado",
-			}
-		case "cupón no aplicable", "Cliente ha alcanzado el límite de usos para este cupón", "Cupón ha alcanzado el límite máximo de usos":
-			c.Ctx.Output.SetStatus(http.StatusConflict)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusConflict,
-				Message: errorMsg,
-			}
-		default:
-			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusUnprocessableEntity,
-				Message: "Error al redimir cupón",
-				Cause:   errorMsg,
-			}
+		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
+		c.Data["json"] = models.ApiResponse{
+			Code:    http.StatusUnprocessableEntity,
+			Message: "Error al redimir cupón",
+			Cause:   err.Error(),
 		}
 		_ = c.ServeJSON()
 		return

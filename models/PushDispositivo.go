@@ -67,10 +67,6 @@ func (p *PushDispositivo) deserializeSubscribedTopics() {
 
 	if strings.HasPrefix(p.SubscribedTopics, "{") && strings.HasSuffix(p.SubscribedTopics, "}") {
 		content := p.SubscribedTopics[1 : len(p.SubscribedTopics)-1]
-		if content == "" {
-			p.SubscribedTopicsArray = []string{}
-			return
-		}
 
 		parts := strings.Split(content, ",")
 		p.SubscribedTopicsArray = make([]string, len(parts))
