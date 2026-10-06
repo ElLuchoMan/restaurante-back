@@ -19,7 +19,7 @@ const docTemplate = `{
     "paths": {
         "/auth/refresh": {
             "post": {
-                "description": "Permite obtener un nuevo access token (y un nuevo refresh token) utilizando un refresh token válido enviado en el header Authorization (con o sin prefijo \"Bearer \"). Un access token no sirve como refresh token. ` + "`" + `expires_in` + "`" + ` son los segundos de vida del access token (7200 = 120 min) como string.",
+                "description": "Permite obtener un nuevo access token (y un nuevo refresh token) utilizando un refresh token válido enviado en el header Authorization (con o sin prefijo \"Bearer \"). Un access token no sirve como refresh token. Límite: 30 peticiones por minuto y por IP (429 con cabecera Retry-After). ` + "`" + `expires_in` + "`" + ` son los segundos de vida del access token (7200 = 120 min) como string.",
                 "consumes": [
                     "application/json"
                 ],
@@ -68,6 +68,18 @@ const docTemplate = `{
                         "description": "Refresh token inválido, expirado o no es un refresh token",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Demasiadas solicitudes desde esta IP",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        },
+                        "headers": {
+                            "Retry-After": {
+                                "type": "integer",
+                                "description": "Segundos de espera antes de reintentar"
+                            }
                         }
                     },
                     "500": {
@@ -1257,7 +1269,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista paginada (más recientes primero). ` + "`" + `data.data` + "`" + ` es la lista de cupones (` + "`" + `[]` + "`" + ` si no hay). ` + "`" + `limit` + "`" + ` por defecto 20 (máximo 100) y ` + "`" + `offset` + "`" + ` por defecto 0. ` + "`" + `fecha_desde` + "`" + ` filtra por ` + "`" + `fechaInicio \u003e=` + "`" + ` y ` + "`" + `fecha_hasta` + "`" + ` por ` + "`" + `fechaFin \u003c=` + "`" + `.",
+                "description": "Solo Administrador (los clientes no pueden listar cupones). Lista paginada (más recientes primero). ` + "`" + `data.data` + "`" + ` es la lista de cupones (` + "`" + `[]` + "`" + ` si no hay). ` + "`" + `limit` + "`" + ` por defecto 20 (máximo 100) y ` + "`" + `offset` + "`" + ` por defecto 0. ` + "`" + `fecha_desde` + "`" + ` filtra por ` + "`" + `fechaInicio \u003e=` + "`" + ` y ` + "`" + `fecha_hasta` + "`" + ` por ` + "`" + `fechaFin \u003c=` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1349,6 +1361,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -1363,7 +1381,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualización parcial (merge): los campos ausentes se conservan (cuerpo ` + "`" + `models.ActualizarCuponRequest` + "`" + `). ` + "`" + `maxUsos` + "`" + `, ` + "`" + `limitePorCliente` + "`" + `, ` + "`" + `montoMinimo` + "`" + `, ` + "`" + `productoId` + "`" + `, ` + "`" + `categoriaId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` admiten null explícito (se limpian); null en cualquier otro campo responde 400. Al cambiar de ` + "`" + `scope` + "`" + ` debe ajustarse también la relación correspondiente (p. ej. pasar a GLOBAL exige ` + "`" + `productoId` + "`" + `, ` + "`" + `categoriaId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` en null) o la validación responde 422. ` + "`" + `activo` + "`" + ` permite reactivar un cupón desactivado. Un cuerpo sin cambios responde 200.",
+                "description": "Solo Administrador. Actualización parcial (merge): los campos ausentes se conservan (cuerpo ` + "`" + `models.ActualizarCuponRequest` + "`" + `). ` + "`" + `maxUsos` + "`" + `, ` + "`" + `limitePorCliente` + "`" + `, ` + "`" + `montoMinimo` + "`" + `, ` + "`" + `productoId` + "`" + `, ` + "`" + `categoriaId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` admiten null explícito (se limpian); null en cualquier otro campo responde 400. Al cambiar de ` + "`" + `scope` + "`" + ` debe ajustarse también la relación correspondiente (p. ej. pasar a GLOBAL exige ` + "`" + `productoId` + "`" + `, ` + "`" + `categoriaId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` en null) o la validación responde 422. ` + "`" + `activo` + "`" + ` permite reactivar un cupón desactivado. Un cuerpo sin cambios responde 200.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1423,6 +1441,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Cupón no encontrado",
                         "schema": {
@@ -1455,7 +1479,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un cupón activo. Validación de negocio incumplida (scope, tipo, fechas, código de 3 a 50 caracteres, porcentaje 1-100, combinación de producto/categoría/cliente según el scope) responde 422; un producto, categoría o cliente inexistente responde 400 y un código repetido 409. Fechas YYYY-MM-DD. Devuelve el cupón con sus relaciones como objetos.",
+                "description": "Solo Administrador. Crea un cupón activo. Validación de negocio incumplida (scope, tipo, fechas, código de 3 a 50 caracteres, porcentaje 1-100, combinación de producto/categoría/cliente según el scope) responde 422; un producto, categoría o cliente inexistente responde 400 y un código repetido 409. Fechas YYYY-MM-DD. Devuelve el cupón con sus relaciones como objetos.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1508,6 +1532,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "409": {
                         "description": "Ya existe un cupón con ese código",
                         "schema": {
@@ -1534,7 +1564,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "No elimina la fila: desactiva el cupón (` + "`" + `activo = false` + "`" + `; se reactiva con PUT ` + "`" + `activo: true` + "`" + `). Si ya estaba desactivado responde 400.",
+                "description": "Solo Administrador. No elimina la fila: desactiva el cupón (` + "`" + `activo = false` + "`" + `; se reactiva con PUT ` + "`" + `activo: true` + "`" + `). Si ya estaba desactivado responde 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1573,6 +1603,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Cupón no encontrado",
                         "schema": {
@@ -1595,7 +1631,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista paginada (más recientes primero). ` + "`" + `cupon_codigo` + "`" + ` desconocido devuelve una página vacía. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` si no hay resultados. Cada redención trae ` + "`" + `cuponId` + "`" + `, ` + "`" + `documentoCliente` + "`" + ` y ` + "`" + `pedidoId` + "`" + ` como objetos (sin contraseñas).",
+                "description": "Solo Administrador. Lista paginada (más recientes primero). ` + "`" + `cupon_codigo` + "`" + ` desconocido devuelve una página vacía. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` si no hay resultados. Cada redención trae ` + "`" + `cuponId` + "`" + `, ` + "`" + `documentoCliente` + "`" + ` y ` + "`" + `pedidoId` + "`" + ` como objetos (sin contraseñas).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1669,6 +1705,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -1685,7 +1727,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "` + "`" + `id` + "`" + ` puede ser el id numérico del cupón o su código; se busca primero por id (si es numérico) y luego por código.",
+                "description": "Solo Administrador. ` + "`" + `id` + "`" + ` puede ser el id numérico del cupón o su código; se busca primero por id (si es numérico) y luego por código.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1736,6 +1778,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Cupón no encontrado",
                         "schema": {
@@ -1758,7 +1806,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Evalúa si un cupón es aplicable a un cliente y a unos ítems. Siempre responde 200 con ` + "`" + `aplicable` + "`" + ` true/false: si es false, ` + "`" + `motivo` + "`" + ` explica por qué (cupón inexistente, inactivo, fuera de vigencia, usos agotados, cliente no permitido, monto mínimo o sin productos aplicables). Requiere ` + "`" + `codigo` + "`" + `, ` + "`" + `clienteId` + "`" + ` positivo y al menos un ítem con ` + "`" + `productoId` + "`" + ` \u003e 0, ` + "`" + `cantidad` + "`" + ` \u003e= 1 y ` + "`" + `precio` + "`" + ` \u003e= 0.",
+                "description": "Cualquier usuario autenticado. Evalúa si un cupón es aplicable a un cliente. El cliente SALE DEL TOKEN: un Cliente no envía ` + "`" + `clienteId` + "`" + ` (si lo envía y no coincide con su documento responde 403); un trabajador o administrador actúa en nombre de un cliente y debe indicar ` + "`" + `clienteId` + "`" + `. Con ` + "`" + `pedidoId` + "`" + ` el servidor evalúa el detalle real del pedido (que debe pertenecer al cliente: 404 si no existe, 403 si es de otro) e ignora ` + "`" + `items` + "`" + `; sin ` + "`" + `pedidoId` + "`" + `, ` + "`" + `items` + "`" + ` es obligatorio (` + "`" + `productoId` + "`" + ` \u003e 0, ` + "`" + `cantidad` + "`" + ` \u003e= 1, ` + "`" + `precio` + "`" + ` \u003e= 0) y el resultado es solo una vista previa no vinculante. Responde 200 con ` + "`" + `aplicable` + "`" + ` true/false: si es false, ` + "`" + `motivo` + "`" + ` explica por qué (cupón inexistente, inactivo, fuera de vigencia, usos agotados, cliente no permitido, monto mínimo o sin productos aplicables).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1800,13 +1848,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "JSON inválido o campos requeridos incorrectos",
+                        "description": "JSON inválido, código/ítems ausentes o clienteId ausente para un trabajador",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "401": {
                         "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "clienteId distinto del token o pedido de otro cliente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1827,7 +1887,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Registra la redención de un cupón para un cliente y un pedido existentes; el descuento se calcula con el detalle del pedido (` + "`" + `detalle_pedido` + "`" + `). Un cupón no puede redimirse dos veces en el mismo pedido. Errores: 400 (JSON inválido, ` + "`" + `clienteId` + "`" + `/` + "`" + `pedidoId` + "`" + ` ausentes o no positivos), 404 (cupón, cliente o pedido inexistente), 409 (cupón agotado, límite por cliente alcanzado o ya redimido en el pedido), 422 (cupón no aplicable: inactivo, fuera de vigencia, cliente no permitido, monto mínimo, sin productos aplicables). La respuesta es el registro de redención con montoDescuento.",
+                "description": "Cualquier usuario autenticado. Registra la redención de un cupón para un pedido del cliente; el descuento se calcula en el servidor con el detalle del pedido (` + "`" + `detalle_pedido` + "`" + `). El cliente SALE DEL TOKEN: un Cliente no envía ` + "`" + `clienteId` + "`" + ` (si lo envía y no coincide con su documento responde 403); un trabajador o administrador actúa en nombre de un cliente y debe indicar ` + "`" + `clienteId` + "`" + `. El pedido debe pertenecer a ese cliente (404 si no existe, 403 si es de otro) y no estar cancelado ni terminado (409). Todo ocurre en una transacción que bloquea el pedido y la fila del cupón (` + "`" + `SELECT ... FOR UPDATE` + "`" + `) y vuelve a comprobar activo, vigencia, ` + "`" + `maxUsos` + "`" + ` y ` + "`" + `limitePorCliente` + "`" + ` bajo el bloqueo: dos redenciones simultáneas no pueden superar los topes. Un cupón no puede redimirse dos veces en el mismo pedido. Solo registra la redención; para aplicar el descuento al pedido y recalcular su total use POST /descuentos/pedidos. Errores: 400 (JSON inválido, ` + "`" + `pedidoId` + "`" + ` ausente o no positivo, ` + "`" + `clienteId` + "`" + ` ausente para un trabajador), 403, 404 (cupón o pedido inexistente), 409 (cupón agotado, límite por cliente alcanzado, ya redimido en el pedido o pedido cerrado), 422 (cupón no aplicable: inactivo, fuera de vigencia, cliente no permitido, monto mínimo, sin productos aplicables). La respuesta es el registro de redención con montoDescuento.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1847,7 +1907,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Datos de redención (clienteId y pedidoId obligatorios)",
+                        "description": "Datos de redención (pedidoId obligatorio; clienteId solo para trabajadores)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1876,7 +1936,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "JSON inválido o ids ausentes/no positivos",
+                        "description": "JSON inválido, ids ausentes/no positivos o clienteId ausente para un trabajador",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1887,14 +1947,20 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "clienteId distinto del token o pedido de otro cliente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Cupón, cliente o pedido no encontrado",
+                        "description": "Cupón o pedido no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "409": {
-                        "description": "Cupón agotado o ya redimido",
+                        "description": "Cupón agotado, ya redimido o pedido cerrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -1921,7 +1987,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista los descuentos aplicados al pedido. Si el pedido existe pero no tiene descuentos, ` + "`" + `data` + "`" + ` es una lista vacía ` + "`" + `[]` + "`" + `; si no existe responde 404.",
+                "description": "Cualquier usuario autenticado. Un Cliente solo puede consultar descuentos de sus propios pedidos (403 si el pedido es de otro cliente); un trabajador o administrador puede consultar cualquiera. Lista los descuentos aplicados al pedido. Si el pedido existe pero no tiene descuentos, ` + "`" + `data` + "`" + ` es una lista vacía ` + "`" + `[]` + "`" + `; si no existe responde 404.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1975,6 +2041,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "El pedido es de otro cliente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Pedido no encontrado",
                         "schema": {
@@ -1995,7 +2067,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Registra un único descuento (cupón u oferta, exactamente uno) sobre un pedido; un pedido admite un solo descuento. No redime el cupón (para eso use POST /cupones/{codigo}/redimir) ni recalcula el monto: ` + "`" + `montoDescuento` + "`" + ` (\u003e= 0) lo informa el cliente. ` + "`" + `detalle` + "`" + ` es opcional y debe ser un objeto JSON; se conserva y se le agregan los datos del cupón/oferta (` + "`" + `tipo` + "`" + `, ` + "`" + `codigo` + "`" + `/` + "`" + `titulo` + "`" + `, ` + "`" + `scope` + "`" + `), que prevalecen. Errores: 400 (pedido_id/ids/JSON inválidos), 404 (pedido, cupón u oferta inexistente), 409 (el pedido ya tiene un descuento), 422 (no se indicó exactamente uno de cupón u oferta, monto negativo o detalle que no es objeto).",
+                "description": "Cualquier usuario autenticado. Aplica un único descuento (cupón u oferta, exactamente uno) a un pedido y recalcula su total, todo en UNA transacción: el servidor valida (cupón: activo, vigencia, topes ` + "`" + `maxUsos` + "`" + `/` + "`" + `limitePorCliente` + "`" + ` bajo ` + "`" + `SELECT ... FOR UPDATE` + "`" + `, monto mínimo, scope; oferta: activa, período, día, horario, restaurante y productos del pedido), CALCULA el monto con el detalle del pedido (el cliente nunca envía el monto), redime el cupón, registra el descuento y resta el monto del ` + "`" + `monto` + "`" + ` del pago del pedido (si tiene pago). Si algo falla no queda nada a medias. Un pedido admite un solo descuento y no debe estar cancelado, terminado ni pagado. El cliente SALE DEL TOKEN: un Cliente no envía ` + "`" + `clienteId` + "`" + ` (si lo envía y no coincide con su documento responde 403); un trabajador o administrador actúa en nombre de un cliente y debe indicar ` + "`" + `clienteId` + "`" + `. El pedido debe pertenecer a ese cliente (403 si es de otro, 404 si no existe). ` + "`" + `detalle` + "`" + ` es opcional y debe ser un objeto JSON; se conserva y se le agregan los datos del cupón/oferta (` + "`" + `tipo` + "`" + `, ` + "`" + `codigo` + "`" + `/` + "`" + `titulo` + "`" + `, ` + "`" + `scope` + "`" + `), que prevalecen. La respuesta trae el descuento registrado y los importes: ` + "`" + `subtotal` + "`" + ` (suma del detalle), ` + "`" + `montoDescuento` + "`" + ` y ` + "`" + `total` + "`" + ` (lo que debe pagarse; si hay pago, es su nuevo ` + "`" + `monto` + "`" + `, y ` + "`" + `pagoId` + "`" + ` lo identifica). Errores: 400 (pedido_id/ids/JSON inválidos o ` + "`" + `clienteId` + "`" + ` ausente para un trabajador), 403, 404 (pedido, cupón u oferta inexistente), 409 (el pedido ya tiene un descuento, ya está pagado, cancelado o terminado; cupón agotado, límite por cliente alcanzado o ya redimido en el pedido), 422 (no se indicó exactamente uno de cupón u oferta, detalle que no es objeto, cupón u oferta no aplicable).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2015,7 +2087,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Datos del descuento a aplicar",
+                        "description": "Cupón u oferta a aplicar (sin monto: lo calcula el servidor)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -2026,7 +2098,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Descuento aplicado",
+                        "description": "Descuento aplicado y total recalculado",
                         "schema": {
                             "allOf": [
                                 {
@@ -2036,7 +2108,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PedidoDescuentoDoc"
+                                            "$ref": "#/definitions/models.DescuentoAplicadoDoc"
                                         }
                                     }
                                 }
@@ -2044,13 +2116,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "pedido_id, ids o JSON inválidos",
+                        "description": "pedido_id, ids o JSON inválidos, o clienteId ausente para un trabajador",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "401": {
                         "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "clienteId distinto del token o pedido de otro cliente",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2062,13 +2140,13 @@ const docTemplate = `{
                         }
                     },
                     "409": {
-                        "description": "El pedido ya tiene un descuento aplicado",
+                        "description": "El pedido ya tiene descuento, ya está pagado/cerrado, o el cupón está agotado o ya redimido",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "422": {
-                        "description": "Solicitud de descuento inválida",
+                        "description": "Solicitud inválida o cupón/oferta no aplicable",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -2191,7 +2269,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso ` + "`" + `{}` + "`" + `, que solo refresca ` + "`" + `updatedAt` + "`" + `). Campos: ` + "`" + `direccion` + "`" + ` y ` + "`" + `telefono` + "`" + ` (no vacíos), ` + "`" + `estado` + "`" + ` (alias ` + "`" + `estadoDomicilio` + "`" + `: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), ` + "`" + `observaciones` + "`" + `, ` + "`" + `fechaDomicilio` + "`" + ` (YYYY-MM-DD) y ` + "`" + `updatedBy` + "`" + `. Anulables (null los limpia): ` + "`" + `observaciones` + "`" + ` y ` + "`" + `updatedBy` + "`" + `; null en cualquier otro campo responde 400. ` + "`" + `entregado` + "`" + ` lo calcula la base de datos; la respuesta lo trae actualizado.",
+                "description": "Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso ` + "`" + `{}` + "`" + `, que solo refresca ` + "`" + `updatedAt` + "`" + `). Campos: ` + "`" + `direccion` + "`" + ` y ` + "`" + `telefono` + "`" + ` (no vacíos), ` + "`" + `estado` + "`" + ` (alias ` + "`" + `estadoDomicilio` + "`" + `: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), ` + "`" + `observaciones` + "`" + `, ` + "`" + `fechaDomicilio` + "`" + ` (YYYY-MM-DD) y ` + "`" + `updatedBy` + "`" + `. Anulables (null los limpia): ` + "`" + `observaciones` + "`" + ` y ` + "`" + `updatedBy` + "`" + `; null en cualquier otro campo responde 400. ` + "`" + `entregado` + "`" + ` lo calcula la base de datos; la respuesta lo trae actualizado. Cuando el domicilio pasa a ENTREGADO, avisa por push al cliente del pedido (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2423,7 +2501,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. ` + "`" + `data` + "`" + ` es el domicilio completo actualizado.",
+                "description": "Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. ` + "`" + `data` + "`" + ` es el domicilio completo actualizado. Avisa por push al cliente del pedido (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -3317,7 +3395,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "Permite iniciar sesión utilizando el documento y la contraseña (se busca primero entre trabajadores y luego entre clientes). Devuelve un access token JWT (` + "`" + `token` + "`" + ` y ` + "`" + `access_token` + "`" + `, mismo valor, rol incluido en el claim ` + "`" + `rol` + "`" + `; \"Cliente\" para clientes), un ` + "`" + `refresh_token` + "`" + `, ` + "`" + `token_type` + "`" + ` (\"Bearer\") y ` + "`" + `expires_in` + "`" + ` (segundos de vida del access token, 7200 = 120 min, como string). Límite: 10 intentos por minuto y por IP.",
+                "description": "Permite iniciar sesión utilizando el documento y la contraseña (se busca primero entre trabajadores y luego entre clientes). Devuelve un access token JWT (` + "`" + `token` + "`" + ` y ` + "`" + `access_token` + "`" + `, mismo valor, rol incluido en el claim ` + "`" + `rol` + "`" + `; \"Cliente\" para clientes), un ` + "`" + `refresh_token` + "`" + `, ` + "`" + `token_type` + "`" + ` (\"Bearer\") y ` + "`" + `expires_in` + "`" + ` (segundos de vida del access token, 7200 = 120 min, como string). Límites: 10 intentos por minuto y por IP, y 5 fallos de contraseña por documento en 15 minutos (espera creciente, máx. 15 min; un login correcto reinicia el contador). Documento inexistente y contraseña incorrecta devuelven la misma respuesta 401.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3371,9 +3449,15 @@ const docTemplate = `{
                         }
                     },
                     "429": {
-                        "description": "Demasiadas solicitudes",
+                        "description": "Demasiados intentos (por IP o por documento)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
+                        },
+                        "headers": {
+                            "Retry-After": {
+                                "type": "integer",
+                                "description": "Segundos de espera antes de reintentar"
+                            }
                         }
                     },
                     "500": {
@@ -4498,7 +4582,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualización parcial (merge): los campos ausentes se conservan (cuerpo ` + "`" + `models.ActualizarOfertaRequest` + "`" + `). ` + "`" + `horaInicio` + "`" + ` y ` + "`" + `horaFin` + "`" + ` admiten null explícito para quitar el horario (deben limpiarse juntos); null en cualquier otro campo responde 400. ` + "`" + `diasSemana: []` + "`" + ` significa todos los días. ` + "`" + `activo` + "`" + ` permite reactivar una oferta desactivada. Un cuerpo sin cambios responde 200. Validación de negocio incumplida: 422.",
+                "description": "Solo Administrador. Actualización parcial (merge): los campos ausentes se conservan (cuerpo ` + "`" + `models.ActualizarOfertaRequest` + "`" + `). ` + "`" + `horaInicio` + "`" + ` y ` + "`" + `horaFin` + "`" + ` admiten null explícito para quitar el horario (deben limpiarse juntos); null en cualquier otro campo responde 400. ` + "`" + `diasSemana: []` + "`" + ` significa todos los días. ` + "`" + `activo` + "`" + ` permite reactivar una oferta desactivada. Un cuerpo sin cambios responde 200. Validación de negocio incumplida: 422.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4558,6 +4642,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Oferta no encontrada",
                         "schema": {
@@ -4590,7 +4680,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una oferta activa. Errores de validación de negocio (tipo, fechas, horas, porcentaje 1-100, días válidos, título, restauranteId) responden 422; un ` + "`" + `restauranteId` + "`" + ` inexistente responde 400 y un título repetido 409. Fechas YYYY-MM-DD, horas HH:MM o HH:MM:SS; ` + "`" + `diasSemana` + "`" + ` vacío significa todos los días. Devuelve la oferta con ` + "`" + `restauranteId` + "`" + ` como objeto restaurante.",
+                "description": "Solo Administrador. Crea una oferta activa. Errores de validación de negocio (tipo, fechas, horas, porcentaje 1-100, días válidos, título, restauranteId) responden 422; un ` + "`" + `restauranteId` + "`" + ` inexistente responde 400 y un título repetido 409. Fechas YYYY-MM-DD, horas HH:MM o HH:MM:SS; ` + "`" + `diasSemana` + "`" + ` vacío significa todos los días. Devuelve la oferta con ` + "`" + `restauranteId` + "`" + ` como objeto restaurante.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4643,6 +4733,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "409": {
                         "description": "Ya existe una oferta con ese título",
                         "schema": {
@@ -4669,7 +4765,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "No elimina la fila: desactiva la oferta (` + "`" + `activo = false` + "`" + `; se reactiva con PUT ` + "`" + `activo: true` + "`" + `). Si ya estaba desactivada responde 400.",
+                "description": "Solo Administrador. No elimina la fila: desactiva la oferta (` + "`" + `activo = false` + "`" + `; se reactiva con PUT ` + "`" + `activo: true` + "`" + `). Si ya estaba desactivada responde 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4704,6 +4800,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -4807,7 +4909,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asocia un producto existente a una oferta existente. 404 si no existe la oferta o el producto; 409 si ya estaban asociados. ` + "`" + `data` + "`" + ` devuelve ` + "`" + `{ofertaId, productoId}` + "`" + `.",
+                "description": "Solo Administrador. Asocia un producto existente a una oferta existente. 404 si no existe la oferta o el producto; 409 si ya estaban asociados. ` + "`" + `data` + "`" + ` devuelve ` + "`" + `{ofertaId, productoId}` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4867,6 +4969,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Oferta o producto no encontrado",
                         "schema": {
@@ -4893,7 +5001,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina la asociación entre la oferta y el producto. 404 si la asociación no existe.",
+                "description": "Solo Administrador. Elimina la asociación entre la oferta y el producto. 404 si la asociación no existe.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4935,6 +5043,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5549,7 +5663,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un pedido. El servidor fija ` + "`" + `fechaPedido` + "`" + `/` + "`" + `horaPedido` + "`" + ` (Bogotá) y ` + "`" + `estadoPedido` + "`" + `=INICIADO. Todos los campos del cuerpo son opcionales: ` + "`" + `delivery` + "`" + ` (por defecto false; si es true exige ` + "`" + `pk_id_domicilio` + "`" + `), ` + "`" + `pk_id_domicilio` + "`" + `, ` + "`" + `restauranteId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Responde 201 con el pedido creado.",
+                "description": "Crea un pedido. El servidor fija ` + "`" + `fechaPedido` + "`" + `/` + "`" + `horaPedido` + "`" + ` (Bogotá) y ` + "`" + `estadoPedido` + "`" + `=INICIADO. Todos los campos del cuerpo son opcionales: ` + "`" + `delivery` + "`" + ` (por defecto false; si es true exige ` + "`" + `pk_id_domicilio` + "`" + `), ` + "`" + `pk_id_domicilio` + "`" + `, ` + "`" + `restauranteId` + "`" + ` y ` + "`" + `documentoCliente` + "`" + ` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Responde 201 con el pedido creado. Envía en segundo plano (best-effort, sin afectar la respuesta) un push de confirmación al cliente (si tiene ` + "`" + `documentoCliente` + "`" + `) y un aviso a los trabajadores.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5630,7 +5744,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza el estado de un pedido existente (sin cuerpo: ` + "`" + `pedido_id` + "`" + ` y ` + "`" + `estado` + "`" + ` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado.",
+                "description": "Actualiza el estado de un pedido existente (sin cuerpo: ` + "`" + `pedido_id` + "`" + ` y ` + "`" + `estado` + "`" + ` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado. Si el estado cambia (salvo a INICIADO), el servidor avisa por push al cliente del pedido (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5717,7 +5831,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un domicilio existente a un pedido y marca ` + "`" + `delivery` + "`" + `=true. Responde con el pedido completo actualizado.",
+                "description": "Asigna un domicilio existente a un pedido y marca ` + "`" + `delivery` + "`" + `=true. Responde con el pedido completo actualizado. Avisa por push a los trabajadores (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5803,7 +5917,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un pago existente a un pedido. Por defecto (` + "`" + `cambiar_estado=true` + "`" + `) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con ` + "`" + `cambiar_estado=false` + "`" + ` solo vincula el pago. Responde con el pedido completo actualizado.",
+                "description": "Asigna un pago existente a un pedido. Por defecto (` + "`" + `cambiar_estado=true` + "`" + `) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con ` + "`" + `cambiar_estado=false` + "`" + ` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6846,7 +6960,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista paginada de dispositivos push registrados, del más reciente al más antiguo. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` cuando no hay resultados. ` + "`" + `documentoCliente` + "`" + ` y ` + "`" + `documentoTrabajador` + "`" + ` son el número de documento (no el objeto completo).",
+                "description": "Solo Administrador. Lista paginada de dispositivos push registrados, del más reciente al más antiguo. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` cuando no hay resultados. ` + "`" + `documentoCliente` + "`" + ` y ` + "`" + `documentoTrabajador` + "`" + ` son el número de documento (no el objeto completo). Las respuestas nunca incluyen ` + "`" + `endpoint` + "`" + `, ` + "`" + `p256dh` + "`" + `, ` + "`" + `auth` + "`" + ` ni ` + "`" + `fcmToken` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6930,6 +7044,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error interno",
                         "schema": {
@@ -6944,7 +7064,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualización parcial (merge): los campos ausentes se conservan (p. ej. ` + "`" + `{\"enabled\":false}` + "`" + ` solo cambia ` + "`" + `enabled` + "`" + `). ` + "`" + `locale` + "`" + `, ` + "`" + `timeZone` + "`" + `, ` + "`" + `appVersion` + "`" + ` y ` + "`" + `userAgent` + "`" + ` aceptan ` + "`" + `null` + "`" + ` para limpiarse; ` + "`" + `enabled` + "`" + ` y ` + "`" + `subscribedTopics` + "`" + ` no admiten ` + "`" + `null` + "`" + ` (400). Devuelve el dispositivo actualizado.",
+                "description": "Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. Actualización parcial (merge): los campos ausentes se conservan (p. ej. ` + "`" + `{\"enabled\":false}` + "`" + ` solo cambia ` + "`" + `enabled` + "`" + `). ` + "`" + `locale` + "`" + `, ` + "`" + `timeZone` + "`" + `, ` + "`" + `appVersion` + "`" + ` y ` + "`" + `userAgent` + "`" + ` aceptan ` + "`" + `null` + "`" + ` para limpiarse; ` + "`" + `enabled` + "`" + ` y ` + "`" + `subscribedTopics` + "`" + ` no admiten ` + "`" + `null` + "`" + ` (400). Devuelve el dispositivo actualizado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7024,7 +7144,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Registra un dispositivo (upsert por ` + "`" + `fcmToken` + "`" + `/` + "`" + `endpoint` + "`" + `). Si el token ya existe se reactiva, se actualizan sus datos y se reasigna al propietario indicado (responde 200 en vez de 201). Debe indicarse exactamente uno entre ` + "`" + `documentoCliente` + "`" + ` y ` + "`" + `documentoTrabajador` + "`" + `. WEB exige ` + "`" + `endpoint` + "`" + `, ` + "`" + `p256dh` + "`" + ` y ` + "`" + `auth` + "`" + ` y no admite ` + "`" + `fcmToken` + "`" + `; ANDROID/IOS exigen ` + "`" + `fcmToken` + "`" + ` y no admiten los campos web.",
+                "description": "Registra un dispositivo del usuario autenticado (upsert por ` + "`" + `fcmToken` + "`" + `/` + "`" + `endpoint` + "`" + `). El propietario SIEMPRE sale del token: un Cliente queda como ` + "`" + `documentoCliente` + "`" + ` y un trabajador como ` + "`" + `documentoTrabajador` + "`" + `; ` + "`" + `documentoCliente` + "`" + `/` + "`" + `documentoTrabajador` + "`" + ` del cuerpo son opcionales y, si se envían, deben coincidir con el token (si no, 403; tampoco el Administrador registra a nombre de otro). Si el token ya existe se reactiva, se actualizan sus datos y se reasigna al usuario que llama (responde 200 en vez de 201). WEB exige ` + "`" + `endpoint` + "`" + `, ` + "`" + `p256dh` + "`" + ` y ` + "`" + `auth` + "`" + ` y no admite ` + "`" + `fcmToken` + "`" + `; ANDROID/IOS exigen ` + "`" + `fcmToken` + "`" + ` y no admiten los campos web. La respuesta nunca incluye ` + "`" + `endpoint` + "`" + `, ` + "`" + `p256dh` + "`" + `, ` + "`" + `auth` + "`" + ` ni ` + "`" + `fcmToken` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7095,8 +7215,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "El cuerpo indica un propietario distinto al del token",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "El cliente o trabajador indicado no existe",
+                        "description": "El cliente o trabajador del token ya no existe",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -7121,7 +7247,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina el dispositivo y, en cascada, su historial de envíos.",
+                "description": "Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. Elimina el dispositivo y, en cascada, su historial de envíos.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7182,6 +7308,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. La respuesta nunca incluye ` + "`" + `endpoint` + "`" + `, ` + "`" + `p256dh` + "`" + `, ` + "`" + `auth` + "`" + ` ni ` + "`" + `fcmToken` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7254,7 +7381,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Reemplaza la lista de topics del dispositivo (` + "`" + `[]` + "`" + ` los elimina todos). ` + "`" + `subscribedTopics` + "`" + ` es obligatorio y no admite null.",
+                "description": "Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. Reemplaza la lista de topics del dispositivo (` + "`" + `[]` + "`" + ` los elimina todos). ` + "`" + `subscribedTopics` + "`" + ` es obligatorio y no admite null.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7324,7 +7451,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Marca ` + "`" + `lastSeenAt` + "`" + ` del dispositivo con la hora actual.",
+                "description": "Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. Marca ` + "`" + `lastSeenAt` + "`" + ` del dispositivo con la hora actual.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7385,7 +7512,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Envía la notificación a los dispositivos habilitados que coincidan con ` + "`" + `destinatarios` + "`" + ` y registra cada envío. Responde 200 aun cuando algún dispositivo falle (ver ` + "`" + `enviosFallidos` + "`" + ` y ` + "`" + `detalleEnvios` + "`" + `).",
+                "description": "Solo Administrador (envío manual; los avisos de pedidos, domicilios y reservas los envía el servidor por su cuenta). Envía la notificación a los dispositivos habilitados que coincidan con ` + "`" + `destinatarios` + "`" + ` y registra cada envío. Responde 200 aun cuando algún dispositivo falle (ver ` + "`" + `enviosFallidos` + "`" + ` y ` + "`" + `detalleEnvios` + "`" + `).",
                 "consumes": [
                     "application/json"
                 ],
@@ -7438,6 +7565,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "El trabajador remitente no existe",
                         "schema": {
@@ -7460,7 +7593,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista paginada de envíos, del más reciente al más antiguo. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` cuando no hay resultados. ` + "`" + `pushDispositivoId` + "`" + ` es el id numérico del dispositivo y ` + "`" + `sentAt` + "`" + ` tiene formato DD-MM-YYYY HH:MM:SS (hora de Bogotá).",
+                "description": "Solo Administrador. Lista paginada de envíos, del más reciente al más antiguo. ` + "`" + `data.data` + "`" + ` es ` + "`" + `[]` + "`" + ` cuando no hay resultados. ` + "`" + `pushDispositivoId` + "`" + ` es el id numérico del dispositivo y ` + "`" + `sentAt` + "`" + ` tiene formato DD-MM-YYYY HH:MM:SS (hora de Bogotá).",
                 "consumes": [
                     "application/json"
                 ],
@@ -7541,6 +7674,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error interno",
                         "schema": {
@@ -7555,7 +7694,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Registra manualmente el resultado de un envío ya realizado a un dispositivo.",
+                "description": "Solo Administrador. Registra manualmente el resultado de un envío ya realizado a un dispositivo.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7608,6 +7747,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "El dispositivo indicado no existe",
                         "schema": {
@@ -7651,7 +7796,12 @@ const docTemplate = `{
         },
         "/reserva_contacto": {
             "get": {
-                "description": "Devuelve los contactos de reserva, opcionalmente filtrados por documento de invitado y/o de cliente registrado. ` + "`" + `documentoCliente` + "`" + ` se responde como objeto ` + "`" + `{documentoCliente}` + "`" + ` (solo el documento; nunca datos del cliente ni contraseña). Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Público (no exige token).",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve los contactos de reserva, opcionalmente filtrados por documento de invitado y/o de cliente registrado. ` + "`" + `documentoCliente` + "`" + ` se responde como objeto ` + "`" + `{documentoCliente}` + "`" + ` (solo el documento; nunca datos del cliente ni contraseña). Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Solo personal (trabajadores/administrador): contiene datos personales.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7704,6 +7854,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El token no es de un trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -7715,7 +7877,12 @@ const docTemplate = `{
         },
         "/reserva_contacto/search": {
             "get": {
-                "description": "Devuelve un contacto de reserva por su ID. Público (no exige token).",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve un contacto de reserva por su ID. Solo personal (trabajadores/administrador): contiene datos personales.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7760,6 +7927,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El token no es de un trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Contacto no encontrado",
                         "schema": {
@@ -7777,7 +7956,12 @@ const docTemplate = `{
         },
         "/reservas": {
             "get": {
-                "description": "Devuelve todas las reservas con su contacto (nombreCompleto, teléfono, documentos; nunca contraseñas) y su restaurante ya cargados. Lista vacía: ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS, createdAt/updatedAt DD-MM-YYYY HH:MM:SS. Público (no exige token).",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve todas las reservas con su contacto (nombreCompleto, teléfono, documentos; nunca contraseñas) y su restaurante ya cargados. Lista vacía: ` + "`" + `data` + "`" + ` es ` + "`" + `[]` + "`" + `. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS, createdAt/updatedAt DD-MM-YYYY HH:MM:SS. Solo personal (trabajadores/administrador): contiene datos personales de los contactos.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7810,6 +7994,18 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El token no es de un trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -7824,7 +8020,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza solo los campos enviados; los ausentes se conservan. ` + "`" + `indicaciones` + "`" + ` y ` + "`" + `updatedBy` + "`" + ` admiten ` + "`" + `null` + "`" + ` (limpian el campo); ` + "`" + `null` + "`" + ` en cualquier otro campo devuelve 400. Para cambiar el contacto envíe ` + "`" + `documentoContacto` + "`" + ` o ` + "`" + `documentoCliente` + "`" + ` (se busca o crea el contacto; ` + "`" + `contactoId` + "`" + ` NO se acepta). Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas \u003e= 1. La respuesta devuelve la reserva completa (fechas DD-MM-YYYY).",
+                "description": "Actualiza solo los campos enviados; los ausentes se conservan. ` + "`" + `indicaciones` + "`" + ` y ` + "`" + `updatedBy` + "`" + ` admiten ` + "`" + `null` + "`" + ` (limpian el campo); ` + "`" + `null` + "`" + ` en cualquier otro campo devuelve 400. Para cambiar el contacto envíe ` + "`" + `documentoContacto` + "`" + ` o ` + "`" + `documentoCliente` + "`" + ` (se busca o crea el contacto; ` + "`" + `contactoId` + "`" + ` NO se acepta). Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas \u003e= 1. La respuesta devuelve la reserva completa (fechas DD-MM-YYYY). Requiere token: el personal modifica cualquier reserva; un Cliente solo las suyas (404 si no son suyas) y no puede reasignar el contacto a otro documento ni cambiar el estado salvo a CANCELADA (403). Los invitados no pueden modificar. Si cambia el estado, avisa por push al cliente registrado de la reserva (y a los trabajadores cuando el propio cliente la cancela); best-effort, en segundo plano.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7884,8 +8080,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Un Cliente intenta reasignar el contacto o cambiar el estado (salvo cancelar)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Reserva, restaurante o cliente no encontrado",
+                        "description": "Reserva (o no pertenece al cliente del token), restaurante o cliente no encontrado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -7899,7 +8101,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Crea una reserva. El contacto se resuelve con ` + "`" + `documentoContacto` + "`" + ` (invitado; si no existe se crea y exige ` + "`" + `nombreCompleto` + "`" + `) o con ` + "`" + `documentoCliente` + "`" + ` (cliente registrado); si se envían ambos prevalece ` + "`" + `documentoContacto` + "`" + `. ` + "`" + `contactoId` + "`" + ` NO se acepta. Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas \u003e= 1, estadoReserva opcional (por defecto PENDIENTE). La respuesta devuelve la reserva con contacto y restaurante (sin contraseñas); fechas de respuesta en DD-MM-YYYY. Público (no exige token).",
+                "description": "Crea una reserva. El contacto se resuelve con ` + "`" + `documentoContacto` + "`" + ` (invitado; si no existe se crea y exige ` + "`" + `nombreCompleto` + "`" + `) o con ` + "`" + `documentoCliente` + "`" + ` (cliente registrado); si se envían ambos prevalece ` + "`" + `documentoContacto` + "`" + `. ` + "`" + `contactoId` + "`" + ` NO se acepta. Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas \u003e= 1, estadoReserva opcional (por defecto PENDIENTE). Público: no exige token (invitado), pero si se envía uno se usa para autorizar. Sin ser trabajador: el estado solo puede ser PENDIENTE (403) y ` + "`" + `documentoCliente` + "`" + ` (sin ` + "`" + `documentoContacto` + "`" + `) exige el token de ese mismo cliente (401/403). La respuesta es la reserva completa (contacto y restaurante, sin contraseñas) solo para el personal o el cliente dueño; para un invitado devuelve únicamente los datos mínimos (` + "`" + `ReservaConsultaResponse` + "`" + `: sin nombre, teléfono ni documento). Fechas de respuesta en DD-MM-YYYY. Envía en segundo plano (best-effort) un push al cliente registrado y, si la crea un cliente o un invitado, un aviso a los trabajadores.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7923,7 +8125,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Reserva creada",
+                        "description": "Reserva creada (invitado: datos mínimos; personal o cliente dueño: models.ReservaResponse completa)",
                         "schema": {
                             "allOf": [
                                 {
@@ -7933,7 +8135,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.ReservaResponse"
+                                            "$ref": "#/definitions/models.ReservaConsultaResponse"
                                         }
                                     }
                                 }
@@ -7942,6 +8144,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "JSON, campos obligatorios, fecha, hora, personas, estado o contacto inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "documentoCliente sin token",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Estado distinto de PENDIENTE o documentoCliente de otro cliente",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -7966,7 +8180,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "No borra la reserva: cambia su estado a CANCELADA y devuelve la reserva actualizada. Si ya estaba cancelada responde 409.",
+                "description": "No borra la reserva: cambia su estado a CANCELADA y devuelve la reserva actualizada. Si ya estaba cancelada responde 409. Requiere token: el personal cancela cualquier reserva; un Cliente solo las suyas (404 si no son suyas). Los invitados no pueden cancelar.",
                 "consumes": [
                     "application/json"
                 ],
@@ -8040,7 +8254,12 @@ const docTemplate = `{
         },
         "/reservas/cliente": {
             "get": {
-                "description": "Devuelve las reservas de un cliente registrado, opcionalmente filtradas por fecha (YYYY-MM-DD). Fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Público (no exige token).",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve las reservas de un cliente registrado, opcionalmente filtradas por fecha (YYYY-MM-DD). Fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Requiere token. Un Cliente solo ve las suyas: el documento sale del token, ` + "`" + `documentoCliente` + "`" + ` es opcional y, si se envía y no coincide, responde 403. El personal debe enviar ` + "`" + `documentoCliente` + "`" + ` y puede consultar cualquiera.",
                 "consumes": [
                     "application/json"
                 ],
@@ -8054,10 +8273,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Documento del cliente registrado (entero positivo)",
+                        "description": "Documento del cliente registrado (entero positivo). Obligatorio para el personal; opcional para un Cliente (debe coincidir con el token)",
                         "name": "documentoCliente",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "string",
@@ -8094,6 +8312,95 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "documentoCliente distinto del documento del token (Cliente)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la base de datos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/consulta": {
+            "get": {
+                "description": "Consulta pública (sin token) de una reserva con su id y el teléfono o documento del contacto. Devuelve solo los datos mínimos (reservaId, fecha, hora, personas, estado y restaurante): nunca nombre, teléfono ni documento. Para no permitir enumeración, un id inexistente y un contacto que no coincide responden el mismo 404. Límite por IP: 10 peticiones por minuto (` + "`" + `RESERVA_CONSULTA_MAX_REQ_PER_MIN` + "`" + `), 429 al excederlo. Fechas de respuesta en DD-MM-YYYY.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reservas"
+                ],
+                "summary": "Consultar una reserva como invitado",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "example": 12,
+                        "description": "ID de la reserva (entero positivo)",
+                        "name": "reservaId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "3001234567",
+                        "description": "Teléfono o documento del contacto de la reserva",
+                        "name": "contacto",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva encontrada",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ReservaConsultaResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "reservaId o contacto ausentes o inválidos",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada (id inexistente o contacto no coincide)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Demasiadas consultas desde esta IP",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -8105,7 +8412,12 @@ const docTemplate = `{
         },
         "/reservas/documento": {
             "get": {
-                "description": "Busca reservas por documento: primero como cliente registrado y, si no hay resultados, como documento de contacto (invitado). Filtro ` + "`" + `fecha` + "`" + ` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Público (no exige token).",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Busca reservas por documento: primero como cliente registrado y, si no hay resultados, como documento de contacto (invitado). Filtro ` + "`" + `fecha` + "`" + ` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Solo personal.",
                 "consumes": [
                     "application/json"
                 ],
@@ -8159,6 +8471,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El token no es de un trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -8170,7 +8494,12 @@ const docTemplate = `{
         },
         "/reservas/parameter": {
             "get": {
-                "description": "Devuelve las reservas de un contacto en una fecha, todas las de un contacto, o todas las de una fecha. Sin ningún filtro devuelve todas. Cada reserva trae contacto y restaurante cargados. Filtro ` + "`" + `fecha` + "`" + ` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Público (no exige token).",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve las reservas de un contacto en una fecha, todas las de un contacto, o todas las de una fecha. Sin ningún filtro devuelve todas. Cada reserva trae contacto y restaurante cargados. Filtro ` + "`" + `fecha` + "`" + ` en YYYY-MM-DD; fechas de respuesta en DD-MM-YYYY. Sin resultados: 200 con ` + "`" + `data: []` + "`" + `. Solo personal (sirve también para las reservas del día con ` + "`" + `fecha` + "`" + `).",
                 "consumes": [
                     "application/json"
                 ],
@@ -8223,6 +8552,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "El token no es de un trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -8234,7 +8575,12 @@ const docTemplate = `{
         },
         "/reservas/search": {
             "get": {
-                "description": "Devuelve una reserva por ID con contacto y restaurante cargados. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS. Público (no exige token).",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve una reserva por ID con contacto y restaurante cargados. Fechas de respuesta: fechaReserva DD-MM-YYYY, horaReserva HH:MM:SS. Requiere token: el personal ve cualquier reserva; un Cliente solo las suyas (documento del token = documento del contacto); en otro caso responde 404. Los invitados usan ` + "`" + `GET /reservas/consulta` + "`" + `.",
                 "consumes": [
                     "application/json"
                 ],
@@ -8279,8 +8625,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Reserva no encontrada",
+                        "description": "Reserva no encontrada (o no pertenece al cliente del token)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -10783,14 +11135,14 @@ const docTemplate = `{
         "models.AplicarDescuentoRequest": {
             "type": "object",
             "properties": {
+                "clienteId": {
+                    "type": "integer"
+                },
                 "cuponId": {
                     "type": "integer"
                 },
                 "detalle": {
                     "type": "object"
-                },
-                "montoDescuento": {
-                    "type": "integer"
                 },
                 "ofertaId": {
                     "type": "integer"
@@ -11404,6 +11756,30 @@ const docTemplate = `{
                 },
                 "totalUsuarios": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.DescuentoAplicadoDoc": {
+            "type": "object",
+            "properties": {
+                "descuento": {
+                    "$ref": "#/definitions/models.PedidoDescuentoDoc"
+                },
+                "montoDescuento": {
+                    "type": "integer",
+                    "example": 5000
+                },
+                "pagoId": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "subtotal": {
+                    "type": "integer",
+                    "example": 50000
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 45000
                 }
             }
         },
@@ -13608,6 +13984,40 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ReservaConsultaResponse": {
+            "type": "object",
+            "properties": {
+                "estadoReserva": {
+                    "type": "string",
+                    "enum": [
+                        "PENDIENTE",
+                        "CONFIRMADA",
+                        "CANCELADA",
+                        "CUMPLIDA"
+                    ],
+                    "example": "PENDIENTE"
+                },
+                "fechaReserva": {
+                    "type": "string",
+                    "example": "31-01-2025"
+                },
+                "horaReserva": {
+                    "type": "string",
+                    "example": "18:30:00"
+                },
+                "personas": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "reservaId": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "restaurante": {
+                    "$ref": "#/definitions/models.RestauranteConsultaResponse"
+                }
+            }
+        },
         "models.ReservaContactoResponse": {
             "type": "object",
             "properties": {
@@ -13891,6 +14301,19 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.ReservaPorHora"
                     }
+                }
+            }
+        },
+        "models.RestauranteConsultaResponse": {
+            "type": "object",
+            "properties": {
+                "nombreRestaurante": {
+                    "type": "string",
+                    "example": "Sazón Criolla"
+                },
+                "restauranteId": {
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },

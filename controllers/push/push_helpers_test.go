@@ -7,12 +7,15 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"restaurante/controllers/login"
 	"restaurante/models"
 	"restaurante/services"
 
 	"github.com/beego/beego/v2/client/orm"
 	beecontext "github.com/beego/beego/v2/server/web/context"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // fakeQS es un pushQuerySeter en memoria que registra los filtros recibidos.
@@ -119,10 +122,39 @@ func useSvc(t *testing.T, s *fakeSvc) {
 	t.Cleanup(func() { newPushService, newServiceOrm = prevSvc, prevOrm })
 }
 
-// do ejecuta el handler sobre una petición y devuelve la respuesta decodificada.
+// tokenDe devuelve un Authorization Bearer firmado para el rol y documento.
+func tokenDe(rol string, doc int64) string {
+	claims := login.Claims{
+		Documento: doc, Rol: rol,
+		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))},
+	}
+	tok, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(login.GetJWTSecret())
+	if err != nil {
+		panic(err)
+	}
+	return "Bearer " + tok
+}
+
+const (
+	rolAdmin   = "Administrador"
+	rolMesero  = "Mesero"
+	rolCliente = "Cliente"
+)
+
+// do ejecuta el handler como Administrador (documento 1).
 func do(t *testing.T, method, target, body string, h func(*PushController)) (*httptest.ResponseRecorder, models.ApiResponse, map[string]interface{}) {
 	t.Helper()
+	return doAs(t, tokenDe(rolAdmin, 1), method, target, body, h)
+}
+
+// doAs ejecuta el handler con el Authorization dado ("" = sin token) y devuelve
+// la respuesta decodificada.
+func doAs(t *testing.T, auth, method, target, body string, h func(*PushController)) (*httptest.ResponseRecorder, models.ApiResponse, map[string]interface{}) {
+	t.Helper()
 	req := httptest.NewRequest(method, target, bytes.NewReader([]byte(body)))
+	if auth != "" {
+		req.Header.Set("Authorization", auth)
+	}
 	rec := httptest.NewRecorder()
 	ctx := beecontext.NewContext()
 	ctx.Reset(rec, req)

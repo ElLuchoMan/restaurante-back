@@ -10,6 +10,7 @@ import (
 
 	"restaurante/database"
 	"restaurante/internal/httpx"
+	"restaurante/internal/notify"
 	"restaurante/logging"
 	"restaurante/models"
 
@@ -91,6 +92,29 @@ func (c *PedidoController) readPedido(op string, o orm.Ormer) *models.Pedido {
 		return nil
 	}
 	return &pedido
+}
+
+// clienteDe devuelve el documento del cliente del pedido (0 si no tiene).
+func clienteDe(p *models.Pedido) int64 {
+	if p.PK_DOCUMENTO_CLIENTE == nil {
+		return 0
+	}
+	return p.PK_DOCUMENTO_CLIENTE.PK_DOCUMENTO_CLIENTE
+}
+
+// domicilioDe devuelve el id del domicilio del pedido (0 si no tiene).
+func domicilioDe(p *models.Pedido) int64 {
+	if p.PK_ID_DOMICILIO == nil {
+		return 0
+	}
+	return p.PK_ID_DOMICILIO.ID
+}
+
+// notificarEstado avisa al cliente cuando el estado del pedido cambió.
+func notificarEstado(p *models.Pedido, anterior models.EstadoPedido) {
+	if p.ESTADO_PEDIDO != anterior {
+		notify.Enviar(notify.Evento{Tipo: notify.PedidoEstado, PedidoID: p.PK_ID_PEDIDO, Cliente: clienteDe(p), Estado: p.ESTADO_PEDIDO})
+	}
 }
 
 // parseFechaParam valida un filtro de fecha YYYY-MM-DD (vacío = ausente).
@@ -236,7 +260,7 @@ func (c *PedidoController) GetAll() {
 
 // @Title PostPedido
 // @Summary Crear un nuevo pedido
-// @Description Crea un pedido. El servidor fija `fechaPedido`/`horaPedido` (Bogotá) y `estadoPedido`=INICIADO. Todos los campos del cuerpo son opcionales: `delivery` (por defecto false; si es true exige `pk_id_domicilio`), `pk_id_domicilio`, `restauranteId` y `documentoCliente` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Responde 201 con el pedido creado.
+// @Description Crea un pedido. El servidor fija `fechaPedido`/`horaPedido` (Bogotá) y `estadoPedido`=INICIADO. Todos los campos del cuerpo son opcionales: `delivery` (por defecto false; si es true exige `pk_id_domicilio`), `pk_id_domicilio`, `restauranteId` y `documentoCliente` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Responde 201 con el pedido creado. Envía en segundo plano (best-effort, sin afectar la respuesta) un push de confirmación al cliente (si tiene `documentoCliente`) y un aviso a los trabajadores.
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -308,12 +332,13 @@ func (c *PedidoController) Post() {
 		c.dbError("post.insert_error", "Error al crear el pedido", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
 		return
 	}
+	notify.Enviar(notify.Evento{Tipo: notify.PedidoCreado, PedidoID: pedido.PK_ID_PEDIDO, Cliente: clienteDe(&pedido), DomicilioID: domicilioDe(&pedido)})
 	httpx.Send(&c.Controller, http.StatusCreated, "Pedido creado exitosamente", pedido)
 }
 
 // @Title AssignDomicilio
 // @Summary Asignar un domicilio a un pedido
-// @Description Asigna un domicilio existente a un pedido y marca `delivery`=true. Responde con el pedido completo actualizado.
+// @Description Asigna un domicilio existente a un pedido y marca `delivery`=true. Responde con el pedido completo actualizado. Avisa por push a los trabajadores (best-effort, en segundo plano).
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -349,12 +374,13 @@ func (c *PedidoController) AssignDomicilio() {
 		c.dbError("assign_domicilio.update_error", "Error al asignar domicilio", err, map[string]interface{}{"pedido_id": pedido.PK_ID_PEDIDO, "domicilio_id": domicilioID})
 		return
 	}
+	notify.Enviar(notify.Evento{Tipo: notify.PedidoDomicilio, PedidoID: pedido.PK_ID_PEDIDO, DomicilioID: domicilioID})
 	httpx.Send(&c.Controller, http.StatusOK, "Domicilio asignado correctamente", *pedido)
 }
 
 // @Title AssignPago
 // @Summary Asignar un pago a un pedido
-// @Description Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado.
+// @Description Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano).
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -399,6 +425,7 @@ func (c *PedidoController) AssignPago() {
 		return
 	}
 	cols := []string{"PK_ID_PAGO", "UPDATED_AT"}
+	estadoAnterior := pedido.ESTADO_PEDIDO
 	pedido.PK_ID_PAGO = &models.Pago{PK_ID_PAGO: pagoID}
 	pedido.UPDATED_AT = time.Now().UTC()
 	if cambiarEstado {
@@ -421,12 +448,13 @@ func (c *PedidoController) AssignPago() {
 		c.dbError("assign_pago.tx_commit_error", "Error al asignar pago", err, ctxLog)
 		return
 	}
+	notificarEstado(pedido, estadoAnterior)
 	httpx.Send(&c.Controller, http.StatusOK, "Pago asignado correctamente", *pedido)
 }
 
 // @Title UpdateEstadoPedido
 // @Summary Actualizar el estado de un pedido
-// @Description Actualiza el estado de un pedido existente (sin cuerpo: `pedido_id` y `estado` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado.
+// @Description Actualiza el estado de un pedido existente (sin cuerpo: `pedido_id` y `estado` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado. Si el estado cambia (salvo a INICIADO), el servidor avisa por push al cliente del pedido (best-effort, en segundo plano).
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -454,6 +482,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 	if pedido == nil {
 		return
 	}
+	estadoAnterior := pedido.ESTADO_PEDIDO
 	pedido.ESTADO_PEDIDO = estado
 	pedido.UPDATED_AT = time.Now().UTC()
 	if _, err := o.Update(pedido, "ESTADO_PEDIDO", "UPDATED_AT"); err != nil {
@@ -461,6 +490,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 		c.fail(http.StatusInternalServerError, "Error al actualizar estado del pedido", err)
 		return
 	}
+	notificarEstado(pedido, estadoAnterior)
 	httpx.Send(&c.Controller, http.StatusOK, "Estado del pedido actualizado correctamente", *pedido)
 }
 

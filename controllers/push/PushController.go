@@ -7,6 +7,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"restaurante/controllers/login"
+	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
@@ -176,9 +178,89 @@ func (c *PushController) failBadJSON(event string, err error) {
 	httpx.Fail(&c.Controller, http.StatusBadRequest, "JSON inválido", err)
 }
 
+const msgDispositivoNoEncontrado = "Dispositivo no encontrado"
+
+// esPropietario indica si el dispositivo pertenece a quien llama: un trabajador
+// (cualquier rol salvo Cliente) por su documentoTrabajador y un Cliente por su
+// documentoCliente, siempre contra el documento del token.
+func esPropietario(claims *login.Claims, d *models.PushDispositivo) bool {
+	if claims.IsStaff() {
+		return d.PkDocumentoTrabajador != nil && d.PkDocumentoTrabajador.PK_DOCUMENTO_TRABAJADOR == claims.Documento
+	}
+	return d.PkDocumentoCliente != nil && d.PkDocumentoCliente.PK_DOCUMENTO_CLIENTE == claims.Documento
+}
+
+// sinCredenciales devuelve una copia del dispositivo sin endpoint, p256dh, auth
+// ni fcmToken: son credenciales de escritura única (el cliente ya las conoce) y
+// ninguna respuesta las devuelve, ni siquiera al dueño o al Administrador.
+func sinCredenciales(d *models.PushDispositivo) *models.PushDispositivo {
+	copia := *d
+	copia.Endpoint, copia.P256dh, copia.Auth, copia.FcmToken = nil, nil, nil, nil
+	return &copia
+}
+
+// dispositivoAutorizado exige sesión, lee el dispositivo del query param `id`
+// y comprueba que sea del llamador o que este sea Administrador. Si no existe o
+// no es suyo responde el mismo 404 (no permite enumerar ids). Devuelve el
+// dispositivo ya cargado y su id; si respondió un error, ok es false.
+func (c *PushController) dispositivoAutorizado(event string) (dispositivo *models.PushDispositivo, id int64, ok bool) {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return nil, 0, false
+	}
+	id, ok = c.idParam(event + ".bad_request")
+	if !ok {
+		return nil, 0, false
+	}
+	dispositivo = &models.PushDispositivo{PkIdPushDispositivo: id}
+	if err := pushOrmNew().Read(dispositivo); err != nil {
+		if err == orm.ErrNoRows {
+			httpx.Fail(&c.Controller, http.StatusNotFound, msgDispositivoNoEncontrado, nil)
+			return nil, 0, false
+		}
+		logging.LogControllerError(c.Ctx, event+".read_error", err, map[string]interface{}{"id": id})
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error interno del servidor", err)
+		return nil, 0, false
+	}
+	if !claims.IsAdmin() && !esPropietario(claims, dispositivo) {
+		httpx.Fail(&c.Controller, http.StatusNotFound, msgDispositivoNoEncontrado, nil)
+		return nil, 0, false
+	}
+	dispositivo.AfterLoad()
+	return dispositivo, id, true
+}
+
+// fijarPropietario hace que el dueño del dispositivo salga siempre del token:
+// un trabajador registra con su documentoTrabajador y un Cliente con su
+// documentoCliente. Cualquier dueño distinto en el cuerpo (incluido el rol
+// contrario) responde 403; nadie, tampoco el Administrador, registra a nombre
+// de otro.
+func (c *PushController) fijarPropietario(claims *login.Claims, req *models.RegistrarDispositivoRequest) bool {
+	doc := claims.Documento
+	if doc <= 0 {
+		httpx.Fail(&c.Controller, http.StatusForbidden, "El token no identifica al propietario del dispositivo", nil)
+		return false
+	}
+	ajeno := func(p *int64) bool { return p != nil && *p != doc }
+	if claims.IsStaff() {
+		if req.PkDocumentoCliente != nil || ajeno(req.PkDocumentoTrabajador) {
+			httpx.Fail(&c.Controller, http.StatusForbidden, "No puede registrar dispositivos a nombre de otro usuario", nil)
+			return false
+		}
+		req.PkDocumentoTrabajador = &doc
+		return true
+	}
+	if req.PkDocumentoTrabajador != nil || ajeno(req.PkDocumentoCliente) {
+		httpx.Fail(&c.Controller, http.StatusForbidden, "No puede registrar dispositivos a nombre de otro usuario", nil)
+		return false
+	}
+	req.PkDocumentoCliente = &doc
+	return true
+}
+
 // @Title GetAll
 // @Summary Listar dispositivos push
-// @Description Lista paginada de dispositivos push registrados, del más reciente al más antiguo. `data.data` es `[]` cuando no hay resultados. `documentoCliente` y `documentoTrabajador` son el número de documento (no el objeto completo).
+// @Description Solo Administrador. Lista paginada de dispositivos push registrados, del más reciente al más antiguo. `data.data` es `[]` cuando no hay resultados. `documentoCliente` y `documentoTrabajador` son el número de documento (no el objeto completo). Las respuestas nunca incluyen `endpoint`, `p256dh`, `auth` ni `fcmToken`.
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -190,10 +272,14 @@ func (c *PushController) failBadJSON(event string, err error) {
 // @Success 200 {object} models.ApiResponse{data=models.PushDispositivosPage} "Dispositivos obtenidos exitosamente"
 // @Failure 400 {object} models.ApiResponse "Parámetros inválidos (cliente_id, trabajador_id, plataforma, limit u offset)"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno"
 // @Security BearerAuth
 // @Router /push/dispositivos [get]
 func (c *PushController) GetAll() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	o := pushOrmNew()
 	qs := o.QueryTable("push_dispositivo")
 
@@ -240,8 +326,9 @@ func (c *PushController) GetAll() {
 		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener dispositivos", err)
 		return
 	}
-	for _, d := range dispositivos {
+	for i, d := range dispositivos {
 		d.AfterLoad()
+		dispositivos[i] = sinCredenciales(d)
 	}
 
 	sendPage(c, "Dispositivos obtenidos exitosamente", dispositivos, total, limit, offset)
@@ -249,7 +336,7 @@ func (c *PushController) GetAll() {
 
 // @Title Post
 // @Summary Registrar dispositivo push
-// @Description Registra un dispositivo (upsert por `fcmToken`/`endpoint`). Si el token ya existe se reactiva, se actualizan sus datos y se reasigna al propietario indicado (responde 200 en vez de 201). Debe indicarse exactamente uno entre `documentoCliente` y `documentoTrabajador`. WEB exige `endpoint`, `p256dh` y `auth` y no admite `fcmToken`; ANDROID/IOS exigen `fcmToken` y no admiten los campos web.
+// @Description Registra un dispositivo del usuario autenticado (upsert por `fcmToken`/`endpoint`). El propietario SIEMPRE sale del token: un Cliente queda como `documentoCliente` y un trabajador como `documentoTrabajador`; `documentoCliente`/`documentoTrabajador` del cuerpo son opcionales y, si se envían, deben coincidir con el token (si no, 403; tampoco el Administrador registra a nombre de otro). Si el token ya existe se reactiva, se actualizan sus datos y se reasigna al usuario que llama (responde 200 en vez de 201). WEB exige `endpoint`, `p256dh` y `auth` y no admite `fcmToken`; ANDROID/IOS exigen `fcmToken` y no admiten los campos web. La respuesta nunca incluye `endpoint`, `p256dh`, `auth` ni `fcmToken`.
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -258,15 +345,23 @@ func (c *PushController) GetAll() {
 // @Success 200 {object} models.ApiResponse{data=models.PushDispositivo} "Dispositivo ya existente: re-registrado y reactivado"
 // @Failure 400 {object} models.ApiResponse "JSON o datos inválidos (plataforma, cliente/trabajador, token o endpoint)"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
-// @Failure 404 {object} models.ApiResponse "El cliente o trabajador indicado no existe"
+// @Failure 403 {object} models.ApiResponse "El cuerpo indica un propietario distinto al del token"
+// @Failure 404 {object} models.ApiResponse "El cliente o trabajador del token ya no existe"
 // @Failure 409 {object} models.ApiResponse "Conflicto de unicidad detectado por la base de datos (fcmToken o endpoint duplicado en una carrera)"
 // @Failure 500 {object} models.ApiResponse "Error interno"
 // @Security BearerAuth
 // @Router /push/dispositivos [post]
 func (c *PushController) Post() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	var req models.RegistrarDispositivoRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
 		c.failBadJSON("push.post.bad_json", err)
+		return
+	}
+	if !c.fijarPropietario(claims, &req) {
 		return
 	}
 
@@ -277,14 +372,15 @@ func (c *PushController) Post() {
 	}
 
 	if created {
-		httpx.Send(&c.Controller, http.StatusCreated, "Dispositivo registrado exitosamente", dispositivo)
+		httpx.Send(&c.Controller, http.StatusCreated, "Dispositivo registrado exitosamente", sinCredenciales(dispositivo))
 		return
 	}
-	httpx.Send(&c.Controller, http.StatusOK, "Dispositivo actualizado exitosamente", dispositivo)
+	httpx.Send(&c.Controller, http.StatusOK, "Dispositivo actualizado exitosamente", sinCredenciales(dispositivo))
 }
 
 // @Title GetById
 // @Summary Obtener dispositivo push por ID
+// @Description Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. La respuesta nunca incluye `endpoint`, `p256dh`, `auth` ni `fcmToken`.
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -297,29 +393,17 @@ func (c *PushController) Post() {
 // @Security BearerAuth
 // @Router /push/dispositivos/search [get]
 func (c *PushController) GetById() {
-	id, ok := c.idParam("push.getbyid.bad_request")
+	dispositivo, _, ok := c.dispositivoAutorizado("push.getbyid")
 	if !ok {
 		return
 	}
 
-	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: id}
-	if err := pushOrmNew().Read(dispositivo); err != nil {
-		if err == orm.ErrNoRows {
-			httpx.Fail(&c.Controller, http.StatusNotFound, "Dispositivo no encontrado", nil)
-			return
-		}
-		logging.LogControllerError(c.Ctx, "push.getbyid.read_error", err, map[string]interface{}{"id": id})
-		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error interno del servidor", err)
-		return
-	}
-	dispositivo.AfterLoad()
-
-	httpx.Send(&c.Controller, http.StatusOK, "Dispositivo encontrado", dispositivo)
+	httpx.Send(&c.Controller, http.StatusOK, "Dispositivo encontrado", sinCredenciales(dispositivo))
 }
 
 // @Title Put
 // @Summary Actualizar dispositivo push
-// @Description Actualización parcial (merge): los campos ausentes se conservan (p. ej. `{"enabled":false}` solo cambia `enabled`). `locale`, `timeZone`, `appVersion` y `userAgent` aceptan `null` para limpiarse; `enabled` y `subscribedTopics` no admiten `null` (400). Devuelve el dispositivo actualizado.
+// @Description Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. Actualización parcial (merge): los campos ausentes se conservan (p. ej. `{"enabled":false}` solo cambia `enabled`). `locale`, `timeZone`, `appVersion` y `userAgent` aceptan `null` para limpiarse; `enabled` y `subscribedTopics` no admiten `null` (400). Devuelve el dispositivo actualizado.
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -333,7 +417,7 @@ func (c *PushController) GetById() {
 // @Security BearerAuth
 // @Router /push/dispositivos [put]
 func (c *PushController) Put() {
-	id, ok := c.idParam("push.put.bad_request")
+	_, id, ok := c.dispositivoAutorizado("push.put")
 	if !ok {
 		return
 	}
@@ -344,12 +428,12 @@ func (c *PushController) Put() {
 		return
 	}
 
-	httpx.Send(&c.Controller, http.StatusOK, "Dispositivo actualizado correctamente", dispositivo)
+	httpx.Send(&c.Controller, http.StatusOK, "Dispositivo actualizado correctamente", sinCredenciales(dispositivo))
 }
 
 // @Title Delete
 // @Summary Eliminar dispositivo push
-// @Description Elimina el dispositivo y, en cascada, su historial de envíos.
+// @Description Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. Elimina el dispositivo y, en cascada, su historial de envíos.
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -362,24 +446,12 @@ func (c *PushController) Put() {
 // @Security BearerAuth
 // @Router /push/dispositivos [delete]
 func (c *PushController) Delete() {
-	id, ok := c.idParam("push.delete.bad_request")
+	dispositivo, id, ok := c.dispositivoAutorizado("push.delete")
 	if !ok {
 		return
 	}
 
-	o := pushOrmNew()
-	dispositivo := &models.PushDispositivo{PkIdPushDispositivo: id}
-	if err := o.Read(dispositivo); err != nil {
-		if err == orm.ErrNoRows {
-			httpx.Fail(&c.Controller, http.StatusNotFound, "Dispositivo no encontrado", nil)
-			return
-		}
-		logging.LogControllerError(c.Ctx, "push.delete.read_error", err, map[string]interface{}{"id": id})
-		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error interno del servidor", err)
-		return
-	}
-
-	if _, err := o.Delete(dispositivo); err != nil {
+	if _, err := pushOrmNew().Delete(dispositivo); err != nil {
 		logging.LogControllerError(c.Ctx, "push.delete.delete_error", err, map[string]interface{}{"id": id})
 		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al eliminar dispositivo", err)
 		return
@@ -390,7 +462,7 @@ func (c *PushController) Delete() {
 
 // @Title ActualizarUltimaVista
 // @Summary Actualizar última vista del dispositivo
-// @Description Marca `lastSeenAt` del dispositivo con la hora actual.
+// @Description Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. Marca `lastSeenAt` del dispositivo con la hora actual.
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -403,7 +475,7 @@ func (c *PushController) Delete() {
 // @Security BearerAuth
 // @Router /push/dispositivos/visto [patch]
 func (c *PushController) ActualizarUltimaVista() {
-	id, ok := c.idParam("push.visto.bad_request")
+	_, id, ok := c.dispositivoAutorizado("push.visto")
 	if !ok {
 		return
 	}
@@ -418,7 +490,7 @@ func (c *PushController) ActualizarUltimaVista() {
 
 // @Title ActualizarTopics
 // @Summary Reemplazar topics suscritos del dispositivo
-// @Description Reemplaza la lista de topics del dispositivo (`[]` los elimina todos). `subscribedTopics` es obligatorio y no admite null.
+// @Description Solo el dueño del dispositivo o un Administrador; para cualquier otro usuario responde 404 igual que si no existiera. Reemplaza la lista de topics del dispositivo (`[]` los elimina todos). `subscribedTopics` es obligatorio y no admite null.
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -432,7 +504,7 @@ func (c *PushController) ActualizarUltimaVista() {
 // @Security BearerAuth
 // @Router /push/dispositivos/topics [patch]
 func (c *PushController) ActualizarTopics() {
-	id, ok := c.idParam("push.topics.bad_request")
+	_, id, ok := c.dispositivoAutorizado("push.topics")
 	if !ok {
 		return
 	}
@@ -457,7 +529,7 @@ func (c *PushController) ActualizarTopics() {
 
 // @Title EnviarNotificacion
 // @Summary Enviar notificación push
-// @Description Envía la notificación a los dispositivos habilitados que coincidan con `destinatarios` y registra cada envío. Responde 200 aun cuando algún dispositivo falle (ver `enviosFallidos` y `detalleEnvios`).
+// @Description Solo Administrador (envío manual; los avisos de pedidos, domicilios y reservas los envía el servidor por su cuenta). Envía la notificación a los dispositivos habilitados que coincidan con `destinatarios` y registra cada envío. Responde 200 aun cuando algún dispositivo falle (ver `enviosFallidos` y `detalleEnvios`).
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -465,11 +537,15 @@ func (c *PushController) ActualizarTopics() {
 // @Success 200 {object} models.ApiResponse{data=models.EnviarNotificacionResponse} "Notificación procesada"
 // @Failure 400 {object} models.ApiResponse "JSON o datos inválidos (título/mensaje, remitente o destinatarios)"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "El trabajador remitente no existe"
 // @Failure 500 {object} models.ApiResponse "Error interno"
 // @Security BearerAuth
 // @Router /push/enviar [post]
 func (c *PushController) EnviarNotificacion() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	var req models.EnviarNotificacionRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
 		c.failBadJSON("push.enviar.bad_json", err)
@@ -499,7 +575,7 @@ func (c *PushController) EnviarNotificacion() {
 
 // @Title ListarEnvios
 // @Summary Listar envíos push
-// @Description Lista paginada de envíos, del más reciente al más antiguo. `data.data` es `[]` cuando no hay resultados. `pushDispositivoId` es el id numérico del dispositivo y `sentAt` tiene formato DD-MM-YYYY HH:MM:SS (hora de Bogotá).
+// @Description Solo Administrador. Lista paginada de envíos, del más reciente al más antiguo. `data.data` es `[]` cuando no hay resultados. `pushDispositivoId` es el id numérico del dispositivo y `sentAt` tiene formato DD-MM-YYYY HH:MM:SS (hora de Bogotá).
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -511,10 +587,14 @@ func (c *PushController) EnviarNotificacion() {
 // @Success 200 {object} models.ApiResponse{data=models.PushEnviosPage} "Envíos obtenidos exitosamente"
 // @Failure 400 {object} models.ApiResponse "Parámetros inválidos (dispositivo_id, fechas, limit u offset)"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 500 {object} models.ApiResponse "Error interno"
 // @Security BearerAuth
 // @Router /push/envios [get]
 func (c *PushController) ListarEnvios() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	o := pushOrmNew()
 	qs := o.QueryTable("push_envio")
 
@@ -577,7 +657,7 @@ func (c *PushController) ListarEnvios() {
 
 // @Title RegistrarEnvio
 // @Summary Registrar envío push
-// @Description Registra manualmente el resultado de un envío ya realizado a un dispositivo.
+// @Description Solo Administrador. Registra manualmente el resultado de un envío ya realizado a un dispositivo.
 // @Tags push_notifications
 // @Accept json
 // @Produce json
@@ -585,11 +665,15 @@ func (c *PushController) ListarEnvios() {
 // @Success 201 {object} models.ApiResponse{data=models.PushEnvio} "Envío registrado"
 // @Failure 400 {object} models.ApiResponse "JSON o datos inválidos (pushDispositivoId, proveedor)"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "El dispositivo indicado no existe"
 // @Failure 500 {object} models.ApiResponse "Error interno"
 // @Security BearerAuth
 // @Router /push/envios [post]
 func (c *PushController) RegistrarEnvio() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	var req models.RegistrarEnvioRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
 		c.failBadJSON("push.registrar_envio.bad_json", err)

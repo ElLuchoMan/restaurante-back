@@ -12,6 +12,7 @@ import (
 	loginc "restaurante/controllers/login"
 	"restaurante/internal/clientip"
 	"restaurante/internal/httpx"
+	"restaurante/internal/notify"
 	"restaurante/internal/ratelimit"
 	"restaurante/logging"
 	"restaurante/models"
@@ -102,6 +103,35 @@ func poseeReserva(claims *loginc.Claims, r *models.Reserva) bool {
 		return true
 	}
 	return ct.PKDocumentoCliente != nil && ct.PKDocumentoCliente.PK_DOCUMENTO_CLIENTE == claims.Documento
+}
+
+// clienteNotificable devuelve el documento del cliente registrado al que se
+// avisa de su reserva (0 si es un invitado sin sesión de cliente): el cliente
+// del contacto o, si no lo hay, el cliente que actúa con su token.
+func clienteNotificable(claims *loginc.Claims, r *models.Reserva) int64 {
+	if ct := r.PK_ID_CONTACTO; ct != nil && ct.PKDocumentoCliente != nil {
+		return ct.PKDocumentoCliente.PK_DOCUMENTO_CLIENTE
+	}
+	if claims != nil && !claims.IsStaff() && poseeReserva(claims, r) {
+		return claims.Documento
+	}
+	return 0
+}
+
+// eventoReserva arma el evento de notificación de una reserva ya guardada.
+func eventoReserva(tipo notify.Tipo, claims *loginc.Claims, r *models.Reserva) notify.Evento {
+	ev := notify.Evento{
+		Tipo:          tipo,
+		ReservaID:     r.PK_ID_RESERVA,
+		Cliente:       clienteNotificable(claims, r),
+		Fecha:         r.FECHA.Format(layoutFecha),
+		Hora:          r.HORA.Format(layoutHora),
+		DesdePersonal: claims.IsStaff(),
+	}
+	if r.ESTADO_RESERVA != nil {
+		ev.Estado = *r.ESTADO_RESERVA
+	}
+	return ev
 }
 
 // loadAutorizada carga la reserva y exige que el llamador sea trabajador o su
@@ -371,7 +401,7 @@ func (c *ReservaController) GetById() {
 
 // @Title Create
 // @Summary Crear una nueva reserva
-// @Description Crea una reserva. El contacto se resuelve con `documentoContacto` (invitado; si no existe se crea y exige `nombreCompleto`) o con `documentoCliente` (cliente registrado); si se envían ambos prevalece `documentoContacto`. `contactoId` NO se acepta. Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1, estadoReserva opcional (por defecto PENDIENTE). Público: no exige token (invitado), pero si se envía uno se usa para autorizar. Sin ser trabajador: el estado solo puede ser PENDIENTE (403) y `documentoCliente` (sin `documentoContacto`) exige el token de ese mismo cliente (401/403). La respuesta es la reserva completa (contacto y restaurante, sin contraseñas) solo para el personal o el cliente dueño; para un invitado devuelve únicamente los datos mínimos (`ReservaConsultaResponse`: sin nombre, teléfono ni documento). Fechas de respuesta en DD-MM-YYYY.
+// @Description Crea una reserva. El contacto se resuelve con `documentoContacto` (invitado; si no existe se crea y exige `nombreCompleto`) o con `documentoCliente` (cliente registrado); si se envían ambos prevalece `documentoContacto`. `contactoId` NO se acepta. Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1, estadoReserva opcional (por defecto PENDIENTE). Público: no exige token (invitado), pero si se envía uno se usa para autorizar. Sin ser trabajador: el estado solo puede ser PENDIENTE (403) y `documentoCliente` (sin `documentoContacto`) exige el token de ese mismo cliente (401/403). La respuesta es la reserva completa (contacto y restaurante, sin contraseñas) solo para el personal o el cliente dueño; para un invitado devuelve únicamente los datos mínimos (`ReservaConsultaResponse`: sin nombre, teléfono ni documento). Fechas de respuesta en DD-MM-YYYY. Envía en segundo plano (best-effort) un push al cliente registrado y, si la crea un cliente o un invitado, un aviso a los trabajadores.
 // @Tags reservas
 // @Accept json
 // @Produce json
@@ -433,6 +463,7 @@ func (c *ReservaController) Post() {
 		c.fail("reservas.post.reload_error", apiErr)
 		return
 	}
+	notify.Enviar(eventoReserva(notify.ReservaCreada, claims, creada))
 	if claims.IsStaff() || (claims != nil && poseeReserva(claims, creada)) {
 		httpx.Send(&c.Controller, http.StatusCreated, "Reserva creada correctamente", creada)
 		return
@@ -492,7 +523,7 @@ func validateCreate(in *models.ReservaCreateRequest) (*models.Reserva, *apiError
 
 // @Title Update
 // @Summary Actualizar una reserva (merge parcial)
-// @Description Actualiza solo los campos enviados; los ausentes se conservan. `indicaciones` y `updatedBy` admiten `null` (limpian el campo); `null` en cualquier otro campo devuelve 400. Para cambiar el contacto envíe `documentoContacto` o `documentoCliente` (se busca o crea el contacto; `contactoId` NO se acepta). Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1. La respuesta devuelve la reserva completa (fechas DD-MM-YYYY). Requiere token: el personal modifica cualquier reserva; un Cliente solo las suyas (404 si no son suyas) y no puede reasignar el contacto a otro documento ni cambiar el estado salvo a CANCELADA (403). Los invitados no pueden modificar.
+// @Description Actualiza solo los campos enviados; los ausentes se conservan. `indicaciones` y `updatedBy` admiten `null` (limpian el campo); `null` en cualquier otro campo devuelve 400. Para cambiar el contacto envíe `documentoContacto` o `documentoCliente` (se busca o crea el contacto; `contactoId` NO se acepta). Peticiones: fechaReserva YYYY-MM-DD, horaReserva HH:MM:SS, personas >= 1. La respuesta devuelve la reserva completa (fechas DD-MM-YYYY). Requiere token: el personal modifica cualquier reserva; un Cliente solo las suyas (404 si no son suyas) y no puede reasignar el contacto a otro documento ni cambiar el estado salvo a CANCELADA (403). Los invitados no pueden modificar. Si cambia el estado, avisa por push al cliente registrado de la reserva (y a los trabajadores cuando el propio cliente la cancela); best-effort, en segundo plano.
 // @Tags reservas
 // @Accept json
 // @Produce json
@@ -535,6 +566,7 @@ func (c *ReservaController) Put() {
 			return
 		}
 	}
+	estadoAnterior := reserva.ESTADO_RESERVA // applyUpdate asigna un puntero nuevo, no escribe sobre este
 
 	cols, apiErr := applyUpdate(o, reserva, &in, body)
 	if apiErr != nil {
@@ -551,7 +583,15 @@ func (c *ReservaController) Put() {
 		c.fail("reservas.put.reload_error", apiErr)
 		return
 	}
+	if cambioEstado(estadoAnterior, actualizada.ESTADO_RESERVA) {
+		notify.Enviar(eventoReserva(notify.ReservaEstado, claims, actualizada))
+	}
 	httpx.Send(&c.Controller, http.StatusOK, "Reserva actualizada correctamente", actualizada)
+}
+
+// cambioEstado indica si la reserva quedó con un estado distinto (y definido).
+func cambioEstado(antes, despues *models.EstadoReserva) bool {
+	return despues != nil && (antes == nil || *antes != *despues)
 }
 
 // applyUpdate aplica sobre reserva los campos presentes en in y devuelve las

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"restaurante/internal/httpx"
+	"restaurante/internal/notify"
 	"restaurante/logging"
 	"restaurante/models"
 
@@ -384,7 +385,7 @@ func firstNonNil(vals ...*string) *string {
 
 // @Title Update
 // @Summary Actualizar un domicilio
-// @Description Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`, que solo refresca `updatedAt`). Campos: `direccion` y `telefono` (no vacíos), `estado` (alias `estadoDomicilio`: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), `observaciones`, `fechaDomicilio` (YYYY-MM-DD) y `updatedBy`. Anulables (null los limpia): `observaciones` y `updatedBy`; null en cualquier otro campo responde 400. `entregado` lo calcula la base de datos; la respuesta lo trae actualizado.
+// @Description Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`, que solo refresca `updatedAt`). Campos: `direccion` y `telefono` (no vacíos), `estado` (alias `estadoDomicilio`: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), `observaciones`, `fechaDomicilio` (YYYY-MM-DD) y `updatedBy`. Anulables (null los limpia): `observaciones` y `updatedBy`; null en cualquier otro campo responde 400. `entregado` lo calcula la base de datos; la respuesta lo trae actualizado. Cuando el domicilio pasa a ENTREGADO, avisa por push al cliente del pedido (best-effort, en segundo plano).
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -410,6 +411,7 @@ func (c *DomicilioController) Put() {
 	if !c.readDomicilio("put", o, &domicilio) {
 		return
 	}
+	estadoAnterior := domicilio.Estado
 	var in models.DomicilioUpdateRequest
 	if err := httpx.DecodeMerge(c.Ctx.Input.RequestBody, &in, "observaciones", "updatedBy"); err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
@@ -469,6 +471,9 @@ func (c *DomicilioController) Put() {
 	if !c.readDomicilio("put", o, &domicilio) {
 		return
 	}
+	if estadoAnterior != models.EstadoDomicilioEntregado && domicilio.Estado == models.EstadoDomicilioEntregado {
+		notify.Enviar(notify.Evento{Tipo: notify.DomicilioEntregado, DomicilioID: id})
+	}
 	httpx.Send(&c.Controller, http.StatusOK, "Domicilio actualizado correctamente", domicilio)
 }
 
@@ -508,7 +513,7 @@ func (c *DomicilioController) Delete() {
 
 // @Title AsignarDomiciliario
 // @Summary Asignar un domiciliario a un domicilio
-// @Description Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. `data` es el domicilio completo actualizado.
+// @Description Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. `data` es el domicilio completo actualizado. Avisa por push al cliente del pedido (best-effort, en segundo plano).
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -561,5 +566,6 @@ func (c *DomicilioController) AsignarDomiciliario() {
 		c.fail(http.StatusConflict, "Este domicilio ya ha sido asignado", nil)
 		return
 	}
+	notify.Enviar(notify.Evento{Tipo: notify.DomicilioAsignado, DomicilioID: domicilioID})
 	httpx.Send(&c.Controller, http.StatusOK, "Domicilio asignado correctamente", domicilio)
 }
