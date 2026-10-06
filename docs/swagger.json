@@ -5388,7 +5388,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lo puede hacer el personal y también un Cliente (el carrito crea el pago de su pedido), pero un Cliente solo puede crearlo en estado PENDIENTE (403 con otro estado); el pago solo queda ligado a un pedido al asignarlo con `POST /pedidos/asignar-pago`. Todos los campos salvo `updatedBy` son obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `monto` entero \u003e 0, `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe). La respuesta devuelve `fechaPago` como DD-MM-YYYY.",
+                "description": "Lo puede hacer el personal y también un Cliente (el carrito crea el pago de su pedido), pero un Cliente solo puede crearlo en estado PENDIENTE (403 con otro estado); el pago solo queda ligado a un pedido al asignarlo con `POST /pedidos/asignar-pago`. Campos obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe); `updatedBy` es opcional. EL SERVIDOR MANDA EL MONTO. Fórmula: `monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos ya aplicados al pedido)`; no existen cargos de domicilio ni propina. Un Cliente debe enviar `pedidoId` (de su propio pedido; ajeno o inexistente responde 404): el `monto` del cuerpo se IGNORA (puede omitirse) y el pago se crea con el monto calculado, que se devuelve en la respuesta; responde 409 si el pedido no tiene productos o ya tiene un pago asignado. El personal puede indicar `pedidoId` y dejar `monto` en 0/omitido para usar el calculado, o fijar un `monto` manual \u003e 0 (ajustes de mostrador; negativo responde 400); sin `pedidoId` el `monto` manual es obligatorio y debe ser \u003e 0. La respuesta devuelve `fechaPago` como DD-MM-YYYY.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5430,7 +5430,7 @@
                         }
                     },
                     "400": {
-                        "description": "JSON inválido o campos ausentes/inválidos",
+                        "description": "JSON inválido o campos ausentes/inválidos (un Cliente sin `pedidoId`; personal con `monto` negativo o sin `pedidoId` y `monto` \u003c= 0)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5448,13 +5448,13 @@
                         }
                     },
                     "404": {
-                        "description": "El método de pago indicado no existe",
+                        "description": "El método de pago o el pedido indicado no existe (para un Cliente, también si el pedido es ajeno)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflicto de unicidad en base de datos",
+                        "description": "El pedido no tiene productos o (Cliente) ya tiene un pago asignado, o conflicto de unicidad en base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6000,7 +6000,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano). Un Cliente solo puede vincular un pago a su propio pedido (uno ajeno responde 404) y siempre con `cambiar_estado=false` (403 si es true o se omite, porque terminar el pedido y marcar el pago PAGADO es cosa del personal); además el pago no puede pertenecer a otro pedido (404) y el pedido no puede tener ya un pago (409, para no cambiar el monto tras aplicar descuentos).",
+                "description": "Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano). Un Cliente solo puede vincular un pago a su propio pedido (uno ajeno responde 404) y siempre con `cambiar_estado=false` (403 si es true o se omite, porque terminar el pedido y marcar el pago PAGADO es cosa del personal); además el pago no puede pertenecer a otro pedido (404) y el pedido no puede tener ya un pago (409, para no cambiar el monto tras aplicar descuentos). EL SERVIDOR MANDA EL MONTO: al asignar el pago de un Cliente, en la misma transacción y con el pedido bloqueado, el servidor recalcula `pago.monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos aplicados)` y lo guarda, cualquiera que fuera el monto con el que se creó el pago; responde 409 si el pedido no tiene productos o si el pago no está PENDIENTE. Desde ese momento el pedido queda congelado para el Cliente (`/producto_pedido` responde 409). El personal conserva el monto del pago tal cual (ajustes de mostrador).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6078,7 +6078,7 @@
                         }
                     },
                     "409": {
-                        "description": "Conflicto con datos existentes, o un Cliente intenta reemplazar el pago ya asignado",
+                        "description": "Conflicto con datos existentes, o un Cliente intenta reemplazar el pago ya asignado, asignar un pago que no está PENDIENTE o pagar un pedido sin productos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6391,7 +6391,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Un Cliente solo puede modificar los productos de su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal, los de cualquiera. Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con `cantidad` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; `productoId` \u003c= 0 o `cantidad` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}).",
+                "description": "Un Cliente solo puede modificar los productos de su propio pedido (uno ajeno responde 404, igual que si no existiera) y solo mientras el pedido NO tenga pago asignado: después responde 409 (el monto del pago salió de esos productos). El personal puede modificar los de cualquiera; si el pedido tiene un pago PENDIENTE/NO_PAGO sin descuentos, el monto del pago se recalcula en la misma transacción (`MAX(0, SUM(precio x cantidad) - descuentos)`); si el pago está PAGADO o el pedido tiene un descuento aplicado, responde 409. Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con `cantidad` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; `productoId` \u003c= 0 o `cantidad` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6461,7 +6461,7 @@
                         }
                     },
                     "409": {
-                        "description": "Inventario insuficiente (con detalle en `data`)",
+                        "description": "Inventario insuficiente (con detalle en `data`) o pedido congelado (Cliente con pago asignado; personal con pago PAGADO o descuento aplicado)",
                         "schema": {
                             "allOf": [
                                 {
@@ -6495,7 +6495,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Un Cliente solo puede agregar productos a su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal, a cualquiera. Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de `cantidad` 0 se ignoran (debe quedar al menos una con `cantidad` \u003e 0); `productoId` \u003c= 0 o `cantidad` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).",
+                "description": "Un Cliente solo puede agregar productos a su propio pedido (uno ajeno responde 404, igual que si no existiera) y solo mientras el pedido NO tenga pago asignado: después responde 409 (el monto del pago salió de esos productos). El personal puede agregar a cualquiera; si el pedido tiene un pago PENDIENTE/NO_PAGO sin descuentos, el monto del pago se recalcula en la misma transacción (`MAX(0, SUM(precio x cantidad) - descuentos)`); si el pago está PAGADO o el pedido tiene un descuento aplicado, responde 409. Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de `cantidad` 0 se ignoran (debe quedar al menos una con `cantidad` \u003e 0); `productoId` \u003c= 0 o `cantidad` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6555,7 +6555,7 @@
                         }
                     },
                     "409": {
-                        "description": "Inventario insuficiente (con detalle en `data`) o producto ya presente en el pedido",
+                        "description": "Inventario insuficiente (con detalle en `data`), producto ya presente en el pedido, o pedido congelado (Cliente con pago asignado; personal con pago PAGADO o descuento aplicado)",
                         "schema": {
                             "allOf": [
                                 {
@@ -12997,9 +12997,14 @@
                     "example": 1
                 },
                 "monto": {
-                    "description": "entero \u003e 0",
+                    "description": "Cliente: se ignora; personal: manual \u003e 0, o 0/omitido con pedidoId para usar el calculado",
                     "type": "integer",
                     "example": 50000
+                },
+                "pedidoId": {
+                    "description": "pedido del que se calcula el monto (obligatorio para un Cliente)",
+                    "type": "integer",
+                    "example": 10
                 },
                 "updatedBy": {
                     "type": "string",

@@ -221,7 +221,7 @@ func TestAssignPagoCliente(t *testing.T) {
 	}
 	dueno(t)
 	// el cliente nunca termina el pedido ni marca el pago: ni explícito ni por defecto (403 antes de tocar la BD)
-	serve(count("pedido", 0), count("pago", 1), pedidoSinPago())
+	serve(append(montoRoutes(0, 50000, 2), count("pedido", 0), count("pago", 1), pedidoSinPago())...)
 	call(t, http.MethodPost, base, "", a, http.StatusForbidden)
 	call(t, http.MethodPost, base+"&cambiar_estado=true", "", a, http.StatusForbidden)
 	if len(seen) != 0 || len(g.eventos) != 0 {
@@ -240,12 +240,12 @@ func TestAssignPagoCliente(t *testing.T) {
 	call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusNotFound)
 	dueno(t)
 	// pago que ya es de otro pedido
-	serve(count("pedido", 1), count("pago", 1), pedidoSinPago())
+	serve(append(montoRoutes(0, 50000, 2), count("pedido", 1), count("pago", 1), pedidoSinPago())...)
 	if b := call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusNotFound); !strings.Contains(b, "Pago no encontrado") {
 		t.Fatalf("pago de otro pedido: %s", b)
 	}
 	// el pedido ya tiene pago: no se reemplaza
-	serve(count("pedido", 0), count("pago", 1), pedidoOK())
+	serve(append(montoRoutes(4, 50000, 2), count("pedido", 0), count("pago", 1), pedidoOK())...)
 	if b := call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusConflict); !strings.Contains(b, "ya tiene un pago") {
 		t.Fatalf("reemplazo de pago: %s", b)
 	}

@@ -12,6 +12,7 @@ import (
 	"restaurante/database"
 	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
+	"restaurante/internal/montopedido"
 	"restaurante/internal/notify"
 	"restaurante/logging"
 	"restaurante/models"
@@ -439,9 +440,47 @@ func (c *PedidoController) AssignDomicilio() {
 	httpx.Send(&c.Controller, http.StatusOK, "Domicilio asignado correctamente", *pedido)
 }
 
+// fijarMontoCliente prepara la asignación de un pago por un Cliente dentro de tx:
+// bloquea el pedido, exige que aún no tenga pago (409) y productos (409), y deja
+// en el pago PENDIENTE el monto calculado por el servidor (409 si el pago no está
+// PENDIENTE). Si responde un error deshace tx y devuelve false.
+func (c *PedidoController) fijarMontoCliente(tx orm.TxOrmer, pedidoID, pagoID int64, ctxLog map[string]interface{}) bool {
+	abortar := func(status int, msg string, err error) bool {
+		_ = tx.Rollback()
+		if status == http.StatusInternalServerError {
+			c.dbError("assign_pago.monto_error", msg, err, ctxLog)
+		} else {
+			c.fail(status, msg, nil)
+		}
+		return false
+	}
+	var pagoActual int64
+	if err := tx.Raw("SELECT COALESCE(pk_id_pago, 0) FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", pedidoID).QueryRow(&pagoActual); err != nil {
+		return abortar(http.StatusInternalServerError, "Error al bloquear el pedido", err)
+	}
+	if pagoActual > 0 {
+		return abortar(http.StatusConflict, "El pedido ya tiene un pago asignado", nil)
+	}
+	m, err := montopedido.Calcular(tx, pedidoID)
+	if err != nil {
+		return abortar(http.StatusInternalServerError, "Error al calcular el monto del pedido", err)
+	}
+	if m.Lineas == 0 {
+		return abortar(http.StatusConflict, "El pedido no tiene productos: no se puede asignar un pago", nil)
+	}
+	res, err := tx.Raw("UPDATE pago SET monto = ?, updated_at = ? WHERE pk_id_pago = ? AND estado_pago = ?", m.Total, time.Now().UTC(), pagoID, models.EstadoPagoPendiente).Exec()
+	if err != nil {
+		return abortar(http.StatusInternalServerError, "Error al fijar el monto del pago", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return abortar(http.StatusConflict, "Un cliente solo puede asignar un pago en estado PENDIENTE", nil)
+	}
+	return true
+}
+
 // @Title AssignPago
 // @Summary Asignar un pago a un pedido
-// @Description Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano). Un Cliente solo puede vincular un pago a su propio pedido (uno ajeno responde 404) y siempre con `cambiar_estado=false` (403 si es true o se omite, porque terminar el pedido y marcar el pago PAGADO es cosa del personal); además el pago no puede pertenecer a otro pedido (404) y el pedido no puede tener ya un pago (409, para no cambiar el monto tras aplicar descuentos).
+// @Description Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano). Un Cliente solo puede vincular un pago a su propio pedido (uno ajeno responde 404) y siempre con `cambiar_estado=false` (403 si es true o se omite, porque terminar el pedido y marcar el pago PAGADO es cosa del personal); además el pago no puede pertenecer a otro pedido (404) y el pedido no puede tener ya un pago (409, para no cambiar el monto tras aplicar descuentos). EL SERVIDOR MANDA EL MONTO: al asignar el pago de un Cliente, en la misma transacción y con el pedido bloqueado, el servidor recalcula `pago.monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos aplicados)` y lo guarda, cualquiera que fuera el monto con el que se creó el pago; responde 409 si el pedido no tiene productos o si el pago no está PENDIENTE. Desde ese momento el pedido queda congelado para el Cliente (`/producto_pedido` responde 409). El personal conserva el monto del pago tal cual (ajustes de mostrador).
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -453,7 +492,7 @@ func (c *PedidoController) AssignDomicilio() {
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 403 {object} models.ApiResponse "Un Cliente pidió cambiar_estado=true (explícito o por defecto)"
 // @Failure 404 {object} models.ApiResponse "Pedido o pago no encontrado (para un Cliente, también si son de otro cliente)"
-// @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes, o un Cliente intenta reemplazar el pago ya asignado"
+// @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes, o un Cliente intenta reemplazar el pago ya asignado, asignar un pago que no está PENDIENTE o pagar un pedido sin productos"
 // @Failure 500 {object} models.ApiResponse "Error al asignar pago"
 // @Security BearerAuth
 // @Router /pedidos/asignar-pago [post]
@@ -491,16 +530,15 @@ func (c *PedidoController) AssignPago() {
 		if c.enOtroPedido(o, "assign_pago", "PK_ID_PAGO", pagoID, pedido.PK_ID_PEDIDO, msgPagoNoEncontrado) {
 			return
 		}
-		if pedido.PK_ID_PAGO != nil {
-			c.fail(http.StatusConflict, "El pedido ya tiene un pago asignado", nil)
-			return
-		}
 	}
 
 	ctxLog := map[string]interface{}{"pedido_id": pedido.PK_ID_PEDIDO, "pago_id": pagoID, "cambiar_estado": cambiarEstado}
 	tx, err := o.Begin()
 	if err != nil {
 		c.dbError("assign_pago.tx_begin_error", "Error al asignar pago", err, ctxLog)
+		return
+	}
+	if !claims.IsStaff() && !c.fijarMontoCliente(tx, pedido.PK_ID_PEDIDO, pagoID, ctxLog) {
 		return
 	}
 	cols := []string{"PK_ID_PAGO", "UPDATED_AT"}

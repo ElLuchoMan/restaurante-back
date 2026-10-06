@@ -153,14 +153,18 @@ type ProductoPedidoItemInput struct {
 
 type ProductoPedidoUpdateRequest []ProductoPedidoItemInput
 
-// PagoCreateRequest es el cuerpo de POST /pagos. Todos los campos salvo
-// updatedBy son obligatorios.
+// PagoCreateRequest es el cuerpo de POST /pagos. Obligatorios: estadoPago,
+// fechaPago, horaPago y metodoPagoId. El monto lo calcula el servidor desde el
+// pedido: un Cliente debe enviar pedidoId y su `monto` se ignora; el personal
+// puede dejar `monto` en 0/omitido con pedidoId (usa el calculado) o fijar uno
+// manual > 0 (sin pedidoId es obligatorio).
 type PagoCreateRequest struct {
 	EstadoPago   string `json:"estadoPago" enums:"PAGADO,PENDIENTE,NO_PAGO" example:"PAGADO"`
-	FechaPago    string `json:"fechaPago" example:"2025-01-31"` // YYYY-MM-DD
-	HoraPago     string `json:"horaPago" example:"14:30:00"`    // HH:MM o HH:MM:SS
-	MetodoPagoId int64  `json:"metodoPagoId" example:"1"`       // debe existir
-	Monto        int64  `json:"monto" example:"50000"`          // entero > 0
+	FechaPago    string `json:"fechaPago" example:"2025-01-31"`  // YYYY-MM-DD
+	HoraPago     string `json:"horaPago" example:"14:30:00"`     // HH:MM o HH:MM:SS
+	MetodoPagoId int64  `json:"metodoPagoId" example:"1"`        // debe existir
+	PedidoId     int64  `json:"pedidoId,omitempty" example:"10"` // pedido del que se calcula el monto (obligatorio para un Cliente)
+	Monto        int64  `json:"monto,omitempty" example:"50000"` // Cliente: se ignora; personal: manual > 0, o 0/omitido con pedidoId para usar el calculado
 	UpdatedBy    string `json:"updatedBy,omitempty" example:"operador@example.com"`
 }
 

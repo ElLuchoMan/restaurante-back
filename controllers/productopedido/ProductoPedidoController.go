@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"restaurante/controllers/login"
 	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
+	"restaurante/internal/montopedido"
 	"restaurante/logging"
 	"restaurante/models"
 
@@ -33,6 +35,9 @@ const (
 	msgPedidoNoEncontrado = "Pedido no encontrado"
 	msgPedidoIDInvalido   = "El parámetro 'pedido_id' es obligatorio y debe ser un entero positivo"
 	msgInventario         = "Inventario insuficiente para uno o más productos"
+	msgPedidoCongelado    = "El pedido ya tiene un pago asignado: sus productos no se pueden modificar"
+	msgPedidoPagado       = "El pago del pedido ya está PAGADO: sus productos no se pueden modificar"
+	msgPedidoDescuento    = "El pedido tiene un descuento aplicado: sus productos no se pueden modificar porque el monto del pago ya lo refleja"
 )
 
 func (c *ProductoPedidoController) fail(status int, msg string, err error) {
@@ -51,33 +56,92 @@ func (c *ProductoPedidoController) failTx(tx orm.TxOrmer, op, msg string, err er
 	c.fail(http.StatusInternalServerError, msg, err)
 }
 
-// begin abre una transacción y bloquea la fila del pedido. Devuelve false si
-// ya respondió (404 si el pedido no existe o, para un Cliente, no es suyo; 500
-// en otro error).
-func (c *ProductoPedidoController) begin(op string, pedidoID int64, claims *login.Claims) (orm.TxOrmer, bool) {
+// begin abre una transacción, bloquea la fila del pedido y, si el pedido ya
+// tiene un pago asignado, valida que sus productos puedan cambiar (ver
+// puedeModificar). Devuelve el id del pago (0 si no tiene) y false si ya
+// respondió (404 si el pedido no existe o, para un Cliente, no es suyo; 409 si
+// está congelado; 500 en otro error).
+func (c *ProductoPedidoController) begin(op string, pedidoID int64, claims *login.Claims) (orm.TxOrmer, int64, bool) {
 	ctx := map[string]interface{}{"pedido_id": pedidoID}
 	tx, err := orm.NewOrm().Begin()
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "producto_pedido."+op+".tx_begin_error", err, ctx)
 		c.fail(http.StatusInternalServerError, "No fue posible iniciar transacción", err)
-		return nil, false
+		return nil, 0, false
 	}
-	var cliente int64
-	if err := tx.Raw("SELECT COALESCE(pk_documento_cliente, 0) FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", pedidoID).QueryRow(&cliente); err != nil {
+	var cliente, pagoID int64
+	if err := tx.Raw("SELECT COALESCE(pk_documento_cliente, 0), COALESCE(pk_id_pago, 0) FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", pedidoID).QueryRow(&cliente, &pagoID); err != nil {
 		if errors.Is(err, orm.ErrNoRows) {
 			_ = tx.Rollback()
 			c.fail(http.StatusNotFound, msgPedidoNoEncontrado, nil)
-			return nil, false
+			return nil, 0, false
 		}
 		c.failTx(tx, op+".lock_pedido_error", "No fue posible bloquear el pedido para actualización", err, ctx)
-		return nil, false
+		return nil, 0, false
 	}
 	if !authz.EsDuenio(claims, cliente) {
 		_ = tx.Rollback()
 		c.fail(http.StatusNotFound, msgPedidoNoEncontrado, nil)
-		return nil, false
+		return nil, 0, false
 	}
-	return tx, true
+	if pagoID > 0 && !c.puedeModificar(tx, op, claims, pagoID) {
+		return nil, 0, false
+	}
+	return tx, pagoID, true
+}
+
+// puedeModificar decide si se pueden cambiar los productos de un pedido que ya
+// tiene el pago pagoID (el pedido ya está bloqueado en tx). Un Cliente nunca
+// (409): el monto del pago salió de esos productos y no puede cambiar tras
+// asignarlo. El personal sí, salvo que el pago esté PAGADO (409) o el pedido
+// tenga un descuento aplicado (409: se calculó sobre los productos anteriores);
+// en los demás casos begin recalcula el monto del pago (ver recalcularPago).
+// Si responde un error deshace tx y devuelve false.
+func (c *ProductoPedidoController) puedeModificar(tx orm.TxOrmer, op string, claims *login.Claims, pagoID int64) bool {
+	if !claims.IsStaff() {
+		_ = tx.Rollback()
+		c.fail(http.StatusConflict, msgPedidoCongelado, nil)
+		return false
+	}
+	ctx := map[string]interface{}{"pago_id": pagoID}
+	var estado string
+	var descuentos int64
+	if err := tx.Raw("SELECT estado_pago FROM pago WHERE pk_id_pago = ? FOR UPDATE", pagoID).QueryRow(&estado); err != nil {
+		c.failTx(tx, op+".lock_pago_error", "No fue posible bloquear el pago del pedido", err, ctx)
+		return false
+	}
+	if estado == models.EstadoPagoPagado {
+		_ = tx.Rollback()
+		c.fail(http.StatusConflict, msgPedidoPagado, nil)
+		return false
+	}
+	if err := tx.Raw("SELECT COUNT(*) FROM pedido_descuento_aplicado d JOIN pedido p ON p.pk_id_pedido = d.pk_id_pedido WHERE p.pk_id_pago = ?", pagoID).QueryRow(&descuentos); err != nil {
+		c.failTx(tx, op+".descuentos_error", "Error al validar los descuentos del pedido", err, ctx)
+		return false
+	}
+	if descuentos > 0 {
+		_ = tx.Rollback()
+		c.fail(http.StatusConflict, msgPedidoDescuento, nil)
+		return false
+	}
+	return true
+}
+
+// recalcularPago deja en el pago pagoID (PENDIENTE o NO_PAGO, sin descuentos) el
+// monto calculado con los productos que quedaron en el pedido. Va en la misma
+// transacción que el cambio de productos. Devuelve false si ya respondió.
+func (c *ProductoPedidoController) recalcularPago(tx orm.TxOrmer, op string, pedidoID, pagoID int64) bool {
+	ctx := map[string]interface{}{"pedido_id": pedidoID, "pago_id": pagoID}
+	m, err := montopedido.Calcular(tx, pedidoID)
+	if err != nil {
+		c.failTx(tx, op+".recalcular_monto_error", "Error al calcular el monto del pedido", err, ctx)
+		return false
+	}
+	if _, err := tx.Raw("UPDATE pago SET monto = ?, updated_at = ? WHERE pk_id_pago = ?", m.Total, time.Now().UTC(), pagoID).Exec(); err != nil {
+		c.failTx(tx, op+".actualizar_pago_error", "Error al actualizar el monto del pago", err, ctx)
+		return false
+	}
+	return true
 }
 
 func sortedIDs[V any](m map[int64]V) []int64 {
@@ -183,6 +247,15 @@ func (c *ProductoPedidoController) commit(tx orm.TxOrmer, op string, pedidoID in
 	return true
 }
 
+// cerrar recalcula el monto del pago del pedido (si ya tiene uno) y confirma la
+// transacción. Devuelve false si ya respondió.
+func (c *ProductoPedidoController) cerrar(tx orm.TxOrmer, op string, pedidoID, pagoID int64) bool {
+	if pagoID > 0 && !c.recalcularPago(tx, op, pedidoID, pagoID) {
+		return false
+	}
+	return c.commit(tx, op, pedidoID)
+}
+
 // parseItems valida las líneas y las consolida por producto (las repetidas se
 // suman). Un productoId <= 0 o una cantidad negativa es un error; las líneas
 // con cantidad 0 se conservan en el mapa solo si keepZero (PUT: quitan el
@@ -265,7 +338,7 @@ func (c *ProductoPedidoController) GetAll() {
 
 // @Title Post
 // @Summary Agregar productos a un pedido
-// @Description Un Cliente solo puede agregar productos a su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal, a cualquiera. Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de `cantidad` 0 se ignoran (debe quedar al menos una con `cantidad` > 0); `productoId` <= 0 o `cantidad` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).
+// @Description Un Cliente solo puede agregar productos a su propio pedido (uno ajeno responde 404, igual que si no existiera) y solo mientras el pedido NO tenga pago asignado: después responde 409 (el monto del pago salió de esos productos). El personal puede agregar a cualquiera; si el pedido tiene un pago PENDIENTE/NO_PAGO sin descuentos, el monto del pago se recalcula en la misma transacción (`MAX(0, SUM(precio x cantidad) - descuentos)`); si el pago está PAGADO o el pedido tiene un descuento aplicado, responde 409. Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de `cantidad` 0 se ignoran (debe quedar al menos una con `cantidad` > 0); `productoId` <= 0 o `cantidad` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).
 // @Tags producto_pedido
 // @Accept json
 // @Produce json
@@ -274,7 +347,7 @@ func (c *ProductoPedidoController) GetAll() {
 // @Failure 400 {object} models.ApiResponse "JSON inválido, pedidoId inválido, sin líneas válidas, productoId <= 0 o cantidad negativa"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 404 {object} models.ApiResponse "Pedido o producto no encontrado (para un Cliente, el pedido ajeno también)"
-// @Failure 409 {object} models.ApiResponse{data=[]models.InventarioInsuficienteDoc} "Inventario insuficiente (con detalle en `data`) o producto ya presente en el pedido"
+// @Failure 409 {object} models.ApiResponse{data=[]models.InventarioInsuficienteDoc} "Inventario insuficiente (con detalle en `data`), producto ya presente en el pedido, o pedido congelado (Cliente con pago asignado; personal con pago PAGADO o descuento aplicado)"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [post]
@@ -303,12 +376,12 @@ func (c *ProductoPedidoController) Post() {
 		return
 	}
 
-	tx, ok := c.begin("post", input.PedidoId, claims)
+	tx, pagoID, ok := c.begin("post", input.PedidoId, claims)
 	if !ok || !c.checkStock(tx, "post", nuevos) || !c.applyDeltas(tx, "post", nuevos) {
 		return
 	}
 	detalles, ok := c.insertDetalles(tx, "post", input.PedidoId, nuevos)
-	if !ok || !c.commit(tx, "post", input.PedidoId) {
+	if !ok || !c.cerrar(tx, "post", input.PedidoId, pagoID) {
 		return
 	}
 	httpx.Send(&c.Controller, http.StatusCreated, "Pedido con productos agregado exitosamente", productoPedidoData{PedidoID: input.PedidoId, Detalles: detalles})
@@ -316,7 +389,7 @@ func (c *ProductoPedidoController) Post() {
 
 // @Title Update
 // @Summary Reemplazar los productos de un pedido
-// @Description Un Cliente solo puede modificar los productos de su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal, los de cualquiera. Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con `cantidad` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; `productoId` <= 0 o `cantidad` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}).
+// @Description Un Cliente solo puede modificar los productos de su propio pedido (uno ajeno responde 404, igual que si no existiera) y solo mientras el pedido NO tenga pago asignado: después responde 409 (el monto del pago salió de esos productos). El personal puede modificar los de cualquiera; si el pedido tiene un pago PENDIENTE/NO_PAGO sin descuentos, el monto del pago se recalcula en la misma transacción (`MAX(0, SUM(precio x cantidad) - descuentos)`); si el pago está PAGADO o el pedido tiene un descuento aplicado, responde 409. Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con `cantidad` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; `productoId` <= 0 o `cantidad` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}).
 // @Tags producto_pedido
 // @Accept json
 // @Produce json
@@ -326,7 +399,7 @@ func (c *ProductoPedidoController) Post() {
 // @Failure 400 {object} models.ApiResponse "pedido_id inválido, cuerpo que no es un arreglo, lista vacía, productoId <= 0 o cantidad negativa"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 404 {object} models.ApiResponse "Pedido o producto no encontrado (para un Cliente, el pedido ajeno también)"
-// @Failure 409 {object} models.ApiResponse{data=[]models.InventarioInsuficienteDoc} "Inventario insuficiente (con detalle en `data`)"
+// @Failure 409 {object} models.ApiResponse{data=[]models.InventarioInsuficienteDoc} "Inventario insuficiente (con detalle en `data`) o pedido congelado (Cliente con pago asignado; personal con pago PAGADO o descuento aplicado)"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [put]
@@ -363,7 +436,7 @@ func (c *ProductoPedidoController) Update() {
 		}
 	}
 
-	tx, ok := c.begin("update", pedidoID, claims)
+	tx, pagoID, ok := c.begin("update", pedidoID, claims)
 	if !ok {
 		return
 	}
@@ -393,7 +466,7 @@ func (c *ProductoPedidoController) Update() {
 		return
 	}
 	detalles, ok := c.insertDetalles(tx, "update", pedidoID, nuevos)
-	if !ok || !c.commit(tx, "update", pedidoID) {
+	if !ok || !c.cerrar(tx, "update", pedidoID, pagoID) {
 		return
 	}
 	httpx.Send(&c.Controller, http.StatusOK, "Productos del pedido actualizados exitosamente", productoPedidoData{PedidoID: pedidoID, Detalles: detalles})

@@ -13,7 +13,7 @@ var (
 	detalleCols = []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "precio", "cantidad"}
 	prodCols    = []string{"pk_id_producto", "cantidad"}
 	countCols   = []string{"count"}
-	lockCols    = []string{"?column?"}
+	lockCols    = []string{"documento", "pago"}
 )
 
 // stock programa el inventario por producto; actuales, las líneas que ya tiene
@@ -25,19 +25,45 @@ type world struct {
 	actuales map[int64]int64
 	lockErr  error
 	listErr  error
+
+	// pago asignado al pedido (0 = sin pago) y su estado; descuentos aplicados
+	pagoID, descuentos int64
+	pagoEstado         string
+	// subtotal y lineas es lo que devuelve la suma del detalle (recálculo del monto)
+	subtotal, lineas int64
+	pagoErr          error // error al bloquear el pago
+	descErr          error // error al contar descuentos
+	montoErr         error // error al calcular el monto
 }
 
 func (w *world) serve() {
 	fakeQuery = func(q string, args []driver.NamedValue) (driver.Rows, error) {
 		switch {
-		case strings.Contains(q, "FOR UPDATE") && strings.Contains(q, "FROM pedido"):
+		case strings.Contains(q, "FROM pedido WHERE") && strings.Contains(q, "FOR UPDATE"):
 			if w.lockErr != nil {
 				return nil, w.lockErr
 			}
 			if !w.pedido {
 				return rowsOf(lockCols), nil
 			}
-			return rowsOf(lockCols, []driver.Value{w.dueno}), nil
+			return rowsOf(lockCols, []driver.Value{w.dueno, w.pagoID}), nil
+		case strings.Contains(q, "FROM pago WHERE"):
+			if w.pagoErr != nil {
+				return nil, w.pagoErr
+			}
+			return rowsOf([]string{"estado_pago"}, []driver.Value{w.pagoEstado}), nil
+		case strings.Contains(q, "pedido_descuento_aplicado d JOIN"):
+			if w.descErr != nil {
+				return nil, w.descErr
+			}
+			return rowsOf(countCols, []driver.Value{w.descuentos}), nil
+		case strings.Contains(q, "SUM(precio * cantidad)"):
+			if w.montoErr != nil {
+				return nil, w.montoErr
+			}
+			return rowsOf([]string{"subtotal", "lineas"}, []driver.Value{w.subtotal, w.lineas}), nil
+		case strings.Contains(q, "SUM(monto_descuento)"):
+			return rowsOf([]string{"descuento"}, []driver.Value{int64(0)}), nil
 		case strings.Contains(q, "FROM producto"):
 			var vals [][]driver.Value
 			for _, a := range args {
@@ -70,7 +96,7 @@ func (w *world) serve() {
 }
 
 func newWorld() *world {
-	w := &world{pedido: true, dueno: 1001, stock: map[int64]int64{1: 10, 2: 10, 3: 1}, actuales: map[int64]int64{}}
+	w := &world{pedido: true, dueno: 1001, pagoEstado: "PENDIENTE", subtotal: 50000, lineas: 2, stock: map[int64]int64{1: 10, 2: 10, 3: 1}, actuales: map[int64]int64{}}
 	w.serve()
 	return w
 }
