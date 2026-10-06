@@ -31,9 +31,8 @@ const (
 	layoutFecha = "2006-01-02"
 	layoutHora  = "15:04:05"
 
-	msgEstadoInvalido = "El estado debe ser uno de: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA"
-	msgNoEncontrada   = "Reserva no encontrada"
-	msgSinToken       = "Token ausente o inválido"
+	msgNoEncontrada = "Reserva no encontrada"
+	msgSinToken     = "Token ausente o inválido" //nolint:gosec // mensaje de error, no una credencial
 )
 
 // consultaRL limita por IP la consulta pública de invitado (anti-enumeración).
@@ -213,7 +212,7 @@ func parseHora(s string) (time.Time, *apiError) {
 func parseEstado(s string) (models.EstadoReserva, *apiError) {
 	estado := models.EstadoReserva(s)
 	if !estadosPermitidos[estado] {
-		return "", newErr(http.StatusBadRequest, "Estado de reserva inválido", errors.New(msgEstadoInvalido))
+		return "", newErr(http.StatusBadRequest, "Estado de reserva inválido", errors.New("el estado debe ser uno de: PENDIENTE, CONFIRMADA, CANCELADA, CUMPLIDA"))
 	}
 	return estado, nil
 }

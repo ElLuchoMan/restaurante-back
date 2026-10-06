@@ -62,7 +62,7 @@ func avisoDomicilioPedido(ev Evento) *models.EnviarNotificacionRequest {
 	return paraTrabajadores(
 		"Nuevo pedido con domicilio",
 		fmt.Sprintf("Se ha creado un nuevo pedido (#%d) que requiere asignación de domiciliario. Domicilio #%d.", ev.PedidoID, ev.DomicilioID),
-		map[string]any{"tipo": "PEDIDO_DOMICILIO", "pedidoId": ev.PedidoID, "domicilioId": ev.DomicilioID, "url": urlDomicilios},
+		map[string]any{claveTipo: "PEDIDO_DOMICILIO", clavePedidoID: ev.PedidoID, "domicilioId": ev.DomicilioID, claveURL: urlDomicilios},
 	)
 }
 
@@ -71,14 +71,14 @@ func pedidoCreado(ev Evento) []*models.EnviarNotificacionRequest {
 	if ev.Cliente > 0 {
 		out = append(out, paraCliente(ev.Cliente, "Pedido recibido",
 			"Recibimos tu pedido exitosamente. Pronto recibirás actualizaciones sobre su estado. ¡Gracias por tu compra!",
-			map[string]any{"tipo": "PEDIDO", "pedidoId": ev.PedidoID, "url": urlMisPedidos}))
+			map[string]any{claveTipo: "PEDIDO", clavePedidoID: ev.PedidoID, claveURL: urlMisPedidos}))
 	}
 	if ev.DomicilioID > 0 {
 		return append(out, avisoDomicilioPedido(ev))
 	}
 	return append(out, paraTrabajadores("Nuevo pedido",
 		fmt.Sprintf("Se ha creado un nuevo pedido (#%d).", ev.PedidoID),
-		map[string]any{"tipo": "PEDIDO_NUEVO", "pedidoId": ev.PedidoID, "url": urlPedidosAdmin}))
+		map[string]any{claveTipo: "PEDIDO_NUEVO", clavePedidoID: ev.PedidoID, claveURL: urlPedidosAdmin}))
 }
 
 func pedidoEstado(ev Evento) []*models.EnviarNotificacionRequest {
@@ -99,7 +99,7 @@ func pedidoEstado(ev Evento) []*models.EnviarNotificacionRequest {
 		return nil
 	}
 	return []*models.EnviarNotificacionRequest{paraCliente(ev.Cliente, titulo, mensaje,
-		map[string]any{"tipo": "PEDIDO", "pedidoId": ev.PedidoID, "estado": ev.Estado, "url": urlMisPedidos})}
+		map[string]any{claveTipo: "PEDIDO", clavePedidoID: ev.PedidoID, claveEstado: ev.Estado, claveURL: urlMisPedidos})}
 }
 
 func domicilioCliente(ev Evento, titulo, mensaje, estado string) []*models.EnviarNotificacionRequest {
@@ -107,7 +107,7 @@ func domicilioCliente(ev Evento, titulo, mensaje, estado string) []*models.Envia
 		return nil
 	}
 	return []*models.EnviarNotificacionRequest{paraCliente(ev.Cliente, titulo, mensaje,
-		map[string]any{"tipo": "DOMICILIO", "pedidoId": ev.PedidoID, "domicilioId": ev.DomicilioID, "estado": estado, "url": urlMisPedidos})}
+		map[string]any{claveTipo: "DOMICILIO", clavePedidoID: ev.PedidoID, "domicilioId": ev.DomicilioID, claveEstado: estado, claveURL: urlMisPedidos})}
 }
 
 // fechaHora devuelve la fecha como dd/mm y la hora como HH:MM (24 h, como en
@@ -129,7 +129,7 @@ func urlReserva(id int64) string {
 }
 
 func datosReserva(ev Evento, estado, url string) map[string]any {
-	return map[string]any{"tipo": "RESERVA", "reservaId": ev.ReservaID, "estado": estado, "url": url}
+	return map[string]any{claveTipo: "RESERVA", "reservaId": ev.ReservaID, claveEstado: estado, claveURL: url}
 }
 
 func reservaCreada(ev Evento) []*models.EnviarNotificacionRequest {
@@ -172,3 +172,11 @@ func reservaEstado(ev Evento) []*models.EnviarNotificacionRequest {
 	}
 	return out
 }
+
+// Claves del payload de datos de las notificaciones.
+const (
+	claveTipo     = "tipo"
+	clavePedidoID = "pedidoId"
+	claveEstado   = "estado"
+	claveURL      = "url"
+)

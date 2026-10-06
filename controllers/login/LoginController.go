@@ -127,7 +127,7 @@ var (
 // dummyPasswordHash es un hash bcrypt (coste por defecto, como los reales) de
 // una contraseña que nadie conoce. Se compara cuando el documento no existe
 // para que el tiempo de respuesta no delate si el usuario existe.
-const dummyPasswordHash = "$2a$10$hbPKcw2MXQ9rgr8hnenlyebvg3DNxmx.qAHXd8OPL7e8z4d3K4OXi"
+const dummyPasswordHash = "$2a$10$hbPKcw2MXQ9rgr8hnenlyebvg3DNxmx.qAHXd8OPL7e8z4d3K4OXi" //nolint:gosec // hash ficticio, no es una credencial
 
 type rateEntry struct {
 	count int
