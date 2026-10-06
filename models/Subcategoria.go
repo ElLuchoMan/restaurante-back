@@ -4,10 +4,11 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
+// Subcategoria: categoriaId se serializa como objeto {categoriaId, nombre}.
 type Subcategoria struct {
 	PK_ID_SUBCATEGORIA int64      `orm:"column(pk_id_subcategoria);pk;auto" json:"subcategoriaId"`
 	NOMBRE             string     `orm:"column(nombre);type(text)" json:"nombre"`
-	PK_ID_CATEGORIA    *Categoria `orm:"column(pk_id_categoria);rel(fk)" json:"categoriaId" swaggertype:"integer"`
+	PK_ID_CATEGORIA    *Categoria `orm:"column(pk_id_categoria);rel(fk)" json:"categoriaId"`
 }
 
 func (s *Subcategoria) TableName() string {

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -18,9 +17,9 @@ type Cupon struct {
 	MontoMinimo        *int64        `orm:"column(monto_minimo);type(bigint);null" json:"montoMinimo,omitempty"`
 	FechaInicio        time.Time     `orm:"column(fecha_inicio);type(date)" json:"fechaInicio"`
 	FechaFin           time.Time     `orm:"column(fecha_fin);type(date)" json:"fechaFin"`
-	PkIdProducto       *Producto     `orm:"column(pk_id_producto);rel(fk);null" json:"productoId,omitempty" swaggertype:"integer"`
-	PkIdCategoria      *Categoria    `orm:"column(pk_id_categoria);rel(fk);null" json:"categoriaId,omitempty" swaggertype:"integer"`
-	PkDocumentoCliente *Cliente      `orm:"column(pk_documento_cliente);rel(fk);null" json:"documentoCliente,omitempty" swaggertype:"integer"`
+	PkIdProducto       *Producto     `orm:"column(pk_id_producto);rel(fk);null" json:"productoId,omitempty"`
+	PkIdCategoria      *Categoria    `orm:"column(pk_id_categoria);rel(fk);null" json:"categoriaId,omitempty"`
+	PkDocumentoCliente *Cliente      `orm:"column(pk_documento_cliente);rel(fk);null" json:"documentoCliente,omitempty"`
 	Activo             bool          `orm:"column(activo);type(boolean);default(true)" json:"activo"`
 }
 
@@ -37,7 +36,7 @@ func (c Cupon) MarshalJSON() ([]byte, error) {
 	fiStr := FormatDateUTC(c.FechaInicio)
 	ffStr := FormatDateUTC(c.FechaFin)
 
-	return json.Marshal(&struct {
+	return marshalSeguro(&struct {
 		PkIdCupon          int64         `json:"cuponId"`
 		Codigo             string        `json:"codigo"`
 		Scope              CuponScope    `json:"scope"`

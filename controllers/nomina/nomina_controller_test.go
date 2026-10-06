@@ -1,649 +1,287 @@
 package nomina
 
 import (
-	"context"
 	"database/sql/driver"
-	"encoding/json"
-	"errors"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-
-	"restaurante/models"
-
-	"github.com/beego/beego/v2/client/orm"
-	webCtx "github.com/beego/beego/v2/server/web/context"
 )
 
-func TestNominaGetAllWithoutDB(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+const (
+	qNomina    = `FROM "nomina"`
+	qMes       = `"fecha" >= `
+	qPorID     = `"pk_id_nomina" = `
+	qInsert    = `INSERT INTO "nomina"`
+	qUpdate    = `UPDATE "nomina"`
+	qControlIn = `INSERT INTO control_nomina`
+)
 
-	c.GetAll()
+var dia = time.Date(2025, 1, 20, 0, 0, 0, 0, time.UTC)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al obtener nóminas") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+func fila(id int64, fecha time.Time, estado string) []driver.Value {
+	return []driver.Value{id, fecha, int64(4500000), estado}
 }
 
-func TestNominaPostInvalidJSON(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", strings.NewReader("notjson"))
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
+func nominaRows(match string, filas ...[]driver.Value) *res {
+	return &res{match: match, cols: 4, rows: filas}
 }
 
-func TestNominaPostDBError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"estadoNomina\":\"OTRO\",\"fechaNomina\":\"2024-01-20\"}")
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+// ---------- GET /nominas ----------
 
-	orig := findExistingNominaFn
-	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) { return nil, orm.ErrNoRows }
-	t.Cleanup(func() { findExistingNominaFn = orig })
-
-	c.Post()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
+func TestGetAllFiltrosYFormato(t *testing.T) {
+	filas := [][]driver.Value{
+		fila(1, dia, "NO_PAGO"),
+		fila(2, time.Date(2025, 2, 25, 0, 0, 0, 0, time.UTC), "PAGO"),
+		fila(3, time.Date(2024, 2, 21, 0, 0, 0, 0, time.UTC), "PAGO"),
 	}
-	if !strings.Contains(w.Body.String(), "Error al crear la nómina") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	casos := map[string]int{
+		"/nominas":                        3,
+		"/nominas?fecha=2025-01-20":       1,
+		"/nominas?mes=2":                  2,
+		"/nominas?anio=2025":              2,
+		"/nominas?mes=2&anio=2025":        1,
+		"/nominas?fecha=2025-01-21":       0,
+		"/nominas?fecha=2025-01-20&mes=2": 0,
 	}
-}
-
-func TestNominaPostBeforeDay20(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"fechaNomina\":\"2024-01-10\"}")
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	orig := findExistingNominaFn
-	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) { return nil, orm.ErrNoRows }
-	t.Cleanup(func() { findExistingNominaFn = orig })
-
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "No se puede generar una nómina") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestNominaPostExistingNomina(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"fechaNomina\":\"2024-01-20\"}")
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	origFind := findExistingNominaFn
-	origExec := MockExec
-	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) {
-		return &models.Nomina{PK_ID_NOMINA: 1, FECHA: fecha}, nil
-	}
-	MockExec = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { findExistingNominaFn = origFind; MockExec = origExec })
-
-	c.Post()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "REGENERADA") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestNominaPostExistingNominaExecError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"fechaNomina\":\"2024-01-20\"}")
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	origFind := findExistingNominaFn
-	origExec := MockExec
-	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) {
-		return &models.Nomina{PK_ID_NOMINA: 1, FECHA: fecha}, nil
-	}
-	MockExec = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Result, error) {
-		return nil, errors.New("exec error")
-	}
-	t.Cleanup(func() { findExistingNominaFn = origFind; MockExec = origExec })
-
-	c.Post()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al marcar nómina como REGENERADA") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestNominaPostDefaultDate(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"estadoNomina\":\"PAGO\"}")
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	origFind := findExistingNominaFn
-	origExec := MockExec
-	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) {
-		return &models.Nomina{PK_ID_NOMINA: 1, FECHA: fecha}, nil
-	}
-	MockExec = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { findExistingNominaFn = origFind; MockExec = origExec })
-
-	c.Post()
-	expected := http.StatusOK
-	if time.Now().Day() < 20 {
-		expected = http.StatusBadRequest
-	}
-	if w.Code != expected {
-		t.Fatalf("unexpected status %d", w.Code)
-	}
-}
-
-func TestNominaPostFindExistingError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"fechaNomina\":\"2024-01-20\"}")
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	orig := findExistingNominaFn
-	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) {
-		return nil, errors.New("boom")
-	}
-	t.Cleanup(func() { findExistingNominaFn = orig })
-
-	c.Post()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al validar nóminas del mes") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestNominaPostQueryError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"estadoNomina\":\"PAGO\",\"fechaNomina\":\"2024-01-20\"}")
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	origFind := findExistingNominaFn
-	origExec := MockExec
-	origQuery := MockQuery
-	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) { return nil, orm.ErrNoRows }
-	MockExec = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	MockQuery = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Rows, error) {
-		if strings.Contains(strings.ToUpper(q), "INSERT") {
-			return &mockRows{columns: []string{"pk_id_nomina"}, values: [][]driver.Value{{int64(1)}}}, nil
+	for target, esperadas := range casos {
+		programa(t, nominaRows(qNomina, filas...))
+		w := run("GET", target, "", (*NominaController).GetAll)
+		r := expect(t, w, http.StatusOK)
+		l := dataList(t, r)
+		if len(l) != esperadas {
+			t.Errorf("%s: esperaba %d nóminas, obtuve %d", target, esperadas, len(l))
 		}
-		return nil, errors.New("mock query error")
-	}
-	t.Cleanup(func() { findExistingNominaFn = origFind; MockExec = origExec; MockQuery = origQuery })
-
-	c.Post()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al verificar la nómina generada") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestNominaPostSuccess(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("{\"estadoNomina\":\"PAGO\",\"fechaNomina\":\"2024-01-20\"}")
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	origFind := findExistingNominaFn
-	origExec := MockExec
-	origQuery := MockQuery
-	findExistingNominaFn = func(o orm.Ormer, fecha time.Time) (*models.Nomina, error) { return nil, orm.ErrNoRows }
-	MockExec = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	MockQuery = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Rows, error) {
-		qUpper := strings.ToUpper(q)
-		if strings.Contains(qUpper, "INSERT") {
-			return &mockRows{columns: []string{"pk_id_nomina"}, values: [][]driver.Value{{int64(1)}}}, nil
+		if esperadas == 0 && !strings.Contains(w.Body.String(), `"data":[]`) {
+			t.Errorf("%s: data debe ser []: %s", target, w.Body.String())
 		}
-		return &mockRows{
-			columns: []string{"pk_id_nomina", "fecha", "monto", "estado_nomina"},
-			values:  [][]driver.Value{{int64(1), time.Now(), int64(0), string(models.EstadoNominaPago)}},
-		}, nil
 	}
-	t.Cleanup(func() { findExistingNominaFn = origFind; MockExec = origExec; MockQuery = origQuery })
-
-	c.Post()
-	if w.Code != http.StatusCreated {
-		t.Fatalf("expected status 201, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Nómina creada correctamente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	programa(t, nominaRows(qNomina, filas[0]))
+	r := expect(t, run("GET", "/nominas", "", (*NominaController).GetAll), http.StatusOK)
+	m := dataList(t, r)[0].(map[string]any)
+	if m["fechaNomina"] != "20-01-2025" || m["estadoNomina"] != "NO_PAGO" || m["monto"] != float64(4500000) || m["nominaId"] != float64(1) {
+		t.Fatalf("forma inesperada: %v", m)
 	}
 }
 
-func TestNominaPutInvalidID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Put()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
+func TestGetAllParametrosInvalidos(t *testing.T) {
+	programa(t)
+	for _, target := range []string{
+		"/nominas?fecha=20-01-2025", "/nominas?mes=13", "/nominas?mes=0", "/nominas?mes=x",
+		"/nominas?anio=0", "/nominas?anio=abc", "/nominas?anio=10000",
+	} {
+		expect(t, run("GET", target, "", (*NominaController).GetAll), http.StatusBadRequest)
+	}
+	if sqlEjecutado(qNomina) {
+		t.Fatal("no debe consultar con parámetros inválidos")
 	}
 }
 
-func TestNominaPutUpdateError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/nominas?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+func TestGetAllErrorDB(t *testing.T) {
+	programa(t, conError(qNomina))
+	expect(t, run("GET", "/nominas", "", (*NominaController).GetAll), http.StatusInternalServerError)
+}
 
-	c.Put()
+// ---------- POST /nominas ----------
 
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
+func TestPostCreaIgnorandoNominaIDYMonto(t *testing.T) {
+	programa(t,
+		nominaRows(qMes),
+		nominaRows(qPorID, fila(7, dia, "NO_PAGO")),
+	)
+	body := `{"nominaId":99,"monto":123,"fechaNomina":"2025-01-20","estadoNomina":"NO_PAGO"}`
+	w := run("POST", "/nominas", body, (*NominaController).Post)
+	r := expect(t, w, http.StatusCreated)
+	if dataMap(t, r)["nominaId"] != float64(7) {
+		t.Fatalf("debe devolver la nómina leída tras el trigger: %v", r.Data)
 	}
-	if !strings.Contains(w.Body.String(), "Error al actualizar el estado de la nómina") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	ins := execQue(qInsert)
+	if ins == nil {
+		t.Fatal("debe insertar")
+	}
+	for _, a := range ins.args {
+		if a.Value == int64(99) || a.Value == int64(123) {
+			t.Fatalf("nominaId/monto del cuerpo no deben llegar al INSERT: %v", ins.args)
+		}
+	}
+	if strings.Contains(ins.q, `"pk_id_nomina"`) && !strings.Contains(ins.q, "RETURNING") {
+		t.Fatalf("el id lo genera la base: %s", ins.q)
+	}
+	if ins.args[1].Value != int64(0) {
+		t.Fatalf("monto debe insertarse en 0 (lo calcula el trigger): %v", ins.args)
 	}
 }
 
-func TestNominaPutNotFound(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/nominas?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	orig := readNominaFn
-	readNominaFn = func(o orm.Ormer, n *models.Nomina) error { return orm.ErrNoRows }
-	t.Cleanup(func() { readNominaFn = orig })
-
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+func TestPostSinCuerpoUsaHoyYValidaDia(t *testing.T) {
+	programa(t, nominaRows(qMes), nominaRows(qPorID, fila(7, dia, "NO_PAGO")))
+	w := run("POST", "/nominas", "  ", (*NominaController).Post)
+	hoy := time.Now().Day()
+	if hoy < 20 {
+		expect(t, w, http.StatusBadRequest)
+		return
 	}
-	if !strings.Contains(w.Body.String(), "Nómina no encontrada") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	expect(t, w, http.StatusCreated)
+}
+
+func TestPostEstadoPorDefectoNoPago(t *testing.T) {
+	programa(t, nominaRows(qMes), nominaRows(qPorID, fila(7, dia, "NO_PAGO")))
+	expect(t, run("POST", "/nominas", `{"fechaNomina":"2025-01-20"}`, (*NominaController).Post), http.StatusCreated)
+	ins := execQue(qInsert)
+	if ins == nil || ins.args[2].Value != "NO_PAGO" {
+		t.Fatalf("estado por defecto NO_PAGO: %v", ins)
 	}
 }
 
-func TestNominaDeleteInvalidID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodDelete, "/nominas", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Delete()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
+func TestPostValidaciones400(t *testing.T) {
+	casos := map[string]string{
+		"json inválido":    `{`,
+		"fecha formato":    `{"fechaNomina":"20/01/2025"}`,
+		"día antes del 20": `{"fechaNomina":"2025-01-19"}`,
+		"estado inválido":  `{"fechaNomina":"2025-01-20","estadoNomina":"X"}`,
+		"estado vacío":     `{"fechaNomina":"2025-01-20","estadoNomina":""}`,
+	}
+	for nombre, body := range casos {
+		programa(t)
+		expect(t, run("POST", "/nominas", body, (*NominaController).Post), http.StatusBadRequest)
+		if sqlEjecutado(qNomina) {
+			t.Errorf("%s: no debe consultar ni insertar", nombre)
+		}
 	}
 }
 
-func TestNominaDeleteNotFound(t *testing.T) {
-	r := httptest.NewRequest(http.MethodDelete, "/nominas?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Delete()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+func TestPostMesExistenteMarcaRegenerada(t *testing.T) {
+	programa(t, nominaRows(qMes, fila(5, dia, "PAGO")))
+	r := expect(t, run("POST", "/nominas", `{"fechaNomina":"2025-01-25"}`, (*NominaController).Post), http.StatusOK)
+	if dataMap(t, r)["nominaId"] != float64(5) {
+		t.Fatalf("debe devolver la existente: %v", r.Data)
 	}
-	if !strings.Contains(w.Body.String(), "Nómina no encontrada") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	if execQue(qControlIn) == nil {
+		t.Fatal("debe marcar control_nomina como REGENERADA")
+	}
+	if execQue(qInsert) != nil {
+		t.Fatal("no debe insertar otra nómina")
 	}
 }
 
-func TestEstadosNominaPermitidos(t *testing.T) {
-	if !estadosNominaPermitidos[models.EstadoNominaPago] || !estadosNominaPermitidos[models.EstadoNominaNoPago] {
-		t.Fatalf("expected valid states to be allowed")
+func TestPostErrores(t *testing.T) {
+	body := `{"fechaNomina":"2025-01-20"}`
+	// error validando el mes
+	programa(t, conError(qMes))
+	expect(t, run("POST", "/nominas", body, (*NominaController).Post), http.StatusInternalServerError)
+
+	// error marcando control_nomina
+	programa(t, nominaRows(qMes, fila(5, dia, "PAGO")), conError(qControlIn))
+	expect(t, run("POST", "/nominas", body, (*NominaController).Post), http.StatusInternalServerError)
+
+	// error genérico al insertar
+	programa(t, nominaRows(qMes), conError(qInsert))
+	expect(t, run("POST", "/nominas", body, (*NominaController).Post), http.StatusInternalServerError)
+
+	// carrera: la fecha ya existe (unicidad) -> 409
+	programa(t, nominaRows(qMes), &res{match: qInsert, err: errUnique})
+	expect(t, run("POST", "/nominas", body, (*NominaController).Post), http.StatusConflict)
+
+	// error al releer la nómina creada
+	programa(t, nominaRows(qMes), conError(qPorID))
+	expect(t, run("POST", "/nominas", body, (*NominaController).Post), http.StatusInternalServerError)
+}
+
+// ---------- PUT /nominas ----------
+
+func TestPutSinCuerpoMarcaPago(t *testing.T) {
+	programa(t, nominaRows(qNomina, fila(5, dia, "NO_PAGO")))
+	w := run("PUT", "/nominas?id=5", "", (*NominaController).Put)
+	r := expect(t, w, http.StatusOK)
+	if dataMap(t, r)["estadoNomina"] != "PAGO" {
+		t.Fatalf("estado: %v", r.Data)
 	}
-	if estadosNominaPermitidos[models.EstadoNomina("otro")] {
-		t.Fatalf("unexpected state should not be allowed")
+	up := execQue(qUpdate)
+	if up == nil || !strings.Contains(up.q, `"estado_nomina"`) || strings.Contains(up.q, `"monto"`) || strings.Contains(up.q, `"fecha"`) {
+		t.Fatalf("solo debe actualizar estado_nomina: %v", up)
 	}
 }
 
-func TestNominaGetAllWithFilters(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/nominas?fecha=2024-01-01&mes=1&anio=2024", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	saved := queryAllNominas
-	queryAllNominas = func(o orm.Ormer, out *[]models.Nomina) (int64, error) {
-		*out = []models.Nomina{{FECHA: parseDate("2024-01-01").FECHA}}
-		return 1, nil
-	}
-	t.Cleanup(func() { queryAllNominas = saved })
-
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+func TestPutConEstadoExplicitoYCamposIgnorados(t *testing.T) {
+	programa(t, nominaRows(qNomina, fila(5, dia, "PAGO")))
+	r := expect(t, run("PUT", "/nominas?id=5", `{"estadoNomina":"NO_PAGO","monto":1,"fechaNomina":"2030-01-01","nominaId":9}`, (*NominaController).Put), http.StatusOK)
+	m := dataMap(t, r)
+	if m["estadoNomina"] != "NO_PAGO" || m["monto"] != float64(4500000) || m["fechaNomina"] != "20-01-2025" || m["nominaId"] != float64(5) {
+		t.Fatalf("solo cambia el estado: %v", m)
 	}
 }
 
-func TestNominaGetAllNoResults(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/nominas?fecha=2024-01-02", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+func TestPutObjetoVacioMarcaPago(t *testing.T) {
+	programa(t, nominaRows(qNomina, fila(5, dia, "NO_PAGO")))
+	expect(t, run("PUT", "/nominas?id=5", `{}`, (*NominaController).Put), http.StatusOK)
+}
 
-	saved := queryAllNominas
-	queryAllNominas = func(o orm.Ormer, out *[]models.Nomina) (int64, error) {
-		*out = []models.Nomina{{FECHA: parseDate("2024-01-01").FECHA}}
-		return 1, nil
-	}
-	t.Cleanup(func() { queryAllNominas = saved })
-
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "No se encontraron") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+func TestPutYaTeniaEseEstadoEs409(t *testing.T) {
+	programa(t, nominaRows(qNomina, fila(5, dia, "PAGO")))
+	expect(t, run("PUT", "/nominas?id=5", "", (*NominaController).Put), http.StatusConflict)
+	if sqlEjecutado(qUpdate) {
+		t.Fatal("no debe actualizar")
 	}
 }
 
-func TestNominaGetAllMesMismatch(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/nominas?mes=2", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	saved := queryAllNominas
-	queryAllNominas = func(o orm.Ormer, out *[]models.Nomina) (int64, error) {
-		*out = []models.Nomina{{FECHA: parseDate("2024-01-01").FECHA}}
-		return 1, nil
+func TestPutValidaciones400(t *testing.T) {
+	programa(t, nominaRows(qNomina, fila(5, dia, "NO_PAGO")))
+	for _, target := range []string{"/nominas", "/nominas?id=0", "/nominas?id=-1", "/nominas?id=x"} {
+		expect(t, run("PUT", target, "", (*NominaController).Put), http.StatusBadRequest)
 	}
-	t.Cleanup(func() { queryAllNominas = saved })
-
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "No se encontraron") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	for nombre, body := range map[string]string{
+		"json inválido": `{`, "null": `{"estadoNomina":null}`, "estado inválido": `{"estadoNomina":"X"}`, "tipo": `{"estadoNomina":3}`,
+	} {
+		programa(t, nominaRows(qNomina, fila(5, dia, "NO_PAGO")))
+		w := run("PUT", "/nominas?id=5", body, (*NominaController).Put)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("%s: esperaba 400, obtuve %d", nombre, w.Code)
+		}
+		decode(t, w)
+		if sqlEjecutado(qUpdate) {
+			t.Errorf("%s: no debe actualizar", nombre)
+		}
 	}
 }
 
-func TestNominaGetAllAnioMismatch(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/nominas?anio=2023", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+func TestPutNoEncontradoYErrores(t *testing.T) {
+	programa(t, nominaRows(qNomina))
+	expect(t, run("PUT", "/nominas?id=5", "", (*NominaController).Put), http.StatusNotFound)
 
-	saved := queryAllNominas
-	queryAllNominas = func(o orm.Ormer, out *[]models.Nomina) (int64, error) {
-		*out = []models.Nomina{{FECHA: parseDate("2024-01-01").FECHA}}
-		return 1, nil
-	}
-	t.Cleanup(func() { queryAllNominas = saved })
+	programa(t, conError(qNomina))
+	expect(t, run("PUT", "/nominas?id=5", "", (*NominaController).Put), http.StatusInternalServerError)
 
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+	programa(t, nominaRows(qNomina, fila(5, dia, "NO_PAGO")), conError(qUpdate))
+	expect(t, run("PUT", "/nominas?id=5", "", (*NominaController).Put), http.StatusInternalServerError)
+}
+
+// ---------- DELETE /nominas ----------
+
+func TestDeleteMarcaNoPago(t *testing.T) {
+	programa(t, nominaRows(qNomina, fila(5, dia, "PAGO")))
+	r := expect(t, run("DELETE", "/nominas?id=5", "", (*NominaController).Delete), http.StatusOK)
+	if dataMap(t, r)["estadoNomina"] != "NO_PAGO" {
+		t.Fatalf("estado: %v", r.Data)
 	}
-	if !strings.Contains(w.Body.String(), "No se encontraron") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	if execQue(qUpdate) == nil {
+		t.Fatal("debe actualizar")
 	}
 }
 
-func parseDate(s string) (n models.Nomina) { n.FECHA, _ = time.Parse("2006-01-02", s); return }
-
-func TestNominaPutAlreadyPaid(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/nominas?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	origRead := readNominaFn
-	readNominaFn = func(o orm.Ormer, n *models.Nomina) error { n.ESTADO_NOMINA = models.EstadoNominaPago; return nil }
-	t.Cleanup(func() { readNominaFn = origRead })
-
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
+func TestDeleteYaNoPagoEs409(t *testing.T) {
+	programa(t, nominaRows(qNomina, fila(5, dia, "NO_PAGO")))
+	expect(t, run("DELETE", "/nominas?id=5", "", (*NominaController).Delete), http.StatusConflict)
 }
 
-func TestNominaPutSuccess(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/nominas?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	origRead := readNominaFn
-	origUpdate := updateNominaFn
-	readNominaFn = func(o orm.Ormer, n *models.Nomina) error { n.ESTADO_NOMINA = models.EstadoNominaNoPago; return nil }
-	updateNominaFn = func(o orm.Ormer, n *models.Nomina, cols ...string) (int64, error) { return 1, nil }
-	t.Cleanup(func() { readNominaFn = origRead; updateNominaFn = origUpdate })
-
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+func TestDeleteInvalidoNoEncontradoYErrores(t *testing.T) {
+	programa(t)
+	for _, target := range []string{"/nominas", "/nominas?id=0", "/nominas?id=x"} {
+		expect(t, run("DELETE", target, "", (*NominaController).Delete), http.StatusBadRequest)
 	}
-}
+	expect(t, run("DELETE", "/nominas?id=5", "", (*NominaController).Delete), http.StatusNotFound)
 
-func TestNominaDeleteSuccess(t *testing.T) {
-	r := httptest.NewRequest(http.MethodDelete, "/nominas?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+	programa(t, conError(qNomina))
+	expect(t, run("DELETE", "/nominas?id=5", "", (*NominaController).Delete), http.StatusInternalServerError)
 
-	origRead := readNominaFn
-	origUpdate := updateNominaFn
-	readNominaFn = func(o orm.Ormer, n *models.Nomina) error { n.ESTADO_NOMINA = models.EstadoNominaPago; return nil }
-	updateNominaFn = func(o orm.Ormer, n *models.Nomina, cols ...string) (int64, error) { return 1, nil }
-	t.Cleanup(func() { readNominaFn = origRead; updateNominaFn = origUpdate })
-
-	c.Delete()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-}
-
-func TestNominaDeleteUpdateError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodDelete, "/nominas?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	origRead := readNominaFn
-	origUpdate := updateNominaFn
-	readNominaFn = func(o orm.Ormer, n *models.Nomina) error { return nil }
-	updateNominaFn = func(o orm.Ormer, n *models.Nomina, cols ...string) (int64, error) { return 0, errors.New("boom") }
-	t.Cleanup(func() { readNominaFn = origRead; updateNominaFn = origUpdate })
-
-	c.Delete()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al eliminar lógicamente la nómina") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-func TestFindExistingNominaFnSuccess(t *testing.T) {
-	o := ormNewNomina()
-	fecha := time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC)
-
-	origQuery := MockQuery
-	MockQuery = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Rows, error) {
-		return &mockRows{
-			columns: []string{"pk_id_nomina", "fecha", "monto", "estado_nomina"},
-			values:  [][]driver.Value{{int64(1), fecha, int64(100), string(models.EstadoNominaPago)}},
-		}, nil
-	}
-	t.Cleanup(func() { MockQuery = origQuery })
-
-	existing, err := findExistingNominaFn(o, fecha)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if existing == nil || existing.PK_ID_NOMINA != 1 {
-		t.Fatalf("unexpected result: %#v", existing)
-	}
-}
-
-func TestFindExistingNominaFnError(t *testing.T) {
-	o := ormNewNomina()
-	fecha := time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC)
-
-	origQuery := MockQuery
-	MockQuery = func(ctx context.Context, q string, args []driver.NamedValue) (driver.Rows, error) {
-		return nil, errors.New("query error")
-	}
-	t.Cleanup(func() { MockQuery = origQuery })
-
-	existing, err := findExistingNominaFn(o, fecha)
-	if err == nil || existing != nil {
-		t.Fatalf("expected error finding nomina")
-	}
-}
-
-func TestNominaGetAllFiltersByFechaAndReturnsMatches(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/nominas?fecha=2024-01-01&mes=1&anio=2024", nil)
-	w := httptest.NewRecorder()
-	ctx := webCtx.NewContext()
-	ctx.Reset(w, r)
-	c := NominaController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	match, err := models.ParseDateToNoonUTC("2024-01-01")
-	if err != nil {
-		t.Fatal(err)
-	}
-	other, err := models.ParseDateToNoonUTC("2024-01-15")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	saved := queryAllNominas
-	queryAllNominas = func(o orm.Ormer, out *[]models.Nomina) (int64, error) {
-		*out = []models.Nomina{{PK_ID_NOMINA: 1, FECHA: match}, {PK_ID_NOMINA: 2, FECHA: other}}
-		return 2, nil
-	}
-	t.Cleanup(func() { queryAllNominas = saved })
-
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	var resp models.ApiResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatal(err)
-	}
-	if resp.Message != "Nóminas obtenidas exitosamente" {
-		t.Fatalf("unexpected message: %s", resp.Message)
-	}
-	data, ok := resp.Data.([]interface{})
-	if !ok || len(data) != 1 {
-		t.Fatalf("expected exactly one nomina after fecha filter, got %#v", resp.Data)
-	}
+	programa(t, nominaRows(qNomina, fila(5, dia, "PAGO")), conError(qUpdate))
+	expect(t, run("DELETE", "/nominas?id=5", "", (*NominaController).Delete), http.StatusInternalServerError)
 }

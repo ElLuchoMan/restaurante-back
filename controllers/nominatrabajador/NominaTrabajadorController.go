@@ -2,440 +2,338 @@ package nominatrabajador
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"restaurante/models"
+	"strconv"
 	"time"
+
+	"restaurante/internal/dberr"
+	"restaurante/internal/httpx"
+	"restaurante/logging"
+	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 )
 
+// NominaTrabajadorController expone la relación nómina-trabajador. Las
+// respuestas siempre llevan el envoltorio models.ApiResponse y el status HTTP
+// coincide con su `code`. No existen PUT ni DELETE: la relación se crea con el
+// cálculo automático y no se edita.
 type NominaTrabajadorController struct {
 	web.Controller
 }
 
-type ntQuerySeter interface {
-	Filter(string, ...interface{}) ntQuerySeter
-	All(interface{}, ...string) (int64, error)
-	One(interface{}, ...string) error
-	OrderBy(...string) ntQuerySeter
-	Exist() bool
+var meses = [...]string{"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"}
+
+func obtenerMesEnEspañol(mes time.Month) string { return meses[mes-1] }
+
+// itemDe convierte el modelo en la forma pública única (FK como ids; nulos como 0 y "").
+func itemDe(n models.NominaTrabajador) models.NominaTrabajadorItem {
+	item := models.NominaTrabajadorItem{
+		PK_ID_NOMINA_TRABAJADOR: n.PK_ID_NOMINA_TRABAJADOR,
+		SUELDO_BASE:             n.SUELDO_BASE,
+	}
+	if n.MONTO_INCIDENCIAS != nil {
+		item.MONTO_INCIDENCIAS = *n.MONTO_INCIDENCIAS
+	}
+	if n.DETALLES != nil {
+		item.DETALLES = *n.DETALLES
+	}
+	if n.PK_DOCUMENTO_TRABAJADOR != nil {
+		item.PK_DOCUMENTO_TRABAJADOR = n.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
+	}
+	if n.PK_ID_NOMINA != nil {
+		item.PK_ID_NOMINA = n.PK_ID_NOMINA.PK_ID_NOMINA
+	}
+	return item
 }
 
-type ntOrmer interface {
-	QueryTable(interface{}) ntQuerySeter
-	Insert(interface{}) (int64, error)
+// boolParam lee un query param booleano opcional (false si no viene).
+func (c *NominaTrabajadorController) boolParam(key string) (bool, error) {
+	if c.GetString(key) == "" {
+		return false, nil
+	}
+	v, err := strconv.ParseBool(c.GetString(key))
+	if err != nil {
+		return false, fmt.Errorf("el parámetro '%s' debe ser true o false: %w", key, err)
+	}
+	return v, nil
 }
 
-type ntQSAdapter struct{ qs orm.QuerySeter }
-
-func (a ntQSAdapter) Filter(expr string, args ...interface{}) ntQuerySeter {
-	return ntQSAdapter{qs: a.qs.Filter(expr, args...)}
+// periodoParams lee mes (1-12) y anio (>0) opcionales; 0 si no vienen.
+func (c *NominaTrabajadorController) periodoParams() (mes, anio int, err error) {
+	if c.GetString("mes") != "" {
+		if mes, err = c.GetInt("mes"); err != nil || mes < 1 || mes > 12 {
+			return 0, 0, errors.New("el parámetro 'mes' debe ser un entero entre 1 y 12")
+		}
+	}
+	if c.GetString("anio") != "" {
+		if anio, err = c.GetInt("anio"); err != nil || anio < 1 {
+			return 0, 0, errors.New("el parámetro 'anio' debe ser un entero positivo")
+		}
+	}
+	return mes, anio, nil
 }
-func (a ntQSAdapter) All(res interface{}, cols ...string) (int64, error) {
-	return a.qs.All(res, cols...)
-}
-func (a ntQSAdapter) One(res interface{}, cols ...string) error { return a.qs.One(res, cols...) }
-
-func (a ntQSAdapter) OrderBy(expr ...string) ntQuerySeter {
-	return ntQSAdapter{qs: a.qs.OrderBy(expr...)}
-}
-
-func (a ntQSAdapter) Exist() bool { return a.qs.Exist() }
-
-type ntOrmAdapter struct{ o orm.Ormer }
-
-func (a ntOrmAdapter) QueryTable(i interface{}) ntQuerySeter {
-	return ntQSAdapter{qs: a.o.QueryTable(i)}
-}
-
-func (a ntOrmAdapter) Insert(v interface{}) (int64, error) { return a.o.Insert(v) }
-
-var nomtraOrmNew = func() ntOrmer { return ntOrmAdapter{o: orm.NewOrm()} }
 
 // @Title GetAll
 // @Summary Obtener todas las relaciones nómina-trabajador
-// @Description Obtiene un listado de todas las relaciones nómina-trabajador registradas en la base de datos
+// @Description Lista todas las relaciones nómina-trabajador. Cada elemento tiene la forma única `NominaTrabajadorItem`: las FK se responden como ids numéricos (`documentoTrabajador`, `nominaId`) y `montoIncidencias`/`detalles` nulos como 0 y "". Sin resultados: 200 con `data: []`.
 // @Tags nomina_trabajador
 // @Accept json
 // @Produce json
-// @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajador} "Listado de relaciones nómina-trabajador"
+// @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajadorItem} "Relaciones nómina-trabajador (puede ser [])"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador [get]
 func (c *NominaTrabajadorController) GetAll() {
-	o := nomtraOrmNew()
 	var relaciones []models.NominaTrabajador
-
-	_, err := o.QueryTable(new(models.NominaTrabajador)).All(&relaciones)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener las relaciones nómina-trabajador",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	if _, err := orm.NewOrm().QueryTable(new(models.NominaTrabajador)).All(&relaciones); err != nil {
+		logging.LogControllerError(c.Ctx, "nomina_trabajador.getall.db_error", err, nil)
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener las relaciones nómina-trabajador", err)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Relaciones nómina-trabajador obtenidas correctamente",
-		Data:    relaciones,
+	items := make([]models.NominaTrabajadorItem, 0, len(relaciones))
+	for _, r := range relaciones {
+		items = append(items, itemDe(r))
 	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Relaciones nómina-trabajador obtenidas correctamente", items)
+}
+
+// montoIncidencias suma las incidencias del trabajador entre el día 20 del mes
+// anterior y el día 20 del mes actual (las que restan, restan).
+func montoIncidencias(o orm.Ormer, documento int64, ahora time.Time) (int64, error) {
+	desde := time.Date(ahora.Year(), ahora.Month()-1, 20, 0, 0, 0, 0, ahora.Location())
+	hasta := time.Date(ahora.Year(), ahora.Month(), 20, 23, 59, 59, 999, ahora.Location())
+	var incidencias []models.Incidencia
+	if _, err := o.QueryTable(new(models.Incidencia)).
+		Filter("PK_DOCUMENTO_TRABAJADOR", documento).
+		Filter("FECHA__gte", desde).
+		Filter("FECHA__lte", hasta).
+		All(&incidencias); err != nil {
+		return 0, err
+	}
+	var total int64
+	for _, i := range incidencias {
+		if i.RESTA {
+			total -= i.MONTO
+		} else {
+			total += i.MONTO
+		}
+	}
+	return total, nil
 }
 
 // @Title Post
-// @Summary Crear una nómina-trabajador con cálculo automático
-// @Description Crea una nueva relación nómina-trabajador, calculando incidencias y total a pagar basado en el sueldo y las incidencias del trabajador.
+// @Summary Crear la nómina-trabajador de la última nómina (cálculo automático)
+// @Description Crea la relación entre el trabajador y la última nómina: sueldo base del trabajador, suma de incidencias (día 20 del mes anterior al día 20 del actual) y detalle los calcula el backend; cualquier otro campo del cuerpo se ignora. Respuesta de forma única (`NominaTrabajadorItem`, con `nominaTrabajadorId`): 201 si se creó o 200 si ya existía para esa nómina.
 // @Tags nomina_trabajador
 // @Accept json
 // @Produce json
-// @Param body body models.NominaTrabajadorRequest true "Datos de la nómina-trabajador"
-// @Success 201 {object} models.ApiResponse{data=models.NominaTrabajadorResponse} "Nómina-trabajador creada"
-// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Param body body models.NominaTrabajadorRequest true "Documento del trabajador"
+// @Success 201 {object} models.ApiResponse{data=models.NominaTrabajadorItem} "Relación creada"
+// @Success 200 {object} models.ApiResponse{data=models.NominaTrabajadorItem} "La relación ya existía"
+// @Failure 400 {object} models.ApiResponse "JSON inválido o documentoTrabajador ausente/inválido"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Trabajador no encontrado"
+// @Failure 409 {object} models.ApiResponse "La relación ya existe (concurrencia)"
+// @Failure 422 {object} models.ApiResponse "No hay ninguna nómina generada"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador [post]
 func (c *NominaTrabajadorController) Post() {
-	o := nomtraOrmNew()
 	var input models.NominaTrabajadorRequest
-	var nominaTrabajador models.NominaTrabajador
-
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Error al procesar la solicitud",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "Error al procesar la solicitud", err)
 		return
 	}
-
-	if input.PK_DOCUMENTO_TRABAJADOR == 0 {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El campo documentoTrabajador es obligatorio y debe ser válido",
-		}
-		_ = c.ServeJSON()
+	if input.PK_DOCUMENTO_TRABAJADOR <= 0 {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El campo documentoTrabajador es obligatorio y debe ser un entero positivo", nil)
 		return
 	}
-	nominaTrabajador.PK_DOCUMENTO_TRABAJADOR = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR}
+	documento := input.PK_DOCUMENTO_TRABAJADOR
 
-	now := time.Now()
-	startDate := time.Date(now.Year(), now.Month()-1, 20, 0, 0, 0, 0, now.Location())
-	endDate := time.Date(now.Year(), now.Month(), 20, 23, 59, 59, 999, now.Location())
-
-	var incidencias []models.Incidencia
-	_, err := o.QueryTable(new(models.Incidencia)).
-		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
-		Filter("fecha__gte", startDate).
-		Filter("fecha__lte", endDate).
-		All(&incidencias)
-
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al consultar incidencias del trabajador",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	var montoIncidencias int64
-	for _, incidencia := range incidencias {
-		if incidencia.RESTA {
-			montoIncidencias -= incidencia.MONTO
-		} else {
-			montoIncidencias += incidencia.MONTO
-		}
-	}
-	nominaTrabajador.MONTO_INCIDENCIAS = &montoIncidencias
-
+	o := orm.NewOrm()
 	var trabajador models.Trabajador
-	err = o.QueryTable(new(models.Trabajador)).
-		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
-		One(&trabajador)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al consultar el sueldo del trabajador",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
-	}
-	nominaTrabajador.SUELDO_BASE = trabajador.SUELDO
-
-	var ultimaNomina models.Nomina
-	err = o.QueryTable(new(models.Nomina)).OrderBy("-fecha").One(&ultimaNomina)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener la nómina activa",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
-	}
-	nominaTrabajador.PK_ID_NOMINA = &ultimaNomina
-
-	descripcion := fmt.Sprintf("Nómina del mes de %s de %d más incidencias si aplica", obtenerMesEnEspañol(ultimaNomina.FECHA.Month()), ultimaNomina.FECHA.Year())
-	nominaTrabajador.DETALLES = &descripcion
-
-	exists := o.QueryTable(new(models.NominaTrabajador)).
-		Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
-		Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
-		Exist()
-	if exists {
-		var existente models.NominaTrabajador
-		if err := o.QueryTable(new(models.NominaTrabajador)).
-			Filter("pk_documento_trabajador", input.PK_DOCUMENTO_TRABAJADOR).
-			Filter("pk_id_nomina", ultimaNomina.PK_ID_NOMINA).
-			One(&existente); err == nil {
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía", Data: existente}
-			_ = c.ServeJSON()
+	if err := o.QueryTable(new(models.Trabajador)).Filter("PK_DOCUMENTO_TRABAJADOR", documento).One(&trabajador); err != nil {
+		if errors.Is(err, orm.ErrNoRows) {
+			httpx.Fail(&c.Controller, http.StatusNotFound, "Trabajador no encontrado", err)
 			return
 		}
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusOK, Message: "Relación nómina-trabajador ya existía"}
-		_ = c.ServeJSON()
+		logging.LogControllerError(c.Ctx, "nomina_trabajador.post.trabajador_error", err, nil)
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al consultar el trabajador", err)
 		return
 	}
 
-	_, err = o.Insert(&nominaTrabajador)
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al registrar la nómina-trabajador",
-			Cause:   err.Error(),
+	var ultima models.Nomina
+	if err := o.QueryTable(new(models.Nomina)).OrderBy("-FECHA").One(&ultima); err != nil {
+		if errors.Is(err, orm.ErrNoRows) {
+			httpx.Fail(&c.Controller, http.StatusUnprocessableEntity, "No hay ninguna nómina generada", err)
+			return
 		}
-		_ = c.ServeJSON()
+		logging.LogControllerError(c.Ctx, "nomina_trabajador.post.nomina_error", err, nil)
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener la nómina activa", err)
 		return
 	}
 
-	response := models.NominaTrabajadorResponse{
-		SUELDO_BASE:             trabajador.SUELDO,
-		MONTO_INCIDENCIAS:       montoIncidencias,
-		DETALLES:                descripcion,
-		PK_DOCUMENTO_TRABAJADOR: input.PK_DOCUMENTO_TRABAJADOR,
+	var existente models.NominaTrabajador
+	err := o.QueryTable(new(models.NominaTrabajador)).
+		Filter("PK_DOCUMENTO_TRABAJADOR", documento).
+		Filter("PK_ID_NOMINA", ultima.PK_ID_NOMINA).
+		One(&existente)
+	if err == nil {
+		httpx.Send(&c.Controller, http.StatusOK, "Relación nómina-trabajador ya existía", itemDe(existente))
+		return
+	}
+	if !errors.Is(err, orm.ErrNoRows) {
+		logging.LogControllerError(c.Ctx, "nomina_trabajador.post.existente_error", err, nil)
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al consultar la relación nómina-trabajador", err)
+		return
 	}
 
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Nómina-trabajador creada correctamente",
-		Data:    response,
+	incidencias, err := montoIncidencias(o, documento, time.Now())
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "nomina_trabajador.post.incidencias_error", err, nil)
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al consultar incidencias del trabajador", err)
+		return
 	}
-	_ = c.ServeJSON()
+	detalle := fmt.Sprintf("Nómina del mes de %s de %d más incidencias si aplica", obtenerMesEnEspañol(ultima.FECHA.Month()), ultima.FECHA.Year())
+	nueva := models.NominaTrabajador{
+		SUELDO_BASE:             trabajador.SUELDO,
+		MONTO_INCIDENCIAS:       &incidencias,
+		DETALLES:                &detalle,
+		PK_DOCUMENTO_TRABAJADOR: &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: documento},
+		PK_ID_NOMINA:            &models.Nomina{PK_ID_NOMINA: ultima.PK_ID_NOMINA},
+	}
+	id, err := o.Insert(&nueva)
+	if err != nil {
+		if dberr.IsUnique(err) {
+			httpx.Fail(&c.Controller, http.StatusConflict, "La relación nómina-trabajador ya existe", err)
+			return
+		}
+		logging.LogControllerError(c.Ctx, "nomina_trabajador.post.insert_error", err, nil)
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al registrar la nómina-trabajador", err)
+		return
+	}
+	nueva.PK_ID_NOMINA_TRABAJADOR = id
+	httpx.Send(&c.Controller, http.StatusCreated, "Nómina-trabajador creada correctamente", itemDe(nueva))
 }
 
 // @Title GetByTrabajador
-// @Summary Obtener relaciones nómina-trabajador según filtros
-// @Description Obtiene las relaciones nómina-trabajador según los filtros aplicados (nómina actual, nóminas pagas, nóminas no pagas, nómina por mes y año, todas las nóminas).
+// @Summary Obtener relaciones nómina-trabajador de un trabajador
+// @Description Devuelve las relaciones de un trabajador (forma `NominaTrabajadorItem`). Filtros combinables: `actual` (solo la última nómina), `pagas` / `no_pagas` (estado de la nómina; no pueden ir ambos en true), y `mes` y/o `anio` (por la fecha de la nómina). Sin resultados: 200 con `data: []`.
 // @Tags nomina_trabajador
 // @Accept json
 // @Produce json
-// @Param documento query int true "Documento del trabajador"
-// @Param actual query bool false "Consultar solo la nómina actual"
-// @Param pagas query bool false "Consultar solo nóminas pagadas"
-// @Param no_pagas query bool false "Consultar solo nóminas no pagadas"
-// @Param mes query int false "Mes (1-12) para filtrar nóminas"
-// @Param anio query int false "Año (YYYY) para filtrar nóminas"
-// @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajador} "Relaciones nómina-trabajador encontradas"
-// @Failure 404 {object} models.ApiResponse "Relación nómina-trabajador no encontrada"
+// @Param documento query int true "Documento del trabajador (entero positivo)"
+// @Param actual query bool false "Solo la nómina actual (la más reciente)"
+// @Param pagas query bool false "Solo nóminas pagadas"
+// @Param no_pagas query bool false "Solo nóminas no pagadas"
+// @Param mes query int false "Mes (1-12)"
+// @Param anio query int false "Año (YYYY)"
+// @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajadorItem} "Relaciones encontradas (puede ser [])"
+// @Failure 400 {object} models.ApiResponse "Parámetros ausentes o inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador/search [get]
 func (c *NominaTrabajadorController) GetByTrabajador() {
-	o := orm.NewOrm()
-	documento, errDoc := c.GetInt64("documento")
-	actual, errAct := c.GetBool("actual")
-	pagas, errPag := c.GetBool("pagas")
-	noPagas, errNoPag := c.GetBool("no_pagas")
-	mes, errMes := c.GetInt("mes")
-	anio, errAnio := c.GetInt("anio")
-
-	if c.GetString("documento") == "" || errDoc != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'documento' es obligatorio y debe ser válido"}
-		_ = c.ServeJSON()
-		return
-	}
-	if c.GetString("actual") != "" && errAct != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'actual' inválido", Cause: errAct.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	if c.GetString("pagas") != "" && errPag != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'pagas' inválido", Cause: errPag.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	if c.GetString("no_pagas") != "" && errNoPag != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'no_pagas' inválido", Cause: errNoPag.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	if c.GetString("mes") != "" && errMes != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'mes' inválido", Cause: errMes.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-	if c.GetString("anio") != "" && errAnio != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'anio' inválido", Cause: errAnio.Error()}
-		_ = c.ServeJSON()
-		return
-	}
-
-	if documento == 0 {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'documento' es obligatorio.",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	var relaciones []models.NominaTrabajador
-	sql := `
-       SELECT nt.* FROM "nomina_trabajador" nt
-       JOIN "nomina" n ON nt."pk_id_nomina" = n."pk_id_nomina"
-       WHERE nt."pk_documento_trabajador" = ?
-   `
-	params := []interface{}{documento}
-
-	if actual {
-		sql += ` AND n."fecha" = (SELECT MAX("fecha") FROM "nomina")`
-	}
-
-	if pagas {
-		sql += ` AND n."estado_nomina" = 'PAGO'`
-	} else if noPagas {
-		sql += ` AND n."estado_nomina" = 'NO_PAGO'`
-	}
-
-	if mes > 0 && anio > 0 {
-		sql += ` AND EXTRACT(MONTH FROM n."fecha") = ? AND EXTRACT(YEAR FROM n."fecha") = ?`
-		params = append(params, mes, anio)
-	}
-
-	_, err := o.Raw(sql, params...).QueryRows(&relaciones)
-
+	documento, err := httpx.PositiveInt64Param(&c.Controller, "documento")
 	if err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "No se encontraron relaciones nómina-trabajador para los filtros aplicados.",
-			}
-		} else {
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al buscar las relaciones nómina-trabajador.",
-				Cause:   err.Error(),
-			}
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'documento' es obligatorio y debe ser un entero positivo", err)
+		return
+	}
+	actual, errAct := c.boolParam("actual")
+	pagas, errPag := c.boolParam("pagas")
+	noPagas, errNoPag := c.boolParam("no_pagas")
+	if err := errors.Join(errAct, errPag, errNoPag); err != nil {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "Los parámetros 'actual', 'pagas' y 'no_pagas' deben ser true o false", err)
+		return
+	}
+	if pagas && noPagas {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "Los parámetros 'pagas' y 'no_pagas' no pueden usarse a la vez", nil)
+		return
+	}
+	mes, anio, err := c.periodoParams()
+	if err != nil {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "Los parámetros 'mes' y 'anio' son inválidos", err)
 		return
 	}
 
-	if len(relaciones) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "No se encontraron relaciones nómina-trabajador para los filtros aplicados.",
-		}
-		_ = c.ServeJSON()
+	query := `
+       SELECT nt."pk_id_nomina_trabajador", nt."sueldo_base",
+              COALESCE(nt."monto_incidencias", 0) AS "monto_incidencias",
+              COALESCE(nt."detalles", '') AS "detalles",
+              nt."pk_documento_trabajador", nt."pk_id_nomina"
+       FROM "nomina_trabajador" nt
+       JOIN "nomina" n ON nt."pk_id_nomina" = n."pk_id_nomina"
+       WHERE nt."pk_documento_trabajador" = ?`
+	params := []interface{}{documento}
+	if actual {
+		query += ` AND n."fecha" = (SELECT MAX("fecha") FROM "nomina")`
+	}
+	if pagas {
+		query += ` AND n."estado_nomina" = 'PAGO'`
+	}
+	if noPagas {
+		query += ` AND n."estado_nomina" = 'NO_PAGO'`
+	}
+	if mes > 0 {
+		query += ` AND EXTRACT(MONTH FROM n."fecha") = ?`
+		params = append(params, mes)
+	}
+	if anio > 0 {
+		query += ` AND EXTRACT(YEAR FROM n."fecha") = ?`
+		params = append(params, anio)
+	}
+	query += ` ORDER BY n."fecha", nt."pk_id_nomina_trabajador"`
+
+	var items []models.NominaTrabajadorItem
+	if _, err := orm.NewOrm().Raw(query, params...).QueryRows(&items); err != nil {
+		logging.LogControllerError(c.Ctx, "nomina_trabajador.search.db_error", err, map[string]interface{}{"documento": documento})
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al buscar las relaciones nómina-trabajador", err)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Relaciones nómina-trabajador encontradas.",
-		Data:    relaciones,
-	}
-	_ = c.ServeJSON()
-}
-
-func obtenerMesEnEspañol(mes time.Month) string {
-	meses := map[time.Month]string{
-		time.January:   "Enero",
-		time.February:  "Febrero",
-		time.March:     "Marzo",
-		time.April:     "Abril",
-		time.May:       "Mayo",
-		time.June:      "Junio",
-		time.July:      "Julio",
-		time.August:    "Agosto",
-		time.September: "Septiembre",
-		time.October:   "Octubre",
-		time.November:  "Noviembre",
-		time.December:  "Diciembre",
-	}
-	return meses[mes]
+	httpx.Send(&c.Controller, http.StatusOK, "Relaciones nómina-trabajador encontradas", httpx.List(items))
 }
 
 // @Title GetNominasByMes
-// @Summary Consultar nóminas del mes actual o de un mes/año específico
-// @Description Obtiene todas las relaciones nómina-trabajador del mes actual o de un mes/año específico, incluyendo el nombre y apellido del trabajador.
+// @Summary Consultar las nóminas de los trabajadores de un mes
+// @Description Devuelve las relaciones nómina-trabajador del mes/año indicados (por defecto, el mes y año actuales), con el nombre y apellido del trabajador y el `nominaTrabajadorId`. Sin resultados: 200 con `data: []`.
 // @Tags nomina_trabajador
 // @Accept json
 // @Produce json
-// @Param mes query int false "Mes (1-12) para filtrar nóminas"
-// @Param anio query int false "Año (YYYY) para filtrar nóminas"
-// @Success 200 {object} models.ApiResponse{data=[]map[string]interface{}} "Relaciones nómina-trabajador encontradas"
-// @Failure 404 {object} models.ApiResponse "No se encontraron relaciones nómina-trabajador"
+// @Param mes query int false "Mes (1-12); por defecto el actual"
+// @Param anio query int false "Año (YYYY); por defecto el actual"
+// @Success 200 {object} models.ApiResponse{data=[]models.NominaTrabajadorDetalle} "Relaciones encontradas (puede ser [])"
+// @Failure 400 {object} models.ApiResponse "mes o anio inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /nomina_trabajador/mes [get]
 func (c *NominaTrabajadorController) GetNominasByMes() {
-	o := orm.NewOrm()
-	mes, errMes := c.GetInt("mes")
-	anio, errAnio := c.GetInt("anio")
-	if c.GetString("mes") == "" || c.GetString("anio") == "" || errMes != nil || errAnio != nil {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetros 'mes' y 'anio' obligatorios y válidos"}
-		_ = c.ServeJSON()
+	mes, anio, err := c.periodoParams()
+	if err != nil {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "Los parámetros 'mes' y 'anio' son inválidos", err)
 		return
 	}
-
-	if mes < 1 || mes > 12 || anio < 1 {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Los parámetros 'mes' y 'anio' deben ser válidos.",
-		}
-		_ = c.ServeJSON()
-		return
+	ahora := time.Now()
+	if mes == 0 {
+		mes = int(ahora.Month())
+	}
+	if anio == 0 {
+		anio = ahora.Year()
 	}
 
 	var resultados []models.NominaTrabajadorDetalle
-	sql := `
+	const query = `
        SELECT
+               nt."pk_id_nomina_trabajador",
                nt."sueldo_base",
-               nt."monto_incidencias",
-               nt."detalles",
+               COALESCE(nt."monto_incidencias", 0) AS "monto_incidencias",
+               COALESCE(nt."detalles", '') AS "detalles",
                nt."pk_documento_trabajador",
                nt."pk_id_nomina",
                t."nombre",
@@ -445,35 +343,11 @@ func (c *NominaTrabajadorController) GetNominasByMes() {
        JOIN "nomina" n ON nt."pk_id_nomina" = n."pk_id_nomina"
        WHERE EXTRACT(MONTH FROM n."fecha") = ?
        AND EXTRACT(YEAR FROM n."fecha") = ?
-`
-	_, err := o.Raw(sql, mes, anio).QueryRows(&resultados)
-
-	if err != nil {
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al buscar las nóminas.",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+       ORDER BY nt."pk_id_nomina_trabajador"`
+	if _, err := orm.NewOrm().Raw(query, mes, anio).QueryRows(&resultados); err != nil {
+		logging.LogControllerError(c.Ctx, "nomina_trabajador.mes.db_error", err, nil)
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al buscar las nóminas", err)
 		return
 	}
-
-	if len(resultados) == 0 {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "No se encontraron nóminas para el mes y año especificados.",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Nóminas encontradas.",
-		Data:    resultados,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Nóminas encontradas", httpx.List(resultados))
 }

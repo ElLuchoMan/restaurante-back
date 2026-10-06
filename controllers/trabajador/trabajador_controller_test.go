@@ -1,477 +1,283 @@
 package trabajador
 
 import (
+	"database/sql/driver"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/beego/beego/v2/client/orm"
-	context2 "github.com/beego/beego/v2/server/web/context"
-	"restaurante/database"
-	"restaurante/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
-type mockQuery struct {
-	orm.QuerySeter
-	trabajadores []models.Trabajador
-	err          error
-}
+func TestGetAll(t *testing.T) {
+	defer resetFake()
+	g := func(c *TrabajadorController) { c.GetAll() }
 
-func (mq *mockQuery) Filter(string, ...interface{}) orm.QuerySeter { return mq }
-func (mq *mockQuery) All(result interface{}, cols ...string) (int64, error) {
-	if mq.err != nil {
-		return 0, mq.err
-	}
-	switch out := result.(type) {
-	case *[]models.Trabajador:
-		*out = mq.trabajadores
-		return int64(len(mq.trabajadores)), nil
-	case *[]models.HorarioTrabajador:
-		*out = []models.HorarioTrabajador{}
-		return 0, nil
-	}
-	return 0, nil
-}
+	b := call(t, http.MethodGet, "/trabajadores", "", g, http.StatusOK)
+	mustContain(t, b, `"data":[]`)
 
-type mockOrm struct {
-	orm.Ormer
-	query      *mockQuery
-	readErr    error
-	insertErr  error
-	updateErr  error
-	trabajador models.Trabajador
-}
-
-func (m *mockOrm) QueryTable(interface{}) orm.QuerySeter {
-	if m.query != nil {
-		return m.query
-	}
-	return &mockQuery{}
-}
-func (m *mockOrm) Read(model interface{}, cols ...string) error {
-	if m.readErr != nil {
-		return m.readErr
-	}
-	if t, ok := model.(*models.Trabajador); ok {
-		*t = m.trabajador
-	}
-	return nil
-}
-func (m *mockOrm) Insert(model interface{}) (int64, error) {
-	if m.insertErr != nil {
-		return 0, m.insertErr
-	}
-	if t, ok := model.(*models.Trabajador); ok {
-		m.trabajador = *t
-	}
-	return 1, nil
-}
-func (m *mockOrm) Update(model interface{}, cols ...string) (int64, error) {
-	if m.updateErr != nil {
-		return 0, m.updateErr
-	}
-	if t, ok := model.(*models.Trabajador); ok {
-		m.trabajador = *t
-	}
-	return 1, nil
-}
-
-func buildContext(method, url, body string) (*TrabajadorController, *httptest.ResponseRecorder) {
-	r := httptest.NewRequest(method, url, strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context2.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := &TrabajadorController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	return c, w
-}
-
-func TestHashPassword(t *testing.T) {
-	hashed, err := hashPassword("secret")
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	if hashed == "secret" {
-		t.Fatalf("not hashed")
-	}
-}
-
-func TestHashPasswordError(t *testing.T) {
-	original := generateFromPassword
-	generateFromPassword = func([]byte, int) ([]byte, error) { return nil, errors.New("fail") }
-	defer func() { generateFromPassword = original }()
-	if _, err := hashPassword("secret"); err == nil {
-		t.Fatalf("expected error")
-	}
-}
-
-func TestValidateDates(t *testing.T) {
-	ingreso := time.Now()
-	retiroAntes := ingreso.Add(-time.Hour)
-	if validateDates(&ingreso, &retiroAntes) == nil {
-		t.Fatalf("expected error")
-	}
-	retiroDespues := ingreso.Add(time.Hour)
-	if err := validateDates(&ingreso, &retiroDespues); err != nil {
-		t.Fatalf("unexpected %v", err)
-	}
-}
-
-func TestGetAllError(t *testing.T) {
-	database.BogotaZone = time.UTC
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{query: &mockQuery{err: errors.New("db")}} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodGet, "/trabajadores", "")
-	c.GetAll()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("got %d", w.Code)
-	}
-}
-
-func TestGetAllNoResults(t *testing.T) {
-	database.BogotaZone = time.UTC
-	mq := &mockQuery{trabajadores: []models.Trabajador{}}
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{query: mq} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodGet, "/trabajadores?fecha_ingreso=2023-01-01&rol=Admin", "")
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("got %d", w.Code)
-	}
-}
-
-func TestGetAllSoloRetirados(t *testing.T) {
-	database.BogotaZone = time.UTC
-	f := time.Now()
-	mq := &mockQuery{trabajadores: []models.Trabajador{{FECHA_RETIRO: &f, FECHA_NACIMIENTO: &f, FECHA_INGRESO: f}}}
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{query: mq} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodGet, "/trabajadores?solo_retirados=true", "")
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("got %d", w.Code)
-	}
-}
-
-func TestGetAllInvalidDate(t *testing.T) {
-	database.BogotaZone = time.UTC
-	mq := &mockQuery{trabajadores: []models.Trabajador{}}
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{query: mq} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodGet, "/trabajadores?fecha_ingreso=bad", "")
-	c.GetAll()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("got %d", w.Code)
-	}
-}
-
-func TestGetByIdInvalid(t *testing.T) {
-	c, w := buildContext(http.MethodGet, "/trabajadores/search", "")
-	c.GetById()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestGetByIdNotFound(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{readErr: orm.ErrNoRows} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodGet, "/trabajadores/search?id=1", "")
-	c.GetById()
-	if w.Code != http.StatusOK {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestGetByIdSuccess(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer {
-		return &mockOrm{trabajador: models.Trabajador{PK_DOCUMENTO_TRABAJADOR: 1, PASSWORD: "x"}}
-	}
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodGet, "/trabajadores/search?id=1", "")
-	c.GetById()
-	if w.Code != http.StatusOK {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestGetByIdDBError(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{readErr: errors.New("db")} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodGet, "/trabajadores/search?id=1", "")
-	c.GetById()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestPostInvalidJSON(t *testing.T) {
-	c, w := buildContext(http.MethodPost, "/trabajadores", "notjson")
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestPostMissingFields(t *testing.T) {
-	cases := []struct{ body, substr string }{
-		{`{"nombre":"a"}`, "documentoTrabajador"},
-		{`{"documentoTrabajador":1}`, "nombre"},
-		{`{"documentoTrabajador":1,"nombre":"a"}`, "apellido"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b"}`, "rol"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"Administrador"}`, "fechaIngreso"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"Administrador","fechaIngreso":"2023-01-01"}`, "sueldo"},
-		{`{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"Administrador","fechaIngreso":"2023-01-01","sueldo":1}`, "password"},
-	}
-	for _, tc := range cases {
-		c, w := buildContext(http.MethodPost, "/trabajadores", tc.body)
-		c.Post()
-		if w.Code != http.StatusBadRequest {
-			t.Fatalf("case %s got %d", tc.substr, w.Code)
+	var gotQ string
+	fakeQuery = func(q string, _ []driver.NamedValue) (driver.Rows, error) {
+		if strings.Contains(q, "horario_trabajador") {
+			return rowsOf(horarioCols, horarioRow()), nil
 		}
-		if !strings.Contains(w.Body.String(), tc.substr) {
-			t.Fatalf("missing %s", tc.substr)
+		gotQ = q
+		return rowsOf(trabajadorCols, trabajadorRow(), func() []driver.Value { r := trabajadorRow(); r[0] = int64(11); return r }()), nil
+	}
+	b = call(t, http.MethodGet, "/trabajadores", "", g, http.StatusOK)
+	noPassword(t, b)
+	mustContain(t, b, `"documentoTrabajador":10`, `"fechaIngreso":"31-01-2025"`, `"fechaNacimiento":"20-05-1990"`, `"restauranteId":{"restauranteId":1}`,
+		`"horarios":[{"documentoTrabajador":10,"dia":"Lunes","horaInicio":"08:00:00","horaFin":"16:00:00"}]`,
+		`"documentoTrabajador":11`, `"horarios":[]`)
+	if !strings.Contains(gotQ, "IS NULL") {
+		t.Fatalf("por defecto debe excluir retirados: %s", gotQ)
+	}
+
+	call(t, http.MethodGet, "/trabajadores?incluir_retirados=true&rol=Mesero&fecha_ingreso=2025-01-31", "", g, http.StatusOK)
+	if strings.Contains(gotQ, "IS NULL") || !strings.Contains(gotQ, "rol") || !strings.Contains(gotQ, "fecha_ingreso") {
+		t.Fatalf("filtros no aplicados: %s", gotQ)
+	}
+	call(t, http.MethodGet, "/trabajadores?solo_retirados=true&fechaIngreso=2025-01-31", "", g, http.StatusOK)
+	if !strings.Contains(gotQ, "IS NOT NULL") {
+		t.Fatalf("solo_retirados debe filtrar por retirados: %s", gotQ)
+	}
+
+	for _, q := range []string{"incluir_retirados=quiza", "solo_retirados=x", "rol=Gerente", "fecha_ingreso=31-01-2025"} {
+		call(t, http.MethodGet, "/trabajadores?"+q, "", g, http.StatusBadRequest)
+	}
+
+	serveErr(true, false, nil)
+	call(t, http.MethodGet, "/trabajadores", "", g, http.StatusInternalServerError)
+	serveErr(false, true, [][]driver.Value{trabajadorRow()})
+	call(t, http.MethodGet, "/trabajadores", "", g, http.StatusInternalServerError)
+}
+
+func TestGetById(t *testing.T) {
+	defer resetFake()
+	g := func(c *TrabajadorController) { c.GetById() }
+
+	for _, q := range []string{"", "?id=0", "?id=abc"} {
+		call(t, http.MethodGet, "/trabajadores/search"+q, "", g, http.StatusBadRequest)
+	}
+	call(t, http.MethodGet, "/trabajadores/search?id=10", "", g, http.StatusNotFound)
+
+	serve([][]driver.Value{retiradoRow()}, nil)
+	b := call(t, http.MethodGet, "/trabajadores/search?id=10", "", g, http.StatusOK)
+	noPassword(t, b)
+	mustContain(t, b, `"fechaRetiro":"30-06-2025"`, `"horarios":[]`)
+
+	serve([][]driver.Value{trabajadorRow()}, [][]driver.Value{horarioRow()})
+	b = call(t, http.MethodGet, "/trabajadores/search?id=10", "", g, http.StatusOK)
+	mustContain(t, b, `"dia":"Lunes"`)
+
+	serveErr(true, false, nil)
+	call(t, http.MethodGet, "/trabajadores/search?id=10", "", g, http.StatusInternalServerError)
+	serveErr(false, true, [][]driver.Value{trabajadorRow()})
+	call(t, http.MethodGet, "/trabajadores/search?id=10", "", g, http.StatusInternalServerError)
+}
+
+const postOK = `{"documentoTrabajador":10,"nombre":" María ","apellido":"Gómez","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":2000000,"password":"Secreta123"}`
+
+func TestPost(t *testing.T) {
+	defer resetFake()
+	p := func(c *TrabajadorController) { c.Post() }
+
+	var execArgs []driver.NamedValue
+	fakeExec = func(_ string, a []driver.NamedValue) (driver.Result, error) {
+		execArgs = a
+		return fakeResult{}, nil
+	}
+	b := call(t, http.MethodPost, "/trabajadores", postOK, p, http.StatusCreated)
+	noPassword(t, b)
+	mustContain(t, b, `"nombre":"María"`, `"rol":"Mesero"`, `"fechaIngreso":"31-01-2025"`, `"nuevo":false`, `"horarios":[]`)
+	hashed := false
+	for _, a := range execArgs {
+		if s, ok := a.Value.(string); ok {
+			if s == "Secreta123" {
+				t.Fatalf("la contraseña se guardó en claro")
+			}
+			if bcrypt.CompareHashAndPassword([]byte(s), []byte("Secreta123")) == nil {
+				hashed = true
+			}
 		}
 	}
-}
-
-func TestPostInvalidDates(t *testing.T) {
-	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"Administrador","fechaIngreso":"bad","sueldo":1,"password":"p"}`
-	c, w := buildContext(http.MethodPost, "/trabajadores", body)
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w.Code)
+	if !hashed {
+		t.Fatalf("no se guardó el hash bcrypt")
 	}
 
-	body2 := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"Administrador","fechaIngreso":"2023-01-01","sueldo":1,"password":"p","fechaNacimiento":"bad"}`
-	c2, w2 := buildContext(http.MethodPost, "/trabajadores", body2)
-	c2.Post()
-	if w2.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w2.Code)
+	full := `{"documentoTrabajador":11,"nombre":"A","apellido":"B","rol":"Administrador","fechaIngreso":"2025-01-31","sueldo":0,"password":"x","nuevo":true,"telefono":" 300 ","restauranteId":2,"fechaNacimiento":"1990-05-20"}`
+	b = call(t, http.MethodPost, "/trabajadores", full, p, http.StatusCreated)
+	mustContain(t, b, `"nuevo":true`, `"telefono":"300"`, `"restauranteId":{"restauranteId":2}`, `"fechaNacimiento":"20-05-1990"`, `"rol":"Administrador"`)
+	// teléfono y fecha de nacimiento vacíos equivalen a no informados
+	b = call(t, http.MethodPost, "/trabajadores", `{"documentoTrabajador":11,"nombre":"A","apellido":"B","rol":"Cocinero","fechaIngreso":"2025-01-31","sueldo":1,"password":"x","telefono":" ","fechaNacimiento":" "}`, p, http.StatusCreated)
+	if strings.Contains(b, "telefono") || strings.Contains(b, "fechaNacimiento") {
+		t.Fatalf("campos vacíos deben omitirse: %s", b)
 	}
-}
 
-func TestPostHashError(t *testing.T) {
-	originalHash := hashPassword
-	hashPassword = func(string) (string, error) { return "", errors.New("hash") }
-	defer func() { hashPassword = originalHash }()
-	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"Administrador","fechaIngreso":"2023-01-01","sueldo":1,"password":"p"}`
-	c, w := buildContext(http.MethodPost, "/trabajadores", body)
-	c.Post()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("%d", w.Code)
+	base := func(extra string) string {
+		return `{"documentoTrabajador":10,"nombre":"A","apellido":"B","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":1,"password":"x"` + extra + `}`
 	}
-}
-
-func TestPostInsertError(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{insertErr: errors.New("db")} }
-	defer func() { newTrabajadorOrm = original }()
-	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"Administrador","fechaIngreso":"2023-01-01","sueldo":1,"password":"p"}`
-	c, w := buildContext(http.MethodPost, "/trabajadores", body)
-	c.Post()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("%d", w.Code)
+	bads := []string{
+		``, `{`, `[]`, `{"documentoTrabajador":"x"}`,
+		`{"nombre":"A","apellido":"B","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":1,"password":"x"}`,
+		`{"documentoTrabajador":0,"nombre":"A","apellido":"B","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":1,"password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":" ","apellido":"B","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":1,"password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":1,"password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"B","fechaIngreso":"2025-01-31","sueldo":1,"password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"B","rol":"Gerente","fechaIngreso":"2025-01-31","sueldo":1,"password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"B","rol":"Mesero","sueldo":1,"password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"B","rol":"Mesero","fechaIngreso":"31-01-2025","sueldo":1,"password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"B","rol":"Mesero","fechaIngreso":"2025-01-31","password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"B","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":-1,"password":"x"}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"B","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":1}`,
+		`{"documentoTrabajador":10,"nombre":"A","apellido":"B","rol":"Mesero","fechaIngreso":"2025-01-31","sueldo":1,"password":"` + strings.Repeat("x", 73) + `"}`,
+		base(`,"restauranteId":0`),
+		base(`,"fechaNacimiento":"20/05/1990"`),
 	}
-}
-
-func TestPostSuccess(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
-	defer func() { newTrabajadorOrm = original }()
-	body := `{"documentoTrabajador":1,"nombre":"a","apellido":"b","rol":"c","fechaIngreso":"2023-01-01","sueldo":1,"password":"p","telefono":"1","restauranteId":1,"fechaNacimiento":"2023-01-02"}`
-	c, w := buildContext(http.MethodPost, "/trabajadores", body)
-	c.Post()
-	if w.Code != http.StatusCreated {
-		t.Fatalf("%d", w.Code)
+	for _, body := range bads {
+		call(t, http.MethodPost, "/trabajadores", body, p, http.StatusBadRequest)
 	}
-}
 
-func TestPutInvalidID(t *testing.T) {
-	c, w := buildContext(http.MethodPut, "/trabajadores", "{}")
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w.Code)
+	orig := generateFromPassword
+	generateFromPassword = func([]byte, int) ([]byte, error) { return nil, errBoom }
+	call(t, http.MethodPost, "/trabajadores", postOK, p, http.StatusInternalServerError)
+	generateFromPassword = orig
+
+	for _, tc := range []struct {
+		err    string
+		status int
+		msg    string
+	}{
+		{`duplicate key value violates unique constraint "trabajador_pkey"`, http.StatusConflict, "documento"},
+		{`duplicate key value violates unique constraint "trabajador_telefono_key"`, http.StatusConflict, "teléfono"},
+		{`violates foreign key constraint "trabajador_pk_id_restaurante_fkey"`, http.StatusBadRequest, "restauranteId"},
+		{`conexión perdida`, http.StatusInternalServerError, "Error al crear"},
+	} {
+		e := errors.New(tc.err)
+		fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, e }
+		b := call(t, http.MethodPost, "/trabajadores", postOK, p, tc.status)
+		mustContain(t, b, tc.msg)
 	}
 }
 
-func TestPutNotFound(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{readErr: orm.ErrNoRows} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", "{}")
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("%d", w.Code)
+func TestPut(t *testing.T) {
+	defer resetFake()
+	u := func(c *TrabajadorController) { c.Put() }
+
+	for _, q := range []string{"", "?id=0", "?id=abc"} {
+		call(t, http.MethodPut, "/trabajadores"+q, `{}`, u, http.StatusBadRequest)
+	}
+	call(t, http.MethodPut, "/trabajadores?id=10", `{}`, u, http.StatusNotFound)
+	serveErr(true, false, nil)
+	call(t, http.MethodPut, "/trabajadores?id=10", `{}`, u, http.StatusInternalServerError)
+	serveErr(false, true, [][]driver.Value{trabajadorRow()})
+	call(t, http.MethodPut, "/trabajadores?id=10", `{}`, u, http.StatusInternalServerError)
+
+	serve([][]driver.Value{trabajadorRow()}, [][]driver.Value{horarioRow()})
+	var execArgs []driver.NamedValue
+	fakeExec = func(_ string, a []driver.NamedValue) (driver.Result, error) {
+		execArgs = a
+		return fakeResult{}, nil
+	}
+
+	// merge: los ausentes se conservan
+	b := call(t, http.MethodPut, "/trabajadores?id=10", `{"nombre":" Ana "}`, u, http.StatusOK)
+	noPassword(t, b)
+	mustContain(t, b, `"nombre":"Ana"`, `"apellido":"Gómez"`, `"sueldo":2000000`, `"telefono":"3012223344"`, `"rol":"Mesero"`,
+		`"fechaNacimiento":"20-05-1990"`, `"restauranteId":{"restauranteId":1}`, `"dia":"Lunes"`)
+	kept := false
+	for _, a := range execArgs {
+		if a.Value == "$2a$hash-secreto" {
+			kept = true
+		}
+	}
+	if !kept {
+		t.Fatalf("la contraseña original debía conservarse: %v", execArgs)
+	}
+
+	all := `{"apellido":"Z","rol":"Cocinero","sueldo":5,"nuevo":true,"telefono":" 311 ","fechaIngreso":"2024-01-01","fechaRetiro":"2025-02-02","fechaNacimiento":"1991-01-01","restauranteId":3,"password":"Nueva123"}`
+	b = call(t, http.MethodPut, "/trabajadores?id=10", all, u, http.StatusOK)
+	noPassword(t, b)
+	mustContain(t, b, `"apellido":"Z"`, `"rol":"Cocinero"`, `"nuevo":true`, `"telefono":"311"`, `"fechaIngreso":"01-01-2024"`,
+		`"fechaRetiro":"02-02-2025"`, `"fechaNacimiento":"01-01-1991"`, `"restauranteId":{"restauranteId":3}`)
+	ok := false
+	for _, a := range execArgs {
+		if s, isStr := a.Value.(string); isStr && bcrypt.CompareHashAndPassword([]byte(s), []byte("Nueva123")) == nil {
+			ok = true
+		}
+	}
+	if !ok {
+		t.Fatalf("no se guardó el hash de la nueva contraseña")
+	}
+
+	// null limpia los campos anulables
+	b = call(t, http.MethodPut, "/trabajadores?id=10", `{"telefono":null,"fechaNacimiento":null,"fechaRetiro":null,"restauranteId":null}`, u, http.StatusOK)
+	for _, no := range []string{"telefono", "fechaNacimiento", "fechaRetiro", "restauranteId"} {
+		if strings.Contains(b, `"`+no+`"`) {
+			t.Fatalf("%s debía limpiarse: %s", no, b)
+		}
+	}
+	// teléfono vacío equivale a null
+	b = call(t, http.MethodPut, "/trabajadores?id=10", `{"telefono":" "}`, u, http.StatusOK)
+	if strings.Contains(b, `"telefono"`) {
+		t.Fatalf("teléfono vacío debía limpiarse: %s", b)
+	}
+
+	bads := []string{
+		``, `{`, `[]`,
+		`{"nombre":null}`, `{"apellido":null}`, `{"rol":null}`, `{"sueldo":null}`, `{"nuevo":null}`, `{"fechaIngreso":null}`, `{"password":null}`,
+		`{"nombre":" "}`, `{"apellido":""}`, `{"rol":"Gerente"}`, `{"rol":""}`, `{"sueldo":-1}`,
+		`{"fechaIngreso":"x"}`, `{"fechaRetiro":"x"}`, `{"fechaNacimiento":"x"}`,
+		`{"restauranteId":0}`, `{"password":""}`, `{"password":"` + strings.Repeat("x", 73) + `"}`,
+		`{"fechaRetiro":"2024-12-31"}`, // anterior al ingreso (2025-01-31)
+		`{"nombre":5}`,
+	}
+	for _, body := range bads {
+		call(t, http.MethodPut, "/trabajadores?id=10", body, u, http.StatusBadRequest)
+	}
+
+	orig := generateFromPassword
+	generateFromPassword = func([]byte, int) ([]byte, error) { return nil, errBoom }
+	call(t, http.MethodPut, "/trabajadores?id=10", `{"password":"x"}`, u, http.StatusInternalServerError)
+	generateFromPassword = orig
+
+	for _, tc := range []struct {
+		err    string
+		status int
+	}{
+		{`duplicate key value violates unique constraint "trabajador_telefono_key"`, http.StatusConflict},
+		{`violates foreign key constraint "fk"`, http.StatusBadRequest},
+		{`falló`, http.StatusInternalServerError},
+	} {
+		e := errors.New(tc.err)
+		fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, e }
+		call(t, http.MethodPut, "/trabajadores?id=10", `{"nombre":"Z"}`, u, tc.status)
 	}
 }
 
-func TestPutDecodeError(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", "notjson")
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w.Code)
-	}
-}
+func TestDelete(t *testing.T) {
+	defer resetFake()
+	d := func(c *TrabajadorController) { c.Delete() }
 
-func TestPutInvalidDates(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
-	defer func() { newTrabajadorOrm = original }()
-	body := `{"fechaIngreso":"bad"}`
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w.Code)
+	for _, q := range []string{"", "?id=0", "?id=abc"} {
+		call(t, http.MethodDelete, "/trabajadores"+q, "", d, http.StatusBadRequest)
 	}
+	call(t, http.MethodDelete, "/trabajadores?id=10", "", d, http.StatusNotFound)
+	serveErr(true, false, nil)
+	call(t, http.MethodDelete, "/trabajadores?id=10", "", d, http.StatusInternalServerError)
 
-	body2 := `{"fechaRetiro":"bad"}`
-	c2, w2 := buildContext(http.MethodPut, "/trabajadores?id=1", body2)
-	c2.Put()
-	if w2.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w2.Code)
-	}
+	serve([][]driver.Value{retiradoRow()}, nil)
+	call(t, http.MethodDelete, "/trabajadores?id=10", "", d, http.StatusConflict)
 
-	body3 := `{"fechaNacimiento":"bad"}`
-	c3, w3 := buildContext(http.MethodPut, "/trabajadores?id=1", body3)
-	c3.Put()
-	if w3.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w3.Code)
-	}
-}
+	serveErr(false, true, [][]driver.Value{trabajadorRow()})
+	call(t, http.MethodDelete, "/trabajadores?id=10", "", d, http.StatusInternalServerError)
 
-func TestPutHashError(t *testing.T) {
-	originalOrm := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
-	defer func() { newTrabajadorOrm = originalOrm }()
-	originalHash := hashPassword
-	hashPassword = func(string) (string, error) { return "", errors.New("hash") }
-	defer func() { hashPassword = originalHash }()
-	body := `{"password":"p"}`
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
-	c.Put()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("%d", w.Code)
-	}
-}
+	serve([][]driver.Value{trabajadorRow()}, [][]driver.Value{horarioRow()})
+	b := call(t, http.MethodDelete, "/trabajadores?id=10", "", d, http.StatusOK)
+	noPassword(t, b)
+	mustContain(t, b, `"fechaRetiro":"`, `"dia":"Lunes"`)
 
-func TestPutValidateDatesError(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
-	defer func() { newTrabajadorOrm = original }()
-	body := `{"fechaIngreso":"2023-01-02","fechaRetiro":"2023-01-01"}`
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestPutUpdateError(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{updateErr: errors.New("db")} }
-	defer func() { newTrabajadorOrm = original }()
-	body := `{"nombre":"a"}`
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
-	c.Put()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestPutSuccess(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
-	defer func() { newTrabajadorOrm = original }()
-	body := `{"nombre":"a","apellido":"b","rol":"c","sueldo":1,"nuevo":true,"telefono":"1","fechaIngreso":"2023-01-01","fechaRetiro":"2023-01-02","fechaNacimiento":"2023-01-03","password":"p"}`
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestPutTelefonoUpdated(t *testing.T) {
-	m := &mockOrm{}
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return m }
-	defer func() { newTrabajadorOrm = original }()
-	body := `{"telefono":"123"}`
-	c, w := buildContext(http.MethodPut, "/trabajadores?id=1", body)
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("%d", w.Code)
-	}
-	if m.trabajador.TELEFONO == nil || *m.trabajador.TELEFONO != "123" {
-		t.Fatalf("telefono not updated")
-	}
-}
-
-func TestDeleteInvalidID(t *testing.T) {
-	c, w := buildContext(http.MethodDelete, "/trabajadores", "")
-	c.Delete()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestDeleteNotFound(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{readErr: orm.ErrNoRows} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodDelete, "/trabajadores?id=1", "")
-	c.Delete()
-	if w.Code != http.StatusOK {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestDeleteReadError(t *testing.T) {
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{readErr: errors.New("db")} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodDelete, "/trabajadores?id=1", "")
-	c.Delete()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestDeleteUpdateError(t *testing.T) {
-	database.BogotaZone = time.UTC
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{updateErr: errors.New("db")} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodDelete, "/trabajadores?id=1", "")
-	c.Delete()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("%d", w.Code)
-	}
-}
-
-func TestDeleteSuccess(t *testing.T) {
-	database.BogotaZone = time.UTC
-	original := newTrabajadorOrm
-	newTrabajadorOrm = func() orm.Ormer { return &mockOrm{} }
-	defer func() { newTrabajadorOrm = original }()
-	c, w := buildContext(http.MethodDelete, "/trabajadores?id=1", "")
-	c.Delete()
-	if w.Code != http.StatusOK {
-		t.Fatalf("%d", w.Code)
-	}
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, errBoom }
+	call(t, http.MethodDelete, "/trabajadores?id=10", "", d, http.StatusInternalServerError)
 }

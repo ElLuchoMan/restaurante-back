@@ -11,6 +11,19 @@ type ValidarCuponResponse struct {
 	Motivo         *string `json:"motivo,omitempty"`
 }
 
+// DescuentoAplicadoResponse es el `data` de POST /descuentos/pedidos: el
+// descuento registrado más los importes recalculados por el servidor.
+// `total` es lo que debe pagarse (subtotal menos descuento, nunca negativo);
+// si el pedido tiene pago, `pagoId` indica el pago cuyo `monto` se actualizó
+// a ese total.
+type DescuentoAplicadoResponse struct {
+	Descuento      *PedidoDescuentoAplicado `json:"descuento"`
+	Subtotal       int64                    `json:"subtotal"`
+	MontoDescuento int64                    `json:"montoDescuento"`
+	Total          int64                    `json:"total"`
+	PagoId         *int64                   `json:"pagoId,omitempty"`
+}
+
 type OfertaActivaResponse struct {
 	OfertaId       int64         `json:"ofertaId"`
 	Titulo         string        `json:"titulo"`
@@ -21,6 +34,28 @@ type OfertaActivaResponse struct {
 
 type PaginatedResponse struct {
 	Data       interface{} `json:"data"`
+	Total      int64       `json:"total"`
+	Page       int         `json:"page"`
+	PageSize   int         `json:"pageSize"`
+	TotalPages int         `json:"totalPages"`
+}
+
+// PushDispositivosPage describe (solo para Swagger) la forma real de
+// GET /push/dispositivos: un PaginatedResponse cuyo data es la lista de
+// dispositivos ([] cuando no hay resultados).
+type PushDispositivosPage struct {
+	Data       []PushDispositivo `json:"data"`
+	Total      int64             `json:"total"`
+	Page       int               `json:"page"`
+	PageSize   int               `json:"pageSize"`
+	TotalPages int               `json:"totalPages"`
+}
+
+// PushEnviosPage describe (solo para Swagger) la forma real de
+// GET /push/envios: un PaginatedResponse cuyo data es la lista de envíos
+// ([] cuando no hay resultados).
+type PushEnviosPage struct {
+	Data       []PushEnvio `json:"data"`
 	Total      int64       `json:"total"`
 	Page       int         `json:"page"`
 	PageSize   int         `json:"pageSize"`
@@ -251,7 +286,7 @@ type EnviarNotificacionResponse struct {
 
 type DetalleEnvioNotificacion struct {
 	PushDispositivoId   int64   `json:"pushDispositivoId"`
-	Plataforma          string  `json:"plataforma"`
+	Plataforma          string  `json:"plataforma" enums:"WEB,ANDROID,IOS"`
 	Exito               bool    `json:"exito"`
 	StatusCode          *int    `json:"statusCode,omitempty"`
 	ErrorCode           *string `json:"errorCode,omitempty"`

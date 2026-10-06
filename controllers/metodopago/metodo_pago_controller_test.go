@@ -1,448 +1,136 @@
 package metodopago
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"restaurante/models"
-
-	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/server/web/context"
 )
 
-func TestMetodoPagoGetByIdInvalidID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/metodos_pago/search", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+var cols = []string{"pk_id_metodo_pago", "tipo", "detalle"}
 
-	c.GetById()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
+func found() {
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) {
+		return rowsOf(cols, []driver.Value{int64(3), "NEQUI", "300"}), nil
 	}
 }
 
-func TestMetodoPagoPostInvalidJSON(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/metodos_pago", strings.NewReader("notjson"))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-}
-
-func TestMetodoPagoGetAllWithoutDB(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/metodos_pago", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
+func TestGetAll(t *testing.T) {
+	defer resetFake()
+	ctx, w := newCtx(http.MethodGet, "/metodos_pago", "")
+	c := &MetodoPagoController{}
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
 	c.GetAll()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
+	resp := expect(t, w, http.StatusOK)
+	if !strings.Contains(w.Body.String(), `"data":[]`) {
+		t.Fatalf("lista vacía debe ser []: %s", w.Body.String())
 	}
-}
+	_ = resp
 
-func TestMetodoPagoGetAllSuccess(t *testing.T) {
-	m := newMockMetodoPagoOrmer()
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return m }
-	defer func() { getOrm = original }()
-
-	_, _ = m.Insert(&models.MetodoPago{TIPO: "efectivo"})
-	_, _ = m.Insert(&models.MetodoPago{TIPO: "tarjeta"})
-
-	r := httptest.NewRequest(http.MethodGet, "/metodos_pago", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
+	found()
+	ctx, w = newCtx(http.MethodGet, "/metodos_pago", "")
+	c = &MetodoPagoController{}
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
 	c.GetAll()
+	expect(t, w, http.StatusOK)
+	if !strings.Contains(w.Body.String(), `"tipo":"NEQUI"`) {
+		t.Fatalf("falta el método: %s", w.Body.String())
+	}
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	var resp models.ApiResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if resp.Code != http.StatusOK {
-		t.Fatalf("expected code 200, got %d", resp.Code)
-	}
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errors.New("boom") }
+	ctx, w = newCtx(http.MethodGet, "/metodos_pago", "")
+	c = &MetodoPagoController{}
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
+	c.GetAll()
+	expect(t, w, http.StatusInternalServerError)
 }
 
-func TestMetodoPagoPutInvalidID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/metodos_pago", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Put()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
+func call(t *testing.T, method, target, body string, f func(c *MetodoPagoController), status int) string {
+	t.Helper()
+	ctx, w := newCtx(method, target, body)
+	c := &MetodoPagoController{}
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
+	f(c)
+	expect(t, w, status)
+	return w.Body.String()
 }
 
-func TestMetodoPagoPutNotFound(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/metodos_pago?id=1", strings.NewReader("{}"))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Put()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+func TestGetById(t *testing.T) {
+	defer resetFake()
+	g := func(c *MetodoPagoController) { c.GetById() }
+	for _, q := range []string{"", "?id=abc", "?id=0"} {
+		call(t, http.MethodGet, "/metodos_pago/search"+q, "", g, http.StatusBadRequest)
 	}
+	call(t, http.MethodGet, "/metodos_pago/search?id=3", "", g, http.StatusNotFound)
+	found()
+	if b := call(t, http.MethodGet, "/metodos_pago/search?id=3", "", g, http.StatusOK); !strings.Contains(b, `"metodoPagoId":3`) {
+		t.Fatalf("cuerpo inesperado %s", b)
+	}
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errors.New("boom") }
+	call(t, http.MethodGet, "/metodos_pago/search?id=3", "", g, http.StatusInternalServerError)
 }
 
-func TestMetodoPagoDeleteInvalidID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodDelete, "/metodos_pago", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Delete()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
+func TestPost(t *testing.T) {
+	defer resetFake()
+	p := func(c *MetodoPagoController) { c.Post() }
+	call(t, http.MethodPost, "/metodos_pago", "nojson", p, http.StatusBadRequest)
+	call(t, http.MethodPost, "/metodos_pago", `{"tipo":"  "}`, p, http.StatusBadRequest)
+	if b := call(t, http.MethodPost, "/metodos_pago", `{"tipo":"NEQUI","detalle":"300"}`, p, http.StatusCreated); !strings.Contains(b, `"detalle":"300"`) {
+		t.Fatalf("falta detalle: %s", b)
 	}
+	call(t, http.MethodPost, "/metodos_pago", `{"tipo":"EFECTIVO"}`, p, http.StatusCreated)
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New("duplicate key 23505")
+	}
+	call(t, http.MethodPost, "/metodos_pago", `{"tipo":"X"}`, p, http.StatusConflict)
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, errors.New("boom") }
+	call(t, http.MethodPost, "/metodos_pago", `{"tipo":"X"}`, p, http.StatusInternalServerError)
 }
 
-func TestMetodoPagoDeleteNotFound(t *testing.T) {
-	r := httptest.NewRequest(http.MethodDelete, "/metodos_pago?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+func TestPut(t *testing.T) {
+	defer resetFake()
+	u := func(c *MetodoPagoController) { c.Put() }
+	call(t, http.MethodPut, "/metodos_pago", `{}`, u, http.StatusBadRequest)
+	call(t, http.MethodPut, "/metodos_pago?id=3", `{}`, u, http.StatusNotFound)
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errors.New("boom") }
+	call(t, http.MethodPut, "/metodos_pago?id=3", `{}`, u, http.StatusInternalServerError)
 
-	c.Delete()
+	found()
+	call(t, http.MethodPut, "/metodos_pago?id=3", `nojson`, u, http.StatusBadRequest)
+	call(t, http.MethodPut, "/metodos_pago?id=3", `{"tipo":null}`, u, http.StatusBadRequest)
+	call(t, http.MethodPut, "/metodos_pago?id=3", `{"detalle":null}`, u, http.StatusBadRequest)
+	call(t, http.MethodPut, "/metodos_pago?id=3", `{"tipo":" "}`, u, http.StatusBadRequest)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+	// merge: solo detalle; el tipo se conserva
+	b := call(t, http.MethodPut, "/metodos_pago?id=3", `{"detalle":"nuevo"}`, u, http.StatusOK)
+	var resp struct {
+		Data map[string]any `json:"data"`
 	}
+	if err := json.Unmarshal([]byte(b), &resp); err != nil || resp.Data["tipo"] != "NEQUI" || resp.Data["detalle"] != "nuevo" {
+		t.Fatalf("merge incorrecto: %s", b)
+	}
+	// merge: solo tipo; el detalle se conserva
+	b = call(t, http.MethodPut, "/metodos_pago?id=3", `{"tipo":"DAVIPLATA"}`, u, http.StatusOK)
+	if !strings.Contains(b, `"detalle":"300"`) || !strings.Contains(b, `"tipo":"DAVIPLATA"`) {
+		t.Fatalf("merge incorrecto: %s", b)
+	}
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, errors.New("boom") }
+	call(t, http.MethodPut, "/metodos_pago?id=3", `{}`, u, http.StatusInternalServerError)
 }
 
-type mockMetodoPagoOrmer struct {
-	data   map[int64]models.MetodoPago
-	nextID int64
-}
-
-func newMockMetodoPagoOrmer() *mockMetodoPagoOrmer {
-	return &mockMetodoPagoOrmer{data: make(map[int64]models.MetodoPago), nextID: 1}
-}
-
-func (m *mockMetodoPagoOrmer) QueryTable(_ interface{}) metodoPagoQuerySeter {
-	return m
-}
-
-func (m *mockMetodoPagoOrmer) All(res interface{}, _ ...string) (int64, error) {
-	slice, ok := res.(*[]models.MetodoPago)
-	if !ok {
-		return 0, errors.New("invalid result type")
+func TestDelete(t *testing.T) {
+	defer resetFake()
+	d := func(c *MetodoPagoController) { c.Delete() }
+	call(t, http.MethodDelete, "/metodos_pago", "", d, http.StatusBadRequest)
+	call(t, http.MethodDelete, "/metodos_pago?id=3", "", d, http.StatusOK)
+	fakeAffected = 0
+	call(t, http.MethodDelete, "/metodos_pago?id=3", "", d, http.StatusNotFound)
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New(`violates foreign key constraint`)
 	}
-	for _, v := range m.data {
-		*slice = append(*slice, v)
-	}
-	return int64(len(m.data)), nil
-}
-
-func (m *mockMetodoPagoOrmer) Read(v interface{}, _ ...string) error {
-	mp := v.(*models.MetodoPago)
-	item, ok := m.data[mp.PK_ID_METODO_PAGO]
-	if !ok {
-		return orm.ErrNoRows
-	}
-	*mp = item
-	return nil
-}
-
-func (m *mockMetodoPagoOrmer) Insert(v interface{}) (int64, error) {
-	mp := v.(*models.MetodoPago)
-	mp.PK_ID_METODO_PAGO = m.nextID
-	m.nextID++
-	m.data[mp.PK_ID_METODO_PAGO] = *mp
-	return 1, nil
-}
-
-func (m *mockMetodoPagoOrmer) Update(v interface{}, _ ...string) (int64, error) {
-	mp := v.(*models.MetodoPago)
-	if _, ok := m.data[mp.PK_ID_METODO_PAGO]; !ok {
-		return 0, orm.ErrNoRows
-	}
-	m.data[mp.PK_ID_METODO_PAGO] = *mp
-	return 1, nil
-}
-
-func (m *mockMetodoPagoOrmer) Delete(v interface{}, _ ...string) (int64, error) {
-	mp := v.(*models.MetodoPago)
-	if _, ok := m.data[mp.PK_ID_METODO_PAGO]; !ok {
-		return 0, orm.ErrNoRows
-	}
-	delete(m.data, mp.PK_ID_METODO_PAGO)
-	return 1, nil
-}
-
-func TestMetodoPagoGetByIdSuccess(t *testing.T) {
-	m := newMockMetodoPagoOrmer()
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return m }
-	defer func() { getOrm = original }()
-
-	mp := models.MetodoPago{TIPO: "efectivo"}
-	if _, err := m.Insert(&mp); err != nil {
-		t.Fatalf("insert: %v", err)
-	}
-
-	r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/metodos_pago/search?id=%d", mp.PK_ID_METODO_PAGO), nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetById()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	var resp models.ApiResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if resp.Code != http.StatusOK {
-		t.Fatalf("expected code 200, got %d", resp.Code)
-	}
-}
-
-func TestMetodoPagoGetByIdNotFound(t *testing.T) {
-	m := newMockMetodoPagoOrmer()
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return m }
-	defer func() { getOrm = original }()
-
-	r := httptest.NewRequest(http.MethodGet, "/metodos_pago/search?id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetById()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	var resp models.ApiResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if resp.Code != http.StatusNotFound {
-		t.Fatalf("expected code 404, got %d", resp.Code)
-	}
-}
-
-func TestMetodoPagoPostSuccess(t *testing.T) {
-	m := newMockMetodoPagoOrmer()
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return m }
-	defer func() { getOrm = original }()
-
-	body := `{"tipo":"tarjeta","detalle":"visa"}`
-	r := httptest.NewRequest(http.MethodPost, "/metodos_pago", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusCreated {
-		t.Fatalf("expected status 201, got %d", w.Code)
-	}
-	if len(m.data) != 1 {
-		t.Fatalf("expected 1 record, got %d", len(m.data))
-	}
-}
-
-type failInsertOrmer struct{ *mockMetodoPagoOrmer }
-
-func (f failInsertOrmer) Insert(v interface{}) (int64, error) { return 0, errors.New("db") }
-
-func TestMetodoPagoPostInsertError(t *testing.T) {
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return failInsertOrmer{newMockMetodoPagoOrmer()} }
-	defer func() { getOrm = original }()
-
-	body := `{"tipo":"tarjeta"}`
-	r := httptest.NewRequest(http.MethodPost, "/metodos_pago", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-}
-
-func TestMetodoPagoPutSuccess(t *testing.T) {
-	m := newMockMetodoPagoOrmer()
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return m }
-	defer func() { getOrm = original }()
-
-	mp := models.MetodoPago{TIPO: "efectivo"}
-	if _, err := m.Insert(&mp); err != nil {
-		t.Fatalf("insert: %v", err)
-	}
-
-	body := `{"tipo":"tarjeta"}`
-	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/metodos_pago?id=%d", mp.PK_ID_METODO_PAGO), strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Put()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if m.data[mp.PK_ID_METODO_PAGO].TIPO != "tarjeta" {
-		t.Fatalf("expected tipo updated to tarjeta, got %s", m.data[mp.PK_ID_METODO_PAGO].TIPO)
-	}
-}
-
-type failUpdateOrmer struct{ *mockMetodoPagoOrmer }
-
-func (f failUpdateOrmer) Read(v interface{}, _ ...string) error { return nil }
-func (f failUpdateOrmer) Update(v interface{}, _ ...string) (int64, error) {
-	return 0, errors.New("db")
-}
-
-func TestMetodoPagoPutUpdateError(t *testing.T) {
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return failUpdateOrmer{newMockMetodoPagoOrmer()} }
-	defer func() { getOrm = original }()
-
-	body := `{"tipo":"x"}`
-	r := httptest.NewRequest(http.MethodPut, "/metodos_pago?id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Put()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-}
-
-func TestMetodoPagoPutInvalidJSONWithRecord(t *testing.T) {
-	m := newMockMetodoPagoOrmer()
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return m }
-	defer func() { getOrm = original }()
-
-	mp := models.MetodoPago{TIPO: "efectivo"}
-	if _, err := m.Insert(&mp); err != nil {
-		t.Fatalf("insert: %v", err)
-	}
-
-	r := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/metodos_pago?id=%d", mp.PK_ID_METODO_PAGO), strings.NewReader("notjson"))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte("notjson")
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Put()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-}
-
-func TestMetodoPagoDeleteSuccess(t *testing.T) {
-	m := newMockMetodoPagoOrmer()
-	original := getOrm
-	getOrm = func() metodoPagoOrmer { return m }
-	defer func() { getOrm = original }()
-
-	mp := models.MetodoPago{TIPO: "efectivo"}
-	if _, err := m.Insert(&mp); err != nil {
-		t.Fatalf("insert: %v", err)
-	}
-
-	r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/metodos_pago?id=%d", mp.PK_ID_METODO_PAGO), nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := MetodoPagoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Delete()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if len(m.data) != 0 {
-		t.Fatalf("expected 0 records, got %d", len(m.data))
-	}
+	call(t, http.MethodDelete, "/metodos_pago?id=3", "", d, http.StatusConflict)
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, errors.New("boom") }
+	call(t, http.MethodDelete, "/metodos_pago?id=3", "", d, http.StatusInternalServerError)
 }

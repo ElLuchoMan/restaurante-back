@@ -531,7 +531,7 @@ func TestReadyz_Unavailable(t *testing.T) {
 	}
 }
 
-func TestReadyz_GetPingerErrorStill200(t *testing.T) {
+func TestReadyz_GetPingerError503(t *testing.T) {
 	os.Setenv("SKIP_WEB_RUN", "1")
 	os.Setenv("SKIP_CRON", "1")
 	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
@@ -545,12 +545,12 @@ func TestReadyz_GetPingerErrorStill200(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/readyz", nil)
 	w := httptest.NewRecorder()
 	beego.BeeApp.Handlers.ServeHTTP(w, r)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200 when getSQLPinger fails, got %d", w.Code)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 when getSQLPinger fails, got %d", w.Code)
 	}
 }
 
-func TestReadyz_NilPingerStill200(t *testing.T) {
+func TestReadyz_NilPinger503(t *testing.T) {
 	os.Setenv("SKIP_WEB_RUN", "1")
 	os.Setenv("SKIP_CRON", "1")
 	t.Cleanup(func() { os.Unsetenv("SKIP_WEB_RUN"); os.Unsetenv("SKIP_CRON") })
@@ -564,8 +564,8 @@ func TestReadyz_NilPingerStill200(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/readyz", nil)
 	w := httptest.NewRecorder()
 	beego.BeeApp.Handlers.ServeHTTP(w, r)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200 when getSQLPinger returns nil, got %d", w.Code)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 when getSQLPinger returns nil, got %d", w.Code)
 	}
 }
 

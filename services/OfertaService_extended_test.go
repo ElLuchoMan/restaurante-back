@@ -734,7 +734,7 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorDiaSemana(t *testing.T) 
 											FechaInicio:     fechaInicio,
 											FechaFin:        fechaFin,
 											PkIdRestaurante: restaurante,
-											DiasSemana:      "Lunes",
+											DiasSemana:      "{Lunes}",
 											DiasSemanaArray: []string{"Lunes"},
 										},
 										{
@@ -745,7 +745,7 @@ func TestOfertaService_ObtenerOfertasActivas_FiltradoPorDiaSemana(t *testing.T) 
 											FechaInicio:     fechaInicio,
 											FechaFin:        fechaFin,
 											PkIdRestaurante: restaurante,
-											DiasSemana:      "Martes",
+											DiasSemana:      "{Martes}",
 											DiasSemanaArray: []string{"Martes"},
 										},
 									}

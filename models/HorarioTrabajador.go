@@ -36,20 +36,21 @@ func (h HorarioTrabajador) MarshalJSON() ([]byte, error) {
 	horaInicioStr := FormatTimeWithLMT(h.HORA_INICIO)
 	horaFinStr := FormatTimeWithLMT(h.HORA_FIN)
 
+	// documentoTrabajador nunca es null: sin FK cargada se serializa 0.
+	var documento int64
+	if h.PK_DOCUMENTO_TRABAJADOR != nil {
+		documento = h.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
+	}
+
 	return json.Marshal(&struct {
-		PK_DOCUMENTO_TRABAJADOR *int64 `json:"documentoTrabajador"`
+		PK_DOCUMENTO_TRABAJADOR int64  `json:"documentoTrabajador"`
 		DIA                     string `json:"dia"`
 		HORA_INICIO             string `json:"horaInicio"`
 		HORA_FIN                string `json:"horaFin"`
 	}{
-		PK_DOCUMENTO_TRABAJADOR: func() *int64 {
-			if h.PK_DOCUMENTO_TRABAJADOR != nil {
-				return &h.PK_DOCUMENTO_TRABAJADOR.PK_DOCUMENTO_TRABAJADOR
-			}
-			return nil
-		}(),
-		DIA:         string(h.DIA),
-		HORA_INICIO: horaInicioStr,
-		HORA_FIN:    horaFinStr,
+		PK_DOCUMENTO_TRABAJADOR: documento,
+		DIA:                     string(h.DIA),
+		HORA_INICIO:             horaInicioStr,
+		HORA_FIN:                horaFinStr,
 	})
 }

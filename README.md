@@ -91,6 +91,7 @@ API REST en Go para gestionar operaciones de "El fogón de María": clientes, pe
 - DB (equivalentes a `conf/app.conf`): `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_SSLMODE`.
 - App/Test: `BEEGO_APP_CONFIG_FILE`, `INTEGRATION`, `SKIP_DB_SEED`, `SKIP_WEB_RUN`, `SKIP_CRON`, `CRON_ONE_SHOT`, `CORS_ALLOWED_ORIGINS`.
 - Auth: `JWT_SECRET` (obligatorio en prod; en dev/test se genera efímero si está vacío).
+- Rate limit de login/refresh: `LOGIN_MAX_REQ_PER_MIN` (10 por IP), `REFRESH_MAX_REQ_PER_MIN` (30 por IP) y `TRUSTED_PROXY_HOPS` (por defecto 2, Render: Cloudflare + proxy de Render; 0 = sin proxy, útil en local). La IP del cliente es la entrada `TRUSTED_PROXY_HOPS` contando desde el final de `X-Forwarded-For` (el primer valor lo controla el cliente). Además, 5 fallos de contraseña por documento en 15 min bloquean ese documento con espera creciente (30 s, 1 min, 2 min... máx. 15 min; `429` + `Retry-After`) y un login correcto reinicia el contador. Trade-off: un tercero puede bloquear temporalmente a un documento fallando a propósito; el bloqueo nunca es indefinido.
 - Push Notifications:
   - FCM: `FIREBASE_PROJECT_ID`, `FCM_BEARER_TOKEN` (opcional, usa ADC si no está definido).
   - Web Push: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (obligatorios para notificaciones web).

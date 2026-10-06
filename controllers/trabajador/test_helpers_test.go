@@ -1,67 +1,90 @@
 package trabajador
 
 import (
-	"database/sql"
 	"database/sql/driver"
-	"io"
-	"os"
+	"errors"
+	"strings"
 	"testing"
-
-	"github.com/beego/beego/v2/client/orm"
+	"time"
 )
 
-type mockDriver struct{}
+var (
+	trabajadorCols = []string{"pk_documento_trabajador", "nombre", "apellido", "sueldo", "telefono", "fecha_nacimiento", "nuevo", "rol", "fecha_ingreso", "fecha_retiro", "password", "pk_id_restaurante"}
+	horarioCols    = []string{"pk_documento_trabajador", "dia", "hora_inicio", "hora_fin"}
+	errBoom        = errors.New("boom")
+)
 
-type mockConn struct{}
+func fecha(y int, m time.Month, d int) time.Time { return time.Date(y, m, d, 12, 0, 0, 0, time.UTC) }
 
-type mockStmt struct{ query string }
-
-type mockTx struct{}
-
-type mockResult struct{}
-
-type mockRows struct {
-	columns []string
-	values  [][]driver.Value
-	idx     int
+// trabajadorRow es un trabajador activo (sin fecha de retiro).
+func trabajadorRow() []driver.Value {
+	return []driver.Value{int64(10), "María", "Gómez", int64(2000000), "3012223344", fecha(1990, 5, 20), false, "Mesero", fecha(2025, 1, 31), nil, "$2a$hash-secreto", int64(1)}
 }
 
-func (d mockDriver) Open(name string) (driver.Conn, error) { return &mockConn{}, nil }
-
-func (c *mockConn) Prepare(query string) (driver.Stmt, error) { return &mockStmt{query: query}, nil }
-func (c *mockConn) Close() error                              { return nil }
-func (c *mockConn) Begin() (driver.Tx, error)                 { return &mockTx{}, nil }
-
-func (s *mockStmt) Close() error                                    { return nil }
-func (s *mockStmt) NumInput() int                                   { return -1 }
-func (s *mockStmt) Exec(args []driver.Value) (driver.Result, error) { return mockResult{}, nil }
-func (s *mockStmt) Query(args []driver.Value) (driver.Rows, error) {
-	return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
+func retiradoRow() []driver.Value {
+	r := trabajadorRow()
+	r[9] = fecha(2025, 6, 30)
+	return r
 }
 
-func (mockTx) Commit() error   { return nil }
-func (mockTx) Rollback() error { return nil }
+func horarioRow() []driver.Value {
+	return []driver.Value{int64(10), "Lunes", lmt(8), lmt(16)}
+}
 
-func (mockResult) LastInsertId() (int64, error) { return 1, nil }
-func (mockResult) RowsAffected() (int64, error) { return 1, nil }
+// lmt arma una hora como la entrega el driver (año 0 con desfase LMT de
+// 9h52m32s): FormatTimeWithLMT la muestra como h:00:00.
+func lmt(h int) time.Time {
+	return time.Date(0, 1, 1, h, 0, 0, 0, time.UTC).Add(-(9*time.Hour + 52*time.Minute + 32*time.Second))
+}
 
-func (r *mockRows) Columns() []string { return r.columns }
-func (r *mockRows) Close() error      { return nil }
-func (r *mockRows) Next(dest []driver.Value) error {
-	if r.idx >= len(r.values) {
-		return io.EOF
+// serve programa el driver con las filas de trabajador y horario dadas.
+func serve(trab [][]driver.Value, horarios [][]driver.Value) {
+	fakeQuery = func(q string, _ []driver.NamedValue) (driver.Rows, error) {
+		if strings.Contains(q, "horario_trabajador") {
+			return rowsOf(horarioCols, horarios...), nil
+		}
+		return rowsOf(trabajadorCols, trab...), nil
 	}
-	row := r.values[r.idx]
-	for i, v := range row {
-		dest[i] = v
-	}
-	r.idx++
-	return nil
 }
 
-func TestMain(m *testing.M) {
-	sql.Register("mock", mockDriver{})
-	orm.RegisterDriver("mock", orm.DRPostgres)
-	_ = orm.RegisterDataBase("default", "mock", "")
-	os.Exit(m.Run())
+// serveErr hace fallar la consulta de trabajador o la de horarios.
+func serveErr(trab, horarios bool, ok [][]driver.Value) {
+	fakeQuery = func(q string, _ []driver.NamedValue) (driver.Rows, error) {
+		if strings.Contains(q, "horario_trabajador") {
+			if horarios {
+				return nil, errBoom
+			}
+			return rowsOf(horarioCols), nil
+		}
+		if trab {
+			return nil, errBoom
+		}
+		return rowsOf(trabajadorCols, ok...), nil
+	}
+}
+
+func call(t *testing.T, method, target, body string, f func(c *TrabajadorController), status int) string {
+	t.Helper()
+	ctx, w := newCtx(method, target, body)
+	c := &TrabajadorController{}
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
+	f(c)
+	expect(t, w, status)
+	return w.Body.String()
+}
+
+func noPassword(t *testing.T, body string) {
+	t.Helper()
+	if strings.Contains(strings.ToLower(body), "password") || strings.Contains(body, "secreto") {
+		t.Fatalf("la respuesta no debe incluir la contraseña: %s", body)
+	}
+}
+
+func mustContain(t *testing.T, body string, wants ...string) {
+	t.Helper()
+	for _, w := range wants {
+		if !strings.Contains(body, w) {
+			t.Fatalf("falta %s en %s", w, body)
+		}
+	}
 }

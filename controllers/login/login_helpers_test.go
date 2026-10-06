@@ -100,7 +100,9 @@ func TestClientIP(t *testing.T) {
 	}
 
 	r2 := httptest.NewRequest(http.MethodGet, "/", nil)
-	r2.Header.Set("X-Forwarded-For", "203.0.113.9, 70.41.3.18, 150.172.238.178")
+	// el primer valor lo controla el cliente: con 2 proxies de confianza
+	// (Cloudflare + Render) la IP real es la penúltima entrada.
+	r2.Header.Set("X-Forwarded-For", "6.6.6.6, 203.0.113.9, 70.41.3.18")
 	r2.RemoteAddr = "10.0.0.1:2222"
 	if ip := clientIP(r2); ip != "203.0.113.9" {
 		t.Fatalf("esperaba 203.0.113.9, got %s", ip)
@@ -122,19 +124,19 @@ func TestAllowLogin_RateLimitAndReset(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader("{}"))
 	r.RemoteAddr = "198.51.100.10:4444"
-	if !allowLogin(r) {
+	if ok, _ := allowLogin(r); !ok {
 		t.Fatal("primera debería permitir")
 	}
-	if !allowLogin(r) {
+	if ok, _ := allowLogin(r); !ok {
 		t.Fatal("segunda debería permitir")
 	}
-	if allowLogin(r) {
-		t.Fatal("tercera debería bloquear")
+	if ok, wait := allowLogin(r); ok || wait <= 0 || wait > loginWindow {
+		t.Fatalf("tercera debería bloquear con espera, ok=%v wait=%v", ok, wait)
 	}
 
 	ip := clientIP(r)
 	loginRL.m[ip].reset = loginRL.m[ip].reset.Add(-2 * loginWindow)
-	if !allowLogin(r) {
+	if ok, _ := allowLogin(r); !ok {
 		t.Fatal("después de reset debería permitir")
 	}
 }

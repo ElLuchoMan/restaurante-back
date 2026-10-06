@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProductoImagenFieldType(t *testing.T) {
@@ -88,4 +89,16 @@ func TestProductoMarshalJSON_SubcategoriaNil(t *testing.T) {
 	}
 	if strings.Contains(string(data), "\"subcategoriaId\":0") {
 	}
+}
+
+func TestDecodeImagenBase64(t *testing.T) {
+	for _, s := range []string{"aW1n", "aW1n==", " aW\n1n ", "data:image/png;base64,aW1n", "data:image/png;base64,aW1n="} {
+		b, err := DecodeImagenBase64(s)
+		assert.NoError(t, err, s)
+		assert.Equal(t, "img", string(b), s)
+	}
+	_, err := DecodeImagenBase64("data:image/png;base64")
+	assert.Error(t, err)
+	_, err = DecodeImagenBase64("%%%")
+	assert.Error(t, err)
 }

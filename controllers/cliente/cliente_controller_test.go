@@ -1,633 +1,317 @@
 package cliente
 
 import (
-	stdctx "context"
 	"database/sql/driver"
-	"encoding/json"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"restaurante/models"
-
-	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/server/web/context"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func resetMocks() {
-	ormNew = orm.NewOrm
-	queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
-		return o.QueryTable(new(models.Cliente)).All(clientes)
-	}
-	readCliente = func(o orm.Ormer, c *models.Cliente) error { return o.Read(c) }
-	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Insert(c) }
-	updateCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Update(c) }
-	deleteCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return o.Delete(c) }
-	bcryptGenerate = bcrypt.GenerateFromPassword
+var (
+	clienteCols = []string{"pk_documento_cliente", "nombre", "apellido", "correo", "direccion", "telefono", "observaciones", "password"}
+	errBoom     = errors.New("boom")
+)
+
+func clienteRow() []driver.Value {
+	return []driver.Value{int64(1001), "Juan", "Pérez", "juan@example.com", "Calle 1", "3001234567", "VIP", "$2a$hash-secreto"}
 }
 
-func TestNormalizeEmail(t *testing.T) {
-	got := normalizeEmail("  Foo@Example.COM  ")
-	if got != "foo@example.com" {
-		t.Errorf("expected foo@example.com, got %s", got)
+// serveCliente programa el driver: el cliente existe.
+func serveCliente() {
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) {
+		return rowsOf(clienteCols, clienteRow()), nil
 	}
 }
 
-func TestIsUniqueEmailErr(t *testing.T) {
-	uniqueErr := errors.New("uq_cliente_correo")
-	if !isUniqueEmailErr(uniqueErr) {
-		t.Errorf("expected true for unique email error")
-	}
-	uniqueMsgErr := errors.New("unique constraint on correo")
-	if !isUniqueEmailErr(uniqueMsgErr) {
-		t.Errorf("expected true for unique correo message")
-	}
-	otherErr := errors.New("other")
-	if isUniqueEmailErr(otherErr) {
-		t.Errorf("expected false for non unique email error")
-	}
-	if isUniqueEmailErr(nil) {
-		t.Errorf("expected false for nil error")
+func failQuery() {
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errBoom }
+}
+
+func call(t *testing.T, method, target, body string, f func(c *ClienteController), status int) string {
+	t.Helper()
+	ctx, w := newCtx(method, target, body)
+	c := &ClienteController{}
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
+	f(c)
+	expect(t, w, status)
+	return w.Body.String()
+}
+
+func noPassword(t *testing.T, body string) {
+	t.Helper()
+	if strings.Contains(strings.ToLower(body), "password") || strings.Contains(body, "secreto") {
+		t.Fatalf("la respuesta no debe incluir la contraseña: %s", body)
 	}
 }
 
-func TestClienteGetAllSuccess(t *testing.T) {
-	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", APELLIDO: "Bar", TELEFONO: "123", PASSWORD: "pwd"}}
-	ormNew = func() orm.Ormer { return nil }
-	queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
-		for _, c := range db {
-			*clientes = append(*clientes, c)
+func TestGetAll(t *testing.T) {
+	defer resetFake()
+	g := func(c *ClienteController) { c.GetAll() }
+
+	if b := call(t, http.MethodGet, "/clientes", "", g, http.StatusOK); !strings.Contains(b, `"data":[]`) {
+		t.Fatalf("lista vacía debe ser []: %s", b)
+	}
+	if b := call(t, http.MethodGet, "/clientes?fields=nombre_completo_telefono", "", g, http.StatusOK); !strings.Contains(b, `"data":[]`) {
+		t.Fatalf("proyección vacía debe ser []: %s", b)
+	}
+
+	var gotQ string
+	fakeQuery = func(q string, _ []driver.NamedValue) (driver.Rows, error) {
+		gotQ = q
+		return rowsOf(clienteCols, clienteRow()), nil
+	}
+	b := call(t, http.MethodGet, "/clientes", "", g, http.StatusOK)
+	noPassword(t, b)
+	for _, want := range []string{`"documentoCliente":1001`, `"nombre":"Juan"`, `"observaciones":"VIP"`} {
+		if !strings.Contains(b, want) {
+			t.Fatalf("falta %s en %s", want, b)
 		}
-		return int64(len(db)), nil
 	}
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodGet, "/clientes", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
+	if !strings.Contains(gotQ, "ORDER BY") || strings.Contains(gotQ, "LIMIT") {
+		t.Fatalf("sin limit debe ordenar y no limitar: %s", gotQ)
 	}
-	if strings.Contains(w.Body.String(), "pwd") {
-		t.Fatalf("password should be removed")
-	}
-}
 
-func TestClienteGetAllFiltered(t *testing.T) {
-	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", APELLIDO: "Bar", TELEFONO: "123", PASSWORD: "pwd"}}
-	ormNew = func() orm.Ormer { return nil }
-	queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
-		for _, c := range db {
-			*clientes = append(*clientes, c)
+	call(t, http.MethodGet, "/clientes?limit=5&offset=2", "", g, http.StatusOK)
+	if !strings.Contains(gotQ, "LIMIT 5") || !strings.Contains(gotQ, "OFFSET 2") {
+		t.Fatalf("paginación no aplicada: %s", gotQ)
+	}
+	call(t, http.MethodGet, "/clientes?limit=100", "", g, http.StatusOK)
+
+	b = call(t, http.MethodGet, "/clientes?fields=nombre_completo_telefono", "", g, http.StatusOK)
+	for _, want := range []string{`"nombre_completo":"Juan Pérez"`, `"telefono":"3001234567"`, `"documentoCliente":1001`} {
+		if !strings.Contains(b, want) {
+			t.Fatalf("falta %s en %s", want, b)
 		}
-		return 1, nil
 	}
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodGet, "/clientes?fields=nombre_completo_telefono", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
+	noPassword(t, b)
+
+	for _, q := range []string{"fields=otro", "limit=0", "limit=101", "limit=-1", "limit=abc", "offset=-1", "offset=abc"} {
+		call(t, http.MethodGet, "/clientes?"+q, "", g, http.StatusBadRequest)
 	}
-	if !strings.Contains(w.Body.String(), "nombre_completo") {
-		t.Fatalf("expected filtered response")
-	}
+
+	failQuery()
+	call(t, http.MethodGet, "/clientes", "", g, http.StatusInternalServerError)
 }
 
-func TestClienteGetAllDBError(t *testing.T) {
-	ormNew = func() orm.Ormer { return nil }
-	queryAllClientes = func(o orm.Ormer, clientes *[]models.Cliente) (int64, error) {
-		return 0, errors.New("db error")
+func TestGetById(t *testing.T) {
+	defer resetFake()
+	g := func(c *ClienteController) { c.GetById() }
+
+	for _, q := range []string{"", "?id=0", "?id=-3", "?id=abc"} {
+		call(t, http.MethodGet, "/clientes/search"+q, "", g, http.StatusBadRequest)
 	}
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodGet, "/clientes", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
+	call(t, http.MethodGet, "/clientes/search?id=1001", "", g, http.StatusNotFound)
+
+	serveCliente()
+	b := call(t, http.MethodGet, "/clientes/search?id=1001", "", g, http.StatusOK)
+	noPassword(t, b)
+	if !strings.Contains(b, `"correo":"juan@example.com"`) {
+		t.Fatalf("cliente incompleto: %s", b)
 	}
+
+	failQuery()
+	call(t, http.MethodGet, "/clientes/search?id=1001", "", g, http.StatusInternalServerError)
 }
 
-func TestClienteGetAllLimitOffsetSuccess(t *testing.T) {
-	ormNew = orm.NewOrm
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_documento_cliente", "nombre", "apellido", "correo", "direccion", "telefono", "observaciones", "password"}
-		vals := [][]driver.Value{{int64(1), "Foo", "Bar", "foo@bar.com", "Dir", "123", nil, "pwd"}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	t.Cleanup(func() {
-		MockQuery = nil
-		resetMocks()
-	})
-	r := httptest.NewRequest(http.MethodGet, "/clientes?limit=0&offset=0", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if strings.Contains(w.Body.String(), "pwd") {
-		t.Fatalf("password should be removed")
-	}
-}
+const bodyOK = `{"documentoCliente":1001,"nombre":" Juan ","apellido":"Pérez","correo":" Juan@Example.COM ","password":"Secreta123","telefono":" 3001234567 ","direccion":" Calle 1 ","observaciones":"VIP"}`
 
-func TestClienteGetAllLimitOnlySuccess(t *testing.T) {
-	ormNew = orm.NewOrm
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_documento_cliente", "nombre", "apellido", "correo", "direccion", "telefono", "observaciones", "password"}
-		vals := [][]driver.Value{{int64(1), "Foo", "Bar", "foo@bar.com", "Dir", "123", nil, "pwd"}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	t.Cleanup(func() {
-		MockQuery = nil
-		resetMocks()
-	})
-	r := httptest.NewRequest(http.MethodGet, "/clientes?limit=5", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if strings.Contains(w.Body.String(), "pwd") {
-		t.Fatalf("password should be removed")
-	}
-}
+func TestPost(t *testing.T) {
+	defer resetFake()
+	p := func(c *ClienteController) { c.Post() }
 
-func TestClienteGetAllOffsetOnlySuccess(t *testing.T) {
-	ormNew = orm.NewOrm
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_documento_cliente", "nombre", "apellido", "correo", "direccion", "telefono", "observaciones", "password"}
-		vals := [][]driver.Value{{int64(1), "Foo", "Bar", "foo@bar.com", "Dir", "123", nil, "pwd"}}
-		return &mockRows{columns: cols, values: vals}, nil
+	var execArgs []driver.NamedValue
+	fakeExec = func(_ string, a []driver.NamedValue) (driver.Result, error) {
+		execArgs = a
+		return fakeResult{}, nil
 	}
-	t.Cleanup(func() {
-		MockQuery = nil
-		resetMocks()
-	})
-	r := httptest.NewRequest(http.MethodGet, "/clientes?offset=5", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if strings.Contains(w.Body.String(), "pwd") {
-		t.Fatalf("password should be removed")
-	}
-}
-
-func TestClienteGetAllLimitOffsetError(t *testing.T) {
-	ormNew = orm.NewOrm
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		return nil, errors.New("db error")
-	}
-	t.Cleanup(func() {
-		MockQuery = nil
-		resetMocks()
-	})
-	r := httptest.NewRequest(http.MethodGet, "/clientes?limit=5&offset=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-}
-
-func TestClienteGetAllLimitParseError(t *testing.T) {
-	ormNew = func() orm.Ormer { return nil }
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodGet, "/clientes?limit=abc", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestClienteGetAllOffsetParseError(t *testing.T) {
-	ormNew = func() orm.Ormer { return nil }
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodGet, "/clientes?offset=abc", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetAll()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestClienteGetByIdScenarios(t *testing.T) {
-	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", PASSWORD: "pwd"}}
-	ormNew = func() orm.Ormer { return nil }
-	var readErr error
-	readCliente = func(o orm.Ormer, c *models.Cliente) error {
-		if readErr != nil {
-			return readErr
+	b := call(t, http.MethodPost, "/clientes", bodyOK, p, http.StatusCreated)
+	noPassword(t, b)
+	for _, want := range []string{`"documentoCliente":1001`, `"nombre":"Juan"`, `"correo":"juan@example.com"`, `"telefono":"3001234567"`, `"direccion":"Calle 1"`} {
+		if !strings.Contains(b, want) {
+			t.Fatalf("falta %s en %s", want, b)
 		}
-		cli, ok := db[c.PK_DOCUMENTO_CLIENTE]
-		if !ok {
-			return orm.ErrNoRows
-		}
-		*c = cli
-		return nil
 	}
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodGet, "/clientes/search", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetById()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-	r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=2", nil)
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetById()
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
-		t.Fatalf("not found case failed")
-	}
-	readErr = errors.New("db error")
-	r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=1", nil)
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetById()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-	readErr = nil
-	r = httptest.NewRequest(http.MethodGet, "/clientes/search?id=1", nil)
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.GetById()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if strings.Contains(w.Body.String(), "pwd") {
-		t.Fatalf("password should be removed")
-	}
-}
-
-func TestClientePostScenarios(t *testing.T) {
-	db := make(map[int64]models.Cliente)
-	ormNew = func() orm.Ormer { return nil }
-	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-		if _, ok := db[c.PK_DOCUMENTO_CLIENTE]; ok {
-			return 0, errors.New("unique correo")
-		}
-		db[c.PK_DOCUMENTO_CLIENTE] = *c
-		return 1, nil
-	}
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader("notjson"))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-	bodyNoCorreo := `{"documentoCliente":1,"nombre":"Foo","apellido":"B","direccion":"C","telefono":"1","password":"pass"}`
-	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(bodyNoCorreo))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return 0, errors.New("db error") }
-	body := `{"documentoCliente":1,"nombre":"Foo","apellido":"B","direccion":"C","telefono":"1","password":"pass","correo":" TeSt@Email.com "}`
-	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Post()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) { return 0, errors.New("unique correo") }
-	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Post()
-	if w.Code != http.StatusConflict {
-		t.Fatalf("expected 409, got %d", w.Code)
-	}
-	bcryptGenerate = func([]byte, int) ([]byte, error) { return nil, errors.New("hash") }
-	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Post()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-	bcryptGenerate = bcrypt.GenerateFromPassword
-	insertCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-		db[c.PK_DOCUMENTO_CLIENTE] = *c
-		return 1, nil
-	}
-	r = httptest.NewRequest(http.MethodPost, "/clientes", strings.NewReader(body))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Post()
-	if w.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d", w.Code)
-	}
-	var resp struct {
-		Data models.Cliente `json:"data"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("invalid json: %v", err)
-	}
-	if resp.Data.PASSWORD != "" {
-		t.Fatalf("password should be empty")
-	}
-}
-
-func TestClientePutScenarios(t *testing.T) {
-	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1, NOMBRE: "Foo", PASSWORD: "old"}, 2: {PK_DOCUMENTO_CLIENTE: 2, NOMBRE: "Bar", CORREO: "a@a.com", PASSWORD: "x"}}
-	ormNew = func() orm.Ormer { return nil }
-	readCliente = func(o orm.Ormer, c *models.Cliente) error {
-		cli, ok := db[c.PK_DOCUMENTO_CLIENTE]
-		if !ok {
-			return orm.ErrNoRows
-		}
-		*c = cli
-		return nil
-	}
-	updateCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-		if c.NOMBRE == "fail" {
-			return 0, errors.New("db error")
-		}
-		for id, cli := range db {
-			if id != c.PK_DOCUMENTO_CLIENTE && cli.CORREO != "" && c.CORREO != "" && cli.CORREO == c.CORREO {
-				return 0, errors.New("unique correo")
+	hashed := false
+	for _, a := range execArgs {
+		if s, ok := a.Value.(string); ok {
+			if s == "Secreta123" {
+				t.Fatalf("la contraseña se guardó en claro")
+			}
+			if bcrypt.CompareHashAndPassword([]byte(s), []byte("Secreta123")) == nil {
+				hashed = true
 			}
 		}
-		db[c.PK_DOCUMENTO_CLIENTE] = *c
-		return 1, nil
 	}
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodPut, "/clientes", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
+	if !hashed {
+		t.Fatalf("no se guardó el hash bcrypt: %v", execArgs)
 	}
-	readCliente = func(o orm.Ormer, c *models.Cliente) error { return errors.New("db") }
-	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"Foo"}`))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
+
+	// opcionales omitidos
+	call(t, http.MethodPost, "/clientes", `{"documentoCliente":5,"nombre":"A","apellido":"B","correo":"a@b.co","password":"x","telefono":"1"}`, p, http.StatusCreated)
+
+	bads := []string{
+		``,
+		`{`,
+		`[]`,
+		`{"documentoCliente":"x"}`,
+		`{"nombre":"A","apellido":"B","correo":"a@b.co","password":"x","telefono":"1"}`,
+		`{"documentoCliente":0,"nombre":"A","apellido":"B","correo":"a@b.co","password":"x","telefono":"1"}`,
+		`{"documentoCliente":1,"nombre":" ","apellido":"B","correo":"a@b.co","password":"x","telefono":"1"}`,
+		`{"documentoCliente":1,"nombre":"A","apellido":"","correo":"a@b.co","password":"x","telefono":"1"}`,
+		`{"documentoCliente":1,"nombre":"A","apellido":"B","correo":" ","password":"x","telefono":"1"}`,
+		`{"documentoCliente":1,"nombre":"A","apellido":"B","correo":"no-es-correo","password":"x","telefono":"1"}`,
+		`{"documentoCliente":1,"nombre":"A","apellido":"B","correo":"Ana <a@b.co>","password":"x","telefono":"1"}`,
+		`{"documentoCliente":1,"nombre":"A","apellido":"B","correo":"a@b.co","password":"x"}`,
+		`{"documentoCliente":1,"nombre":"A","apellido":"B","correo":"a@b.co","password":"x","telefono":" "}`,
+		`{"documentoCliente":1,"nombre":"A","apellido":"B","correo":"a@b.co","telefono":"1"}`,
+		`{"documentoCliente":1,"nombre":"A","apellido":"B","correo":"a@b.co","password":"` + strings.Repeat("x", 73) + `","telefono":"1"}`,
 	}
-	readCliente = func(o orm.Ormer, c *models.Cliente) error {
-		cli, ok := db[c.PK_DOCUMENTO_CLIENTE]
-		if !ok {
-			return orm.ErrNoRows
+	for _, body := range bads {
+		call(t, http.MethodPost, "/clientes", body, p, http.StatusBadRequest)
+	}
+
+	// 72 bytes es el máximo admitido
+	call(t, http.MethodPost, "/clientes", `{"documentoCliente":1,"nombre":"A","apellido":"B","correo":"a@b.co","password":"`+strings.Repeat("x", 72)+`","telefono":"1"}`, p, http.StatusCreated)
+
+	// error de hash
+	orig := generateFromPassword
+	generateFromPassword = func([]byte, int) ([]byte, error) { return nil, errBoom }
+	call(t, http.MethodPost, "/clientes", bodyOK, p, http.StatusInternalServerError)
+	generateFromPassword = orig
+
+	// conflictos y errores de BD
+	cases := []struct {
+		err    string
+		status int
+		msg    string
+	}{
+		{`pq: duplicate key value violates unique constraint "cliente_correo_key"`, http.StatusConflict, "correo"},
+		{`pq: duplicate key value violates unique constraint "cliente_telefono_key"`, http.StatusConflict, "teléfono"},
+		{`pq: duplicate key value violates unique constraint "cliente_pkey"`, http.StatusConflict, "documento"},
+		{`conexión perdida`, http.StatusInternalServerError, ""},
+	}
+	for _, tc := range cases {
+		e := errors.New(tc.err)
+		fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, e }
+		b := call(t, http.MethodPost, "/clientes", bodyOK, p, tc.status)
+		if !strings.Contains(b, tc.msg) {
+			t.Fatalf("mensaje sin %q: %s", tc.msg, b)
 		}
-		*c = cli
-		return nil
-	}
-	r = httptest.NewRequest(http.MethodPut, "/clientes?id=3", strings.NewReader(`{"nombre":"Foo"}`))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
-		t.Fatalf("not found failed")
-	}
-	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader("notjson"))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"correo":"a@a.com"}`))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusConflict {
-		t.Fatalf("expected 409, got %d", w.Code)
-	}
-	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"fail"}`))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-	bcryptGenerate = func([]byte, int) ([]byte, error) { return nil, errors.New("hash") }
-	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"password":"n"}`))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-	bcryptGenerate = bcrypt.GenerateFromPassword
-	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"New","password":"newpass"}`))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if strings.Contains(w.Body.String(), "newpass") {
-		t.Fatalf("password should be hidden")
-	}
-	if db[1].PASSWORD == "newpass" {
-		t.Fatalf("password should be hashed")
-	}
-	r = httptest.NewRequest(http.MethodPut, "/clientes?id=1", strings.NewReader(`{"nombre":"Other"}`))
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.CopyBody(1 << 20)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if db[1].PASSWORD == "" {
-		t.Fatalf("password should remain")
 	}
 }
 
-func TestClienteDeleteScenarios(t *testing.T) {
-	db := map[int64]models.Cliente{1: {PK_DOCUMENTO_CLIENTE: 1}}
-	ormNew = func() orm.Ormer { return nil }
-	deleteCliente = func(o orm.Ormer, c *models.Cliente) (int64, error) {
-		if _, ok := db[c.PK_DOCUMENTO_CLIENTE]; ok {
-			delete(db, c.PK_DOCUMENTO_CLIENTE)
-			return 1, nil
+func TestPut(t *testing.T) {
+	defer resetFake()
+	u := func(c *ClienteController) { c.Put() }
+
+	for _, q := range []string{"", "?id=0", "?id=abc"} {
+		call(t, http.MethodPut, "/clientes"+q, `{}`, u, http.StatusBadRequest)
+	}
+	call(t, http.MethodPut, "/clientes?id=1001", `{}`, u, http.StatusNotFound)
+	failQuery()
+	call(t, http.MethodPut, "/clientes?id=1001", `{}`, u, http.StatusInternalServerError)
+
+	serveCliente()
+	var execArgs []driver.NamedValue
+	fakeExec = func(_ string, a []driver.NamedValue) (driver.Result, error) {
+		execArgs = a
+		return fakeResult{}, nil
+	}
+
+	// merge: los ausentes se conservan
+	b := call(t, http.MethodPut, "/clientes?id=1001", `{"nombre":" Pedro "}`, u, http.StatusOK)
+	noPassword(t, b)
+	for _, want := range []string{`"nombre":"Pedro"`, `"apellido":"Pérez"`, `"correo":"juan@example.com"`, `"telefono":"3001234567"`, `"direccion":"Calle 1"`, `"observaciones":"VIP"`} {
+		if !strings.Contains(b, want) {
+			t.Fatalf("falta %s en %s", want, b)
 		}
-		return 0, errors.New("not found")
 	}
-	t.Cleanup(resetMocks)
-	r := httptest.NewRequest(http.MethodDelete, "/clientes", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ClienteController{}
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Delete()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
+	// la contraseña existente no cambia
+	kept := false
+	for _, a := range execArgs {
+		if a.Value == "$2a$hash-secreto" {
+			kept = true
+		}
 	}
-	r = httptest.NewRequest(http.MethodDelete, "/clientes?id=2", nil)
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Delete()
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente no encontrado") {
-		t.Fatalf("expected not found response")
+	if !kept {
+		t.Fatalf("la contraseña original debía conservarse: %v", execArgs)
 	}
-	r = httptest.NewRequest(http.MethodDelete, "/clientes?id=1", nil)
-	w = httptest.NewRecorder()
-	ctx = context.NewContext()
-	ctx.Reset(w, r)
-	c.Ctx = ctx
-	c.Data = map[interface{}]interface{}{}
-	c.Delete()
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Cliente eliminado") {
-		t.Fatalf("expected success")
+
+	// todos los campos + observaciones null (único anulable)
+	all := `{"nombre":"A","apellido":"B","correo":" NUEVO@x.co ","telefono":"3","direccion":"","observaciones":null,"password":"Nueva123"}`
+	b = call(t, http.MethodPut, "/clientes?id=1001", all, u, http.StatusOK)
+	noPassword(t, b)
+	for _, want := range []string{`"correo":"nuevo@x.co"`, `"direccion":""`, `"observaciones":null`} {
+		if !strings.Contains(b, want) {
+			t.Fatalf("falta %s en %s", want, b)
+		}
+	}
+	ok := false
+	for _, a := range execArgs {
+		if s, isStr := a.Value.(string); isStr && bcrypt.CompareHashAndPassword([]byte(s), []byte("Nueva123")) == nil {
+			ok = true
+		}
+	}
+	if !ok {
+		t.Fatalf("no se guardó el hash de la nueva contraseña: %v", execArgs)
+	}
+	call(t, http.MethodPut, "/clientes?id=1001", `{"observaciones":"Nota"}`, u, http.StatusOK)
+
+	bads := []string{
+		``, `{`, `[]`,
+		`{"nombre":null}`, `{"apellido":null}`, `{"correo":null}`, `{"telefono":null}`, `{"direccion":null}`, `{"password":null}`,
+		`{"nombre":" "}`, `{"apellido":""}`, `{"correo":"x"}`, `{"correo":""}`, `{"telefono":" "}`, `{"password":""}`,
+		`{"password":"` + strings.Repeat("x", 73) + `"}`,
+		`{"nombre":5}`,
+	}
+	for _, body := range bads {
+		call(t, http.MethodPut, "/clientes?id=1001", body, u, http.StatusBadRequest)
+	}
+
+	orig := generateFromPassword
+	generateFromPassword = func([]byte, int) ([]byte, error) { return nil, errBoom }
+	call(t, http.MethodPut, "/clientes?id=1001", `{"password":"x"}`, u, http.StatusInternalServerError)
+	generateFromPassword = orig
+
+	for _, tc := range []struct {
+		err    string
+		status int
+		msg    string
+	}{
+		{`duplicate key value violates unique constraint "cliente_correo_key"`, http.StatusConflict, "correo"},
+		{`duplicate key value violates unique constraint "cliente_telefono_key"`, http.StatusConflict, "teléfono"},
+		{`falló`, http.StatusInternalServerError, ""},
+	} {
+		e := errors.New(tc.err)
+		fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, e }
+		b := call(t, http.MethodPut, "/clientes?id=1001", `{"nombre":"Z"}`, u, tc.status)
+		if !strings.Contains(b, tc.msg) {
+			t.Fatalf("mensaje sin %q: %s", tc.msg, b)
+		}
 	}
 }
 
-func TestDefaultWrappersCoverage(t *testing.T) {
-	useDefaultClienteWrappers()
-	t.Cleanup(resetMocks)
-	o := ormNew()
+func TestDelete(t *testing.T) {
+	defer resetFake()
+	d := func(c *ClienteController) { c.Delete() }
 
-	var list []models.Cliente
-	if _, err := queryAllClientes(o, &list); err != nil {
-		t.Fatalf("queryAllClientes error: %v", err)
+	for _, q := range []string{"", "?id=0", "?id=abc"} {
+		call(t, http.MethodDelete, "/clientes"+q, "", d, http.StatusBadRequest)
 	}
+	call(t, http.MethodDelete, "/clientes?id=1001", "", d, http.StatusOK)
 
-	c := &models.Cliente{PK_DOCUMENTO_CLIENTE: 1}
-	_ = readCliente(o, c)
+	fakeAffected = 0
+	call(t, http.MethodDelete, "/clientes?id=1001", "", d, http.StatusNotFound)
+	fakeAffected = 1
 
-	_, _ = insertCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99, NOMBRE: "X"})
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New(`violates foreign key constraint "pedido_cliente_fkey"`)
+	}
+	call(t, http.MethodDelete, "/clientes?id=1001", "", d, http.StatusConflict)
 
-	_, _ = updateCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99, NOMBRE: "Y"})
-
-	_, _ = deleteCliente(o, &models.Cliente{PK_DOCUMENTO_CLIENTE: 99})
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, errBoom }
+	call(t, http.MethodDelete, "/clientes?id=1001", "", d, http.StatusInternalServerError)
 }

@@ -69,7 +69,7 @@ func init() {
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type", "x-correlation-id"},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"},
 		AllowCredentials: true,
@@ -124,25 +124,30 @@ func init() {
 		beego.NSRouter("/subcategorias", &subc.SubcategoriaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 		beego.NSRouter("/subcategorias/search", &subc.SubcategoriaController{}, "get:GetById"),
 
+		// /trabajadores: solo el rol Administrador (401 sin token, 403 si no es admin).
 		beego.NSNamespace("/trabajadores",
-			beego.NSRouter("/", &trab.TrabajadorController{}, "get:GetAll"),
+			beego.NSBefore(loginc.ValidateAdmin),
+			beego.NSRouter("/", &trab.TrabajadorController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &trab.TrabajadorController{}, "get:GetById"),
 		),
 
+		// /reservas: reparto de acceso en resv.AccessFilter (el filtro de un namespace cubre todo su prefijo).
+		// Público: POST (crear con o sin cuenta) y GET /consulta (invitado: id + teléfono/documento, con límite
+		// por IP). Solo trabajadores (401/403): GET /, /parameter y /documento. Con token: /search, /cliente,
+		// PUT y DELETE, donde el controlador limita a cada Cliente a sus propias reservas.
 		beego.NSNamespace("/reservas",
-			beego.NSRouter("/", &resv.ReservaController{}, "get:GetAll"),
+			beego.NSBefore(resv.AccessFilter),
+			beego.NSRouter("/", &resv.ReservaController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/consulta", &resv.ReservaController{}, "get:Consulta"),
 			beego.NSRouter("/search", &resv.ReservaController{}, "get:GetById"),
 			beego.NSRouter("/parameter", &resv.ReservaController{}, "get:GetByParameter"),
 			beego.NSRouter("/cliente", &resv.ReservaController{}, "get:GetByDocumentoCliente"),
 			beego.NSRouter("/documento", &resv.ReservaController{}, "get:GetByDocumento"),
 		),
 
-		beego.NSNamespace("/reservas",
-			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &resv.ReservaController{}, "post:Post;put:Put;delete:Delete"),
-		),
-
+		// /reserva_contacto: solo trabajadores.
 		beego.NSNamespace("/reserva_contacto",
+			beego.NSBefore(loginc.ValidateStaff),
 			beego.NSRouter("/", &rc.ReservaContactoController{}, "get:GetAll"),
 			beego.NSRouter("/search", &rc.ReservaContactoController{}, "get:GetById"),
 		),
@@ -171,7 +176,8 @@ func init() {
 
 		beego.NSNamespace("/pedidos",
 			beego.NSBefore(loginc.ValidateToken),
-			beego.NSRouter("/", &pd.PedidoController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
+			beego.NSRouter("/", &pd.PedidoController{}, "get:GetAll;post:Post"),
+			beego.NSRouter("/checkout", &pd.PedidoController{}, "post:Checkout"),
 			beego.NSRouter("/asignar-domicilio", &pd.PedidoController{}, "post:AssignDomicilio"),
 			beego.NSRouter("/asignar-pago", &pd.PedidoController{}, "post:AssignPago"),
 			beego.NSRouter("/actualizar-estado", &pd.PedidoController{}, "put:UpdateEstadoPedido"),
@@ -263,7 +269,7 @@ func init() {
 			beego.NSRouter("/", &cup.CuponController{}, "get:GetAll;post:Post;put:Put;delete:Delete"),
 			beego.NSRouter("/search", &cup.CuponController{}, "get:GetById"),
 			beego.NSRouter("/validar", &cup.CuponController{}, "post:ValidarCupon"),
-			beego.NSRouter("/redimir", &cup.CuponController{}, "post:RedimirCupon"),
+			beego.NSRouter("/:codigo/redimir", &cup.CuponController{}, "post:RedimirCupon"),
 			beego.NSRouter("/redenciones", &cup.CuponController{}, "get:ListarRedenciones"),
 		),
 

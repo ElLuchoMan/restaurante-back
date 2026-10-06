@@ -38,6 +38,10 @@ func (m *mockPushOrmer) Read(md interface{}, cols ...string) error {
 	if m.readFn != nil {
 		return m.readFn(md, cols...)
 	}
+	switch md.(type) {
+	case *models.Cliente, *models.Trabajador:
+		return nil
+	}
 	return orm.ErrNoRows
 }
 
@@ -741,7 +745,7 @@ func TestPushService_RegistrarDispositivo_ErrorValidacion(t *testing.T) {
 		Plataforma: models.PlataformaWeb,
 	}
 
-	dispositivo, err := service.RegistrarDispositivo(context.Background(), req)
+	dispositivo, _, err := service.RegistrarDispositivo(context.Background(), req)
 	assert.Error(t, err)
 	assert.Nil(t, dispositivo)
 	assert.Contains(t, err.Error(), "exactamente uno")
@@ -778,7 +782,7 @@ func TestPushService_RegistrarDispositivo_NuevoDispositivo(t *testing.T) {
 		PkDocumentoCliente: &clienteId,
 	}
 
-	dispositivo, err := service.RegistrarDispositivo(context.Background(), req)
+	dispositivo, _, err := service.RegistrarDispositivo(context.Background(), req)
 	assert.NoError(t, err)
 	assert.NotNil(t, dispositivo)
 	assert.Equal(t, models.PlataformaWeb, dispositivo.Plataforma)
@@ -814,7 +818,7 @@ func TestPushService_RegistrarDispositivo_NuevoDispositivoAndroid(t *testing.T) 
 		PkDocumentoTrabajador: &trabajadorId,
 	}
 
-	dispositivo, err := service.RegistrarDispositivo(context.Background(), req)
+	dispositivo, _, err := service.RegistrarDispositivo(context.Background(), req)
 	assert.NoError(t, err)
 	assert.NotNil(t, dispositivo)
 	assert.Equal(t, models.PlataformaAndroid, dispositivo.Plataforma)
@@ -853,7 +857,7 @@ func TestPushService_RegistrarDispositivo_ActualizarExistentePorFcmToken(t *test
 		PkDocumentoTrabajador: &trabajadorId,
 	}
 
-	dispositivo, err := service.RegistrarDispositivo(context.Background(), req)
+	dispositivo, _, err := service.RegistrarDispositivo(context.Background(), req)
 	assert.NoError(t, err)
 	assert.NotNil(t, dispositivo)
 	assert.Equal(t, int64(1), dispositivo.PkIdPushDispositivo)
@@ -896,7 +900,7 @@ func TestPushService_RegistrarDispositivo_ActualizarExistentePorEndpoint(t *test
 		PkDocumentoCliente: &clienteId,
 	}
 
-	dispositivo, err := service.RegistrarDispositivo(context.Background(), req)
+	dispositivo, _, err := service.RegistrarDispositivo(context.Background(), req)
 	assert.NoError(t, err)
 	assert.NotNil(t, dispositivo)
 	assert.Equal(t, int64(2), dispositivo.PkIdPushDispositivo)
@@ -934,7 +938,7 @@ func TestPushService_RegistrarDispositivo_ErrorUpdate(t *testing.T) {
 		PkDocumentoTrabajador: &trabajadorId,
 	}
 
-	dispositivo, err := service.RegistrarDispositivo(context.Background(), req)
+	dispositivo, _, err := service.RegistrarDispositivo(context.Background(), req)
 	assert.Error(t, err)
 	assert.Nil(t, dispositivo)
 	assert.Contains(t, err.Error(), "error al actualizar dispositivo")
@@ -971,7 +975,7 @@ func TestPushService_RegistrarDispositivo_ErrorInsert(t *testing.T) {
 		PkDocumentoCliente: &clienteId,
 	}
 
-	dispositivo, err := service.RegistrarDispositivo(context.Background(), req)
+	dispositivo, _, err := service.RegistrarDispositivo(context.Background(), req)
 	assert.Error(t, err)
 	assert.Nil(t, dispositivo)
 	assert.Contains(t, err.Error(), "error al registrar dispositivo")

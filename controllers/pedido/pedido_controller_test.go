@@ -1,774 +1,275 @@
 package pedido
 
 import (
-	stdctx "context"
-	"database/sql"
 	"database/sql/driver"
 	"errors"
-	"io"
 	"net/http"
-	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/beego/beego/v2/client/orm"
-	beegoCtx "github.com/beego/beego/v2/server/web/context"
+	"restaurante/database"
 )
 
 var (
-	MockExec  func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error)
-	MockQuery func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error)
+	errBoom = errors.New("boom")
+
+	pedidoCols    = []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "pk_documento_cliente", "updated_at", "updated_by"}
+	detallesCols  = []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "metodo_pago", "productos", "pago_id", "metodo_pago_id", "domicilio_id", "pk_documento_cliente"}
+	countCols     = []string{"count"}
+	fechaPedido   = time.Date(2025, 1, 31, 12, 0, 0, 0, time.UTC)
+	updatedPedido = time.Date(2025, 1, 31, 20, 0, 0, 0, time.UTC)
 )
 
-type mockDriver struct{}
-
-type mockConn struct{}
-
-type mockStmt struct{ query string }
-
-type mockTx struct{}
-
-type mockResult struct{}
-
-type mockRows struct {
-	columns []string
-	values  [][]driver.Value
-	idx     int
+func pedidoRow() []driver.Value {
+	return []driver.Value{int64(10), fechaPedido, time.Date(2000, 1, 1, 18, 30, 0, 0, time.UTC), false, "INICIADO",
+		nil, int64(4), int64(1), int64(1001), updatedPedido, "cajero"}
 }
 
-func (d mockDriver) Open(name string) (driver.Conn, error) { return &mockConn{}, nil }
-
-func (c *mockConn) Prepare(query string) (driver.Stmt, error) { return &mockStmt{query: query}, nil }
-func (c *mockConn) Close() error                              { return nil }
-func (c *mockConn) Begin() (driver.Tx, error)                 { return &mockTx{}, nil }
-func (c *mockConn) ExecContext(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	if MockExec != nil {
-		return MockExec(ctx, query, args)
-	}
-	return mockResult{}, nil
-}
-func (c *mockConn) QueryContext(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	if MockQuery != nil {
-		return MockQuery(ctx, query, args)
-	}
-	return nil, errors.New("mock query error")
+// rt programa el driver: devuelve las filas del primer fragmento que aparezca
+// en la consulta; sin coincidencia, un resultado vacío.
+type rt struct {
+	frag string
+	rows func() driver.Rows
 }
 
-func (s *mockStmt) Close() error  { return nil }
-func (s *mockStmt) NumInput() int { return -1 }
-func (s *mockStmt) Exec(args []driver.Value) (driver.Result, error) {
-	if MockExec != nil {
-		nv := make([]driver.NamedValue, len(args))
-		for i, v := range args {
-			nv[i] = driver.NamedValue{Ordinal: i + 1, Value: v}
+func serve(routes ...rt) {
+	fakeQuery = func(q string, _ []driver.NamedValue) (driver.Rows, error) {
+		for _, r := range routes {
+			if strings.Contains(q, r.frag) {
+				return r.rows(), nil
+			}
 		}
-		return MockExec(stdctx.Background(), s.query, nv)
+		return rowsOf(nil), nil
 	}
-	return mockResult{}, nil
 }
-func (s *mockStmt) Query(args []driver.Value) (driver.Rows, error) {
-	if MockQuery != nil {
-		nv := make([]driver.NamedValue, len(args))
-		for i, v := range args {
-			nv[i] = driver.NamedValue{Ordinal: i + 1, Value: v}
+
+func pedidoOK() rt {
+	return rt{`FROM "pedido"`, func() driver.Rows { return rowsOf(pedidoCols, pedidoRow()) }}
+}
+func count(frag string, n int64) rt {
+	return rt{"COUNT(*) FROM \"" + frag + "\"", func() driver.Rows { return rowsOf(countCols, []driver.Value{n}) }}
+}
+
+func call(t *testing.T, method, target, body string, f func(c *PedidoController), status int) string {
+	t.Helper()
+	ctx, w := newCtx(method, target, body)
+	c := &PedidoController{}
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
+	f(c)
+	expect(t, w, status)
+	return w.Body.String()
+}
+
+func contains(t *testing.T, body string, wants ...string) {
+	t.Helper()
+	for _, w := range wants {
+		if !strings.Contains(body, w) {
+			t.Fatalf("falta %s en %s", w, body)
 		}
-		return MockQuery(stdctx.Background(), s.query, nv)
-	}
-	return nil, errors.New("mock query error")
-}
-
-func (mockTx) Commit() error   { return nil }
-func (mockTx) Rollback() error { return nil }
-
-func (mockResult) LastInsertId() (int64, error) { return 1, nil }
-func (mockResult) RowsAffected() (int64, error) { return 1, nil }
-
-func (r *mockRows) Columns() []string { return r.columns }
-func (r *mockRows) Close() error      { return nil }
-func (r *mockRows) Next(dest []driver.Value) error {
-	if r.idx >= len(r.values) {
-		return io.EOF
-	}
-	row := r.values[r.idx]
-	for i, v := range row {
-		dest[i] = v
-	}
-	r.idx++
-	return nil
-}
-
-func TestMain(m *testing.M) {
-	if os.Getenv("JWT_SECRET") == "" {
-		_ = os.Setenv("JWT_SECRET", "testsecret")
-	}
-	sql.Register("mock", mockDriver{})
-	orm.RegisterDriver("mock", orm.DRPostgres)
-	_ = orm.RegisterDataBase("default", "mock", "")
-	os.Exit(m.Run())
-}
-
-func TestPedidoGetAllWithoutDB(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/pedidos", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al obtener los pedidos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
 	}
 }
 
-func TestPedidoPostDatabaseError(t *testing.T) {
-	body := "{}"
-	r := httptest.NewRequest(http.MethodPost, "/pedidos", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Ctx.Input.RequestBody = []byte(body)
-
-	c.Post()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
+func TestGetAll(t *testing.T) {
+	defer resetFake()
+	g := func(c *PedidoController) { c.GetAll() }
+	if b := call(t, http.MethodGet, "/pedidos", "", g, http.StatusOK); !strings.Contains(b, `"data":[]`) {
+		t.Fatalf("lista vacía debe ser []: %s", b)
 	}
-	if !strings.Contains(w.Body.String(), "Error al crear el pedido") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	var gotQ string
+	var gotArgs []driver.NamedValue
+	fakeQuery = func(q string, a []driver.NamedValue) (driver.Rows, error) {
+		gotQ, gotArgs = q, a
+		return rowsOf(pedidoCols, pedidoRow()), nil
 	}
-}
-
-func TestPedidoAssignDomicilioNotFound(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-domicilio?pedido_id=1&domicilio_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.AssignDomicilio()
-
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected status 404, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Pedido no encontrado") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoAssignPagoNotFound(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-pago?pedido_id=1&pago_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.AssignPago()
-
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected status 404, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Pedido no encontrado") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoUpdateEstadoPedidoNotFound(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=TERMINADO", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.UpdateEstadoPedido()
-
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected status 404, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Pedido no encontrado") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoUpdateEstadoPedidoInvalidEstado(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=foo", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.UpdateEstadoPedido()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Estado inválido") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoGetPedidoDetailsMissingID(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/pedidos/detalles", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetPedidoDetails()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "El parámetro 'pedido_id' es obligatorio") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoGetPedidoDetailsDBError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/pedidos/detalles?pedido_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetPedidoDetails()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al obtener los detalles del pedido") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoPostParseError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/pedidos", strings.NewReader("a=%"))
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Datos inválidos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoPostDeliveryWithoutDomicilio(t *testing.T) {
-	body := `{"delivery":true}`
-	r := httptest.NewRequest(http.MethodPost, "/pedidos", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Ctx.Input.RequestBody = []byte(body)
-
-	c.Post()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "domicilio es obligatorio") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoAssignDomicilioBadParam(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-domicilio?pedido_id=1&domicilio_id=0", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.AssignDomicilio()
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "debe ser un entero positivo") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoPostSuccess(t *testing.T) {
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido"}
-		vals := [][]driver.Value{{int64(1)}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	defer func() { MockExec = nil; MockQuery = nil }()
-
-	body := "{}"
-	r := httptest.NewRequest(http.MethodPost, "/pedidos", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Ctx.Input.RequestBody = []byte(body)
-
-	c.Post()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Pedido creado exitosamente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoPostDeliveryWithDomicilioAndRestaurante(t *testing.T) {
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido"}
-		vals := [][]driver.Value{{int64(1)}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	defer func() { MockExec = nil; MockQuery = nil }()
-
-	body := `{"delivery":true,"pk_id_domicilio":1,"restauranteId":2}`
-	r := httptest.NewRequest(http.MethodPost, "/pedidos", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Ctx.Input.RequestBody = []byte(body)
-
-	c.Post()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Pedido creado exitosamente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoGetAllWithFiltersNoResults(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		return &mockRows{columns: cols, values: [][]driver.Value{}}, nil
-	}
-	defer func() { MockQuery = nil }()
-
-	url := "/pedidos?fecha=2024-01-01&desde=2024-01-01&hasta=2024-02-01&mes=1&anio=2024&cliente=1&metodo_pago=NEQUI&domicilio=true"
-	r := httptest.NewRequest(http.MethodGet, url, nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "No se encontraron pedidos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoGetAllAnioOnly(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		return &mockRows{columns: cols, values: [][]driver.Value{}}, nil
-	}
-	defer func() { MockQuery = nil }()
-
-	r := httptest.NewRequest(http.MethodGet, "/pedidos?anio=2024", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "No se encontraron pedidos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoGetAllWithResults(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	defer func() { MockQuery = nil }()
-
-	r := httptest.NewRequest(http.MethodGet, "/pedidos", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Pedidos obtenidos exitosamente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoGetAllDomicilioFalse(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		return &mockRows{columns: cols, values: [][]driver.Value{}}, nil
-	}
-	defer func() { MockQuery = nil }()
-
-	r := httptest.NewRequest(http.MethodGet, "/pedidos?domicilio=false", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "No se encontraron pedidos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoAssignDomicilioUpdateError(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return nil, errors.New("update error")
-	}
-	defer func() { MockQuery = nil; MockExec = nil }()
-
-	r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-domicilio?pedido_id=1&domicilio_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.AssignDomicilio()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al asignar domicilio") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoAssignDomicilioSuccess(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	defer func() { MockQuery = nil; MockExec = nil }()
-
-	r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-domicilio?pedido_id=1&domicilio_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.AssignDomicilio()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Domicilio asignado correctamente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoAssignPagoUpdateError(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return nil, errors.New("update error")
-	}
-	defer func() { MockQuery = nil; MockExec = nil }()
-
-	r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-pago?pedido_id=1&pago_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.AssignPago()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al asignar pago") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestPedidoAssignPagoSuccess(t *testing.T) {
-	qCount := 0
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		if qCount == 0 {
-			qCount++
-			cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-			now := time.Now()
-			vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-			return &mockRows{columns: cols, values: vals}, nil
+	b := call(t, http.MethodGet, "/pedidos?fecha=2025-01-31&desde=2025-01-01&hasta=2025-01-31&mes=1&anio=2025&cliente=1001&metodo_pago=nequi&domicilio=true", "", g, http.StatusOK)
+	contains(t, b, `"fechaPedido":"31-01-2025"`, `"horaPedido":"18:30:00"`, `"pedidoId":10`, `"pagoId":{`)
+	for _, want := range []string{"p.fecha = $1", "BETWEEN", "MONTH", "YEAR", "pk_documento_cliente", "ILIKE", "IS NOT NULL"} {
+		if !strings.Contains(gotQ, want) {
+			t.Fatalf("filtro %q no aplicado: %s", want, gotQ)
 		}
-		cols := []string{"pk_id_pago", "fecha", "hora", "monto", "estado_pago", "pk_id_metodo_pago", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, int64(100), "PENDIENTE", int64(1), now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
 	}
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
+	if len(gotArgs) != 7 {
+		t.Fatalf("args inesperados: %v", gotArgs)
 	}
-	defer func() { MockQuery = nil; MockExec = nil }()
-
-	r := httptest.NewRequest(http.MethodPost, "/pedidos/asignar-pago?pedido_id=1&pago_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.AssignPago()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+	call(t, http.MethodGet, "/pedidos?domicilio=false", "", g, http.StatusOK)
+	if !strings.Contains(gotQ, "pk_id_domicilio IS NULL") {
+		t.Fatalf("falta IS NULL: %s", gotQ)
 	}
-	if !strings.Contains(w.Body.String(), "Pago asignado correctamente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
+	for _, q := range []string{"fecha=31-01-2025", "desde=x&hasta=2025-01-01", "desde=2025-01-01&hasta=x", "desde=2025-01-01", "hasta=2025-01-01",
+		"desde=2025-02-01&hasta=2025-01-01", "mes=13", "mes=x", "anio=0", "cliente=0", "cliente=x", "domicilio=quizas"} {
+		call(t, http.MethodGet, "/pedidos?"+q, "", g, http.StatusBadRequest)
+	}
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errBoom }
+	call(t, http.MethodGet, "/pedidos", "", g, http.StatusInternalServerError)
+}
+
+func TestPostValidation(t *testing.T) {
+	defer resetFake()
+	p := func(c *PedidoController) { c.Post() }
+	for _, body := range []string{"", "{", `{"delivery":"si"}`} {
+		call(t, http.MethodPost, "/pedidos", body, p, http.StatusBadRequest)
+	}
+	for _, body := range []string{`{"pk_id_domicilio":0}`, `{"documentoCliente":-1}`, `{"restauranteId":-1}`, `{"delivery":true}`} {
+		call(t, http.MethodPost, "/pedidos", body, p, http.StatusBadRequest)
 	}
 }
 
-func TestPedidoUpdateEstadoPedidoUpdateError(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return nil, errors.New("update error")
-	}
-	defer func() { MockQuery = nil; MockExec = nil }()
+func TestPostSuccessAndZones(t *testing.T) {
+	defer resetFake()
+	p := func(c *PedidoController) { c.Post() }
+	serve(count("domicilio", 1), count("restaurante", 1), count("cliente", 1))
+	b := call(t, http.MethodPost, "/pedidos", `{"delivery":true,"pk_id_domicilio":3,"restauranteId":1,"documentoCliente":1001}`, p, http.StatusCreated)
+	contains(t, b, `"pedidoId":7`, `"estadoPedido":"INICIADO"`, `"delivery":true`)
 
-	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=TERMINADO", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.UpdateEstadoPedido()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al actualizar estado del pedido") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+	origZone, origLoad := database.BogotaZone, loadLocation
+	t.Cleanup(func() { database.BogotaZone, loadLocation = origZone, origLoad })
+	database.BogotaZone = nil
+	loadLocation = time.LoadLocation
+	call(t, http.MethodPost, "/pedidos", `{}`, p, http.StatusCreated)
+	loadLocation = func(string) (*time.Location, error) { return nil, errBoom }
+	call(t, http.MethodPost, "/pedidos", `{}`, p, http.StatusCreated)
 }
 
-func TestPedidoUpdateEstadoPedidoSuccess(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
+func TestPostReferences(t *testing.T) {
+	defer resetFake()
+	p := func(c *PedidoController) { c.Post() }
+	cases := []struct{ body, table string }{
+		{`{"delivery":true,"pk_id_domicilio":3}`, "domicilio"},
+		{`{"restauranteId":1}`, "restaurante"},
+		{`{"documentoCliente":1001}`, "cliente"},
 	}
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
+	for _, tc := range cases {
+		serve(count(tc.table, 0))
+		call(t, http.MethodPost, "/pedidos", tc.body, p, http.StatusNotFound)
+		fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errBoom }
+		call(t, http.MethodPost, "/pedidos", tc.body, p, http.StatusInternalServerError)
 	}
-	defer func() { MockQuery = nil; MockExec = nil }()
-
-	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=TERMINADO", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.UpdateEstadoPedido()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
+	serve(count("cliente", 1))
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, errBoom }
+	call(t, http.MethodPost, "/pedidos", `{"documentoCliente":1001}`, p, http.StatusInternalServerError)
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) {
+		return nil, errors.New(`ERROR: insert or update violates foreign key constraint (SQLSTATE 23503)`)
 	}
-	if !strings.Contains(w.Body.String(), "Estado del pedido actualizado correctamente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+	call(t, http.MethodPost, "/pedidos", `{"documentoCliente":1001}`, p, http.StatusConflict)
 }
 
-func TestPedidoUpdateEstadoPedidoSuccess_EnPreparacion(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
+func TestAssignDomicilio(t *testing.T) {
+	defer resetFake()
+	a := func(c *PedidoController) { c.AssignDomicilio() }
+	for _, q := range []string{"", "pedido_id=10", "pedido_id=10&domicilio_id=0", "domicilio_id=3", "domicilio_id=3&pedido_id=x"} {
+		call(t, http.MethodPost, "/pedidos/asignar-domicilio?"+q, "", a, http.StatusBadRequest)
 	}
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	defer func() { MockQuery = nil; MockExec = nil }()
-
-	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=EN_PREPARACION", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.UpdateEstadoPedido()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
+	u := "/pedidos/asignar-domicilio?pedido_id=10&domicilio_id=3"
+	serve() // pedido inexistente
+	call(t, http.MethodPost, u, "", a, http.StatusNotFound)
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errBoom }
+	call(t, http.MethodPost, u, "", a, http.StatusInternalServerError)
+	serve(pedidoOK(), count("domicilio", 0))
+	call(t, http.MethodPost, u, "", a, http.StatusNotFound)
+	serve(pedidoOK(), count("domicilio", 1))
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, errBoom }
+	call(t, http.MethodPost, u, "", a, http.StatusInternalServerError)
+	fakeExec = nil
+	b := call(t, http.MethodPost, u, "", a, http.StatusOK)
+	contains(t, b, `"delivery":true`, `"domicilioId":{"domicilioId":3`, `"fechaPedido":"31-01-2025"`)
 }
 
-func TestPedidoUpdateEstadoPedidoSuccess_Listo(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "pk_id_domicilio", "pk_id_pago", "pk_id_restaurante", "updated_at", "updated_by"}
-		now := time.Now()
-		vals := [][]driver.Value{{int64(1), now, now, false, "INICIADO", nil, nil, nil, now, "tester"}}
-		return &mockRows{columns: cols, values: vals}, nil
+func TestAssignPago(t *testing.T) {
+	defer resetFake()
+	a := func(c *PedidoController) { c.AssignPago() }
+	base := "/pedidos/asignar-pago?"
+	for _, q := range []string{"pedido_id=10", "pedido_id=10&pago_id=0", "pedido_id=10&pago_id=4&cambiar_estado=tal", "pago_id=4&pedido_id=x"} {
+		call(t, http.MethodPost, base+q, "", a, http.StatusBadRequest)
 	}
-	MockExec = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	defer func() { MockQuery = nil; MockExec = nil }()
+	u := base + "pedido_id=10&pago_id=4"
+	serve()
+	call(t, http.MethodPost, u, "", a, http.StatusNotFound)
+	serve(pedidoOK(), count("pago", 0))
+	call(t, http.MethodPost, u, "", a, http.StatusNotFound)
 
-	r := httptest.NewRequest(http.MethodPut, "/pedidos/actualizar-estado?pedido_id=1&estado=LISTO", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
+	serve(pedidoOK(), count("pago", 1))
+	fakeBeginErr = errBoom
+	call(t, http.MethodPost, u, "", a, http.StatusInternalServerError)
+	fakeBeginErr = nil
 
-	c.UpdateEstadoPedido()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-}
-
-func TestPedidoGetPedidoDetailsSuccess(t *testing.T) {
-	MockQuery = func(ctx stdctx.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-		cols := []string{"pk_id_pedido", "fecha", "hora", "delivery", "estado_pedido", "metodo_pago", "productos", "pago_id", "metodo_pago_id", "domicilio_id", "pk_documento_cliente"}
-		vals := [][]driver.Value{{int64(1), "2024-01-01", "12:00:00", false, "TERMINADO", "NEQUI", "[]", int64(2), int64(3), int64(4), int64(5)}}
-		return &mockRows{columns: cols, values: vals}, nil
-	}
-	defer func() { MockQuery = nil }()
-
-	r := httptest.NewRequest(http.MethodGet, "/pedidos/detalles?pedido_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := beegoCtx.NewContext()
-	ctx.Reset(w, r)
-	c := PedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetPedidoDetails()
-	body := w.Body.String()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	for _, field := range []string{
-		"Detalles del pedido obtenidos exitosamente",
-		"\"fechaPedido\":\"2024-01-01\"",
-		"\"horaPedido\":\"12:00:00\"",
-		"\"delivery\":false",
-		"\"estadoPedido\":\"TERMINADO\"",
-		"\"pagoId\":2",
-		"\"metodoPagoId\":3",
-		"\"domicilioId\":4",
-		"\"documentoCliente\":5",
-	} {
-		if !strings.Contains(body, field) {
-			t.Errorf("unexpected body: %s", body)
+	// fallo al actualizar el pedido, luego al actualizar el pago, luego en commit
+	var seen []string
+	fakeExec = func(q string, _ []driver.NamedValue) (driver.Result, error) {
+		seen = append(seen, q)
+		if strings.HasPrefix(q, `UPDATE "pedido"`) {
+			return nil, errBoom
 		}
+		return fakeResult{}, nil
+	}
+	call(t, http.MethodPost, u, "", a, http.StatusInternalServerError)
+	fakeExec = func(q string, _ []driver.NamedValue) (driver.Result, error) {
+		if strings.HasPrefix(q, `UPDATE "pago"`) {
+			return nil, errBoom
+		}
+		return fakeResult{}, nil
+	}
+	call(t, http.MethodPost, u, "", a, http.StatusInternalServerError)
+	fakeExec = nil
+	fakeCommitErr = errBoom
+	call(t, http.MethodPost, u, "", a, http.StatusInternalServerError)
+	fakeCommitErr = nil
+
+	b := call(t, http.MethodPost, u, "", a, http.StatusOK)
+	contains(t, b, `"estadoPedido":"TERMINADO"`)
+	seen = nil
+	fakeExec = func(q string, _ []driver.NamedValue) (driver.Result, error) {
+		seen = append(seen, q)
+		return fakeResult{}, nil
+	}
+	b = call(t, http.MethodPost, u+"&cambiar_estado=false", "", a, http.StatusOK)
+	contains(t, b, `"estadoPedido":"INICIADO"`)
+	for _, q := range seen {
+		if strings.HasPrefix(q, `UPDATE "pago"`) {
+			t.Fatalf("no debe tocar el pago con cambiar_estado=false: %v", seen)
+		}
+	}
+}
+
+func TestUpdateEstado(t *testing.T) {
+	defer resetFake()
+	u := func(c *PedidoController) { c.UpdateEstadoPedido() }
+	for _, q := range []string{"", "pedido_id=10", "pedido_id=10&estado=X", "estado=LISTO", "estado=LISTO&pedido_id=0"} {
+		call(t, http.MethodPut, "/pedidos/actualizar-estado?"+q, "", u, http.StatusBadRequest)
+	}
+	url := "/pedidos/actualizar-estado?pedido_id=10&estado=listo"
+	serve()
+	call(t, http.MethodPut, url, "", u, http.StatusNotFound)
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errBoom }
+	call(t, http.MethodPut, url, "", u, http.StatusInternalServerError)
+	serve(pedidoOK())
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, errBoom }
+	call(t, http.MethodPut, url, "", u, http.StatusInternalServerError)
+	fakeExec = nil
+	b := call(t, http.MethodPut, url, "", u, http.StatusOK)
+	contains(t, b, `"estadoPedido":"LISTO"`, `"fechaPedido":"31-01-2025"`)
+	for _, e := range []string{"INICIADO", "EN_PREPARACION", "TERMINADO", "CANCELADO"} {
+		call(t, http.MethodPut, "/pedidos/actualizar-estado?pedido_id=10&estado="+e, "", u, http.StatusOK)
+	}
+}
+
+func TestDetalles(t *testing.T) {
+	defer resetFake()
+	d := func(c *PedidoController) { c.GetPedidoDetails() }
+	for _, q := range []string{"", "pedido_id=0", "pedido_id=x", "pedido_id=-2"} {
+		call(t, http.MethodGet, "/pedidos/detalles?"+q, "", d, http.StatusBadRequest)
+	}
+	call(t, http.MethodGet, "/pedidos/detalles?pedido_id=10", "", d, http.StatusNotFound)
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errBoom }
+	call(t, http.MethodGet, "/pedidos/detalles?pedido_id=10", "", d, http.StatusInternalServerError)
+	var gotQ string
+	fakeQuery = func(q string, _ []driver.NamedValue) (driver.Rows, error) {
+		gotQ = q
+		return rowsOf(detallesCols, []driver.Value{int64(10), "31-01-2025", "18:30:00", false, "INICIADO", "NEQUI", "[]", int64(4), int64(1), int64(0), int64(1001)}), nil
+	}
+	b := call(t, http.MethodGet, "/pedidos/detalles?pedido_id=10", "", d, http.StatusOK)
+	contains(t, b, `"fechaPedido":"31-01-2025"`, `"productos":"[]"`, `"metodoPago":"NEQUI"`)
+	if !strings.Contains(gotQ, "'DD-MM-YYYY'") {
+		t.Fatalf("la fecha debe consultarse como DD-MM-YYYY: %s", gotQ)
 	}
 }

@@ -21,18 +21,23 @@ type Pedido struct {
 	UPDATED_BY           *string      `orm:"column(updated_by);type(text);null" json:"updatedBy,omitempty"`
 }
 
+// PedidoDetails es el `data` de GET /pedidos/detalles. A diferencia de Pedido,
+// `fechaPedido` va como DD-MM-YYYY, `horaPedido` como HH:MM:SS y las relaciones
+// van como número (0 cuando no existen). `productos` es un string que contiene
+// un JSON con un arreglo de objetos {pk_id_producto, nombre, cantidad, precio,
+// subtotal} (`[]` si el pedido no tiene productos).
 type PedidoDetails struct {
-	PedidoID         int64  `json:"pedidoId" orm:"column(pk_id_pedido)"`
-	Fecha            string `json:"fechaPedido" orm:"column(fecha)"`
-	Hora             string `json:"horaPedido" orm:"column(hora)"`
-	Delivery         bool   `json:"delivery" orm:"column(delivery)"`
-	EstadoPedido     string `json:"estadoPedido" orm:"column(estado_pedido)"`
-	MetodoPago       string `json:"metodoPago" orm:"column(metodo_pago)"`
-	Productos        string `json:"productos" orm:"column(productos)"`
-	PagoID           int64  `json:"pagoId" orm:"column(pago_id)"`
-	MetodoPagoID     int64  `json:"metodoPagoId" orm:"column(metodo_pago_id)"`
-	DomicilioID      int64  `json:"domicilioId" orm:"column(domicilio_id)"`
-	DocumentoCliente int64  `json:"documentoCliente" orm:"column(pk_documento_cliente)"`
+	PedidoID         int64  `json:"pedidoId" orm:"column(pk_id_pedido)" example:"10"`
+	Fecha            string `json:"fechaPedido" orm:"column(fecha)" example:"31-01-2025"`
+	Hora             string `json:"horaPedido" orm:"column(hora)" example:"18:30:00"`
+	Delivery         bool   `json:"delivery" orm:"column(delivery)" example:"false"`
+	EstadoPedido     string `json:"estadoPedido" orm:"column(estado_pedido)" enums:"INICIADO,EN_PREPARACION,LISTO,TERMINADO,CANCELADO" example:"INICIADO"`
+	MetodoPago       string `json:"metodoPago" orm:"column(metodo_pago)" example:"NEQUI"`
+	Productos        string `json:"productos" orm:"column(productos)" example:"[{\"pk_id_producto\":1,\"nombre\":\"Bandeja Paisa\",\"cantidad\":2,\"precio\":25000,\"subtotal\":50000}]"`
+	PagoID           int64  `json:"pagoId" orm:"column(pago_id)" example:"4"`
+	MetodoPagoID     int64  `json:"metodoPagoId" orm:"column(metodo_pago_id)" example:"1"`
+	DomicilioID      int64  `json:"domicilioId" orm:"column(domicilio_id)" example:"3"`
+	DocumentoCliente int64  `json:"documentoCliente" orm:"column(pk_documento_cliente)" example:"1234567890"`
 }
 
 func (p *Pedido) TableName() string {

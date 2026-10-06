@@ -2,11 +2,15 @@ package oferta
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"restaurante/internal/authz"
+	"restaurante/internal/dberr"
+	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
 	"restaurante/services"
@@ -15,115 +19,137 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-type ofertaQuerySeter interface {
-	All(interface{}, ...string) (int64, error)
-	Filter(string, ...interface{}) ofertaQuerySeter
-	OrderBy(...string) ofertaQuerySeter
-	Limit(int) ofertaQuerySeter
-	Offset(int64) ofertaQuerySeter
-	Count() (int64, error)
-	One(interface{}) error
-}
-
-type ofertaOrmer interface {
-	QueryTable(interface{}) ofertaQuerySeter
-	Insert(interface{}) (int64, error)
-	Read(interface{}, ...string) error
-	Update(interface{}, ...string) (int64, error)
-	Delete(interface{}, ...string) (int64, error)
-}
-
-type ofertQSAdapter struct{ qs orm.QuerySeter }
-
-func (a ofertQSAdapter) All(res interface{}, cols ...string) (int64, error) {
-	return a.qs.All(res, cols...)
-}
-func (a ofertQSAdapter) Filter(expr string, args ...interface{}) ofertaQuerySeter {
-	return ofertQSAdapter{qs: a.qs.Filter(expr, args...)}
-}
-func (a ofertQSAdapter) OrderBy(exprs ...string) ofertaQuerySeter {
-	return ofertQSAdapter{qs: a.qs.OrderBy(exprs...)}
-}
-func (a ofertQSAdapter) Limit(limit int) ofertaQuerySeter {
-	return ofertQSAdapter{qs: a.qs.Limit(limit)}
-}
-func (a ofertQSAdapter) Offset(offset int64) ofertaQuerySeter {
-	return ofertQSAdapter{qs: a.qs.Offset(offset)}
-}
-func (a ofertQSAdapter) Count() (int64, error) {
-	return a.qs.Count()
-}
-func (a ofertQSAdapter) One(container interface{}) error {
-	return a.qs.One(container)
-}
-
-type ofertOrmAdapter struct{ o orm.Ormer }
-
-func (a ofertOrmAdapter) QueryTable(i interface{}) ofertaQuerySeter {
-	return ofertQSAdapter{qs: a.o.QueryTable(i)}
-}
-func (a ofertOrmAdapter) Insert(v interface{}) (int64, error)      { return a.o.Insert(v) }
-func (a ofertOrmAdapter) Read(v interface{}, cols ...string) error { return a.o.Read(v, cols...) }
-func (a ofertOrmAdapter) Update(v interface{}, cols ...string) (int64, error) {
-	return a.o.Update(v, cols...)
-}
-func (a ofertOrmAdapter) Delete(v interface{}, cols ...string) (int64, error) {
-	return a.o.Delete(v, cols...)
-}
-
-var ofertOrmNew = func() ofertaOrmer { return ofertOrmAdapter{o: orm.NewOrm()} }
-
-var newOfertaService = func(o orm.Ormer) services.OfertaServiceInterface {
-	return services.NewOfertaService(o)
-}
-
-var ormProvider = defaultOrmProvider
-
-var ofertaServiceOrmBase = func() orm.Ormer { return ormProvider() }
-
-var ofertaServiceOrmFactory = func() orm.Ormer { return ofertaServiceOrmBase() }
-
+// OfertaController gestiona /ofertas. En las respuestas `restauranteId` es el
+// objeto restaurante completo (ver models.OfertaDoc).
 type OfertaController struct {
 	web.Controller
 }
 
+const (
+	msgIDInvalido   = "El parámetro 'id' es inválido o está ausente"
+	msgBadJSON      = "JSON inválido"
+	msgValidacion   = "Error de validación"
+	msgNoEncontrada = "Oferta no encontrada"
+)
+
+// nullableUpdate son los campos de PUT que admiten null explícito (se limpian).
+var nullableUpdate = []string{"horaInicio", "horaFin"}
+
+// porID lee la oferta con su restaurante (RelatedSel) y deserializa los días.
+func porID(id int64) (*models.Oferta, error) {
+	o := &models.Oferta{}
+	err := orm.NewOrm().QueryTable(new(models.Oferta)).Filter("pk_id_oferta", id).RelatedSel("PkIdRestaurante").One(o)
+	if err != nil {
+		return nil, err
+	}
+	o.AfterLoad()
+	return o, nil
+}
+
+// load valida `id` y lee la oferta (400 / 404 / 500).
+func (c *OfertaController) load(op string) (*models.Oferta, bool) {
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "ofertas."+op+".bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgIDInvalido, err)
+		return nil, false
+	}
+	o, err := porID(id)
+	if err != nil {
+		c.readError(op, id, err)
+		return nil, false
+	}
+	return o, true
+}
+
+func (c *OfertaController) readError(op string, id int64, err error) {
+	if errors.Is(err, orm.ErrNoRows) {
+		httpx.Fail(&c.Controller, http.StatusNotFound, msgNoEncontrada, nil)
+		return
+	}
+	logging.LogControllerError(c.Ctx, "ofertas."+op+".read_error", err, map[string]interface{}{"id": id})
+	httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error interno del servidor", err)
+}
+
+// writeError: unicidad -> 409, FK (restaurante inexistente) -> 400, otro -> 500.
+func (c *OfertaController) writeError(op, msg string, err error) {
+	logging.LogControllerError(c.Ctx, "ofertas."+op, err, nil)
+	switch {
+	case dberr.IsUnique(err):
+		httpx.Fail(&c.Controller, http.StatusConflict, "Ya existe una oferta con ese título", err)
+	case dberr.IsForeignKey(err):
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El restaurante indicado no existe", err)
+	default:
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, msg, err)
+	}
+}
+
+// invalid responde 422 con el motivo.
+func (c *OfertaController) invalid(op, msg string, err error) {
+	logging.LogControllerError(c.Ctx, "ofertas."+op, err, map[string]interface{}{"motivo": msg})
+	httpx.Fail(&c.Controller, http.StatusUnprocessableEntity, msg, err)
+}
+
+const (
+	msgTipo       = "Tipo de descuento no válido - debe ser PORCENTAJE o MONTO"
+	msgFechaIni   = "Fecha de inicio inválida - debe tener formato YYYY-MM-DD"
+	msgFechaFin   = "Fecha de fin inválida - debe tener formato YYYY-MM-DD"
+	msgHoraIni    = "Hora de inicio inválida - debe tener formato HH:MM o HH:MM:SS"
+	msgHoraFin    = "Hora de fin inválida - debe tener formato HH:MM o HH:MM:SS"
+	msgTituloVac  = "El título es obligatorio"
+	msgRestaurant = "restauranteId debe ser un entero positivo"
+)
+
 // @Title GetAll
 // @Summary Obtener todas las ofertas
+// @Description Lista paginada (más recientes primero). `data.data` es la lista de ofertas (`[]` si no hay) y cada una trae `restauranteId` como objeto restaurante. `limit` por defecto 20 (máximo 100) y `offset` por defecto 0.
 // @Tags ofertas
 // @Accept json
 // @Produce json
-// @Param activo query bool false "Filtrar por estado activo"
-// @Param restaurante_id query int false "ID del restaurante"
-// @Param titulo query string false "Filtrar por título"
-// @Param limit query int false "Límite de resultados (default: 20)"
-// @Param offset query int false "Offset para paginación (default: 0)"
-// @Success 200 {object} models.ApiResponse{data=models.PaginatedResponse}
-// @Failure 400 {object} models.ApiResponse
-// @Failure 500 {object} models.ApiResponse
+// @Param activo query bool false "Filtrar por estado activo (true/false)"
+// @Param restaurante_id query int false "ID del restaurante (entero positivo)"
+// @Param titulo query string false "Filtrar por título (contiene, sin distinguir mayúsculas)"
+// @Param limit query int false "Límite de resultados (1-100, por defecto 20; valores mayores se limitan a 100)"
+// @Param offset query int false "Offset para paginación (>= 0, por defecto 0)"
+// @Success 200 {object} models.ApiResponse{data=models.OfertaPaginadaDoc} "Ofertas obtenidas"
+// @Failure 400 {object} models.ApiResponse "Parámetros de filtro o paginación inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /ofertas [get]
 func (c *OfertaController) GetAll() {
-	o := ofertOrmNew()
-	qs := o.QueryTable("oferta")
+	qs := orm.NewOrm().QueryTable(new(models.Oferta))
 
-	if activo := c.GetString("activo"); activo != "" {
-		if activoBool, err := strconv.ParseBool(activo); err == nil {
-			qs = qs.Filter("activo", activoBool)
+	if v := strings.TrimSpace(c.GetString("activo")); v != "" {
+		activo, err := strconv.ParseBool(v)
+		if err != nil {
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'activo' debe ser true o false", err)
+			return
 		}
+		qs = qs.Filter("activo", activo)
 	}
-
-	if restauranteId := c.GetString("restaurante_id"); restauranteId != "" {
-		if id, err := strconv.ParseInt(restauranteId, 10, 64); err == nil {
-			qs = qs.Filter("pk_id_restaurante", id)
+	if strings.TrimSpace(c.GetString("restaurante_id")) != "" {
+		id, err := httpx.PositiveInt64Param(&c.Controller, "restaurante_id")
+		if err != nil {
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'restaurante_id' es inválido", err)
+			return
 		}
+		qs = qs.Filter("pk_id_restaurante", id)
 	}
-
-	if titulo := c.GetString("titulo"); titulo != "" {
+	if titulo := strings.TrimSpace(c.GetString("titulo")); titulo != "" {
 		qs = qs.Filter("titulo__icontains", titulo)
 	}
 
-	limit, _ := c.GetInt("limit", 20)
-	offset, _ := c.GetInt("offset", 0)
-
+	limit, err := c.GetInt("limit", 20)
+	if err != nil || limit < 1 {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'limit' debe ser un entero positivo", err)
+		return
+	}
+	offset, err := c.GetInt("offset", 0)
+	if err != nil || offset < 0 {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'offset' debe ser un entero mayor o igual a 0", err)
+		return
+	}
 	if limit > 100 {
 		limit = 100
 	}
@@ -131,189 +157,132 @@ func (c *OfertaController) GetAll() {
 	total, err := qs.Count()
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.getall.count_error", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener ofertas",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener ofertas", err)
 		return
 	}
 
 	var ofertas []*models.Oferta
-	_, err = qs.OrderBy("-pk_id_oferta").Limit(limit).Offset(int64(offset)).All(&ofertas)
-	if err != nil {
+	if _, err = qs.RelatedSel("PkIdRestaurante").OrderBy("-pk_id_oferta").Limit(limit).Offset(int64(offset)).All(&ofertas); err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.getall.query_error", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener ofertas",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener ofertas", err)
 		return
 	}
+	for _, o := range ofertas {
+		o.AfterLoad()
+	}
 
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-	page := (offset / limit) + 1
-
-	response := models.PaginatedResponse{
-		Data:       ofertas,
+	httpx.Send(&c.Controller, http.StatusOK, "Ofertas obtenidas exitosamente", models.PaginatedResponse{
+		Data:       httpx.List(ofertas),
 		Total:      total,
-		Page:       page,
+		Page:       offset/limit + 1,
 		PageSize:   limit,
-		TotalPages: totalPages,
-	}
+		TotalPages: int((total + int64(limit) - 1) / int64(limit)),
+	})
+}
 
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Ofertas obtenidas exitosamente",
-		Data:    response,
+// parseHora interpreta una hora HH:MM[:SS].
+func parseHora(s string) (*time.Time, error) {
+	h, err := models.ParseTimeToUTC(s)
+	if err != nil {
+		return nil, err
 	}
-	_ = c.ServeJSON()
+	return &h, nil
+}
+
+// validar aplica las reglas de negocio de la oferta y responde 422 si fallan.
+func (c *OfertaController) validar(op string, o *models.Oferta) bool {
+	if strings.TrimSpace(o.Titulo) == "" {
+		c.invalid(op+".titulo", msgTituloVac, nil)
+		return false
+	}
+	if o.PkIdRestaurante == nil || o.PkIdRestaurante.PK_ID_RESTAURANTE <= 0 {
+		c.invalid(op+".restaurante", msgRestaurant, nil)
+		return false
+	}
+	if err := services.NewOfertaService(nil).ValidarReglasNegocioOferta(o); err != nil {
+		c.invalid(op+".validation_error", msgValidacion, err)
+		return false
+	}
+	return true
 }
 
 // @Title Post
 // @Summary Crear oferta
+// @Description Solo Administrador. Crea una oferta activa. Errores de validación de negocio (tipo, fechas, horas, porcentaje 1-100, días válidos, título, restauranteId) responden 422; un `restauranteId` inexistente responde 400 y un título repetido 409. Fechas YYYY-MM-DD, horas HH:MM o HH:MM:SS; `diasSemana` vacío significa todos los días. Devuelve la oferta con `restauranteId` como objeto restaurante.
 // @Tags ofertas
 // @Accept json
 // @Produce json
 // @Param body body models.CrearOfertaRequest true "Datos de la oferta"
-// @Success 201 {object} models.ApiResponse{data=models.Oferta}
-// @Failure 400 {object} models.ApiResponse
-// @Failure 422 {object} models.ApiResponse
-// @Failure 500 {object} models.ApiResponse
+// @Success 201 {object} models.ApiResponse{data=models.OfertaDoc} "Oferta creada"
+// @Failure 400 {object} models.ApiResponse "JSON inválido o restaurante inexistente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
+// @Failure 409 {object} models.ApiResponse "Ya existe una oferta con ese título"
+// @Failure 422 {object} models.ApiResponse "Error de validación"
+// @Failure 500 {object} models.ApiResponse "Error al crear la oferta"
+// @Security BearerAuth
 // @Router /ofertas [post]
 func (c *OfertaController) Post() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	var req models.CrearOfertaRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.post.bad_json", err, nil)
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "JSON inválido",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgBadJSON, err)
 		return
 	}
-
 	if !req.TipoDescuento.IsValid() {
-		logging.LogControllerError(c.Ctx, "ofertas.post.invalid_tipo_descuento", nil, map[string]interface{}{"tipoDescuento": req.TipoDescuento})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Tipo de descuento no válido - debe ser PORCENTAJE o MONTO",
-		}
-		_ = c.ServeJSON()
+		c.invalid("post.invalid_tipo_descuento", msgTipo, nil)
 		return
 	}
-
 	fechaInicio, err := models.ParseDateToNoonUTC(req.FechaInicio)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.post.invalid_fecha_inicio", err, map[string]interface{}{"fechaInicio": req.FechaInicio})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Fecha de inicio inválida - debe tener formato YYYY-MM-DD",
-		}
-		_ = c.ServeJSON()
+		c.invalid("post.invalid_fecha_inicio", msgFechaIni, err)
 		return
 	}
-
 	fechaFin, err := models.ParseDateToNoonUTC(req.FechaFin)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.post.invalid_fecha_fin", err, map[string]interface{}{"fechaFin": req.FechaFin})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Fecha de fin inválida - debe tener formato YYYY-MM-DD",
-		}
-		_ = c.ServeJSON()
+		c.invalid("post.invalid_fecha_fin", msgFechaFin, err)
 		return
 	}
-
-	var horaInicio, horaFin *time.Time
-	if req.HoraInicio != nil {
-		if hora, err := models.ParseTimeToUTC(*req.HoraInicio); err == nil {
-			horaInicio = &hora
-		} else {
-			logging.LogControllerError(c.Ctx, "ofertas.post.invalid_hora_inicio", err, map[string]interface{}{"horaInicio": *req.HoraInicio})
-			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusUnprocessableEntity,
-				Message: "Hora de inicio inválida - debe tener formato HH:MM o HH:MM:SS",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
-	if req.HoraFin != nil {
-		if hora, err := models.ParseTimeToUTC(*req.HoraFin); err == nil {
-			horaFin = &hora
-		} else {
-			logging.LogControllerError(c.Ctx, "ofertas.post.invalid_hora_fin", err, map[string]interface{}{"horaFin": *req.HoraFin})
-			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusUnprocessableEntity,
-				Message: "Hora de fin inválida - debe tener formato HH:MM o HH:MM:SS",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
 	oferta := &models.Oferta{
-		Titulo:          req.Titulo,
+		Titulo:          strings.TrimSpace(req.Titulo),
 		TipoDescuento:   req.TipoDescuento,
 		ValorDescuento:  req.ValorDescuento,
 		FechaInicio:     fechaInicio,
 		FechaFin:        fechaFin,
 		DiasSemanaArray: req.DiasSemana,
-		HoraInicio:      horaInicio,
-		HoraFin:         horaFin,
 		Activo:          true,
 		PkIdRestaurante: &models.Restaurante{PK_ID_RESTAURANTE: req.PkIdRestaurante},
 	}
-
-	o := ofertOrmNew()
-	ofertaService := newOfertaService(nil)
-
-	if err := ofertaService.ValidarReglasNegocioOferta(oferta); err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.post.validation_error", err, map[string]interface{}{"titulo": req.Titulo})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Error de validación",
-			Cause:   err.Error(),
+	if req.HoraInicio != nil {
+		if oferta.HoraInicio, err = parseHora(*req.HoraInicio); err != nil {
+			c.invalid("post.invalid_hora_inicio", msgHoraIni, err)
+			return
 		}
-		_ = c.ServeJSON()
+	}
+	if req.HoraFin != nil {
+		if oferta.HoraFin, err = parseHora(*req.HoraFin); err != nil {
+			c.invalid("post.invalid_hora_fin", msgHoraFin, err)
+			return
+		}
+	}
+	if !c.validar("post", oferta) {
 		return
 	}
 
-	_, err = o.Insert(oferta)
+	oferta.BeforeInsert()
+	if _, err := orm.NewOrm().Insert(oferta); err != nil {
+		c.writeError("post.insert_error", "Error al crear oferta", err)
+		return
+	}
+	creada, err := porID(oferta.PkIdOferta)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.post.insert_error", err, map[string]interface{}{"titulo": req.Titulo})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear oferta",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.readError("post", oferta.PkIdOferta, err)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Oferta creada exitosamente",
-		Data:    oferta,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusCreated, "Oferta creada exitosamente", creada)
 }
 
 // @Title GetById
@@ -321,601 +290,337 @@ func (c *OfertaController) Post() {
 // @Tags ofertas
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la oferta"
-// @Success 200 {object} models.ApiResponse{data=models.Oferta}
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la oferta (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=models.OfertaDoc} "Oferta encontrada"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Oferta no encontrada"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
+// @Security BearerAuth
 // @Router /ofertas/search [get]
 func (c *OfertaController) GetById() {
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "ofertas.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID inválido o ausente",
-		}
-		_ = c.ServeJSON()
+	oferta, ok := c.load("getbyid")
+	if !ok {
 		return
 	}
+	httpx.Send(&c.Controller, http.StatusOK, "Oferta encontrada", oferta)
+}
 
-	o := ofertOrmNew()
-	oferta := &models.Oferta{PkIdOferta: id}
-	err = o.Read(oferta)
-	if err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Oferta no encontrada",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-		logging.LogControllerError(c.Ctx, "ofertas.getbyid.read_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error interno del servidor",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
+// aplicar copia sobre o los campos presentes de req. Devuelve false (ya
+// respondido) si algún valor es inválido.
+func (c *OfertaController) aplicar(body []byte, req *models.ActualizarOfertaRequest, o *models.Oferta) bool {
+	var err error
+	if req.Titulo != nil {
+		o.Titulo = strings.TrimSpace(*req.Titulo)
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Oferta encontrada",
-		Data:    oferta,
+	if req.TipoDescuento != nil {
+		if !req.TipoDescuento.IsValid() {
+			c.invalid("put.invalid_tipo_descuento", msgTipo, nil)
+			return false
+		}
+		o.TipoDescuento = *req.TipoDescuento
 	}
-	_ = c.ServeJSON()
+	if req.ValorDescuento != nil {
+		o.ValorDescuento = *req.ValorDescuento
+	}
+	if req.FechaInicio != nil {
+		if o.FechaInicio, err = models.ParseDateToNoonUTC(*req.FechaInicio); err != nil {
+			c.invalid("put.invalid_fecha_inicio", msgFechaIni, err)
+			return false
+		}
+	}
+	if req.FechaFin != nil {
+		if o.FechaFin, err = models.ParseDateToNoonUTC(*req.FechaFin); err != nil {
+			c.invalid("put.invalid_fecha_fin", msgFechaFin, err)
+			return false
+		}
+	}
+	if req.DiasSemana != nil {
+		o.DiasSemanaArray = req.DiasSemana
+	}
+	if req.HoraInicio != nil {
+		if o.HoraInicio, err = parseHora(*req.HoraInicio); err != nil {
+			c.invalid("put.invalid_hora_inicio", msgHoraIni, err)
+			return false
+		}
+	} else if httpx.IsNull(body, "horaInicio") {
+		o.HoraInicio = nil
+	}
+	if req.HoraFin != nil {
+		if o.HoraFin, err = parseHora(*req.HoraFin); err != nil {
+			c.invalid("put.invalid_hora_fin", msgHoraFin, err)
+			return false
+		}
+	} else if httpx.IsNull(body, "horaFin") {
+		o.HoraFin = nil
+	}
+	if req.PkIdRestaurante != nil {
+		o.PkIdRestaurante = &models.Restaurante{PK_ID_RESTAURANTE: *req.PkIdRestaurante}
+	}
+	if req.Activo != nil {
+		o.Activo = *req.Activo
+	}
+	return true
 }
 
 // @Title Put
 // @Summary Actualizar oferta
+// @Description Solo Administrador. Actualización parcial (merge): los campos ausentes se conservan (cuerpo `models.ActualizarOfertaRequest`). `horaInicio` y `horaFin` admiten null explícito para quitar el horario (deben limpiarse juntos); null en cualquier otro campo responde 400. `diasSemana: []` significa todos los días. `activo` permite reactivar una oferta desactivada. Un cuerpo sin cambios responde 200. Validación de negocio incumplida: 422.
 // @Tags ofertas
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la oferta"
-// @Param body body models.CrearOfertaRequest true "Datos actualizados de la oferta"
-// @Success 200 {object} models.ApiResponse{data=models.Oferta}
-// @Failure 400 {object} models.ApiResponse
-// @Failure 404 {object} models.ApiResponse
-// @Failure 422 {object} models.ApiResponse
+// @Param id query int true "ID de la oferta (entero positivo)"
+// @Param body body models.ActualizarOfertaRequest true "Campos a modificar"
+// @Success 200 {object} models.ApiResponse{data=models.OfertaDoc} "Oferta actualizada"
+// @Failure 400 {object} models.ApiResponse "id o JSON inválido, null en campo no anulable, restaurante inexistente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
+// @Failure 404 {object} models.ApiResponse "Oferta no encontrada"
+// @Failure 409 {object} models.ApiResponse "Ya existe una oferta con ese título"
+// @Failure 422 {object} models.ApiResponse "Error de validación"
+// @Failure 500 {object} models.ApiResponse "Error al actualizar la oferta"
+// @Security BearerAuth
 // @Router /ofertas [put]
 func (c *OfertaController) Put() {
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "ofertas.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID inválido o ausente",
-		}
-		_ = c.ServeJSON()
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
+	oferta, ok := c.load("put")
+	if !ok {
+		return
+	}
+	body := c.Ctx.Input.RequestBody
+	var req models.ActualizarOfertaRequest
+	if err := httpx.DecodeMerge(body, &req, nullableUpdate...); err != nil {
+		logging.LogControllerError(c.Ctx, "ofertas.put.bad_json", err, map[string]interface{}{"id": oferta.PkIdOferta})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgBadJSON, err)
+		return
+	}
+	if !c.aplicar(body, &req, oferta) || !c.validar("put", oferta) {
 		return
 	}
 
-	var req models.CrearOfertaRequest
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.put.bad_json", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "JSON inválido",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	oferta.BeforeUpdate()
+	if _, err := orm.NewOrm().Update(oferta); err != nil {
+		c.writeError("put.update_error", "Error al actualizar oferta", err)
 		return
 	}
-
-	o := ofertOrmNew()
-
-	oferta := &models.Oferta{PkIdOferta: id}
-	err = o.Read(oferta)
+	actualizada, err := porID(oferta.PkIdOferta)
 	if err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Oferta no encontrada",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-		logging.LogControllerError(c.Ctx, "ofertas.put.read_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error interno del servidor",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.readError("put", oferta.PkIdOferta, err)
 		return
 	}
-
-	if !req.TipoDescuento.IsValid() {
-		logging.LogControllerError(c.Ctx, "ofertas.put.invalid_tipo_descuento", nil, map[string]interface{}{"tipoDescuento": req.TipoDescuento, "id": id})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Tipo de descuento no válido - debe ser PORCENTAJE o MONTO",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	fechaInicio, err := models.ParseDateToNoonUTC(req.FechaInicio)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.put.invalid_fecha_inicio", err, map[string]interface{}{"fechaInicio": req.FechaInicio, "id": id})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Fecha de inicio inválida - debe tener formato YYYY-MM-DD",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	fechaFin, err := models.ParseDateToNoonUTC(req.FechaFin)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.put.invalid_fecha_fin", err, map[string]interface{}{"fechaFin": req.FechaFin, "id": id})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Fecha de fin inválida - debe tener formato YYYY-MM-DD",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	var horaInicio, horaFin *time.Time
-	if req.HoraInicio != nil {
-		if hora, err := models.ParseTimeToUTC(*req.HoraInicio); err == nil {
-			horaInicio = &hora
-		} else {
-			logging.LogControllerError(c.Ctx, "ofertas.put.invalid_hora_inicio", err, map[string]interface{}{"horaInicio": *req.HoraInicio, "id": id})
-			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusUnprocessableEntity,
-				Message: "Hora de inicio inválida - debe tener formato HH:MM o HH:MM:SS",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
-	if req.HoraFin != nil {
-		if hora, err := models.ParseTimeToUTC(*req.HoraFin); err == nil {
-			horaFin = &hora
-		} else {
-			logging.LogControllerError(c.Ctx, "ofertas.put.invalid_hora_fin", err, map[string]interface{}{"horaFin": *req.HoraFin, "id": id})
-			c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusUnprocessableEntity,
-				Message: "Hora de fin inválida - debe tener formato HH:MM o HH:MM:SS",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
-	oferta.Titulo = req.Titulo
-	oferta.TipoDescuento = req.TipoDescuento
-	oferta.ValorDescuento = req.ValorDescuento
-	oferta.FechaInicio = fechaInicio
-	oferta.FechaFin = fechaFin
-	oferta.DiasSemanaArray = req.DiasSemana
-	oferta.HoraInicio = horaInicio
-	oferta.HoraFin = horaFin
-	oferta.PkIdRestaurante = &models.Restaurante{PK_ID_RESTAURANTE: req.PkIdRestaurante}
-
-	ofertaService := newOfertaService(nil)
-	if err := ofertaService.ValidarReglasNegocioOferta(oferta); err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.put.validation_error", err, map[string]interface{}{"titulo": req.Titulo, "id": id})
-		c.Ctx.Output.SetStatus(http.StatusUnprocessableEntity)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Error de validación",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	_, err = o.Update(oferta)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.put.update_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al actualizar oferta",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Oferta actualizada exitosamente",
-		Data:    oferta,
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Oferta actualizada exitosamente", actualizada)
 }
 
 // @Title Delete
 // @Summary Desactivar oferta
+// @Description Solo Administrador. No elimina la fila: desactiva la oferta (`activo = false`; se reactiva con PUT `activo: true`). Si ya estaba desactivada responde 400.
 // @Tags ofertas
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la oferta"
-// @Success 200 {object} models.ApiResponse
-// @Failure 400 {object} models.ApiResponse
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la oferta (entero positivo)"
+// @Success 200 {object} models.ApiResponse "Oferta desactivada"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o oferta ya desactivada"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
+// @Failure 404 {object} models.ApiResponse "Oferta no encontrada"
+// @Failure 500 {object} models.ApiResponse "Error al desactivar la oferta"
+// @Security BearerAuth
 // @Router /ofertas [delete]
 func (c *OfertaController) Delete() {
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "ofertas.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID inválido o ausente",
-		}
-		_ = c.ServeJSON()
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
 		return
 	}
-
-	o := ofertOrmNew()
-	oferta := &models.Oferta{PkIdOferta: id}
-	err = o.Read(oferta)
-	if err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Oferta no encontrada",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-		logging.LogControllerError(c.Ctx, "ofertas.delete.read_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error interno del servidor",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	oferta, ok := c.load("delete")
+	if !ok {
 		return
 	}
-
 	if !oferta.Activo {
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "La oferta ya está desactivada",
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "La oferta ya está desactivada", nil)
 		return
 	}
-
 	oferta.Activo = false
-	_, err = o.Update(oferta, "Activo")
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.delete.update_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al desactivar oferta",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	if _, err := orm.NewOrm().Update(oferta, "Activo"); err != nil {
+		logging.LogControllerError(c.Ctx, "ofertas.delete.update_error", err, map[string]interface{}{"id": oferta.PkIdOferta})
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al desactivar oferta", err)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Oferta desactivada exitosamente",
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Oferta desactivada exitosamente", nil)
 }
 
 // @Title ObtenerOfertasActivas
 // @Summary Obtener ofertas activas
+// @Description Ruta pública (sin token). Ofertas activas del restaurante vigentes en la fecha y hora indicadas (por defecto, ahora en hora de Bogotá), con los ids de sus productos (`productosIds`, `[]` si no tiene). Con `producto_id` solo las que incluyen ese producto. Sin resultados, `data` es `[]`.
 // @Tags ofertas
 // @Accept json
 // @Produce json
-// @Param restaurante_id query int true "ID del restaurante"
-// @Param fecha query string false "Fecha a consultar (YYYY-MM-DD, default: hoy)"
-// @Param hora query string false "Hora a consultar (HH:MM, default: ahora)"
-// @Param producto_id query int false "ID del producto específico"
-// @Success 200 {object} models.ApiResponse{data=[]models.OfertaActivaResponse}
-// @Failure 400 {object} models.ApiResponse
-// @Failure 500 {object} models.ApiResponse
+// @Param restaurante_id query int true "ID del restaurante (entero positivo)"
+// @Param fecha query string false "Fecha a consultar (YYYY-MM-DD, por defecto hoy)"
+// @Param hora query string false "Hora a consultar (HH:MM o HH:MM:SS, por defecto ahora)"
+// @Param producto_id query int false "ID del producto específico (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=[]models.OfertaActivaResponse} "Ofertas activas (puede ser vacío)"
+// @Failure 400 {object} models.ApiResponse "Parámetros inválidos"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Router /ofertas/activas [get]
 func (c *OfertaController) ObtenerOfertasActivas() {
-	restauranteId, err := c.GetInt64("restaurante_id")
-	if err != nil || restauranteId == 0 {
-		logging.LogControllerError(c.Ctx, "ofertas.activas.bad_request", err, map[string]interface{}{"restaurante_id": c.GetString("restaurante_id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "restaurante_id es requerido y debe ser un número entero válido",
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	var fecha *time.Time
-	if fechaStr := c.GetString("fecha"); fechaStr != "" {
-		if f, err := models.ParseDateToNoonUTC(fechaStr); err == nil {
-			fecha = &f
-		} else {
-			logging.LogControllerError(c.Ctx, "ofertas.activas.invalid_fecha", err, map[string]interface{}{"fecha": fechaStr})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Fecha inválida - debe tener formato YYYY-MM-DD",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
-	var hora *time.Time
-	if horaStr := c.GetString("hora"); horaStr != "" {
-		if h, err := models.ParseTimeToUTC(horaStr); err == nil {
-			hora = &h
-		} else {
-			logging.LogControllerError(c.Ctx, "ofertas.activas.invalid_hora", err, map[string]interface{}{"hora": horaStr})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: "Hora inválida - debe tener formato HH:MM o HH:MM:SS",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-	}
-
-	var productoId *int64
-	if productoIdStr := c.GetString("producto_id"); productoIdStr != "" {
-		if id, err := strconv.ParseInt(productoIdStr, 10, 64); err == nil {
-			productoId = &id
-		}
-	}
-
-	ofertaService := newOfertaService(ofertaServiceOrmFactory())
-	ofertas, err := ofertaService.ObtenerOfertasActivas(c.Ctx.Request.Context(), restauranteId, fecha, hora, productoId)
+	restauranteID, err := httpx.PositiveInt64Param(&c.Controller, "restaurante_id")
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.activas.service_error", err, map[string]interface{}{"restaurante_id": restauranteId})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener ofertas activas",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		logging.LogControllerError(c.Ctx, "ofertas.activas.bad_request", err, map[string]interface{}{"restaurante_id": c.GetString("restaurante_id")})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "restaurante_id es requerido y debe ser un entero positivo", err)
 		return
 	}
 
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Ofertas activas obtenidas exitosamente",
-		Data:    ofertas,
+	var fecha, hora *time.Time
+	if s := strings.TrimSpace(c.GetString("fecha")); s != "" {
+		f, err := models.ParseDateToNoonUTC(s)
+		if err != nil {
+			logging.LogControllerError(c.Ctx, "ofertas.activas.invalid_fecha", err, map[string]interface{}{"fecha": s})
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "Fecha inválida - debe tener formato YYYY-MM-DD", err)
+			return
+		}
+		fecha = &f
 	}
-	_ = c.ServeJSON()
+	if s := strings.TrimSpace(c.GetString("hora")); s != "" {
+		h, err := models.ParseTimeToUTC(s)
+		if err != nil {
+			logging.LogControllerError(c.Ctx, "ofertas.activas.invalid_hora", err, map[string]interface{}{"hora": s})
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "Hora inválida - debe tener formato HH:MM o HH:MM:SS", err)
+			return
+		}
+		hora = &h
+	}
+	var productoID *int64
+	if strings.TrimSpace(c.GetString("producto_id")) != "" {
+		id, err := httpx.PositiveInt64Param(&c.Controller, "producto_id")
+		if err != nil {
+			httpx.Fail(&c.Controller, http.StatusBadRequest, "El parámetro 'producto_id' es inválido", err)
+			return
+		}
+		productoID = &id
+	}
+
+	ofertas, err := services.NewOfertaService(orm.NewOrm()).ObtenerOfertasActivas(c.Ctx.Request.Context(), restauranteID, fecha, hora, productoID)
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "ofertas.activas.service_error", err, map[string]interface{}{"restaurante_id": restauranteID})
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al obtener ofertas activas", err)
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusOK, "Ofertas activas obtenidas exitosamente", httpx.List(ofertas))
 }
 
 // @Title AsociarProducto
 // @Summary Asociar producto a oferta
+// @Description Solo Administrador. Asocia un producto existente a una oferta existente. 404 si no existe la oferta o el producto; 409 si ya estaban asociados. `data` devuelve `{ofertaId, productoId}`.
 // @Tags ofertas
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la oferta"
+// @Param id query int true "ID de la oferta (entero positivo)"
 // @Param body body models.AsociarProductoOfertaRequest true "ID del producto"
-// @Success 201 {object} models.ApiResponse
-// @Failure 400 {object} models.ApiResponse
-// @Failure 404 {object} models.ApiResponse
-// @Failure 409 {object} models.ApiResponse
+// @Success 201 {object} models.ApiResponse{data=models.OfertaProductoAsociacionDoc} "Producto asociado"
+// @Failure 400 {object} models.ApiResponse "id o JSON inválido, productoId no positivo"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
+// @Failure 404 {object} models.ApiResponse "Oferta o producto no encontrado"
+// @Failure 409 {object} models.ApiResponse "El producto ya está asociado a la oferta"
+// @Failure 500 {object} models.ApiResponse "Error al asociar el producto"
+// @Security BearerAuth
 // @Router /ofertas/productos [post]
 func (c *OfertaController) AsociarProducto() {
-	ofertaId, err := c.GetInt64("id")
-	if err != nil || ofertaId == 0 {
-		logging.LogControllerError(c.Ctx, "ofertas.asociar.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID inválido o ausente",
-		}
-		_ = c.ServeJSON()
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
 		return
 	}
-
+	ofertaID, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "ofertas.asociar.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgIDInvalido, err)
+		return
+	}
 	var req models.AsociarProductoOfertaRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.asociar.bad_json", err, map[string]interface{}{"id": ofertaId})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "JSON inválido",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		logging.LogControllerError(c.Ctx, "ofertas.asociar.bad_json", err, map[string]interface{}{"id": ofertaID})
+		httpx.Fail(&c.Controller, http.StatusBadRequest, msgBadJSON, err)
+		return
+	}
+	if req.ProductoId <= 0 {
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "productoId debe ser un entero positivo", nil)
 		return
 	}
 
-	o := ofertOrmNew()
+	o := orm.NewOrm()
+	if err := o.Read(&models.Oferta{PkIdOferta: ofertaID}); err != nil {
+		c.assocReadError("oferta", msgNoEncontrada, ofertaID, err)
+		return
+	}
+	if err := o.Read(&models.Producto{PK_ID_PRODUCTO: req.ProductoId}); err != nil {
+		c.assocReadError("producto", "Producto no encontrado", req.ProductoId, err)
+		return
+	}
 
-	oferta := &models.Oferta{PkIdOferta: ofertaId}
-	err = o.Read(oferta)
-	if err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Oferta no encontrada",
-			}
-			_ = c.ServeJSON()
+	// Raw: OfertaProducto no tiene llave primaria propia y orm.Insert no la soporta.
+	if _, err := o.Raw("INSERT INTO oferta_producto (pk_id_oferta, pk_id_producto) VALUES (?, ?)", ofertaID, req.ProductoId).Exec(); err != nil {
+		logging.LogControllerError(c.Ctx, "ofertas.asociar.insert_error", err, map[string]interface{}{"oferta_id": ofertaID, "producto_id": req.ProductoId})
+		if dberr.IsUnique(err) {
+			httpx.Fail(&c.Controller, http.StatusConflict, "El producto ya está asociado a esta oferta", err)
 			return
 		}
-		logging.LogControllerError(c.Ctx, "ofertas.asociar.read_oferta_error", err, map[string]interface{}{"id": ofertaId})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error interno del servidor",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al asociar producto", err)
 		return
 	}
+	httpx.Send(&c.Controller, http.StatusCreated, "Producto asociado correctamente", models.OfertaProductoAsociacionDoc{OfertaId: ofertaID, ProductoId: req.ProductoId})
+}
 
-	producto := &models.Producto{PK_ID_PRODUCTO: req.ProductoId}
-	err = o.Read(producto)
-	if err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Producto no encontrado",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-		logging.LogControllerError(c.Ctx, "ofertas.asociar.read_producto_error", err, map[string]interface{}{"producto_id": req.ProductoId})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error interno del servidor",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+func (c *OfertaController) assocReadError(what, notFound string, id int64, err error) {
+	if errors.Is(err, orm.ErrNoRows) {
+		httpx.Fail(&c.Controller, http.StatusNotFound, notFound, nil)
 		return
 	}
-
-	ofertaProducto := &models.OfertaProducto{
-		PkIdOferta:   oferta,
-		PkIdProducto: producto,
-	}
-
-	_, err = o.Insert(ofertaProducto)
-	if err != nil {
-
-		if fmt.Sprintf("%v", err) == "UNIQUE constraint failed" ||
-			fmt.Sprintf("%v", err) == "duplicate key value violates unique constraint" {
-			c.Ctx.Output.SetStatus(http.StatusConflict)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusConflict,
-				Message: "El producto ya está asociado a esta oferta",
-			}
-		} else {
-			logging.LogControllerError(c.Ctx, "ofertas.asociar.insert_error", err, map[string]interface{}{"oferta_id": ofertaId, "producto_id": req.ProductoId})
-			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusInternalServerError,
-				Message: "Error al asociar producto",
-				Cause:   err.Error(),
-			}
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Producto asociado correctamente",
-	}
-	_ = c.ServeJSON()
+	logging.LogControllerError(c.Ctx, "ofertas.asociar.read_"+what+"_error", err, map[string]interface{}{"id": id})
+	httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error interno del servidor", err)
 }
 
 // @Title DesasociarProducto
 // @Summary Desasociar producto de oferta
+// @Description Solo Administrador. Elimina la asociación entre la oferta y el producto. 404 si la asociación no existe.
 // @Tags ofertas
 // @Accept json
 // @Produce json
-// @Param id query int true "ID de la oferta"
-// @Param producto_id query int true "ID del producto"
-// @Success 200 {object} models.ApiResponse
-// @Failure 400 {object} models.ApiResponse
-// @Failure 404 {object} models.ApiResponse
+// @Param id query int true "ID de la oferta (entero positivo)"
+// @Param producto_id query int true "ID del producto (entero positivo)"
+// @Success 200 {object} models.ApiResponse "Producto desasociado"
+// @Failure 400 {object} models.ApiResponse "id o producto_id inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
+// @Failure 404 {object} models.ApiResponse "Asociación no encontrada"
+// @Failure 500 {object} models.ApiResponse "Error al desasociar el producto"
+// @Security BearerAuth
 // @Router /ofertas/productos [delete]
 func (c *OfertaController) DesasociarProducto() {
-	ofertaId, err := c.GetInt64("id")
-	if err != nil || ofertaId == 0 {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
+	ofertaID, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.desasociar.bad_oferta_id", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID de oferta inválido o ausente",
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "ID de oferta inválido o ausente", err)
 		return
 	}
-
-	productoId, err := c.GetInt64("producto_id")
-	if err != nil || productoId == 0 {
+	productoID, err := httpx.PositiveInt64Param(&c.Controller, "producto_id")
+	if err != nil {
 		logging.LogControllerError(c.Ctx, "ofertas.desasociar.bad_producto_id", err, map[string]interface{}{"producto_id": c.GetString("producto_id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID de producto inválido o ausente",
-		}
-		_ = c.ServeJSON()
+		httpx.Fail(&c.Controller, http.StatusBadRequest, "ID de producto inválido o ausente", err)
 		return
 	}
 
-	o := ofertOrmNew()
-
-	ofertaProducto := &models.OfertaProducto{}
-	err = o.QueryTable("oferta_producto").
-		Filter("pk_id_oferta", ofertaId).
-		Filter("pk_id_producto", productoId).
-		One(ofertaProducto)
-
+	res, err := orm.NewOrm().Raw("DELETE FROM oferta_producto WHERE pk_id_oferta = ? AND pk_id_producto = ?", ofertaID, productoID).Exec()
 	if err != nil {
-		if err == orm.ErrNoRows {
-			c.Ctx.Output.SetStatus(http.StatusOK)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Asociación no encontrada",
-			}
-			_ = c.ServeJSON()
-			return
-		}
-		logging.LogControllerError(c.Ctx, "ofertas.desasociar.query_error", err, map[string]interface{}{"oferta_id": ofertaId, "producto_id": productoId})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error interno del servidor",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		logging.LogControllerError(c.Ctx, "ofertas.desasociar.delete_error", err, map[string]interface{}{"oferta_id": ofertaID, "producto_id": productoID})
+		httpx.Fail(&c.Controller, http.StatusInternalServerError, "Error al desasociar producto", err)
 		return
 	}
-
-	_, err = o.Delete(ofertaProducto)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "ofertas.desasociar.delete_error", err, map[string]interface{}{"oferta_id": ofertaId, "producto_id": productoId})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al desasociar producto",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	if n, _ := res.RowsAffected(); n == 0 {
+		httpx.Fail(&c.Controller, http.StatusNotFound, "Asociación no encontrada", nil)
 		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Producto desasociado correctamente",
-	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Producto desasociado correctamente", nil)
 }

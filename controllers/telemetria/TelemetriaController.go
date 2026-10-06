@@ -7,6 +7,7 @@ import (
 	"time"
 
 	loginc "restaurante/controllers/login"
+	"restaurante/internal/httpx"
 	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -196,6 +197,19 @@ func parseFilterParams(c *web.Controller) (startDate, endDate, startTime, endTim
 	return startDate, endDate, startTime, endTime
 }
 
+// maxLimit es el máximo de registros por sección que acepta el parámetro limit.
+const maxLimit = 100
+
+// parseLimit lee el query param limit: si falta, no es un entero o es menor
+// que 1 devuelve def; los valores mayores a maxLimit se reducen a maxLimit.
+func parseLimit(c *web.Controller, def int) int {
+	limit, err := strconv.Atoi(c.GetString("limit", strconv.Itoa(def)))
+	if err != nil || limit <= 0 {
+		return def
+	}
+	return min(limit, maxLimit)
+}
+
 func (c *TelemetriaController) validateAdminRole() (*Claims, bool) {
 	authHeader := c.Ctx.Input.Header("Authorization")
 	if authHeader == "" {
@@ -244,13 +258,13 @@ func (c *TelemetriaController) validateAdminRole() (*Claims, bool) {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.DashboardData} "Dashboard obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -373,13 +387,13 @@ func (c *TelemetriaController) GetDashboard() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.SalesData} "Análisis de ventas obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -496,14 +510,14 @@ func (c *TelemetriaController) GetSales() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param limit query int false "Límite de productos a mostrar" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param limit query int false "Máximo de productos por lista; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100" minimum(1) maximum(100) default(10)
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.ProductsData} "Análisis de productos obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -516,11 +530,7 @@ func (c *TelemetriaController) GetProducts() {
 		return
 	}
 
-	limitStr := c.GetString("limit", "10")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
+	limit := parseLimit(&c.Controller, 10)
 
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
@@ -530,7 +540,7 @@ func (c *TelemetriaController) GetProducts() {
 	var productsData models.ProductsData
 
 	var productosMasVendidos []models.ProductoVendido
-	_, err = o.Raw(fmt.Sprintf(`
+	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			pr.pk_id_producto as producto_id,
 			pr.nombre as nombre_producto,
@@ -628,14 +638,14 @@ func (c *TelemetriaController) GetProducts() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param limit query int false "Límite de usuarios a mostrar" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param limit query int false "Máximo de usuarios por lista; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100" minimum(1) maximum(100) default(10)
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.UsersData} "Análisis de usuarios obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -648,11 +658,7 @@ func (c *TelemetriaController) GetUsers() {
 		return
 	}
 
-	limitStr := c.GetString("limit", "10")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
+	limit := parseLimit(&c.Controller, 10)
 
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
@@ -662,7 +668,7 @@ func (c *TelemetriaController) GetUsers() {
 	var usersData models.UsersData
 
 	var usuariosFrecuentes []models.UsuarioFrecuente
-	_, err = o.Raw(fmt.Sprintf(`
+	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			c.pk_documento_cliente as documento_cliente,
 			CONCAT(c.nombre, ' ', c.apellido) as nombre_completo,
@@ -790,13 +796,13 @@ func (c *TelemetriaController) GetUsers() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.TimeAnalysisData} "Análisis temporal obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -911,14 +917,14 @@ func (c *TelemetriaController) GetTimeAnalysis() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param limit query int false "Límite de productos a mostrar" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param limit query int false "Máximo de productos por lista; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100" minimum(1) maximum(100) default(10)
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.RentabilidadData} "Análisis de rentabilidad obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -931,11 +937,7 @@ func (c *TelemetriaController) GetRentabilidad() {
 		return
 	}
 
-	limitStr := c.GetString("limit", "10")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
+	limit := parseLimit(&c.Controller, 10)
 
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
@@ -945,7 +947,7 @@ func (c *TelemetriaController) GetRentabilidad() {
 	var rentabilidadData models.RentabilidadData
 
 	var productosRentables []models.ProductoRentabilidad
-	_, err = o.Raw(fmt.Sprintf(`
+	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			pr.pk_id_producto as producto_id,
 			pr.nombre as nombre_producto,
@@ -1078,14 +1080,14 @@ func (c *TelemetriaController) GetRentabilidad() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param limit query int false "Límite de clientes por segmento" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param limit query int false "Máximo de clientes por segmento; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100" minimum(1) maximum(100) default(10)
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.SegmentacionData} "Análisis de segmentación obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -1098,11 +1100,7 @@ func (c *TelemetriaController) GetSegmentacion() {
 		return
 	}
 
-	limitStr := c.GetString("limit", "10")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
+	limit := parseLimit(&c.Controller, 10)
 
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
@@ -1112,7 +1110,7 @@ func (c *TelemetriaController) GetSegmentacion() {
 	var segmentacionData models.SegmentacionData
 
 	var clientesVIP []models.ClienteSegmento
-	_, err = o.Raw(fmt.Sprintf(`
+	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			c.pk_documento_cliente as documento_cliente,
 			CONCAT(c.nombre, ' ', c.apellido) as nombre_completo,
@@ -1316,14 +1314,14 @@ func (c *TelemetriaController) GetSegmentacion() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param limit query int false "Límite de registros por sección" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param limit query int false "Máximo de elementos de tiemposEntrega y rendimientoTrabajadores; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100" minimum(1) maximum(100) default(10)
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.EficienciaData} "Análisis de eficiencia obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -1336,11 +1334,7 @@ func (c *TelemetriaController) GetEficiencia() {
 		return
 	}
 
-	limitStr := c.GetString("limit", "10")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
+	limit := parseLimit(&c.Controller, 10)
 
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
@@ -1350,7 +1344,7 @@ func (c *TelemetriaController) GetEficiencia() {
 	var eficienciaData models.EficienciaData
 
 	var tiemposEntrega []models.TiempoEntrega
-	_, err = o.Raw(fmt.Sprintf(`
+	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			pe.pk_id_pedido as pedido_id,
 			CONCAT(c.nombre, ' ', c.apellido) as cliente,
@@ -1534,14 +1528,14 @@ func (c *TelemetriaController) GetEficiencia() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param limit query int false "Límite de registros por sección" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param limit query int false "Máximo de elementos de reservasPorDia y reservasPorHora; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100" minimum(1) maximum(100) default(10)
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.ReservasAnalisisData} "Análisis de reservas obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -1554,11 +1548,7 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 		return
 	}
 
-	limitStr := c.GetString("limit", "10")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
+	limit := parseLimit(&c.Controller, 10)
 
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilterWithField("r.fecha", startDate, endDate, startTime, endTime)
@@ -1568,7 +1558,7 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 	var reservasData models.ReservasAnalisisData
 
 	var reservasPorDia []models.ReservaPorDia
-	_, err = o.Raw(fmt.Sprintf(`
+	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			r.fecha::text as fecha,
 			COUNT(*) as total_reservas,
@@ -1712,14 +1702,14 @@ func (c *TelemetriaController) GetReservasAnalisis() {
 // @Tags telemetria
 // @Accept json
 // @Produce json
-// @Param limit query int false "Límite de registros por sección" minimum(1) maximum(100) default(10)
-// @Param periodo query string false "Período de tiempo" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
-// @Param mes query int false "Mes (1-12) para filtro mes_año"
-// @Param año query int false "Año para filtro mes_año"
-// @Param fecha_inicio query string false "Fecha inicio (YYYY-MM-DD) para filtro rango_fechas"
-// @Param fecha_fin query string false "Fecha fin (YYYY-MM-DD) para filtro rango_fechas"
-// @Param hora_inicio query string false "Hora inicio (HH:MM:SS o HH:MM) para filtros avanzados"
-// @Param hora_fin query string false "Hora fin (HH:MM:SS o HH:MM) para filtros avanzados"
+// @Param limit query int false "Máximo de elementos de pedidosPorDia y pedidosPorHora; un valor inválido o menor a 1 se reemplaza por 10 y los mayores a 100 se reducen a 100" minimum(1) maximum(100) default(10)
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (último mes, valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01); mes_año (sin mes/año equivale al mes en curso hasta hoy); rango_fechas (sin fecha_inicio/fecha_fin equivale al último mes). Cualquier otro valor se trata como ultimo_mes. Se ignora si se envía mes/año o fecha_inicio/fecha_fin (mes/año tiene prioridad sobre fecha_inicio/fecha_fin)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico, mes_año, rango_fechas) default(ultimo_mes)
+// @Param mes query int false "Mes (1-12) del filtro mes_año; se activa al enviar mes o año y requiere ambos (si falta uno se usa el mes en curso hasta hoy). Un valor fuera de 1-12 se toma como 1" minimum(1) maximum(12)
+// @Param año query int false "Año (1900-2100) del filtro mes_año; un valor fuera de rango se toma como el año en curso" minimum(1900) maximum(2100)
+// @Param fecha_inicio query string false "Inicio del filtro rango_fechas (YYYY-MM-DD, inclusive); se activa al enviar fecha_inicio o fecha_fin y requiere ambas (si falta una se usa el último mes hasta hoy). Una fecha inválida se reemplaza por hace un mes" format(date)
+// @Param fecha_fin query string false "Fin del filtro rango_fechas (YYYY-MM-DD, inclusive). Una fecha inválida se reemplaza por hoy" format(date)
+// @Param hora_inicio query string false "Hora mínima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 00:00:00 y un valor inválido se reemplaza por el defecto"
+// @Param hora_fin query string false "Hora máxima del día (HH:MM:SS o HH:MM) aplicada sobre cualquier período; por defecto 23:59:59 y un valor inválido se reemplaza por el defecto"
 // @Success 200 {object} models.ApiResponse{data=models.PedidosAnalisisData} "Análisis de pedidos obtenido exitosamente"
 // @Failure 401 {object} models.ApiResponse "Token no proporcionado o inválido"
 // @Failure 403 {object} models.ApiResponse "Acceso denegado - se requiere rol de administrador"
@@ -1732,11 +1722,7 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 		return
 	}
 
-	limitStr := c.GetString("limit", "10")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
+	limit := parseLimit(&c.Controller, 10)
 
 	startDate, endDate, startTime, endTime := parseFilterParams(&c.Controller)
 	dateFilter := buildAdvancedDateFilter(startDate, endDate, startTime, endTime)
@@ -1746,7 +1732,7 @@ func (c *TelemetriaController) GetPedidosAnalisis() {
 	var pedidosData models.PedidosAnalisisData
 
 	var pedidosPorDia []models.PedidoPorDia
-	_, err = o.Raw(fmt.Sprintf(`
+	_, err := o.Raw(fmt.Sprintf(`
 		SELECT
 			pe.fecha::text as fecha,
 			COUNT(*) as total_pedidos,
@@ -1892,12 +1878,15 @@ type ProductosPopularesData struct {
 	ProductosPopulares []models.ProductoVendido `json:"productosPopulares"`
 }
 
-// GetEstadosPedidos obtiene el conteo de pedidos por estado (endpoint público)
 // @Title GetEstadosPedidos
-// @Description Obtiene el conteo de pedidos agrupados por estado - endpoint público sin autenticación
-// @Success 200 {object} models.ApiResponse{data=map[string]int64}
-// @Failure 500 {object} models.ApiResponse
-// @router /estados-pedidos [get]
+// @Summary Conteo de pedidos por estado (público)
+// @Description Endpoint público (sin autenticación). Devuelve un objeto con el número de pedidos por cada estado existente (`{"PENDIENTE": 3, "TERMINADO": 10, ...}`; solo aparecen los estados con pedidos) más la clave `NO_FINALIZADOS`, que suma todos los estados distintos de TERMINADO y CANCELADO (0 si no hay pedidos).
+// @Tags telemetria
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.ApiResponse{data=map[string]int64} "Estados de pedidos obtenidos exitosamente"
+// @Failure 500 {object} models.ApiResponse "Error interno del servidor"
+// @Router /estados-pedidos [get]
 func (c *TelemetriaController) GetEstadosPedidos() {
 	o := orm.NewOrm()
 
@@ -1949,23 +1938,21 @@ func (c *TelemetriaController) GetEstadosPedidos() {
 	_ = c.ServeJSON()
 }
 
-// GetProductosPopulares obtiene los productos más vendidos (endpoint público)
 // @Title GetProductosPopulares
-// @Description Obtiene los productos más vendidos - endpoint público sin autenticación
-// @Param limit query int false "Número de productos a retornar (default: 4)"
-// @Param periodo query string false "Filtro temporal: hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico"
-// @Success 200 {object} models.ApiResponse{data=ProductosPopularesData}
-// @Failure 500 {object} models.ApiResponse
-// @router /productos-populares [get]
+// @Summary Productos más vendidos (público)
+// @Description Endpoint público (sin autenticación). Devuelve los productos más vendidos (pedidos TERMINADO con pago PAGADO) del período, con su imagen en base64 (`imagen`, "" si no tiene). `productosPopulares` es `[]` si no hay ventas.
+// @Tags telemetria
+// @Accept json
+// @Produce json
+// @Param limit query int false "Máximo de productos; un valor inválido o menor a 1 se reemplaza por 4 y los mayores a 100 se reducen a 100" minimum(1) maximum(100) default(4)
+// @Param periodo query string false "Período relativo a hoy: hoy; ultima_semana (últimos 7 días); ultimo_mes (valor por defecto); ultimos_3_meses; ultimos_6_meses; ultimo_año; historico (desde 1900-01-01). Cualquier otro valor se trata como ultimo_mes (este endpoint no admite mes_año ni rango_fechas)" Enums(hoy, ultima_semana, ultimo_mes, ultimos_3_meses, ultimos_6_meses, ultimo_año, historico) default(ultimo_mes)
+// @Success 200 {object} models.ApiResponse{data=ProductosPopularesData} "Productos populares obtenidos exitosamente"
+// @Failure 500 {object} models.ApiResponse "Error interno del servidor"
+// @Router /productos-populares [get]
 func (c *TelemetriaController) GetProductosPopulares() {
 
-	limitStr := c.GetString("limit", "4")
+	limit := parseLimit(&c.Controller, 4)
 	periodoStr := c.GetString("periodo", "ultimo_mes")
-
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 4
-	}
 
 	periodo := TimeFilter(periodoStr)
 	startDate, endDate := getTimeRange(periodo)
@@ -1994,7 +1981,7 @@ func (c *TelemetriaController) GetProductosPopulares() {
 		LIMIT %d
 	`, dateFilter, limit)
 
-	_, err = o.Raw(sql).QueryRows(&productosMasVendidos)
+	_, err := o.Raw(sql).QueryRows(&productosMasVendidos)
 	if err != nil {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		c.Data["json"] = models.ApiResponse{
@@ -2007,7 +1994,7 @@ func (c *TelemetriaController) GetProductosPopulares() {
 	}
 
 	productosData := ProductosPopularesData{
-		ProductosPopulares: productosMasVendidos,
+		ProductosPopulares: httpx.List(productosMasVendidos),
 	}
 
 	c.Ctx.Output.SetStatus(http.StatusOK)
@@ -2019,36 +2006,33 @@ func (c *TelemetriaController) GetProductosPopulares() {
 	_ = c.ServeJSON()
 }
 
-// GetProductosDisponibles obtiene todos los productos disponibles (endpoint público)
 // @Title GetProductosDisponibles
-// @Description Obtiene todos los productos disponibles en el sistema - endpoint público sin autenticación
-// @Success 200 {object} models.ApiResponse{data=[]map[string]interface{}}
-// @Failure 500 {object} models.ApiResponse
-// @router /productos-disponibles [get]
+// @Summary Productos con unidades vendidas (público)
+// @Description Endpoint público (sin autenticación). Lista todos los productos del sistema (de cualquier estado, ver `estado`) con las unidades vendidas en pedidos TERMINADO, ordenados por `totalVendido` descendente y luego por nombre. `data` es `[]` si no hay productos.
+// @Tags telemetria
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.ApiResponse{data=[]models.ProductoDisponible} "Productos disponibles obtenidos exitosamente"
+// @Failure 500 {object} models.ApiResponse "Error interno del servidor"
+// @Router /productos-disponibles [get]
 func (c *TelemetriaController) GetProductosDisponibles() {
 	o := orm.NewOrm()
 
-	type ProductoInfo struct {
-		ProductoId     int64  `json:"productoId"`
-		NombreProducto string `json:"nombreProducto"`
-		Precio         int64  `json:"precio"`
-		Estado         string `json:"estado"`
-		TotalVendido   int64  `json:"totalVendido"`
-	}
-
-	var productos []ProductoInfo
+	var productos []models.ProductoDisponible
 	_, err := o.Raw(`
 		SELECT
 			pr.pk_id_producto as producto_id,
 			pr.nombre as nombre_producto,
 			pr.precio,
 			pr.estado_producto as estado,
-			COALESCE(SUM(dp.cantidad), 0) as total_vendido
+			COALESCE(SUM(v.cantidad), 0) as total_vendido
 		FROM producto pr
-		LEFT JOIN detalle_pedido dp ON pr.pk_id_producto = dp.pk_id_producto
-		LEFT JOIN pedido pe ON dp.pk_id_pedido = pe.pk_id_pedido
-		LEFT JOIN pago p ON pe.pk_id_pago = p.pk_id_pago AND p.estado_pago = 'PAGADO'
-		WHERE pe.estado_pedido = 'TERMINADO' OR pe.estado_pedido IS NULL
+		LEFT JOIN (
+			SELECT dp.pk_id_producto, dp.cantidad
+			FROM detalle_pedido dp
+			INNER JOIN pedido pe ON dp.pk_id_pedido = pe.pk_id_pedido
+			WHERE pe.estado_pedido = 'TERMINADO'
+		) v ON pr.pk_id_producto = v.pk_id_producto
 		GROUP BY pr.pk_id_producto, pr.nombre, pr.precio, pr.estado_producto
 		ORDER BY total_vendido DESC, pr.nombre ASC
 	`).QueryRows(&productos)
@@ -2068,7 +2052,7 @@ func (c *TelemetriaController) GetProductosDisponibles() {
 	c.Data["json"] = models.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Productos disponibles obtenidos exitosamente",
-		Data:    productos,
+		Data:    httpx.List(productos),
 	}
 	_ = c.ServeJSON()
 }

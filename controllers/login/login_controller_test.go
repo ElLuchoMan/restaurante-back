@@ -100,7 +100,7 @@ func TestLoginTrabajadorSuccess(t *testing.T) {
 				trab.PASSWORD = "hashed"
 				return nil
 			}
-			return errors.New("not found")
+			return orm.ErrNoRows
 		}}
 	}
 
@@ -153,7 +153,7 @@ func TestLoginClienteSuccess(t *testing.T) {
 		return &mockLoginOrmer{ReadFunc: func(v interface{}, cols ...string) error {
 			switch val := v.(type) {
 			case *models.Trabajador:
-				return errors.New("not found")
+				return orm.ErrNoRows
 			case *models.Cliente:
 				val.NOMBRE = "Jane"
 				val.APELLIDO = "Doe"
@@ -211,7 +211,7 @@ func TestLoginTrabajadorInvalidPassword(t *testing.T) {
 				trab.PASSWORD = "hashed"
 				return nil
 			}
-			return errors.New("not found")
+			return orm.ErrNoRows
 		}}
 	}
 
@@ -243,7 +243,7 @@ func TestLoginClienteInvalidPassword(t *testing.T) {
 		return &mockLoginOrmer{ReadFunc: func(v interface{}, cols ...string) error {
 			switch val := v.(type) {
 			case *models.Trabajador:
-				return errors.New("not found")
+				return orm.ErrNoRows
 			case *models.Cliente:
 				val.PASSWORD = "hashed"
 				return nil
@@ -278,7 +278,7 @@ func TestLoginUserNotFound(t *testing.T) {
 	defer func() { newOrm = origNewOrm }()
 	newOrm = func() orm.Ormer {
 		return &mockLoginOrmer{ReadFunc: func(v interface{}, cols ...string) error {
-			return errors.New("not found")
+			return orm.ErrNoRows
 		}}
 	}
 

@@ -3,171 +3,213 @@ package domicilio
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"restaurante/logging"
-	"restaurante/models"
-	"strconv"
 	"strings"
 	"time"
+
+	"restaurante/internal/authz"
+	"restaurante/internal/httpx"
+	"restaurante/internal/notify"
+	"restaurante/logging"
+	"restaurante/models"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/server/web"
 )
 
-var jsonMarshal = json.Marshal
-
 type DomicilioController struct {
 	web.Controller
 }
 
-func isValidEstadoDomicilio(e string) bool {
-	switch models.EstadoDomicilio(strings.ToUpper(e)) {
+const (
+	msgIDInvalido           = "El parámetro 'id' es obligatorio y debe ser un entero positivo"
+	msgNoEncontrado         = "Domicilio no encontrado"
+	msgTrabajadorNoExiste   = "Trabajador no encontrado"
+	msgEstadoInvalido       = "Campo 'estado' inválido (PENDIENTE, EN_CAMINO o ENTREGADO)"
+	msgFechaInvalida        = "Formato de fecha inválido (use YYYY-MM-DD)"
+	msgDireccionTelefonoReq = "Los campos 'direccion' y 'telefono' son obligatorios y no pueden estar vacíos"
+)
+
+// normalizeEstado devuelve el estado en mayúsculas y si pertenece al enum.
+func normalizeEstado(e string) (string, bool) {
+	e = strings.ToUpper(strings.TrimSpace(e))
+	switch e {
 	case models.EstadoDomicilioPendiente, models.EstadoDomicilioEnCamino, models.EstadoDomicilioEntregado:
-		return true
+		return e, true
 	}
-	return false
+	return e, false
+}
+
+func (c *DomicilioController) fail(status int, msg string, err error) {
+	httpx.Fail(&c.Controller, status, msg, err)
+}
+
+// dbError registra el error y responde 409 si es un conflicto de PostgreSQL
+// (unicidad o llave foránea) y 500 en cualquier otro caso.
+func (c *DomicilioController) dbError(op, msg string, err error, ctx map[string]interface{}) {
+	logging.LogControllerError(c.Ctx, "domicilios."+op, err, ctx)
+	if httpx.IsPGConflict(err) {
+		c.fail(http.StatusConflict, msg+": conflicto con datos existentes", err)
+		return
+	}
+	c.fail(http.StatusInternalServerError, msg, err)
+}
+
+// readDomicilio lee el domicilio id; responde 404/500 y devuelve false si no se puede.
+func (c *DomicilioController) readDomicilio(op string, o orm.Ormer, d *models.Domicilio) bool {
+	if err := o.Read(d); err != nil {
+		if errors.Is(err, orm.ErrNoRows) {
+			c.fail(http.StatusNotFound, msgNoEncontrado, nil)
+			return false
+		}
+		logging.LogControllerError(c.Ctx, "domicilios."+op+".read_error", err, map[string]interface{}{"id": d.ID})
+		c.fail(http.StatusInternalServerError, "Error al consultar el domicilio", err)
+		return false
+	}
+	return true
+}
+
+// trabajadorExists comprueba que el trabajador exista; responde 404/500 y
+// devuelve false si no se puede continuar.
+func (c *DomicilioController) trabajadorExists(op string, o orm.Ormer, documento int64) bool {
+	n, err := o.QueryTable(new(models.Trabajador)).Filter("PK_DOCUMENTO_TRABAJADOR", documento).Count()
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios."+op+".trabajador_error", err, map[string]interface{}{"trabajador": documento})
+		c.fail(http.StatusInternalServerError, "Error al validar el trabajador", err)
+		return false
+	}
+	if n == 0 {
+		c.fail(http.StatusNotFound, msgTrabajadorNoExiste, nil)
+		return false
+	}
+	return true
 }
 
 // @Title GetAll
 // @Summary Obtener todos los domicilios con posibilidad de filtrar
-// @Description Devuelve todos los domicilios registrados en la base de datos, filtrando según criterios específicos.
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403 porque el listado incluye direcciones y teléfonos de todos. Devuelve los domicilios, con filtros opcionales combinables. Un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. `fechaDomicilio` va como DD-MM-YYYY; `trabajadorAsignado` es el trabajador como objeto (solo `documentoTrabajador` es fiable) y se omite si no hay domiciliario. Con `trabajador` se devuelven solo los NO entregados que no tienen domiciliario o que tiene ese trabajador.
 // @Tags domicilios
 // @Accept json
 // @Produce json
-// @Param   direccion    query   string   false   "Filtrar por dirección"
-// @Param   telefono     query   string   false   "Filtrar por teléfono"
-// @Param   fecha        query   string   false   "Filtrar por fecha"
-// @Param   estado       query   string   false   "Filtrar por estado del domicilio"
-// @Param   updated_by   query   string   false   "Filtrar por usuario que realizó la última actualización"
-// @Param   trabajador   query   int      false   "ID del domiciliario solicitante"
-// @Success 200 {object} models.ApiResponse{data=[]models.Domicilio} "Lista de domicilios"
+// @Param   direccion    query   string   false   "Filtrar por dirección (contiene, sin distinguir mayúsculas)"
+// @Param   telefono     query   string   false   "Filtrar por teléfono (exacto)"
+// @Param   fecha        query   string   false   "Filtrar por fecha (YYYY-MM-DD)"
+// @Param   estado       query   string   false   "Filtrar por estado del domicilio" Enums(PENDIENTE,EN_CAMINO,ENTREGADO)
+// @Param   updated_by   query   string   false   "Filtrar por usuario de la última actualización (contiene)"
+// @Param   trabajador   query   int      false   "Documento del domiciliario solicitante (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=[]models.DomicilioDoc} "Lista de domicilios (puede ser vacía)"
+// @Failure 400 {object} models.ApiResponse "Algún filtro tiene formato inválido"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /domicilios [get]
 func (c *DomicilioController) GetAll() {
-	o := orm.NewOrm()
-	qs := o.QueryTable(new(models.Domicilio))
-
-	direccion := c.GetString("direccion")
-	telefono := c.GetString("telefono")
-	updatedBy := c.GetString("updated_by")
-	fecha := c.GetString("fecha")
-	estado := strings.ToUpper(c.GetString("estado"))
-	trabajadorID, errTrab := c.GetInt("trabajador")
-	if c.GetString("trabajador") != "" && errTrab != nil {
-		logging.LogControllerError(c.Ctx, "domicilios.getall.bad_request", errTrab, map[string]interface{}{"trabajador": c.GetString("trabajador")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Parámetro 'trabajador' inválido", Cause: errTrab.Error()}
-		_ = c.ServeJSON()
+	if _, ok := authz.RequireStaff(&c.Controller); !ok {
 		return
 	}
-
-	if direccion != "" {
-		qs = qs.Filter("Direccion__icontains", direccion)
+	cond := orm.NewCondition()
+	if v := c.GetString("direccion"); v != "" {
+		cond = cond.And("Direccion__icontains", v)
 	}
-	if telefono != "" {
-		qs = qs.Filter("Telefono", telefono)
+	if v := c.GetString("telefono"); v != "" {
+		cond = cond.And("Telefono", v)
 	}
-	if updatedBy != "" {
-		qs = qs.Filter("UpdatedBy__icontains", updatedBy)
+	if v := c.GetString("updated_by"); v != "" {
+		cond = cond.And("UpdatedBy__icontains", v)
 	}
-	if fecha != "" {
-		if parsed, err := models.ParseDateToNoonUTC(fecha); err == nil {
-			qs = qs.Filter("Fecha", parsed)
+	if v := strings.TrimSpace(c.GetString("fecha")); v != "" {
+		fecha, err := models.ParseDateToNoonUTC(v)
+		if err != nil {
+			c.fail(http.StatusBadRequest, "Parámetro 'fecha' inválido (use YYYY-MM-DD)", err)
+			return
 		}
+		cond = cond.And("Fecha", fecha)
 	}
-	if estado != "" {
-		qs = qs.Filter("Estado", models.EstadoDomicilio(estado))
+	if v := c.GetString("estado"); v != "" {
+		estado, ok := normalizeEstado(v)
+		if !ok {
+			c.fail(http.StatusBadRequest, "Parámetro 'estado' inválido (PENDIENTE, EN_CAMINO o ENTREGADO)", nil)
+			return
+		}
+		cond = cond.And("Estado", estado)
 	}
-
-	if trabajadorID != 0 {
-		cond := orm.NewCondition().
+	if c.GetString("trabajador") != "" {
+		trabajador, err := httpx.PositiveInt64Param(&c.Controller, "trabajador")
+		if err != nil {
+			logging.LogControllerError(c.Ctx, "domicilios.getall.bad_request", err, map[string]interface{}{"trabajador": c.GetString("trabajador")})
+			c.fail(http.StatusBadRequest, "Parámetro 'trabajador' inválido", err)
+			return
+		}
+		cond = cond.And("Entregado", false).AndCond(orm.NewCondition().
 			Or("Trabajador__isnull", true).
-			Or("Trabajador__PK_DOCUMENTO_TRABAJADOR", trabajadorID)
-
-		qs = qs.Filter("Entregado", false).SetCond(cond)
+			Or("Trabajador", trabajador))
 	}
 
 	var domicilios []models.Domicilio
-	count, err := qs.All(&domicilios)
-	if err != nil {
-		logging.LogControllerError(c.Ctx, "domicilios.getall.db_error", err, map[string]interface{}{
-			"direccion": direccion, "telefono": telefono, "updated_by": updatedBy, "fecha": fecha, "estado": estado, "trabajador": trabajadorID,
-		})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al obtener domicilios de la base de datos",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	if _, err := orm.NewOrm().QueryTable(new(models.Domicilio)).SetCond(cond).OrderBy("ID").All(&domicilios); err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.getall.db_error", err, nil)
+		c.fail(http.StatusInternalServerError, "Error al obtener domicilios de la base de datos", err)
 		return
 	}
+	httpx.Send(&c.Controller, http.StatusOK, "Domicilios obtenidos exitosamente", httpx.List(domicilios))
+}
 
-	if count == 0 {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "No se encontraron domicilios que coincidan con los filtros proporcionados",
-		}
-		_ = c.ServeJSON()
-		return
-	}
+// domicilioDetalle es el `data` de GET /domicilios/search (documentado como
+// models.DomicilioDetalleDoc).
+type domicilioDetalle struct {
+	Domicilio models.Domicilio            `json:"domicilio"`
+	Cliente   *models.DomicilioClienteDoc `json:"cliente,omitempty"`
+	Pedido    *models.DomicilioPedidoDoc  `json:"pedido,omitempty"`
+}
 
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Domicilios obtenidos exitosamente",
-		Data:    domicilios,
-	}
-	_ = c.ServeJSON()
+type clienteRow struct {
+	Documento int64  `orm:"column(documento)"`
+	Nombre    string `orm:"column(nombre)"`
+	Apellido  string `orm:"column(apellido)"`
+}
+
+type pedidoRow struct {
+	PedidoID          int64           `orm:"column(pedido_id)"`
+	PagoID            sql.NullInt64   `orm:"column(pago_id)"`
+	PagoMonto         sql.NullFloat64 `orm:"column(pago_monto)"`
+	SubtotalProductos sql.NullFloat64 `orm:"column(subtotal_productos)"`
+	Productos         string          `orm:"column(productos)"`
 }
 
 // @Title GetById
 // @Summary Obtener domicilio por ID (incluye cliente y pedido asociado si existen)
-// @Description Devuelve un domicilio por ID y, si está asociado a un pedido, incluye documento/nombre del cliente y resumen del pedido (monto/productos).
+// @Description Un Cliente solo puede ver el domicilio de su propio pedido (cualquier otro responde 404, igual que si no existiera); el personal ve cualquiera. Devuelve un domicilio por ID y, si está asociado a un pedido, el cliente (`cliente`) y el resumen del último pedido (`pedido`: pago, subtotal, total y productos). `cliente` y `pedido` se omiten si no hay pedido asociado. `fechaDomicilio` va como DD-MM-YYYY.
 // @Tags domicilios
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID del Domicilio"
-// @Success 200 {object} models.ApiResponse{data=models.Domicilio} "Domicilio encontrado (con cliente/pedido si aplica)"
-// @Failure 400 {object} models.ApiResponse "Parámetro inválido"
-// @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
+// @Param   id     query    int     true        "ID del domicilio (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=models.DomicilioDetalleDoc} "Domicilio encontrado (con cliente/pedido si aplica)"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 404 {object} models.ApiResponse "Domicilio no encontrado (para un Cliente, también si no es de su pedido)"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /domicilios/search [get]
 func (c *DomicilioController) GetById() {
-	o := orm.NewOrm()
-	id, err := c.GetInt64("id")
-	if err != nil || id == 0 {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, msgIDInvalido, err)
+		return
+	}
+	o := orm.NewOrm()
+	resp := domicilioDetalle{Domicilio: models.Domicilio{ID: id}}
+	if !c.readDomicilio("getbyid", o, &resp.Domicilio) {
 		return
 	}
 
-	domicilio := models.Domicilio{ID: id}
-	if err := o.Read(&domicilio); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Domicilio no encontrado",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
-		return
-	}
-
-	type clienteRow struct {
-		Documento int64  `orm:"column(documento)"`
-		Nombre    string `orm:"column(nombre)"`
-		Apellido  string `orm:"column(apellido)"`
-	}
 	var cli clienteRow
 	qCliente := `
 SELECT p.pk_documento_cliente AS documento,
@@ -177,17 +219,19 @@ FROM pedido p
 JOIN cliente c ON c.pk_documento_cliente = p.pk_documento_cliente
 WHERE p.pk_id_domicilio = ?
 ORDER BY p.pk_id_pedido DESC LIMIT 1;`
-	if err := o.Raw(qCliente, id).QueryRow(&cli); err != nil {
+	if err := o.Raw(qCliente, id).QueryRow(&cli); err == nil {
+		resp.Cliente = &models.DomicilioClienteDoc{Documento: cli.Documento, Nombre: cli.Nombre, Apellido: cli.Apellido}
+	} else if !errors.Is(err, orm.ErrNoRows) {
 		logging.LogControllerError(c.Ctx, "domicilios.getbyid.cliente_query_error", err, map[string]interface{}{"id": id})
+		c.fail(http.StatusInternalServerError, "Error al consultar el cliente del domicilio", err)
+		return
+	}
+	// Un Cliente solo ve el domicilio de su propio pedido; cualquier otro (o uno sin pedido) responde como si no existiera.
+	if !authz.EsDuenio(claims, cli.Documento) {
+		c.fail(http.StatusNotFound, msgNoEncontrado, nil)
+		return
 	}
 
-	type pedidoRow struct {
-		PedidoID          int64           `orm:"column(pedido_id)"`
-		PagoID            sql.NullInt64   `orm:"column(pago_id)"`
-		PagoMonto         sql.NullFloat64 `orm:"column(pago_monto)"`
-		SubtotalProductos sql.NullFloat64 `orm:"column(subtotal_productos)"`
-		Productos         string          `orm:"column(productos)"`
-	}
 	var ped pedidoRow
 	qPedido := `
 SELECT p.pk_id_pedido AS pedido_id,
@@ -210,168 +254,117 @@ FROM pedido p
 LEFT JOIN pago pa ON pa.pk_id_pago = p.pk_id_pago
 WHERE p.pk_id_domicilio = ?
 ORDER BY p.pk_id_pedido DESC LIMIT 1;`
-	if err := o.Raw(qPedido, id).QueryRow(&ped); err != nil {
+	if err := o.Raw(qPedido, id).QueryRow(&ped); err == nil {
+		resumen, err := resumenPedido(ped)
+		if err != nil {
+			logging.LogControllerError(c.Ctx, "domicilios.getbyid.productos_error", err, map[string]interface{}{"id": id})
+			c.fail(http.StatusInternalServerError, "Error al leer los productos del pedido", err)
+			return
+		}
+		resp.Pedido = resumen
+	} else if !errors.Is(err, orm.ErrNoRows) {
 		logging.LogControllerError(c.Ctx, "domicilios.getbyid.pedido_query_error", err, map[string]interface{}{"id": id})
+		c.fail(http.StatusInternalServerError, "Error al consultar el pedido del domicilio", err)
+		return
 	}
 
-	resp := map[string]interface{}{"domicilio": domicilio}
-	if cli.Documento != 0 {
-		resp["cliente"] = map[string]interface{}{
-			"documento": cli.Documento,
-			"nombre":    cli.Nombre,
-			"apellido":  cli.Apellido,
-		}
-	}
-	if ped.PedidoID != 0 {
-		var productos []map[string]interface{}
-		if ped.Productos != "" {
-			if err := json.Unmarshal([]byte(ped.Productos), &productos); err != nil {
-				productos = nil
-			}
-		}
-		total := 0.0
-		if ped.PagoMonto.Valid {
-			total = ped.PagoMonto.Float64
-		} else if ped.SubtotalProductos.Valid {
-			total = ped.SubtotalProductos.Float64
-		}
-		var pagoIDPtr *int64
-		if ped.PagoID.Valid {
-			v := ped.PagoID.Int64
-			pagoIDPtr = &v
-		}
-		resp["pedido"] = map[string]interface{}{
-			"pedidoId":          ped.PedidoID,
-			"pagoId":            pagoIDPtr,
-			"montoPago":         ped.PagoMonto.Float64,
-			"subtotalProductos": ped.SubtotalProductos.Float64,
-			"total":             total,
-			"productos":         productos,
-		}
-	}
+	httpx.Send(&c.Controller, http.StatusOK, "Domicilio encontrado", resp)
+}
 
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Domicilio encontrado",
-		Data:    resp,
+// resumenPedido arma el resumen de pedido de GET /domicilios/search. `total` es
+// el monto del pago si existe y, si no, el subtotal de los productos.
+func resumenPedido(ped pedidoRow) (*models.DomicilioPedidoDoc, error) {
+	productos := []models.DetalleProductoDoc{}
+	if err := json.Unmarshal([]byte(ped.Productos), &productos); err != nil {
+		return nil, err
 	}
-	_ = c.ServeJSON()
+	total := ped.SubtotalProductos.Float64
+	if ped.PagoMonto.Valid {
+		total = ped.PagoMonto.Float64
+	}
+	var pagoID *int64
+	if ped.PagoID.Valid {
+		pagoID = &ped.PagoID.Int64
+	}
+	return &models.DomicilioPedidoDoc{
+		PedidoId:          ped.PedidoID,
+		PagoId:            pagoID,
+		MontoPago:         ped.PagoMonto.Float64,
+		SubtotalProductos: ped.SubtotalProductos.Float64,
+		Total:             total,
+		Productos:         productos,
+	}, nil
 }
 
 // @Title Create
 // @Summary Crear un nuevo domicilio
-// @Description Crea un nuevo domicilio en la base de datos. El campo 'entregado' es generado automáticamente y no debe enviarse en la solicitud.
+// @Description Lo puede hacer el personal y también un Cliente (el carrito crea el domicilio antes del pedido), pero un Cliente no puede asignar `trabajadorAsignado` ni crearlo en un estado distinto de PENDIENTE (403). Crea un domicilio. `direccion`, `telefono` (no vacíos) y `fechaDomicilio` (YYYY-MM-DD) son obligatorios; `estadoDomicilio` (alias `estado`) es opcional y, si se omite, aplica el valor por defecto de la base de datos. `trabajadorAsignado` es el documento del trabajador (null o 0 = sin asignar; si se envía debe existir, 404 si no). `entregado` lo calcula la base de datos y no debe enviarse. Responde 201 con el domicilio creado (`fechaDomicilio` como DD-MM-YYYY).
 // @Tags domicilios
 // @Accept json
 // @Produce json
 // @Param   body  body   models.DomicilioCreate true  "Datos del domicilio a crear (sólo campos permitidos)"
-// @Success 201 {object} models.ApiResponse{data=models.Domicilio} "Domicilio creado"
-// @Failure 400 {object} models.ApiResponse "Error en la solicitud"
+// @Success 201 {object} models.ApiResponse{data=models.DomicilioDoc} "Domicilio creado"
+// @Failure 400 {object} models.ApiResponse "JSON inválido, campos obligatorios vacíos, fecha o estado inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Un Cliente intentó asignar un trabajador o un estado distinto de PENDIENTE"
+// @Failure 404 {object} models.ApiResponse "El trabajador indicado no existe"
+// @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes"
+// @Failure 500 {object} models.ApiResponse "Error al crear el domicilio"
 // @Security BearerAuth
 // @Router /domicilios [post]
 func (c *DomicilioController) Post() {
-	var input models.DomicilioCreate
-	var raw map[string]interface{}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &raw); err != nil {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
+	var in struct {
+		models.DomicilioCreate
+		EstadoAlias string `json:"estado"`
+	}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "Error al procesar la solicitud", err)
 		return
 	}
-	if v, ok := raw["trabajadorAsignado"]; ok {
-		switch vv := v.(type) {
-		case nil:
-			delete(raw, "trabajadorAsignado")
-		case string:
-			if strings.TrimSpace(vv) == "" {
-				delete(raw, "trabajadorAsignado")
-			}
-		case float64:
-			if int64(vv) == 0 {
-				delete(raw, "trabajadorAsignado")
-			}
-		}
-	}
-	if bodySan, err := jsonMarshal(raw); err == nil {
-		if err := json.Unmarshal(bodySan, &input); err != nil {
-			logging.LogControllerError(c.Ctx, "domicilios.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
-			_ = c.ServeJSON()
-			return
-		}
-	} else {
-		logging.LogControllerError(c.Ctx, "domicilios.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Solicitud inválida", Cause: err.Error()}
-		_ = c.ServeJSON()
+	direccion, telefono := strings.TrimSpace(in.Direccion), strings.TrimSpace(in.Telefono)
+	if direccion == "" || telefono == "" {
+		c.fail(http.StatusBadRequest, msgDireccionTelefonoReq, nil)
 		return
 	}
-
-	if input.Direccion == "" || input.Telefono == "" {
-		logging.LogControllerError(c.Ctx, "domicilios.post.validation_error", nil, map[string]interface{}{"missing": "direccion/telefono", "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Los campos 'direccion' y 'telefono' son obligatorios"}
-		_ = c.ServeJSON()
-		return
-	}
-
-	parsedDate, err := models.ParseDateToNoonUTC(input.FechaDomicilio)
+	fecha, err := models.ParseDateToNoonUTC(in.FechaDomicilio)
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "domicilios.post.validation_error", err, map[string]interface{}{"fecha": input.FechaDomicilio, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Formato de fecha inválido", Cause: err.Error()}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, msgFechaInvalida, err)
 		return
 	}
-
-	domicilio := models.Domicilio{Direccion: input.Direccion, Telefono: input.Telefono, Fecha: parsedDate}
-	if input.Observaciones != nil {
-		domicilio.Observ = input.Observaciones
+	if !claims.IsStaff() && !c.clientePuedeCrear(in.TrabajadorID, firstNonEmpty(in.Estado, in.EstadoAlias)) {
+		return
 	}
-	if input.CreatedBy != nil {
-		domicilio.CreatedBy = input.CreatedBy
+	cols := []string{"direccion", "fecha", "telefono"}
+	vals := []interface{}{direccion, fecha, telefono}
+	if in.Observaciones != nil {
+		cols, vals = append(cols, "observaciones"), append(vals, *in.Observaciones)
 	}
-	est := string(input.Estado)
-	if est == "" {
-		if v, ok := raw["estado"].(string); ok {
-			est = v
-		}
+	if in.CreatedBy != nil {
+		cols, vals = append(cols, "created_by"), append(vals, *in.CreatedBy)
 	}
-	if est != "" {
-		if !isValidEstadoDomicilio(est) {
-			logging.LogControllerError(c.Ctx, "domicilios.post.validation_error", nil, map[string]interface{}{"estado": est})
-			c.Ctx.Output.SetStatus(http.StatusBadRequest)
-			c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Campo 'estado' inválido"}
-			_ = c.ServeJSON()
+	if est := firstNonEmpty(in.Estado, in.EstadoAlias); est != "" {
+		estado, ok := normalizeEstado(est)
+		if !ok {
+			c.fail(http.StatusBadRequest, msgEstadoInvalido, nil)
 			return
 		}
-		domicilio.Estado = models.EstadoDomicilio(strings.ToUpper(est))
+		cols, vals = append(cols, "estado_domicilio"), append(vals, estado)
 	}
-	if input.TrabajadorID != nil && *input.TrabajadorID != 0 {
-		domicilio.Trabajador = &models.Trabajador{PK_DOCUMENTO_TRABAJADOR: *input.TrabajadorID}
-	}
-
 	o := orm.NewOrm()
-	cols := []string{"direccion", "fecha", "telefono"}
-	vals := []interface{}{domicilio.Direccion, domicilio.Fecha, domicilio.Telefono}
-	if domicilio.Observ != nil {
-		cols = append(cols, "observaciones")
-		vals = append(vals, *domicilio.Observ)
-	}
-	if domicilio.CreatedBy != nil {
-		cols = append(cols, "created_by")
-		vals = append(vals, *domicilio.CreatedBy)
-	}
-	if domicilio.Trabajador != nil {
-		cols = append(cols, "pk_documento_trabajador")
-		vals = append(vals, domicilio.Trabajador.PK_DOCUMENTO_TRABAJADOR)
-	}
-	if domicilio.Estado != "" {
-		cols = append(cols, "estado_domicilio")
-		vals = append(vals, domicilio.Estado)
+	if in.TrabajadorID != nil && *in.TrabajadorID != 0 {
+		if *in.TrabajadorID < 0 {
+			c.fail(http.StatusBadRequest, "El campo 'trabajadorAsignado' debe ser un documento positivo", nil)
+			return
+		}
+		if !c.trabajadorExists("post", o, *in.TrabajadorID) {
+			return
+		}
+		cols, vals = append(cols, "pk_documento_trabajador"), append(vals, *in.TrabajadorID)
 	}
 
 	ph := make([]string, len(vals))
@@ -380,246 +373,260 @@ func (c *DomicilioController) Post() {
 	}
 	query := fmt.Sprintf("INSERT INTO domicilio (%s) VALUES (%s) RETURNING pk_id_domicilio",
 		strings.Join(cols, ","), strings.Join(ph, ","))
-
+	var domicilio models.Domicilio
 	if err := o.Raw(query, vals...).QueryRow(&domicilio.ID); err != nil {
-		logging.LogControllerError(c.Ctx, "domicilios.post.insert_error", err, map[string]interface{}{"direccion": domicilio.Direccion, "telefono": domicilio.Telefono, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al crear el domicilio",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.dbError("post.insert_error", "Error al crear el domicilio", err, map[string]interface{}{"direccion": direccion, "telefono": telefono})
 		return
 	}
-
-	var ent bool
-	var created, updated time.Time
-	if err := o.Raw("SELECT entregado, created_at, updated_at FROM domicilio WHERE pk_id_domicilio = ?",
-		domicilio.ID).QueryRow(&ent, &created, &updated); err == nil {
-		domicilio.Entregado = ent
-		domicilio.CreatedAt = created
-		domicilio.UpdatedAt = updated
+	// Se relee la fila para devolver los valores que fija la base de datos
+	// (entregado, estado por defecto, created_at, updated_at).
+	if !c.readDomicilio("post", o, &domicilio) {
+		return
 	}
+	httpx.Send(&c.Controller, http.StatusCreated, "Domicilio creado correctamente", domicilio)
+}
 
-	c.Ctx.Output.SetStatus(http.StatusCreated)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusCreated,
-		Message: "Domicilio creado correctamente",
-		Data:    domicilio,
+// clientePuedeCrear aplica a un Cliente que crea un domicilio (lo hace el
+// carrito antes de crear el pedido): no puede asignar domiciliario ni crearlo
+// en un estado distinto de PENDIENTE. Responde 403 y devuelve false si no.
+func (c *DomicilioController) clientePuedeCrear(trabajador *int64, estado string) bool {
+	if trabajador != nil && *trabajador != 0 {
+		c.fail(http.StatusForbidden, "Un cliente no puede asignar un domiciliario", nil)
+		return false
 	}
-	_ = c.ServeJSON()
+	if estado != "" {
+		if e, _ := normalizeEstado(estado); e != models.EstadoDomicilioPendiente {
+			c.fail(http.StatusForbidden, "Un cliente solo puede crear domicilios en estado PENDIENTE", nil)
+			return false
+		}
+	}
+	return true
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// firstNonNil devuelve el primer puntero no nulo (permite aceptar alias).
+func firstNonNil(vals ...*string) *string {
+	for _, v := range vals {
+		if v != nil {
+			return v
+		}
+	}
+	return nil
 }
 
 // @Title Update
 // @Summary Actualizar un domicilio
-// @Description Actualiza los datos de un domicilio existente. El campo 'entregado' es calculado automáticamente.
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403. Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`, que solo refresca `updatedAt`). Campos: `direccion` y `telefono` (no vacíos), `estado` (alias `estadoDomicilio`: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), `observaciones`, `fechaDomicilio` (YYYY-MM-DD) y `updatedBy`. Anulables (null los limpia): `observaciones` y `updatedBy`; null en cualquier otro campo responde 400. `entregado` lo calcula la base de datos; la respuesta lo trae actualizado. Cuando el domicilio pasa a ENTREGADO, avisa por push al cliente del pedido (best-effort, en segundo plano).
 // @Tags domicilios
 // @Accept json
 // @Produce json
-// @Param   id    query    int  true   "ID del Domicilio"
-// @Param   body  body   models.DomicilioUpdateRequest true  "Datos del domicilio a actualizar (sólo campos a modificar)"
-// @Success 200 {object} models.ApiResponse{data=models.Domicilio} "Domicilio actualizado"
+// @Param   id    query    int  true   "ID del domicilio (entero positivo)"
+// @Param   body  body   models.DomicilioUpdateRequest true  "Campos a modificar (todos opcionales)"
+// @Success 200 {object} models.ApiResponse{data=models.DomicilioDoc} "Domicilio actualizado"
+// @Failure 400 {object} models.ApiResponse "id inválido, JSON inválido, null en campo no anulable o valores inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
+// @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes"
+// @Failure 500 {object} models.ApiResponse "Error al actualizar el domicilio"
 // @Security BearerAuth
 // @Router /domicilios [put]
 func (c *DomicilioController) Put() {
-	o := orm.NewOrm()
-	id, err := strconv.ParseInt(c.GetString("id"), 10, 64)
-	if err != nil || id == 0 {
+	if _, ok := authz.RequireStaff(&c.Controller); !ok {
+		return
+	}
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "El parámetro 'id' es inválido o está ausente", Cause: err.Error()}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, msgIDInvalido, err)
 		return
 	}
-
+	o := orm.NewOrm()
 	domicilio := models.Domicilio{ID: id}
-	if err := o.Read(&domicilio); err == orm.ErrNoRows {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Domicilio no encontrado",
-		}
-		_ = c.ServeJSON()
+	if !c.readDomicilio("put", o, &domicilio) {
 		return
 	}
-
-	var input map[string]interface{}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
+	estadoAnterior := domicilio.Estado
+	var in models.DomicilioUpdateRequest
+	if err := httpx.DecodeMerge(c.Ctx.Input.RequestBody, &in, "observaciones", "updatedBy"); err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.put.bad_json", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusBadRequest, Message: "Error al procesar la solicitud", Cause: err.Error()}
-		_ = c.ServeJSON()
+		c.fail(http.StatusBadRequest, "Error al procesar la solicitud", err)
 		return
 	}
 
-	var colsToUpdate []string
-	if direccion, ok := input["direccion"].(string); ok {
-		domicilio.Direccion = direccion
-		colsToUpdate = append(colsToUpdate, "Direccion")
+	cols := []string{"UpdatedAt"}
+	if in.Direccion != nil || in.Telefono != nil {
+		if (in.Direccion != nil && strings.TrimSpace(*in.Direccion) == "") || (in.Telefono != nil && strings.TrimSpace(*in.Telefono) == "") {
+			c.fail(http.StatusBadRequest, msgDireccionTelefonoReq, nil)
+			return
+		}
 	}
-	if telefono, ok := input["telefono"].(string); ok {
-		domicilio.Telefono = telefono
-		colsToUpdate = append(colsToUpdate, "Telefono")
+	if in.Direccion != nil {
+		domicilio.Direccion = strings.TrimSpace(*in.Direccion)
+		cols = append(cols, "Direccion")
 	}
-	if updatedBy, ok := input["updatedBy"].(string); ok {
-		domicilio.UpdatedBy = &updatedBy
-		colsToUpdate = append(colsToUpdate, "UpdatedBy")
+	if in.Telefono != nil {
+		domicilio.Telefono = strings.TrimSpace(*in.Telefono)
+		cols = append(cols, "Telefono")
+	}
+	if est := firstNonNil(in.Estado, in.EstadoDomicilio); est != nil {
+		estado, ok := normalizeEstado(*est)
+		if !ok {
+			c.fail(http.StatusBadRequest, msgEstadoInvalido, nil)
+			return
+		}
+		domicilio.Estado = estado
+		cols = append(cols, "Estado")
+	}
+	if in.FechaDomicilio != nil {
+		fecha, err := models.ParseDateToNoonUTC(*in.FechaDomicilio)
+		if err != nil {
+			c.fail(http.StatusBadRequest, msgFechaInvalida, err)
+			return
+		}
+		domicilio.Fecha = fecha
+		cols = append(cols, "Fecha")
+	}
+	body := c.Ctx.Input.RequestBody
+	if in.Observaciones != nil || httpx.IsNull(body, "observaciones") {
+		domicilio.Observ = in.Observaciones
+		cols = append(cols, "Observ")
+	}
+	if in.UpdatedBy != nil || httpx.IsNull(body, "updatedBy") {
+		domicilio.UpdatedBy = in.UpdatedBy
+		cols = append(cols, "UpdatedBy")
 	}
 	domicilio.UpdatedAt = time.Now().UTC()
-	colsToUpdate = append(colsToUpdate, "UpdatedAt")
 
-	if _, err := o.Update(&domicilio, colsToUpdate...); err != nil {
-		logging.LogControllerError(c.Ctx, "domicilios.put.update_error", err, map[string]interface{}{"id": id, "body": string(c.Ctx.Input.RequestBody)})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{Code: http.StatusInternalServerError, Message: "Error al actualizar el domicilio", Cause: err.Error()}
-		_ = c.ServeJSON()
+	if _, err := o.Update(&domicilio, cols...); err != nil {
+		c.dbError("put.update_error", "Error al actualizar el domicilio", err, map[string]interface{}{"id": id, "body": string(body)})
 		return
 	}
-
-	var ent bool
-	var created, updated time.Time
-	if err := o.Raw("SELECT entregado, created_at, updated_at FROM domicilio WHERE pk_id_domicilio = ?",
-		domicilio.ID).QueryRow(&ent, &created, &updated); err == nil {
-		domicilio.Entregado = ent
-		domicilio.CreatedAt = created
-		domicilio.UpdatedAt = updated
+	// Se relee para devolver `entregado` y las marcas de tiempo calculados por la base de datos.
+	if !c.readDomicilio("put", o, &domicilio) {
+		return
 	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Domicilio actualizado correctamente",
-		Data:    domicilio,
+	if estadoAnterior != models.EstadoDomicilioEntregado && domicilio.Estado == models.EstadoDomicilioEntregado {
+		notify.Enviar(notify.Evento{Tipo: notify.DomicilioEntregado, DomicilioID: id})
 	}
-	_ = c.ServeJSON()
+	httpx.Send(&c.Controller, http.StatusOK, "Domicilio actualizado correctamente", domicilio)
 }
 
 // @Title Delete
 // @Summary Eliminar un domicilio
-// @Description Elimina un domicilio de la base de datos.
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403. Elimina un domicilio. Si está asociado a un pedido responde 409. Responde 200 con el mensaje de confirmación (sin `data`).
 // @Tags domicilios
 // @Accept json
 // @Produce json
-// @Param   id     query    int     true        "ID del Domicilio"
-// @Success 204 {object} nil "Domicilio eliminado"
+// @Param   id     query    int     true        "ID del domicilio (entero positivo)"
+// @Success 200 {object} models.ApiResponse "Domicilio eliminado"
+// @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
+// @Failure 409 {object} models.ApiResponse "El domicilio está asociado a un pedido"
+// @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /domicilios [delete]
 func (c *DomicilioController) Delete() {
-	o := orm.NewOrm()
-	id, err := strconv.ParseInt(c.GetString("id"), 10, 64)
-	if err != nil || id == 0 {
-		logging.LogControllerError(c.Ctx, "domicilios.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
-		c.Ctx.Output.SetStatus(http.StatusBadRequest)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: "El parámetro 'id' es inválido o está ausente",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+	if _, ok := authz.RequireStaff(&c.Controller); !ok {
 		return
 	}
-
-	domicilio := models.Domicilio{ID: id}
-	if _, err := o.Delete(&domicilio); err == nil {
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "Domicilio eliminado",
-		}
-	} else {
-		logging.LogControllerError(c.Ctx, "domicilios.delete.delete_error", err, map[string]interface{}{"id": id})
-		c.Ctx.Output.SetStatus(http.StatusOK)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusNotFound,
-			Message: "Domicilio no encontrado",
-			Cause:   err.Error(),
-		}
+	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
+		c.fail(http.StatusBadRequest, msgIDInvalido, err)
+		return
 	}
-	_ = c.ServeJSON()
+	n, err := orm.NewOrm().Delete(&models.Domicilio{ID: id})
+	if err != nil {
+		c.dbError("delete.delete_error", "Error al eliminar el domicilio", err, map[string]interface{}{"id": id})
+		return
+	}
+	if n == 0 {
+		c.fail(http.StatusNotFound, msgNoEncontrado, nil)
+		return
+	}
+	httpx.Send(&c.Controller, http.StatusOK, "Domicilio eliminado", nil)
 }
 
 // @Title AsignarDomiciliario
-// @Summary Asignar un domiciliario a un pedido de domicilio
-// @Description Un domiciliario puede tomar un pedido si no ha sido asignado previamente
+// @Summary Asignar un domiciliario a un domicilio
+// @Description Solo personal: un Domiciliario únicamente puede asignarse a sí mismo (`trabajador_id` = su documento) y un Administrador puede asignar a cualquiera; cualquier otro caso responde 403 (también a un Cliente). Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. `data` es el domicilio completo actualizado. Avisa por push al cliente del pedido (best-effort, en segundo plano).
 // @Tags domicilios
 // @Accept json
 // @Produce json
-// @Param domicilio_id query int true "ID del domicilio"
-// @Param trabajador_id query int true "ID del domiciliario que lo tomará"
-// @Success 200 {object} models.ApiResponse "Domicilio asignado"
-// @Failure 404 {object} models.ApiResponse "Domicilio no encontrado o ya asignado"
+// @Param domicilio_id query int true "ID del domicilio (entero positivo)"
+// @Param trabajador_id query int true "Documento del domiciliario que lo tomará (entero positivo)"
+// @Success 200 {object} models.ApiResponse{data=models.DomicilioDoc} "Domicilio asignado"
+// @Failure 400 {object} models.ApiResponse "domicilio_id o trabajador_id inválidos"
+// @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "No es Administrador ni el propio Domiciliario (un Cliente tampoco puede)"
+// @Failure 404 {object} models.ApiResponse "Domicilio o trabajador no encontrado"
+// @Failure 409 {object} models.ApiResponse "El domicilio ya ha sido asignado"
 // @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
 // @Security BearerAuth
 // @Router /domicilios/asignar [post]
 func (c *DomicilioController) AsignarDomiciliario() {
-	domicilioID, _ := c.GetInt64("domicilio_id")
-	trabajadorID, _ := c.GetInt64("trabajador_id")
-
+	claims, ok := authz.RequireStaff(&c.Controller)
+	if !ok {
+		return
+	}
+	domicilioID, err := httpx.PositiveInt64Param(&c.Controller, "domicilio_id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.asignar.bad_request", err, map[string]interface{}{"domicilio_id": c.GetString("domicilio_id")})
+		c.fail(http.StatusBadRequest, "El parámetro 'domicilio_id' es obligatorio y debe ser un entero positivo", err)
+		return
+	}
+	trabajadorID, err := httpx.PositiveInt64Param(&c.Controller, "trabajador_id")
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "domicilios.asignar.bad_request", err, map[string]interface{}{"trabajador_id": c.GetString("trabajador_id")})
+		c.fail(http.StatusBadRequest, "El parámetro 'trabajador_id' es obligatorio y debe ser un entero positivo", err)
+		return
+	}
+	// Un Domiciliario solo se asigna a sí mismo (tomar-domicilio); el Administrador asigna a cualquiera.
+	// Los demás roles de personal no reparten domicilios.
+	switch {
+	case claims.IsAdmin():
+	case claims.Rol == string(models.RolDomiciliario) && claims.Documento == trabajadorID:
+	default:
+		c.fail(http.StatusForbidden, "Solo un Administrador o el propio Domiciliario pueden asignar este domicilio", nil)
+		return
+	}
+	ctx := map[string]interface{}{"domicilio_id": domicilioID, "trabajador_id": trabajadorID}
 	o := orm.NewOrm()
+	if !c.trabajadorExists("asignar", o, trabajadorID) {
+		return
+	}
 	res, err := o.Raw(
 		"UPDATE domicilio SET estado_domicilio='EN_CAMINO', pk_documento_trabajador=? WHERE pk_id_domicilio=? AND pk_documento_trabajador IS NULL",
 		trabajadorID, domicilioID,
 	).Exec()
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "domicilios.asignar.update_error", err, map[string]interface{}{"domicilio_id": domicilioID, "trabajador_id": trabajadorID})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al asignar domicilio",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.dbError("asignar.update_error", "Error al asignar domicilio", err, ctx)
 		return
 	}
-
 	affected, err := res.RowsAffected()
 	if err != nil {
-		logging.LogControllerError(c.Ctx, "domicilios.asignar.rows_affected_error", err, map[string]interface{}{"domicilio_id": domicilioID})
-		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-		c.Data["json"] = models.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "Error al asignar domicilio",
-			Cause:   err.Error(),
-		}
-		_ = c.ServeJSON()
+		c.dbError("asignar.rows_affected_error", "Error al asignar domicilio", err, ctx)
 		return
 	}
-
+	domicilio := models.Domicilio{ID: domicilioID}
+	if !c.readDomicilio("asignar", o, &domicilio) {
+		return
+	}
 	if affected != 1 {
-		var exists int
-		if err := o.Raw("SELECT COUNT(1) FROM domicilio WHERE pk_id_domicilio = ?", domicilioID).QueryRow(&exists); err != nil || exists == 0 {
-			c.Ctx.Output.SetStatus(http.StatusNotFound)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusNotFound,
-				Message: "Domicilio no encontrado",
-			}
-		} else {
-			c.Ctx.Output.SetStatus(http.StatusConflict)
-			c.Data["json"] = models.ApiResponse{
-				Code:    http.StatusConflict,
-				Message: "Este domicilio ya ha sido asignado",
-			}
-		}
-		_ = c.ServeJSON()
+		c.fail(http.StatusConflict, "Este domicilio ya ha sido asignado", nil)
 		return
 	}
-
-	domicilio := models.Domicilio{
-		ID:     domicilioID,
-		Estado: models.EstadoDomicilioEnCamino,
-		Trabajador: &models.Trabajador{
-			PK_DOCUMENTO_TRABAJADOR: trabajadorID,
-		},
-	}
-
-	c.Ctx.Output.SetStatus(http.StatusOK)
-	c.Data["json"] = models.ApiResponse{
-		Code:    http.StatusOK,
-		Message: "Domicilio asignado correctamente",
-		Data:    domicilio,
-	}
-	_ = c.ServeJSON()
+	notify.Enviar(notify.Evento{Tipo: notify.DomicilioAsignado, DomicilioID: domicilioID})
+	httpx.Send(&c.Controller, http.StatusOK, "Domicilio asignado correctamente", domicilio)
 }

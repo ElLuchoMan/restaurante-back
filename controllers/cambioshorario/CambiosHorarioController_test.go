@@ -1,481 +1,228 @@
 package cambioshorario
 
 import (
-	"database/sql"
 	"database/sql/driver"
 	"errors"
-	"io"
+	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
-
-	"restaurante/database"
-	"restaurante/models"
-
-	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/server/web/context"
 )
 
-type mockDriver struct{}
+var (
+	cambioCols = []string{"pk_id_cambio_horario", "fecha", "hora_apertura", "hora_cierre", "abierto"}
+	errBoom    = errors.New("boom")
+)
 
-type mockConn struct{}
-
-type mockStmt struct{ query string }
-
-type mockTx struct{}
-
-func (d mockDriver) Open(name string) (driver.Conn, error) { return &mockConn{}, nil }
-
-func (c *mockConn) Prepare(query string) (driver.Stmt, error) { return &mockStmt{query: query}, nil }
-func (c *mockConn) Close() error                              { return nil }
-func (c *mockConn) Begin() (driver.Tx, error)                 { return &mockTx{}, nil }
-
-func (s *mockStmt) Close() error                                    { return nil }
-func (s *mockStmt) NumInput() int                                   { return -1 }
-func (s *mockStmt) Exec(args []driver.Value) (driver.Result, error) { return mockResult{}, nil }
-func (s *mockStmt) Query(args []driver.Value) (driver.Rows, error)  { return &mockRows{}, nil }
-
-func (mockTx) Commit() error   { return nil }
-func (mockTx) Rollback() error { return nil }
-
-type mockResult struct{}
-
-func (mockResult) LastInsertId() (int64, error) { return 1, nil }
-func (mockResult) RowsAffected() (int64, error) { return 1, nil }
-
-type mockRows struct{}
-
-func (r *mockRows) Columns() []string              { return []string{} }
-func (r *mockRows) Close() error                   { return nil }
-func (r *mockRows) Next(dest []driver.Value) error { return io.EOF }
-
-func TestMain(m *testing.M) {
-	_ = os.Setenv("JWT_SECRET", "testsecret")
-	database.InitTimezone()
-	sql.Register("mock", mockDriver{})
-	orm.RegisterDriver("mock", orm.DRPostgres)
-	_ = orm.RegisterDataBase("default", "mock", "")
-	os.Exit(m.Run())
+// lmt arma una hora como la entrega el driver (año 0 con desfase LMT de
+// 9h52m32s): FormatTimeWithLMT la muestra como h:00:00.
+func lmt(h int) time.Time {
+	return time.Date(0, 1, 1, h, 0, 0, 0, time.UTC).Add(-(9*time.Hour + 52*time.Minute + 32*time.Second))
 }
 
-func setupCtx(method, url string, body string) (*CambiosHorarioController, *httptest.ResponseRecorder) {
-	r := httptest.NewRequest(method, url, strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	if body != "" {
-		ctx.Input.RequestBody = []byte(body)
+func fecha(y int, m time.Month, d int) time.Time { return time.Date(y, m, d, 12, 0, 0, 0, time.UTC) }
+
+func rowAbierto() []driver.Value {
+	return []driver.Value{int64(3), fecha(2025, 12, 24), lmt(9), lmt(20), true}
+}
+
+func rowCerrado() []driver.Value {
+	return []driver.Value{int64(4), fecha(2025, 12, 25), lmt(0), lmt(23), false}
+}
+
+func serve(rows ...[]driver.Value) {
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) {
+		return rowsOf(cambioCols, rows...), nil
 	}
+}
+
+func failQuery() {
+	fakeQuery = func(string, []driver.NamedValue) (driver.Rows, error) { return nil, errBoom }
+}
+
+func failExec(msg string) {
+	e := errors.New(msg)
+	fakeExec = func(string, []driver.NamedValue) (driver.Result, error) { return nil, e }
+}
+
+func call(t *testing.T, method, target, body string, f func(c *CambiosHorarioController), status int) string {
+	t.Helper()
+	ctx, w := newCtx(method, target, body)
 	c := &CambiosHorarioController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	return c, w
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
+	f(c)
+	expect(t, w, status)
+	return w.Body.String()
 }
 
-func TestCambiosHorario_GetAll_DBError(t *testing.T) {
-	orig := queryAllCambiosHorario
-	queryAllCambiosHorario = func(o orm.Ormer, horarios *[]models.CambiosHorario) (int64, error) {
-		return 0, errors.New("db fail")
-	}
-	defer func() { queryAllCambiosHorario = orig }()
-
-	c, w := setupCtx(http.MethodGet, "/cambios_horario", "")
-	c.GetAll()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al obtener cambios de horario") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestCambiosHorario_GetAll_OK(t *testing.T) {
-	orig := queryAllCambiosHorario
-	queryAllCambiosHorario = func(o orm.Ormer, horarios *[]models.CambiosHorario) (int64, error) {
-		ha, _ := time.Parse("15:04:05", "08:00:00")
-		hc, _ := time.Parse("15:04:05", "17:00:00")
-		*horarios = []models.CambiosHorario{
-			{PK_ID_CAMBIO_HORARIO: 1, FECHA: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), ABIERTO: true, HORA_APERTURA: &ha, HORA_CIERRE: hc},
-			{PK_ID_CAMBIO_HORARIO: 2, FECHA: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC), ABIERTO: false},
+func mustContain(t *testing.T, body string, wants ...string) {
+	t.Helper()
+	for _, w := range wants {
+		if !strings.Contains(body, w) {
+			t.Fatalf("falta %s en %s", w, body)
 		}
-		return int64(len(*horarios)), nil
-	}
-	defer func() { queryAllCambiosHorario = orig }()
-
-	c, w := setupCtx(http.MethodGet, "/cambios_horario", "")
-	c.GetAll()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
 	}
 }
 
-func TestCambiosHorario_GetByCurrentDate_NoRows(t *testing.T) {
-	orig := queryCambioHorarioByDate
-	queryCambioHorarioByDate = func(o orm.Ormer, date time.Time, ch *models.CambiosHorario) error {
-		return orm.ErrNoRows
-	}
-	defer func() { queryCambioHorarioByDate = orig }()
+func TestGetAll(t *testing.T) {
+	defer resetFake()
+	g := func(c *CambiosHorarioController) { c.GetAll() }
 
-	c, w := setupCtx(http.MethodGet, "/cambios_horario/actual", "")
-	c.GetByCurrentDate()
+	mustContain(t, call(t, http.MethodGet, "/cambios_horario", "", g, http.StatusOK), `"data":[]`)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "No hay cambios de horario para la fecha actual") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
+	serve(rowAbierto(), rowCerrado())
+	b := call(t, http.MethodGet, "/cambios_horario", "", g, http.StatusOK)
+	mustContain(t, b,
+		`{"cambioHorarioId":3,"fechaCambioHorario":"24-12-2025","horaApertura":"09:00:00","horaCierre":"20:00:00","abierto":true}`,
+		`"cambioHorarioId":4`, `"abierto":false`)
+
+	failQuery()
+	call(t, http.MethodGet, "/cambios_horario", "", g, http.StatusInternalServerError)
 }
 
-func TestCambiosHorario_GetByCurrentDate_DBError(t *testing.T) {
-	orig := queryCambioHorarioByDate
-	queryCambioHorarioByDate = func(o orm.Ormer, date time.Time, ch *models.CambiosHorario) error {
-		return errors.New("db fail")
-	}
-	defer func() { queryCambioHorarioByDate = orig }()
+func TestGetByCurrentDate(t *testing.T) {
+	defer resetFake()
+	defer func() { now = time.Now }()
+	g := func(c *CambiosHorarioController) { c.GetByCurrentDate() }
 
-	c, w := setupCtx(http.MethodGet, "/cambios_horario/actual", "")
-	c.GetByCurrentDate()
-
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
+	// 2025-12-25 02:00 UTC es todavía 24-dic a las 21:00 en Colombia.
+	now = func() time.Time { return time.Date(2025, 12, 25, 2, 0, 0, 0, time.UTC) }
+	var gotArgs []driver.NamedValue
+	fakeQuery = func(_ string, a []driver.NamedValue) (driver.Rows, error) {
+		gotArgs = a
+		return rowsOf(cambioCols, rowAbierto()), nil
 	}
+	b := call(t, http.MethodGet, "/cambios_horario/actual", "", g, http.StatusOK)
+	mustContain(t, b, `"fechaCambioHorario":"24-12-2025"`, `"horaApertura":"09:00:00"`)
+	if got := fmt.Sprint(gotArgs[0].Value); !strings.HasPrefix(got, "2025-12-24") {
+		t.Fatalf("debía consultar la fecha local de Colombia: %v", got)
+	}
+
+	serve()
+	call(t, http.MethodGet, "/cambios_horario/actual", "", g, http.StatusNotFound)
+	failQuery()
+	call(t, http.MethodGet, "/cambios_horario/actual", "", g, http.StatusInternalServerError)
 }
 
-func TestCambiosHorario_GetByCurrentDate_OK(t *testing.T) {
-	orig := queryCambioHorarioByDate
-	queryCambioHorarioByDate = func(o orm.Ormer, date time.Time, ch *models.CambiosHorario) error {
-		ch.PK_ID_CAMBIO_HORARIO = 10
-		ch.FECHA = time.Now().In(database.BogotaZone)
-		ch.ABIERTO = true
-		ha, _ := time.Parse("15:04:05", "08:30:00")
-		hc, _ := time.Parse("15:04:05", "18:00:00")
-		ch.HORA_APERTURA = &ha
-		ch.HORA_CIERRE = hc
-		return nil
-	}
-	defer func() { queryCambioHorarioByDate = orig }()
+func TestPost(t *testing.T) {
+	defer resetFake()
+	p := func(c *CambiosHorarioController) { c.Post() }
 
-	c, w := setupCtx(http.MethodGet, "/cambios_horario/actual", "")
-	c.GetByCurrentDate()
+	b := call(t, http.MethodPost, "/cambios_horario", `{"fechaCambioHorario":"2025-12-24","abierto":true,"horaApertura":"09:00","horaCierre":" 20:30:15 "}`, p, http.StatusCreated)
+	mustContain(t, b, `"cambioHorarioId":7`, `"fechaCambioHorario":"24-12-2025"`, `"horaApertura":"09:00:00"`, `"horaCierre":"20:30:15"`, `"abierto":true`)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
+	// cerrado: se ignoran las horas enviadas y se fuerzan 00:00:00 - 23:59:59
+	b = call(t, http.MethodPost, "/cambios_horario", `{"fechaCambioHorario":"2025-12-25","abierto":false,"horaApertura":"10:00","horaCierre":"11:00"}`, p, http.StatusCreated)
+	mustContain(t, b, `"horaApertura":"00:00:00"`, `"horaCierre":"23:59:59"`, `"abierto":false`)
+
+	bads := []string{
+		``, `{`, `[]`, `{"fechaCambioHorario":5}`,
+		`{"abierto":false}`,
+		`{"fechaCambioHorario":" ","abierto":false}`,
+		`{"fechaCambioHorario":"24-12-2025","abierto":false}`,
+		`{"fechaCambioHorario":"2025-12-24"}`,
+		`{"fechaCambioHorario":"2025-12-24","abierto":true,"horaCierre":"20:00"}`,
+		`{"fechaCambioHorario":"2025-12-24","abierto":true,"horaApertura":" ","horaCierre":"20:00"}`,
+		`{"fechaCambioHorario":"2025-12-24","abierto":true,"horaApertura":"09:00"}`,
+		`{"fechaCambioHorario":"2025-12-24","abierto":true,"horaApertura":"09:00","horaCierre":""}`,
+		`{"fechaCambioHorario":"2025-12-24","abierto":true,"horaApertura":"x","horaCierre":"20:00"}`,
+		`{"fechaCambioHorario":"2025-12-24","abierto":true,"horaApertura":"09:00","horaCierre":"99:00"}`,
 	}
+	for _, body := range bads {
+		call(t, http.MethodPost, "/cambios_horario", body, p, http.StatusBadRequest)
+	}
+
+	ok := `{"fechaCambioHorario":"2025-12-24","abierto":false}`
+	failExec(`duplicate key value violates unique constraint "cambios_horario_fecha_key"`)
+	call(t, http.MethodPost, "/cambios_horario", ok, p, http.StatusConflict)
+	failExec(`conexión perdida`)
+	call(t, http.MethodPost, "/cambios_horario", ok, p, http.StatusInternalServerError)
 }
 
-func TestCambiosHorario_Post_BadJSON(t *testing.T) {
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", "{bad")
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
+func TestPut(t *testing.T) {
+	defer resetFake()
+	u := func(c *CambiosHorarioController) { c.Put() }
+
+	for _, q := range []string{"", "?id=0", "?id=abc"} {
+		call(t, http.MethodPut, "/cambios_horario"+q, `{}`, u, http.StatusBadRequest)
 	}
+	call(t, http.MethodPut, "/cambios_horario?id=3", `{}`, u, http.StatusNotFound)
+	failQuery()
+	call(t, http.MethodPut, "/cambios_horario?id=3", `{}`, u, http.StatusInternalServerError)
+
+	serve(rowAbierto())
+	var args []driver.NamedValue
+	fakeExec = func(_ string, a []driver.NamedValue) (driver.Result, error) {
+		args = a
+		return fakeResult{}, nil
+	}
+
+	// merge: lo ausente se conserva (horas de pared, sin desfase)
+	b := call(t, http.MethodPut, "/cambios_horario?id=3", `{"horaCierre":"22:00"}`, u, http.StatusOK)
+	mustContain(t, b, `"cambioHorarioId":3`, `"fechaCambioHorario":"24-12-2025"`, `"horaApertura":"09:00:00"`, `"horaCierre":"22:00:00"`, `"abierto":true`)
+	joined := fmt.Sprint(args)
+	if !strings.Contains(joined, "0001-01-01 09:00:00") || !strings.Contains(joined, "0001-01-01 22:00:00") {
+		t.Fatalf("las horas guardadas deben ser de pared: %v", args)
+	}
+	mustContain(t, call(t, http.MethodPut, "/cambios_horario?id=3", `{}`, u, http.StatusOK), `"horaApertura":"09:00:00"`, `"horaCierre":"20:00:00"`)
+	b = call(t, http.MethodPut, "/cambios_horario?id=3", `{"fechaCambioHorario":"2025-12-31","horaApertura":"10:15:30"}`, u, http.StatusOK)
+	mustContain(t, b, `"fechaCambioHorario":"31-12-2025"`, `"horaApertura":"10:15:30"`, `"horaCierre":"20:00:00"`)
+
+	// pasar a cerrado fuerza las horas
+	b = call(t, http.MethodPut, "/cambios_horario?id=3", `{"abierto":false,"horaCierre":"22:00"}`, u, http.StatusOK)
+	mustContain(t, b, `"horaApertura":"00:00:00"`, `"horaCierre":"23:59:59"`, `"abierto":false`)
+
+	// un cambio cerrado sigue cerrado aunque lleguen horas
+	serve(rowCerrado())
+	b = call(t, http.MethodPut, "/cambios_horario?id=4", `{"horaApertura":"10:00"}`, u, http.StatusOK)
+	mustContain(t, b, `"horaApertura":"00:00:00"`, `"abierto":false`)
+	// reabrir exige ambas horas
+	call(t, http.MethodPut, "/cambios_horario?id=4", `{"abierto":true}`, u, http.StatusBadRequest)
+	call(t, http.MethodPut, "/cambios_horario?id=4", `{"abierto":true,"horaApertura":"09:00"}`, u, http.StatusBadRequest)
+	call(t, http.MethodPut, "/cambios_horario?id=4", `{"abierto":true,"horaCierre":"09:00"}`, u, http.StatusBadRequest)
+	b = call(t, http.MethodPut, "/cambios_horario?id=4", `{"abierto":true,"horaApertura":"09:00","horaCierre":"18:00"}`, u, http.StatusOK)
+	mustContain(t, b, `"horaApertura":"09:00:00"`, `"horaCierre":"18:00:00"`, `"abierto":true`)
+
+	// fila sin horaApertura (columna nula)
+	serve([]driver.Value{int64(5), fecha(2025, 12, 26), nil, lmt(20), true})
+	b = call(t, http.MethodPut, "/cambios_horario?id=5", `{"horaCierre":"21:00"}`, u, http.StatusOK)
+	if strings.Contains(b, "horaApertura") {
+		t.Fatalf("horaApertura nula debe omitirse: %s", b)
+	}
+
+	serve(rowAbierto())
+	bads := []string{
+		``, `{`, `[]`,
+		`{"fechaCambioHorario":null}`, `{"abierto":null}`, `{"horaApertura":null}`, `{"horaCierre":null}`,
+		`{"fechaCambioHorario":"x"}`, `{"fechaCambioHorario":""}`,
+		`{"horaApertura":"x"}`, `{"horaApertura":""}`, `{"horaCierre":"99:99"}`, `{"horaCierre":""}`,
+		`{"abierto":"si"}`,
+	}
+	for _, body := range bads {
+		call(t, http.MethodPut, "/cambios_horario?id=3", body, u, http.StatusBadRequest)
+	}
+
+	failExec(`duplicate key value violates unique constraint "cambios_horario_fecha_key"`)
+	call(t, http.MethodPut, "/cambios_horario?id=3", `{}`, u, http.StatusConflict)
+	failExec(`falló`)
+	call(t, http.MethodPut, "/cambios_horario?id=3", `{}`, u, http.StatusInternalServerError)
 }
 
-func TestCambiosHorario_Post_MissingFields(t *testing.T) {
-	body := `{"abierto": true, "horaApertura":"08:00:00", "horaCierre":"17:00:00"}`
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
+func TestDelete(t *testing.T) {
+	defer resetFake()
+	d := func(c *CambiosHorarioController) { c.Delete() }
+
+	for _, q := range []string{"", "?id=0", "?id=abc"} {
+		call(t, http.MethodDelete, "/cambios_horario"+q, "", d, http.StatusBadRequest)
 	}
+	call(t, http.MethodDelete, "/cambios_horario?id=3", "", d, http.StatusOK)
+	fakeAffected = 0
+	call(t, http.MethodDelete, "/cambios_horario?id=3", "", d, http.StatusNotFound)
+	fakeAffected = 1
 
-	body = `{"fechaCambioHorario":"2024-01-01", "abierto": true, "horaCierre":"17:00:00"}`
-	c, w = setupCtx(http.MethodPost, "/cambios_horario", body)
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Post_InvalidFecha(t *testing.T) {
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", `{"fechaCambioHorario":"2024-13-40", "abierto": false}`)
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Post_MissingAbierto(t *testing.T) {
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", `{"fechaCambioHorario":"2024-01-01"}`)
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Post_DBError(t *testing.T) {
-	orig := insertCambioHorario
-	insertCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
-		return 0, errors.New("insert fail")
-	}
-	defer func() { insertCambioHorario = orig }()
-
-	body := `{"fechaCambioHorario":"2024-01-01", "abierto": false}`
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
-	c.Post()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Post_OK_Cerrado(t *testing.T) {
-	orig := insertCambioHorario
-	insertCalled := false
-	insertCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) {
-		insertCalled = true
-		return 1, nil
-	}
-	defer func() { insertCambioHorario = orig }()
-
-	body := `{"fechaCambioHorario":"2024-01-02", "abierto": false}`
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
-	c.Post()
-	if w.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d", w.Code)
-	}
-	if !insertCalled {
-		t.Fatalf("expected insert to be called")
-	}
-}
-
-func TestCambiosHorario_Post_OK_Abierto(t *testing.T) {
-	orig := insertCambioHorario
-	insertCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) { return 1, nil }
-	defer func() { insertCambioHorario = orig }()
-
-	body := `{"fechaCambioHorario":"2024-01-03", "abierto": true, "horaApertura":"08:00:00", "horaCierre":"17:00:00"}`
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
-	c.Post()
-	if w.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Post_InvalidHoraCierre(t *testing.T) {
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", `{"fechaCambioHorario":"2024-01-03", "abierto": true, "horaApertura":"08:00:00", "horaCierre":"xx"}`)
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_BadID(t *testing.T) {
-	c, w := setupCtx(http.MethodPut, "/cambios_horario", `{"x":1}`)
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_BadJSON(t *testing.T) {
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=1", "{bad")
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_NotFound(t *testing.T) {
-	orig := queryCambioHorarioByID
-	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return orm.ErrNoRows }
-	defer func() { queryCambioHorarioByID = orig }()
-
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=1", `{"abierto": false}`)
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Cambio de horario no encontrado") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestCambiosHorario_Put_DBErrorOnQuery(t *testing.T) {
-	orig := queryCambioHorarioByID
-	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return errors.New("query fail") }
-	defer func() { queryCambioHorarioByID = orig }()
-
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=2", `{"abierto": true, "horaApertura":"08:00:00", "horaCierre":"17:00:00"}`)
-	c.Put()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_UpdateError(t *testing.T) {
-	origQ := queryCambioHorarioByID
-	origU := updateCambioHorario
-	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return nil }
-	updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) { return 0, errors.New("update fail") }
-	defer func() { queryCambioHorarioByID = origQ; updateCambioHorario = origU }()
-
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=3", `{"abierto": false}`)
-	c.Put()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_OK(t *testing.T) {
-	origQ := queryCambioHorarioByID
-	origU := updateCambioHorario
-	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return nil }
-	updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) { return 1, nil }
-	defer func() { queryCambioHorarioByID = origQ; updateCambioHorario = origU }()
-
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=4", `{"abierto": true, "horaApertura":"08:00:00", "horaCierre":"17:00:00"}`)
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_InvalidHoraApertura(t *testing.T) {
-	origQ := queryCambioHorarioByID
-	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return nil }
-	defer func() { queryCambioHorarioByID = origQ }()
-
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=5", `{"abierto": true, "horaApertura":"xx", "horaCierre":"17:00:00"}`)
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_InvalidHoraCierre(t *testing.T) {
-	origQ := queryCambioHorarioByID
-	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return nil }
-	defer func() { queryCambioHorarioByID = origQ }()
-
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=6", `{"abierto": true, "horaApertura":"08:00:00", "horaCierre":"xx"}`)
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Delete_BadID(t *testing.T) {
-	c, w := setupCtx(http.MethodDelete, "/cambios_horario", "")
-	c.Delete()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Delete_DBError(t *testing.T) {
-	orig := deleteCambioHorarioByID
-	deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) { return 0, errors.New("del fail") }
-	defer func() { deleteCambioHorarioByID = orig }()
-
-	c, w := setupCtx(http.MethodDelete, "/cambios_horario?id=1", "")
-	c.Delete()
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Delete_NotFound(t *testing.T) {
-	orig := deleteCambioHorarioByID
-	deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) { return 0, nil }
-	defer func() { deleteCambioHorarioByID = orig }()
-
-	c, w := setupCtx(http.MethodDelete, "/cambios_horario?id=2", "")
-	c.Delete()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "no encontrado") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestCambiosHorario_Delete_OK(t *testing.T) {
-	orig := deleteCambioHorarioByID
-	deleteCambioHorarioByID = func(o orm.Ormer, id int64) (int64, error) { return 1, nil }
-	defer func() { deleteCambioHorarioByID = orig }()
-
-	c, w := setupCtx(http.MethodDelete, "/cambios_horario?id=3", "")
-	c.Delete()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Post_InvalidHoraApertura(t *testing.T) {
-	body := `{"fechaCambioHorario":"2024-01-01", "abierto": true, "horaApertura":"xx", "horaCierre":"17:00:00"}`
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Post_MissingHoraCierre(t *testing.T) {
-	body := `{"fechaCambioHorario":"2024-01-01", "abierto": true, "horaApertura":"08:00:00"}`
-	c, w := setupCtx(http.MethodPost, "/cambios_horario", body)
-	c.Post()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_InvalidFecha(t *testing.T) {
-	origQ := queryCambioHorarioByID
-	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return nil }
-	defer func() { queryCambioHorarioByID = origQ }()
-
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=7", `{"fechaCambioHorario":"2024-13-40"}`)
-	c.Put()
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_Put_UpdateFecha(t *testing.T) {
-	origQ := queryCambioHorarioByID
-	origU := updateCambioHorario
-	queryCambioHorarioByID = func(o orm.Ormer, id int64, horario *models.CambiosHorario) error { return nil }
-	updateCambioHorario = func(o orm.Ormer, horario *models.CambiosHorario) (int64, error) { return 1, nil }
-	defer func() { queryCambioHorarioByID = origQ; updateCambioHorario = origU }()
-
-	c, w := setupCtx(http.MethodPut, "/cambios_horario?id=8", `{"fechaCambioHorario":"2024-01-05"}`)
-	c.Put()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestCambiosHorario_HookFuncs_NilOrmer(t *testing.T) {
-	testDate := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-	if err := queryCambioHorarioByDate(nil, testDate, &models.CambiosHorario{}); err == nil {
-		t.Fatalf("expected error")
-	}
-	if _, err := queryAllCambiosHorario(nil, &[]models.CambiosHorario{}); err == nil {
-		t.Fatalf("expected error")
-	}
-	if _, err := insertCambioHorario(nil, &models.CambiosHorario{}); err == nil {
-		t.Fatalf("expected error")
-	}
-	if err := queryCambioHorarioByID(nil, 1, &models.CambiosHorario{}); err == nil {
-		t.Fatalf("expected error")
-	}
-	if _, err := updateCambioHorario(nil, &models.CambiosHorario{}); err == nil {
-		t.Fatalf("expected error")
-	}
-	if _, err := deleteCambioHorarioByID(nil, 1); err == nil {
-		t.Fatalf("expected error")
-	}
-
-	o := orm.NewOrm()
-	_, _ = queryAllCambiosHorario(o, &[]models.CambiosHorario{})
-	_, _ = insertCambioHorario(o, &models.CambiosHorario{})
-	_ = queryCambioHorarioByID(o, 1, &models.CambiosHorario{})
-	_, _ = updateCambioHorario(o, &models.CambiosHorario{})
-	_, _ = deleteCambioHorarioByID(o, 1)
-	_ = queryCambioHorarioByDate(o, testDate, &models.CambiosHorario{})
+	failExec(`violates foreign key constraint "restaurante_cambio_horario_fkey"`)
+	call(t, http.MethodDelete, "/cambios_horario?id=3", "", d, http.StatusConflict)
+	failExec(`falló`)
+	call(t, http.MethodDelete, "/cambios_horario?id=3", "", d, http.StatusInternalServerError)
 }

@@ -1,1058 +1,336 @@
 package productopedido
 
 import (
-	"bytes"
-	stdctx "context"
 	"database/sql/driver"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"restaurante/models"
-
-	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/server/web/context"
 )
 
-type fakeQueryPP struct {
-	orm.QuerySeter
-	one func(interface{}, ...string) error
-	all func(interface{}, ...string) (int64, error)
-	del func() (int64, error)
+var (
+	errBoom     = errors.New("boom")
+	detalleCols = []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "precio", "cantidad"}
+	prodCols    = []string{"pk_id_producto", "cantidad"}
+	countCols   = []string{"count"}
+	lockCols    = []string{"documento", "pago"}
+)
+
+// stock programa el inventario por producto; actuales, las líneas que ya tiene
+// el pedido (producto -> cantidad); pedido, si existe.
+type world struct {
+	pedido   bool
+	dueno    int64 // documento del cliente del pedido (0 = sin cliente)
+	stock    map[int64]int64
+	actuales map[int64]int64
+	lockErr  error
+	listErr  error
+
+	// pago asignado al pedido (0 = sin pago) y su estado; descuentos aplicados
+	pagoID, descuentos int64
+	pagoEstado         string
+	// subtotal y lineas es lo que devuelve la suma del detalle (recálculo del monto)
+	subtotal, lineas int64
+	pagoErr          error // error al bloquear el pago
+	descErr          error // error al contar descuentos
+	montoErr         error // error al calcular el monto
 }
 
-func (f fakeQueryPP) Filter(string, ...interface{}) orm.QuerySeter { return f }
-func (f fakeQueryPP) One(res interface{}, cols ...string) error {
-	if f.one != nil {
-		return f.one(res, cols...)
-	}
-	return nil
-}
-func (f fakeQueryPP) All(res interface{}, cols ...string) (int64, error) {
-	if f.all != nil {
-		return f.all(res, cols...)
-	}
-	return 0, nil
-}
-func (f fakeQueryPP) Delete() (int64, error) {
-	if f.del != nil {
-		return f.del()
-	}
-	return 0, nil
-}
-
-type fakeOrmerPP struct {
-	query  func(interface{}) orm.QuerySeter
-	insert func(interface{}) (int64, error)
-}
-
-func (f fakeOrmerPP) QueryTable(i interface{}) orm.QuerySeter { return f.query(i) }
-func (f fakeOrmerPP) Insert(m interface{}) (int64, error) {
-	if f.insert != nil {
-		return f.insert(m)
-	}
-	return 1, nil
-}
-
-func TestProductoPedidoGetAllMissingParam(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/producto_pedido", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "pedido_id") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoGetAllDBError(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/producto_pedido?pedido_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al obtener los productos del pedido") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoGetAllNotFound(t *testing.T) {
-	original := productoPedidoNewOrm
-	productoPedidoNewOrm = func() productoPedidoOrmer {
-		return fakeOrmerPP{query: func(i interface{}) orm.QuerySeter {
-			return fakeQueryPP{all: func(res interface{}, cols ...string) (int64, error) {
-				return 0, nil
-			}}
-		}}
-	}
-	defer func() { productoPedidoNewOrm = original }()
-
-	r := httptest.NewRequest(http.MethodGet, "/producto_pedido?pedido_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "No se encontraron productos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoPostInvalidJSON(t *testing.T) {
-	body := "{"
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", bytes.NewBufferString(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Datos inválidos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoPostMissingFields(t *testing.T) {
-	body := `{"pedidoId":0,"detalles":[]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "obligatorios") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoPostEmptyDetalles(t *testing.T) {
-	body := `{"pedidoId":1,"detalles":[]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(strings.ToLower(w.Body.String()), "obligatorios") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoPostDBError(t *testing.T) {
-	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":1}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Inventario insuficiente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdateMissingParam(t *testing.T) {
-	body := "[]"
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Update()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "pedido_id") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdateInvalidJSON(t *testing.T) {
-	body := "{"
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", bytes.NewBufferString(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Update()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Datos inválidos") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdateEmptyList(t *testing.T) {
-	body := "[]"
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Update()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "no puede estar vacía") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdateDBError(t *testing.T) {
-	body := `[{"productoId":1,"cantidad":1}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Update()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al buscar los detalles del pedido") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdate_DeleteError(t *testing.T) {
-	original := productoPedidoNewOrm
-	productoPedidoNewOrm = func() productoPedidoOrmer {
-		return fakeOrmerPP{
-			query: func(i interface{}) orm.QuerySeter {
-				return fakeQueryPP{
-					all: func(res interface{}, cols ...string) (int64, error) { return 0, nil },
-					del: func() (int64, error) { return 0, errors.New("del") },
+func (w *world) serve() {
+	fakeQuery = func(q string, args []driver.NamedValue) (driver.Rows, error) {
+		switch {
+		case strings.Contains(q, "FROM pedido WHERE") && strings.Contains(q, "FOR UPDATE"):
+			if w.lockErr != nil {
+				return nil, w.lockErr
+			}
+			if !w.pedido {
+				return rowsOf(lockCols), nil
+			}
+			return rowsOf(lockCols, []driver.Value{w.dueno, w.pagoID}), nil
+		case strings.Contains(q, "FROM pago WHERE"):
+			if w.pagoErr != nil {
+				return nil, w.pagoErr
+			}
+			return rowsOf([]string{"estado_pago"}, []driver.Value{w.pagoEstado}), nil
+		case strings.Contains(q, "pedido_descuento_aplicado d JOIN"):
+			if w.descErr != nil {
+				return nil, w.descErr
+			}
+			return rowsOf(countCols, []driver.Value{w.descuentos}), nil
+		case strings.Contains(q, "SUM(precio * cantidad)"):
+			if w.montoErr != nil {
+				return nil, w.montoErr
+			}
+			return rowsOf([]string{"subtotal", "lineas"}, []driver.Value{w.subtotal, w.lineas}), nil
+		case strings.Contains(q, "SUM(monto_descuento)"):
+			return rowsOf([]string{"descuento"}, []driver.Value{int64(0)}), nil
+		case strings.Contains(q, "FROM producto"):
+			var vals [][]driver.Value
+			for _, a := range args {
+				if s, ok := w.stock[a.Value.(int64)]; ok {
+					vals = append(vals, []driver.Value{a.Value, s})
 				}
-			},
-			insert: func(m interface{}) (int64, error) { return 1, nil },
-		}
-	}
-	defer func() { productoPedidoNewOrm = original }()
-
-	body := `[{"productoId":1,"cantidad":1}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Update()
-	if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 200 or 500, got %d", w.Code)
-	}
-}
-
-func TestProductoPedidoPost_BeginTxError(t *testing.T) {
-	origQ, origBegin := MockQuery, productoPedidoBeginTx
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		if strings.Contains(strings.ToLower(q), "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	productoPedidoBeginTx = func(o orm.Ormer) (orm.TxOrmer, error) { return nil, errors.New("begin fail") }
-	t.Cleanup(func() { MockQuery = origQ; productoPedidoBeginTx = origBegin })
-
-	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":2}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Post()
-	if !strings.Contains(w.Body.String(), "No fue posible iniciar transacción") {
-		t.Fatalf("expected begin error, body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoGetAllSuccess(t *testing.T) {
-	original := productoPedidoNewOrm
-	productoPedidoNewOrm = func() productoPedidoOrmer {
-		return fakeOrmerPP{query: func(i interface{}) orm.QuerySeter {
-			switch i.(type) {
-			case *models.DetallePedido:
-				return fakeQueryPP{all: func(res interface{}, cols ...string) (int64, error) {
-					detalles := res.(*[]models.DetallePedido)
-					pedidoID := int64(1)
-					productoID := int64(1)
-					*detalles = append(
-						*detalles,
-						models.DetallePedido{
-							PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pedidoID},
-							PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID},
-							Cantidad:     1,
-							Precio:       1000,
-						},
-					)
-					return 1, nil
-				}}
-			default:
-				return fakeQueryPP{}
 			}
-		}}
-	}
-	defer func() { productoPedidoNewOrm = original }()
-
-	r := httptest.NewRequest(http.MethodGet, "/producto_pedido?pedido_id=1", nil)
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.GetAll()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	body := w.Body.String()
-	if !strings.Contains(body, "detalles") {
-		t.Errorf("unexpected body: %s", body)
-	}
-	if !strings.Contains(body, "\"precio\":1000") {
-		t.Errorf("expected price in response, got %s", body)
-	}
-}
-
-func TestProductoPedidoPostSuccess(t *testing.T) {
-	original := productoPedidoNewOrm
-	productoPedidoNewOrm = func() productoPedidoOrmer {
-		return fakeOrmerPP{
-			insert: func(m interface{}) (int64, error) { return 1, nil },
-			query: func(i interface{}) orm.QuerySeter {
-				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
-					if d, ok := res.(*models.DetallePedido); ok {
-						pedidoID := int64(1)
-						productoID := int64(1)
-						*d = models.DetallePedido{
-							PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pedidoID},
-							PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID},
-							Cantidad:     1,
-							Precio:       1000,
-						}
-					}
-					return nil
-				}}
-			},
-		}
-	}
-	defer func() { productoPedidoNewOrm = original }()
-
-	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":1}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Inventario insuficiente") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdateSuccess(t *testing.T) {
-	original := productoPedidoNewOrm
-	productoPedidoNewOrm = func() productoPedidoOrmer {
-		call := 0
-		return fakeOrmerPP{
-			query: func(i interface{}) orm.QuerySeter {
-				call++
-				if call == 1 {
-					return fakeQueryPP{
-						all: func(res interface{}, cols ...string) (int64, error) { return 0, nil },
-						del: func() (int64, error) { return 0, nil },
-					}
-				}
-				return fakeQueryPP{one: func(res interface{}, cols ...string) error {
-					if d, ok := res.(*models.DetallePedido); ok {
-						pedidoID := int64(1)
-						productoID := int64(1)
-						*d = models.DetallePedido{
-							PKIDPedido:   &models.Pedido{PK_ID_PEDIDO: pedidoID},
-							PKIDProducto: &models.Producto{PK_ID_PRODUCTO: productoID},
-							Cantidad:     1,
-							Precio:       1000,
-						}
-					}
-					return nil
-				}}
-			},
-			insert: func(m interface{}) (int64, error) { return 1, nil },
-		}
-	}
-	defer func() { productoPedidoNewOrm = original }()
-
-	body := `[{"productoId":1,"cantidad":1}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Update()
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al buscar los detalles del pedido") {
-		t.Errorf("unexpected body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdateEndToEndSuccess(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	call := 0
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") && call == 0 {
-			call++
-			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
-		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(5)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		if strings.Contains(lower, "detalle_pedido") {
-			cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-			vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(2000)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `[{"productoId":1,"cantidad":2}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Update()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestProductoPedidoUpdate_InsufficientInventory_Validation(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	call := 0
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") {
-			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
-		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(1)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		call++
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(call)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `[{"productoId":1,"cantidad":2}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Update()
-	if w.Code != http.StatusBadRequest && w.Code != http.StatusOK {
-		t.Fatalf("expected 400 or 200, got %d. Body: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdate_PositiveDelta_NoStockRowsAffected(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	call := 0
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") {
-			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
-		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		call++
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(call)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
-		if strings.Contains(strings.ToLower(q), "update producto set cantidad = cantidad -") {
-			return zeroRowsResult{}, nil
-		}
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `[{"productoId":1,"cantidad":2}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Update()
-	if w.Code != http.StatusBadRequest && w.Code != http.StatusOK {
-		t.Fatalf("expected 400 or 200, got %d. Body: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdate_PositiveDelta_ExecError(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") {
-			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
-		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
-		if strings.Contains(strings.ToLower(q), "update producto set cantidad = cantidad -") {
-			return nil, errors.New("exec fail")
-		}
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `[{"productoId":1,"cantidad":2}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Update()
-	if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
-		t.Fatalf("expected 500 or 200, got %d. Body: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestProductoPedidoPostEndToEndSuccess(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		if strings.Contains(lower, "detalle_pedido") {
-			cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-			vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(1000)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":1}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-	if w.Code != http.StatusCreated && w.Code != http.StatusOK {
-		t.Fatalf("unexpected status %d", w.Code)
-	}
-}
-
-func TestProductoPedidoPost_ConsolidatesDuplicates(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		if strings.Contains(strings.ToLower(q), "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(5)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = nil
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":2},{"productoId":1,"cantidad":3}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Post()
-	if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 200 or 500, got %d", w.Code)
-	}
-}
-
-func TestProductoPedidoPost_MixedValidInvalidItems(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		if strings.Contains(strings.ToLower(q), "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(2), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = nil
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `{"pedidoId":1,"detalles":[{"productoId":0,"cantidad":2},{"productoId":2,"cantidad":1},{"productoId":2,"cantidad":0}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Post()
-	if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 200 or 500, got %d", w.Code)
-	}
-}
-
-type zeroRowsResult struct{}
-
-func (zeroRowsResult) LastInsertId() (int64, error) { return 0, nil }
-func (zeroRowsResult) RowsAffected() (int64, error) { return 0, nil }
-
-func TestProductoPedidoPost_UpdateStockExecError(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
-		if strings.Contains(strings.ToLower(q), "update producto set cantidad = cantidad -") {
-			return nil, errors.New("exec fail")
-		}
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":2}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-	if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
-		t.Fatalf("expected 500 or 200, got %d. Body: %s", w.Code, w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), "Error al descontar inventario") && !strings.Contains(w.Body.String(), "No fue posible iniciar transacción") {
-		t.Errorf("expected inventory discount or tx begin error, body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoPost_UpdateStockNoRowsAffected(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
-		if strings.Contains(strings.ToLower(q), "update producto set cantidad = cantidad -") {
-			return zeroRowsResult{}, nil
-		}
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":2}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d. Body: %s", w.Code, w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), "Inventario insuficiente") {
-		t.Errorf("expected insufficient inventory, body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoPost_InsertError(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		if strings.Contains(lower, "insert into") {
-			return nil, errors.New("insert fail")
-		}
-		if strings.Contains(lower, "detalle_pedido") {
-			cols := []string{"pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-			vals := [][]driver.Value{{int64(1), int64(1), int64(2), int64(1000)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `{"pedidoId":1,"detalles":[{"productoId":1,"cantidad":2}]}`
-	r := httptest.NewRequest(http.MethodPost, "/producto_pedido", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-
-	c.Post()
-	if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
-		t.Fatalf("expected 500 or 200, got %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "Error al crear el pedido") {
-		t.Errorf("expected insert error, body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdate_FilterInvalidItem(t *testing.T) {
-	origQ := MockQuery
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		return nil, errors.New("db error")
-	}
-	t.Cleanup(func() { MockQuery = origQ })
-
-	body := `[{"productoId":0,"cantidad":-1},{"productoId":1,"cantidad":1}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Update()
-	if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
-		t.Fatalf("unexpected status %d", w.Code)
-	}
-}
-
-func TestProductoPedidoUpdate_BeginTxError(t *testing.T) {
-	origQ, origBegin := MockQuery, productoPedidoBeginTx
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") {
-			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
-		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	productoPedidoBeginTx = func(o orm.Ormer) (orm.TxOrmer, error) { return nil, errors.New("begin fail") }
-	t.Cleanup(func() { MockQuery = origQ; productoPedidoBeginTx = origBegin })
-
-	body := `[{"productoId":1,"cantidad":2}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Update()
-	if !strings.Contains(strings.ToLower(w.Body.String()), "iniciar transacción") {
-		t.Fatalf("expected begin tx error, body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdate_ReconsultaOneError(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	step := 0
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") {
-			if step == 0 {
-				step++
-				return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
+			return rowsOf(prodCols, vals...), nil
+		case strings.Contains(q, "COUNT(*)"):
+			// la comprobación de pertenencia de un Cliente trae el documento como segundo argumento
+			if w.pedido && (len(args) < 2 || args[1].Value == w.dueno) {
+				return rowsOf(countCols, []driver.Value{int64(1)}), nil
 			}
-			return nil, errors.New("one fail")
-		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `[{"productoId":1,"cantidad":2}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Update()
-	if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
-		t.Fatalf("expected 500 or 200, got %d. Body: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdate_DeleteExecError(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") {
-			return &mockRows{columns: []string{"pk_id_pedido"}, values: [][]driver.Value{}}, nil
-		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
-	}
-	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "delete") && strings.Contains(lower, "detalle_pedido") {
-			return nil, errors.New("delete fail")
-		}
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
-
-	body := `[{"productoId":1,"cantidad":2}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Update()
-	if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
-		t.Fatalf("expected 500 or 200, got %d. Body: %s", w.Code, w.Body.String())
-	}
-	if !strings.Contains(strings.ToLower(w.Body.String()), "actualizar los productos del pedido") {
-		t.Fatalf("expected delete error message, body: %s", w.Body.String())
-	}
-}
-
-func TestProductoPedidoUpdate_NegativeDelta_AdjustInventoryExecError(t *testing.T) {
-	origQ, origE := MockQuery, MockExec
-	call := 0
-	MockQuery = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Rows, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "detalle_pedido") {
-			if call == 0 {
-				call++
-				cols := []string{"pk_id_detalle", "pk_id_pedido", "pk_id_producto", "cantidad", "precio"}
-				vals := [][]driver.Value{{int64(1), int64(1), int64(1), int64(3), int64(1000)}}
-				return &mockRows{columns: cols, values: vals}, nil
+			return rowsOf(countCols, []driver.Value{int64(0)}), nil
+		case strings.Contains(q, `FROM "detalle_pedido"`):
+			if w.listErr != nil {
+				return nil, w.listErr
 			}
-			return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
+			if len(args) == 2 { // relectura de la línea recién insertada
+				return rowsOf(detalleCols, []driver.Value{int64(1), args[0].Value, args[1].Value, int64(25000), int64(2)}), nil
+			}
+			var vals [][]driver.Value
+			for pid, qty := range w.actuales {
+				vals = append(vals, []driver.Value{int64(pid), int64(10), pid, int64(25000), qty})
+			}
+			return rowsOf(detalleCols, vals...), nil
 		}
-		if strings.Contains(lower, "select pk_id_producto, cantidad from producto") {
-			cols := []string{"pk_id_producto", "cantidad"}
-			vals := [][]driver.Value{{int64(1), int64(10)}}
-			return &mockRows{columns: cols, values: vals}, nil
-		}
-		return &mockRows{columns: []string{"ok"}, values: [][]driver.Value{{int64(1)}}}, nil
+		return rowsOf(nil), nil
 	}
-	MockExec = func(_ stdctx.Context, q string, _ []driver.NamedValue) (driver.Result, error) {
-		lower := strings.ToLower(q)
-		if strings.Contains(lower, "update producto set cantidad = cantidad +") {
-			return nil, errors.New("restock fail")
-		}
-		return mockResult{}, nil
-	}
-	t.Cleanup(func() { MockQuery, MockExec = origQ, origE })
+}
 
-	body := `[{"productoId":1,"cantidad":1}]`
-	r := httptest.NewRequest(http.MethodPut, "/producto_pedido?pedido_id=1", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	ctx := context.NewContext()
-	ctx.Reset(w, r)
-	ctx.Input.RequestBody = []byte(body)
-	c := ProductoPedidoController{}
-	c.Ctx = ctx
-	c.Data = make(map[interface{}]interface{})
-	c.Update()
-	if w.Code != http.StatusInternalServerError && w.Code != http.StatusOK {
-		t.Fatalf("expected 500 or 200, got %d. Body: %s", w.Code, w.Body.String())
+func newWorld() *world {
+	w := &world{pedido: true, dueno: 1001, pagoEstado: "PENDIENTE", subtotal: 50000, lineas: 2, stock: map[int64]int64{1: 10, 2: 10, 3: 1}, actuales: map[int64]int64{}}
+	w.serve()
+	return w
+}
+
+func call(t *testing.T, method, target, body string, f func(c *ProductoPedidoController), status int) string {
+	t.Helper()
+	ctx, w := newCtx(method, target, body)
+	c := &ProductoPedidoController{}
+	c.Ctx, c.Data = ctx, map[interface{}]interface{}{}
+	f(c)
+	expect(t, w, status)
+	return w.Body.String()
+}
+
+func contains(t *testing.T, body string, wants ...string) {
+	t.Helper()
+	for _, w := range wants {
+		if !strings.Contains(body, w) {
+			t.Fatalf("falta %s en %s", w, body)
+		}
 	}
-	if !strings.Contains(strings.ToLower(w.Body.String()), "ajustar inventario") {
-		t.Fatalf("expected adjust inventory error, body: %s", w.Body.String())
+}
+
+func TestGetAll(t *testing.T) {
+	defer resetFake()
+	g := func(c *ProductoPedidoController) { c.GetAll() }
+	for _, q := range []string{"", "pedido_id=0", "pedido_id=x"} {
+		call(t, http.MethodGet, "/producto_pedido?"+q, "", g, http.StatusBadRequest)
 	}
+	w := newWorld()
+	w.actuales[1] = 2
+	b := call(t, http.MethodGet, "/producto_pedido?pedido_id=10", "", g, http.StatusOK)
+	contains(t, b, `"pedidoId":10`, `"detalles":[{`, `"precio":25000`)
+	w.actuales = map[int64]int64{}
+	b = call(t, http.MethodGet, "/producto_pedido?pedido_id=10", "", g, http.StatusOK)
+	contains(t, b, `"detalles":[]`)
+	w.pedido = false
+	call(t, http.MethodGet, "/producto_pedido?pedido_id=10", "", g, http.StatusNotFound)
+	w.listErr = errBoom
+	call(t, http.MethodGet, "/producto_pedido?pedido_id=10", "", g, http.StatusInternalServerError)
+	w.listErr = nil
+	base := fakeQuery
+	fakeQuery = func(q string, a []driver.NamedValue) (driver.Rows, error) {
+		if strings.Contains(q, "COUNT(*)") {
+			return nil, errBoom
+		}
+		return base(q, a)
+	}
+	call(t, http.MethodGet, "/producto_pedido?pedido_id=10", "", g, http.StatusInternalServerError)
+}
+
+func TestPostValidation(t *testing.T) {
+	defer resetFake()
+	newWorld()
+	p := func(c *ProductoPedidoController) { c.Post() }
+	for _, body := range []string{"", "{", `{"pedidoId":"x"}`, `{}`, `{"pedidoId":0,"detalles":[{"productoId":1,"cantidad":1}]}`,
+		`{"pedidoId":-1,"detalles":[{"productoId":1,"cantidad":1}]}`, `{"pedidoId":10,"detalles":[]}`,
+		`{"pedidoId":10,"detalles":[{"productoId":0,"cantidad":1}]}`, `{"pedidoId":10,"detalles":[{"productoId":1,"cantidad":-1}]}`,
+		`{"pedidoId":10,"detalles":[{"productoId":1,"cantidad":0}]}`} {
+		call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusBadRequest)
+	}
+}
+
+func TestPostSuccess(t *testing.T) {
+	defer resetFake()
+	newWorld()
+	p := func(c *ProductoPedidoController) { c.Post() }
+	var stockUpdates []driver.NamedValue
+	fakeExec = func(q string, a []driver.NamedValue) (driver.Result, error) {
+		if strings.HasPrefix(q, "UPDATE producto") {
+			stockUpdates = append(stockUpdates, a...)
+		}
+		return fakeResult{}, nil
+	}
+	// líneas repetidas se suman y las de cantidad 0 se ignoran
+	b := call(t, http.MethodPost, "/producto_pedido", `{"pedidoId":10,"detalles":[{"productoId":2,"cantidad":1},{"productoId":1,"cantidad":2},{"productoId":2,"cantidad":2},{"productoId":3,"cantidad":0}]}`, p, http.StatusCreated)
+	contains(t, b, `"pedidoId":10`, `"detalles":[{`, `"precio":25000`)
+	if len(stockUpdates) != 4 || stockUpdates[0].Value != int64(2) || stockUpdates[2].Value != int64(3) {
+		t.Fatalf("descuentos inesperados: %v", stockUpdates)
+	}
+}
+
+func TestPostErrors(t *testing.T) {
+	defer resetFake()
+	w := newWorld()
+	p := func(c *ProductoPedidoController) { c.Post() }
+	body := `{"pedidoId":10,"detalles":[{"productoId":1,"cantidad":2}]}`
+
+	fakeBeginErr = errBoom
+	call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusInternalServerError)
+	fakeBeginErr = nil
+
+	w.pedido = false
+	call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusNotFound)
+	w.pedido = true
+	w.lockErr = errBoom
+	call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusInternalServerError)
+	w.lockErr = nil
+
+	// producto inexistente -> 404; inventario insuficiente -> 409 con detalle
+	call(t, http.MethodPost, "/producto_pedido", `{"pedidoId":10,"detalles":[{"productoId":99,"cantidad":1}]}`, p, http.StatusNotFound)
+	b := call(t, http.MethodPost, "/producto_pedido", `{"pedidoId":10,"detalles":[{"productoId":3,"cantidad":5},{"productoId":1,"cantidad":1}]}`, p, http.StatusConflict)
+	contains(t, b, `"productoId":3`, `"requerido":5`, `"disponible":1`)
+
+	base := fakeQuery
+	fakeQuery = func(q string, a []driver.NamedValue) (driver.Rows, error) {
+		if strings.Contains(q, "FROM producto") {
+			return nil, errBoom
+		}
+		return base(q, a)
+	}
+	call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusInternalServerError)
+	fakeQuery = base
+
+	for _, prefix := range []string{"UPDATE producto", "INSERT"} {
+		fakeExec = func(q string, _ []driver.NamedValue) (driver.Result, error) {
+			if strings.HasPrefix(q, prefix) {
+				return nil, errBoom
+			}
+			return fakeResult{}, nil
+		}
+		call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusInternalServerError)
+	}
+	// producto ya presente en el pedido -> 409
+	fakeExec = func(q string, _ []driver.NamedValue) (driver.Result, error) {
+		if strings.HasPrefix(q, "INSERT") {
+			return nil, errors.New(`duplicate key value violates unique constraint (SQLSTATE 23505)`)
+		}
+		return fakeResult{}, nil
+	}
+	call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusConflict)
+	fakeExec = nil
+
+	// la relectura de la línea insertada falla
+	fakeQuery = func(q string, a []driver.NamedValue) (driver.Rows, error) {
+		if strings.Contains(q, `FROM "detalle_pedido"`) {
+			return nil, errBoom
+		}
+		return base(q, a)
+	}
+	call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusInternalServerError)
+	fakeQuery = base
+
+	fakeCommitErr = errBoom
+	call(t, http.MethodPost, "/producto_pedido", body, p, http.StatusInternalServerError)
+}
+
+func TestUpdateValidation(t *testing.T) {
+	defer resetFake()
+	newWorld()
+	u := func(c *ProductoPedidoController) { c.Update() }
+	call(t, http.MethodPut, "/producto_pedido", `[{"productoId":1,"cantidad":1}]`, u, http.StatusBadRequest)
+	call(t, http.MethodPut, "/producto_pedido?pedido_id=0", `[{"productoId":1,"cantidad":1}]`, u, http.StatusBadRequest)
+	for _, body := range []string{"", "{", `{"productoId":1}`, `[]`, `[{"productoId":0,"cantidad":1}]`, `[{"productoId":1,"cantidad":-2}]`} {
+		call(t, http.MethodPut, "/producto_pedido?pedido_id=10", body, u, http.StatusBadRequest)
+	}
+}
+
+func TestUpdateSuccess(t *testing.T) {
+	defer resetFake()
+	w := newWorld()
+	u := func(c *ProductoPedidoController) { c.Update() }
+	// el pedido tiene 3 de producto 1 y 2 de producto 2; se pasa a 5 de 1 (descuenta 2),
+	// se quita el 2 con cantidad 0 (devuelve 2) y se agrega el 3 (descuenta 1)
+	w.actuales = map[int64]int64{1: 3, 2: 2}
+	var updates [][2]int64 // {delta, producto}
+	fakeExec = func(q string, a []driver.NamedValue) (driver.Result, error) {
+		if strings.HasPrefix(q, "UPDATE producto") {
+			updates = append(updates, [2]int64{a[0].Value.(int64), a[1].Value.(int64)})
+		}
+		return fakeResult{}, nil
+	}
+	b := call(t, http.MethodPut, "/producto_pedido?pedido_id=10", `[{"productoId":1,"cantidad":5},{"productoId":2,"cantidad":0},{"productoId":3,"cantidad":1}]`, u, http.StatusOK)
+	contains(t, b, `"pedidoId":10`, `"detalles":[{`)
+	if want := [][2]int64{{2, 1}, {-2, 2}, {1, 3}}; len(updates) != 3 || updates[0] != want[0] || updates[1] != want[1] || updates[2] != want[2] {
+		t.Fatalf("ajustes de inventario inesperados: %v", updates)
+	}
+	// delta 0 (misma cantidad) no toca el inventario
+	updates = nil
+	w.actuales = map[int64]int64{1: 4}
+	call(t, http.MethodPut, "/producto_pedido?pedido_id=10", `[{"productoId":1,"cantidad":1},{"productoId":1,"cantidad":3}]`, u, http.StatusOK)
+	if len(updates) != 0 {
+		t.Fatalf("no debía ajustar inventario: %v", updates)
+	}
+	// todas las líneas en 0: el pedido queda sin productos
+	w.actuales = map[int64]int64{1: 4}
+	b = call(t, http.MethodPut, "/producto_pedido?pedido_id=10", `[{"productoId":1,"cantidad":0}]`, u, http.StatusOK)
+	contains(t, b, `"detalles":[]`)
+}
+
+func TestUpdateErrors(t *testing.T) {
+	defer resetFake()
+	w := newWorld()
+	u := func(c *ProductoPedidoController) { c.Update() }
+	url := "/producto_pedido?pedido_id=10"
+	body := `[{"productoId":1,"cantidad":2}]`
+
+	fakeBeginErr = errBoom
+	call(t, http.MethodPut, url, body, u, http.StatusInternalServerError)
+	fakeBeginErr = nil
+	w.pedido = false
+	call(t, http.MethodPut, url, body, u, http.StatusNotFound)
+	w.pedido = true
+
+	call(t, http.MethodPut, url, `[{"productoId":99,"cantidad":1}]`, u, http.StatusNotFound)
+	b := call(t, http.MethodPut, url, `[{"productoId":3,"cantidad":4}]`, u, http.StatusConflict)
+	contains(t, b, `"requerido":4`, `"disponible":1`)
+
+	base := fakeQuery
+	w.listErr = errBoom
+	call(t, http.MethodPut, url, body, u, http.StatusInternalServerError)
+	w.listErr = nil
+
+	for _, prefix := range []string{"UPDATE producto", "DELETE", "INSERT"} {
+		w.actuales = map[int64]int64{2: 1}
+		fakeExec = func(q string, _ []driver.NamedValue) (driver.Result, error) {
+			if strings.HasPrefix(q, prefix) {
+				return nil, errBoom
+			}
+			return fakeResult{}, nil
+		}
+		call(t, http.MethodPut, url, body, u, http.StatusInternalServerError)
+	}
+	fakeExec = nil
+	w.actuales = map[int64]int64{}
+
+	fakeQuery = func(q string, a []driver.NamedValue) (driver.Rows, error) {
+		if strings.Contains(q, `FROM "detalle_pedido"`) && len(a) == 2 {
+			return nil, errBoom
+		}
+		return base(q, a)
+	}
+	call(t, http.MethodPut, url, body, u, http.StatusInternalServerError)
+	fakeQuery = base
+	fakeCommitErr = errBoom
+	call(t, http.MethodPut, url, body, u, http.StatusInternalServerError)
 }

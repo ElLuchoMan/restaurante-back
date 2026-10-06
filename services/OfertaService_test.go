@@ -217,3 +217,44 @@ func TestOfertaService_ValidarReglasNegocioOferta_CompleteCoverage(t *testing.T)
 		})
 	}
 }
+
+func TestOfertaService_MotivoNoVigente(t *testing.T) {
+	s := NewOfertaService(nil)
+	// Martes 2026-10-06 10:30 (hora de Bogotá).
+	ahora := time.Date(2026, 10, 6, 10, 30, 0, 0, time.UTC)
+	hora := func(h, m int) *time.Time { v := time.Date(0, 1, 1, h, m, 0, 0, time.UTC); return &v }
+	base := func() *models.Oferta {
+		return &models.Oferta{
+			Activo:      true,
+			FechaInicio: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+			FechaFin:    time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC),
+		}
+	}
+
+	assert.Equal(t, "", s.MotivoNoVigente(base(), ahora))
+
+	o := base()
+	o.Activo = false
+	assert.Contains(t, s.MotivoNoVigente(o, ahora), "inactiva")
+
+	o = base()
+	o.FechaFin = time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)
+	assert.Contains(t, s.MotivoNoVigente(o, ahora), "período")
+	o = base()
+	o.FechaInicio = time.Date(2026, 10, 7, 0, 0, 0, 0, time.UTC)
+	assert.Contains(t, s.MotivoNoVigente(o, ahora), "período")
+
+	o = base()
+	o.DiasSemanaArray = []string{"Lunes", " Miércoles "}
+	assert.Contains(t, s.MotivoNoVigente(o, ahora), "día")
+	o.DiasSemanaArray = []string{"Lunes", " Martes "}
+	assert.Equal(t, "", s.MotivoNoVigente(o, ahora))
+
+	o = base()
+	o.HoraInicio, o.HoraFin = hora(11, 0), hora(14, 0)
+	assert.Contains(t, s.MotivoNoVigente(o, ahora), "horario")
+	o.HoraInicio, o.HoraFin = hora(10, 0), hora(10, 30)
+	assert.Equal(t, "", s.MotivoNoVigente(o, ahora), "los extremos están incluidos")
+	o.HoraInicio, o.HoraFin = hora(8, 0), nil
+	assert.Equal(t, "", s.MotivoNoVigente(o, ahora), "sin ambos extremos no hay horario")
+}

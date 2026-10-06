@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -9,9 +8,9 @@ import (
 
 type CuponRedencion struct {
 	PkIdCuponRedencion int64     `orm:"column(pk_id_cupon_redencion);pk;auto" json:"cuponRedencionId"`
-	PkIdCupon          *Cupon    `orm:"column(pk_id_cupon);rel(fk)" json:"cuponId" swaggertype:"integer"`
-	PkDocumentoCliente *Cliente  `orm:"column(pk_documento_cliente);rel(fk)" json:"documentoCliente" swaggertype:"integer"`
-	PkIdPedido         *Pedido   `orm:"column(pk_id_pedido);rel(fk);null" json:"pedidoId,omitempty" swaggertype:"integer"`
+	PkIdCupon          *Cupon    `orm:"column(pk_id_cupon);rel(fk)" json:"cuponId"`
+	PkDocumentoCliente *Cliente  `orm:"column(pk_documento_cliente);rel(fk)" json:"documentoCliente"`
+	PkIdPedido         *Pedido   `orm:"column(pk_id_pedido);rel(fk);null" json:"pedidoId,omitempty"`
 	MontoDescuento     int64     `orm:"column(monto_descuento);type(bigint)" json:"montoDescuento"`
 	CreatedAt          time.Time `orm:"column(created_at);type(timestamptz);auto_now_add" json:"createdAt" swaggertype:"string"`
 }
@@ -27,11 +26,11 @@ func init() {
 func (c CuponRedencion) MarshalJSON() ([]byte, error) {
 	createdAtStr := FormatTimestampBogota(c.CreatedAt)
 
-	return json.Marshal(&struct {
+	return marshalSeguro(&struct {
 		PkIdCuponRedencion int64    `json:"cuponRedencionId"`
-		PkIdCupon          *Cupon   `json:"cuponId" swaggertype:"integer"`
-		PkDocumentoCliente *Cliente `json:"documentoCliente" swaggertype:"integer"`
-		PkIdPedido         *Pedido  `json:"pedidoId,omitempty" swaggertype:"integer"`
+		PkIdCupon          *Cupon   `json:"cuponId"`
+		PkDocumentoCliente *Cliente `json:"documentoCliente"`
+		PkIdPedido         *Pedido  `json:"pedidoId,omitempty"`
 		MontoDescuento     int64    `json:"montoDescuento"`
 		CreatedAt          string   `json:"createdAt"`
 	}{
