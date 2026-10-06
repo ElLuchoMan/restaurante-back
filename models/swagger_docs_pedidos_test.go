@@ -48,4 +48,12 @@ func TestPedidoDocsCoincidenConLaSalidaReal(t *testing.T) {
 	strictDecode(t, Pedido{PK_ID_PEDIDO: 1}, &PedidoDoc{})
 	strictDecode(t, DetallePedido{PK_ID_DETALLE: 1, PKIDPedido: &pedido, PKIDProducto: &Producto{PK_ID_PRODUCTO: 2}, Precio: 3, Cantidad: 4}, &DetallePedidoDoc{})
 	strictDecode(t, PedidoDetails{PedidoID: 1}, &PedidoDetails{})
+
+	// POST /pedidos/checkout: el pedido completo más `monto`
+	var co CheckoutRespuestaDoc
+	strictDecode(t, CheckoutResult{Pedido: pedido, Monto: 50000}, &co)
+	if co.Monto != 50000 || co.PedidoId != 10 || co.PagoId == nil || co.DomicilioId == nil {
+		t.Fatalf("checkout mal serializado: %+v", co)
+	}
+	strictDecode(t, CheckoutResult{Pedido: Pedido{PK_ID_PEDIDO: 1}}, &CheckoutRespuestaDoc{})
 }

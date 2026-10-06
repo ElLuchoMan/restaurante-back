@@ -177,6 +177,7 @@ func init() {
 		beego.NSNamespace("/pedidos",
 			beego.NSBefore(loginc.ValidateToken),
 			beego.NSRouter("/", &pd.PedidoController{}, "get:GetAll;post:Post"),
+			beego.NSRouter("/checkout", &pd.PedidoController{}, "post:Checkout"),
 			beego.NSRouter("/asignar-domicilio", &pd.PedidoController{}, "post:AssignDomicilio"),
 			beego.NSRouter("/asignar-pago", &pd.PedidoController{}, "post:AssignPago"),
 			beego.NSRouter("/actualizar-estado", &pd.PedidoController{}, "put:UpdateEstadoPedido"),

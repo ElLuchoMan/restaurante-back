@@ -5395,7 +5395,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lo puede hacer el personal y también un Cliente (el carrito crea el pago de su pedido), pero un Cliente solo puede crearlo en estado PENDIENTE (403 con otro estado); el pago solo queda ligado a un pedido al asignarlo con ` + "`" + `POST /pedidos/asignar-pago` + "`" + `. Campos obligatorios: ` + "`" + `fechaPago` + "`" + ` YYYY-MM-DD, ` + "`" + `horaPago` + "`" + ` HH:MM[:SS], ` + "`" + `estadoPago` + "`" + ` PAGADO|PENDIENTE|NO_PAGO y ` + "`" + `metodoPagoId` + "`" + ` de un método existente (404 si no existe); ` + "`" + `updatedBy` + "`" + ` es opcional. EL SERVIDOR MANDA EL MONTO. Fórmula: ` + "`" + `monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos ya aplicados al pedido)` + "`" + `; no existen cargos de domicilio ni propina. Un Cliente debe enviar ` + "`" + `pedidoId` + "`" + ` (de su propio pedido; ajeno o inexistente responde 404): el ` + "`" + `monto` + "`" + ` del cuerpo se IGNORA (puede omitirse) y el pago se crea con el monto calculado, que se devuelve en la respuesta; responde 409 si el pedido no tiene productos o ya tiene un pago asignado. El personal puede indicar ` + "`" + `pedidoId` + "`" + ` y dejar ` + "`" + `monto` + "`" + ` en 0/omitido para usar el calculado, o fijar un ` + "`" + `monto` + "`" + ` manual \u003e 0 (ajustes de mostrador; negativo responde 400); sin ` + "`" + `pedidoId` + "`" + ` el ` + "`" + `monto` + "`" + ` manual es obligatorio y debe ser \u003e 0. La respuesta devuelve ` + "`" + `fechaPago` + "`" + ` como DD-MM-YYYY.",
+                "description": "Lo pueden hacer el personal y un Cliente, con reglas distintas. CLIENTE: debe enviar ` + "`" + `pedidoId` + "`" + ` (de su propio pedido; ajeno o inexistente responde 404) y solo puede crear pagos PENDIENTE (403 con otro estado); el pago se crea y se LIGA al pedido en la MISMA transacción (con el pedido bloqueado), así nunca queda un pago huérfano que otro cliente pueda adivinar y asignar. El ` + "`" + `monto` + "`" + ` del cuerpo se IGNORA (puede omitirse): el pago nace con el monto calculado por el servidor, que se devuelve en la respuesta; responde 409 si el pedido no tiene productos o ya tiene un pago (no se crea nada). Para comprar de una sola vez use ` + "`" + `POST /pedidos/checkout` + "`" + `. PERSONAL: el pago NO se liga al pedido (eso se hace con ` + "`" + `POST /pedidos/asignar-pago` + "`" + `); puede indicar ` + "`" + `pedidoId` + "`" + ` y dejar ` + "`" + `monto` + "`" + ` en 0/omitido para usar el calculado, o fijar un ` + "`" + `monto` + "`" + ` manual \u003e 0 (ajustes de mostrador; negativo responde 400); sin ` + "`" + `pedidoId` + "`" + ` el ` + "`" + `monto` + "`" + ` manual es obligatorio y debe ser \u003e 0. Campos obligatorios: ` + "`" + `fechaPago` + "`" + ` YYYY-MM-DD, ` + "`" + `horaPago` + "`" + ` HH:MM[:SS], ` + "`" + `estadoPago` + "`" + ` PAGADO|PENDIENTE|NO_PAGO y ` + "`" + `metodoPagoId` + "`" + ` de un método existente (404 si no existe); ` + "`" + `updatedBy` + "`" + ` es opcional. EL SERVIDOR MANDA EL MONTO. Fórmula: ` + "`" + `monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos ya aplicados al pedido)` + "`" + `; no existen cargos de domicilio ni propina. La respuesta devuelve ` + "`" + `fechaPago` + "`" + ` como DD-MM-YYYY.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6007,7 +6007,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un pago existente a un pedido. Por defecto (` + "`" + `cambiar_estado=true` + "`" + `) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con ` + "`" + `cambiar_estado=false` + "`" + ` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano). Un Cliente solo puede vincular un pago a su propio pedido (uno ajeno responde 404) y siempre con ` + "`" + `cambiar_estado=false` + "`" + ` (403 si es true o se omite, porque terminar el pedido y marcar el pago PAGADO es cosa del personal); además el pago no puede pertenecer a otro pedido (404) y el pedido no puede tener ya un pago (409, para no cambiar el monto tras aplicar descuentos). EL SERVIDOR MANDA EL MONTO: al asignar el pago de un Cliente, en la misma transacción y con el pedido bloqueado, el servidor recalcula ` + "`" + `pago.monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos aplicados)` + "`" + ` y lo guarda, cualquiera que fuera el monto con el que se creó el pago; responde 409 si el pedido no tiene productos o si el pago no está PENDIENTE. Desde ese momento el pedido queda congelado para el Cliente (` + "`" + `/producto_pedido` + "`" + ` responde 409). El personal conserva el monto del pago tal cual (ajustes de mostrador).",
+                "description": "Asigna un pago existente a un pedido. PERSONAL: por defecto (` + "`" + `cambiar_estado=true` + "`" + `) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con ` + "`" + `cambiar_estado=false` + "`" + ` solo vincula el pago (puede reemplazar el que tuviera) y conserva el monto del pago tal cual (ajustes de mostrador). Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano). CLIENTE: su pedido y su pago ya quedan ligados al comprar (` + "`" + `POST /pedidos/checkout` + "`" + `, o ` + "`" + `POST /pagos` + "`" + ` con ` + "`" + `pedidoId` + "`" + `), así que aquí SOLO es una operación IDEMPOTENTE: si el pago ya está ligado a ESE pedido responde 200 con el pedido y, en la misma transacción y con el pedido bloqueado, recalcula ` + "`" + `pago.monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos aplicados)` + "`" + ` (solo si el pago sigue PENDIENTE; uno PAGADO no se toca). Un Cliente NUNCA puede vincular un pago: si el pago no está ligado a ese pedido (huérfano, creado por el personal o por otro, o ligado a otro pedido) responde 404 \"Pago no encontrado\" sin distinguir los casos, para no revelar la existencia de pagos ajenos ni permitir que se apropie de un id adivinado; pedido ajeno también 404; ` + "`" + `cambiar_estado` + "`" + ` distinto de false (explícito o por defecto) responde 403 porque terminar el pedido y marcar el pago PAGADO es cosa del personal; 409 si el pedido no tiene productos. Responde con el pedido completo.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6079,19 +6079,121 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Pedido o pago no encontrado (para un Cliente, también si son de otro cliente)",
+                        "description": "Pedido o pago no encontrado (para un Cliente, también si el pedido es ajeno o el pago no está ligado a ese pedido)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflicto con datos existentes, o un Cliente intenta reemplazar el pago ya asignado, asignar un pago que no está PENDIENTE o pagar un pedido sin productos",
+                        "description": "Conflicto con datos existentes, o (Cliente) el pedido no tiene productos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "500": {
                         "description": "Error al asignar pago",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pedidos/checkout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reemplaza la secuencia ` + "`" + `POST /domicilios` + "`" + ` + ` + "`" + `POST /pedidos` + "`" + ` + ` + "`" + `POST /producto_pedido` + "`" + ` + ` + "`" + `POST /pagos` + "`" + ` + ` + "`" + `POST /pedidos/asignar-pago` + "`" + `. TODO ocurre en UNA transacción: se validan las referencias (restaurante si se envía, método de pago y cliente), se bloquea y descuenta el inventario (` + "`" + `FOR UPDATE` + "`" + `), se crea el domicilio (si viene ` + "`" + `domicilio` + "`" + `; entonces el pedido es ` + "`" + `delivery` + "`" + `), el pedido (INICIADO, fecha y hora del servidor en Bogotá), sus detalles y el pago, y se enlazan pago y domicilio al pedido. Si algo falla se deshace todo y no queda ningún pedido, domicilio ni pago huérfano (reintentar es seguro). EL SERVIDOR MANDA EL MONTO: ` + "`" + `pago.monto` + "`" + ` = ` + "`" + `MAX(0, SUM(precio x cantidad) - descuentos)` + "`" + ` calculado con los precios vigentes; el ` + "`" + `monto` + "`" + ` del body se IGNORA salvo el del personal (ajuste manual \u003e 0; negativo responde 400). ` + "`" + `productos` + "`" + ` (al menos uno) lleva ` + "`" + `cantidad` + "`" + ` \u003e 0 (las líneas repetidas se suman). ` + "`" + `pago.fechaPago` + "`" + `/` + "`" + `pago.horaPago` + "`" + ` por defecto son ahora en Bogotá y ` + "`" + `pago.estadoPago` + "`" + ` por defecto PENDIENTE (un Cliente solo puede PENDIENTE: 403). Quién compra: un Cliente siempre a su nombre (el documento sale del token; ` + "`" + `documentoCliente` + "`" + ` distinto responde 403); el personal puede enviar ` + "`" + `documentoCliente` + "`" + ` (404 si no existe) o dejarlo vacío (pedido de mostrador). Responde 201 con el pedido completo (misma forma que ` + "`" + `GET /pedidos` + "`" + `, con ` + "`" + `pagoId` + "`" + ` y ` + "`" + `domicilioId` + "`" + ` ya enlazados) más ` + "`" + `monto` + "`" + `. Las notificaciones push (cliente y trabajadores, best-effort y en segundo plano) se envían solo después de confirmar la transacción.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pedido"
+                ],
+                "summary": "Crear pedido, productos, pago y domicilio en una sola operación atómica",
+                "parameters": [
+                    {
+                        "description": "Productos, pago y domicilio opcional",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CheckoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Pedido creado con su pago (y domicilio) y el monto calculado por el servidor",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.CheckoutRespuestaDoc"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "JSON inválido, sin productos, productoId o cantidad no positivos, método de pago ausente, fecha/hora/estado de pago inválidos, domicilio sin dirección o teléfono, o monto negativo (personal)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Un Cliente envió otro documentoCliente, su token no identifica a un cliente o pidió un estado de pago distinto de PENDIENTE",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "No existe el restaurante, el método de pago, el cliente o algún producto",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Inventario insuficiente (` + "`" + `data` + "`" + ` lista {productoId, requerido, disponible}) o conflicto con datos existentes",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.InventarioInsuficienteDoc"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Error al crear el pedido (no se persistió nada)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -11378,6 +11480,165 @@ const docTemplate = `{
                 "nombre": {
                     "type": "string",
                     "example": "Bebidas frías"
+                }
+            }
+        },
+        "models.CheckoutDomicilio": {
+            "type": "object",
+            "properties": {
+                "direccion": {
+                    "type": "string",
+                    "example": "Calle 123 #45-67"
+                },
+                "fechaDomicilio": {
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "observaciones": {
+                    "type": "string",
+                    "example": "Dejar en portería"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "3001234567"
+                }
+            }
+        },
+        "models.CheckoutPago": {
+            "type": "object",
+            "properties": {
+                "estadoPago": {
+                    "description": "por defecto PENDIENTE (un Cliente solo puede PENDIENTE)",
+                    "type": "string",
+                    "enum": [
+                        "PAGADO",
+                        "PENDIENTE",
+                        "NO_PAGO"
+                    ],
+                    "example": "PENDIENTE"
+                },
+                "fechaPago": {
+                    "description": "YYYY-MM-DD; por defecto hoy en Bogotá",
+                    "type": "string",
+                    "example": "2025-01-31"
+                },
+                "horaPago": {
+                    "description": "HH:MM[:SS]; por defecto ahora en Bogotá",
+                    "type": "string",
+                    "example": "14:30:00"
+                },
+                "metodoPagoId": {
+                    "description": "debe existir",
+                    "type": "integer",
+                    "example": 1
+                },
+                "monto": {
+                    "description": "Cliente: se ignora; personal: ajuste manual \u003e 0",
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        },
+        "models.CheckoutRequest": {
+            "type": "object",
+            "properties": {
+                "documentoCliente": {
+                    "description": "solo personal; un Cliente sale del token",
+                    "type": "integer",
+                    "example": 1234567890
+                },
+                "domicilio": {
+                    "description": "opcional: si viene, el pedido es delivery",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.CheckoutDomicilio"
+                        }
+                    ]
+                },
+                "pago": {
+                    "$ref": "#/definitions/models.CheckoutPago"
+                },
+                "productos": {
+                    "description": "al menos uno, con cantidad \u003e 0",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductoPedidoItemInput"
+                    }
+                },
+                "restauranteId": {
+                    "description": "opcional; si se envía debe existir",
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "models.CheckoutRespuestaDoc": {
+            "type": "object",
+            "properties": {
+                "delivery": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "documentoCliente": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ClienteRefDoc"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "domicilioId": {
+                    "$ref": "#/definitions/models.DomicilioDoc"
+                },
+                "estadoPedido": {
+                    "type": "string",
+                    "enum": [
+                        "INICIADO",
+                        "EN_PREPARACION",
+                        "LISTO",
+                        "TERMINADO",
+                        "CANCELADO"
+                    ],
+                    "example": "INICIADO"
+                },
+                "fechaPedido": {
+                    "type": "string",
+                    "example": "31-01-2025"
+                },
+                "horaPedido": {
+                    "type": "string",
+                    "example": "18:30:00"
+                },
+                "monto": {
+                    "type": "integer",
+                    "example": 50000
+                },
+                "pagoId": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.PagoDoc"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "pedidoId": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "restauranteId": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.RestauranteRefDoc"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "31-01-2025 18:30:00"
+                },
+                "updatedBy": {
+                    "type": "string"
                 }
             }
         },

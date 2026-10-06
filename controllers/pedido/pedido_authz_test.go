@@ -219,52 +219,45 @@ func TestAssignPagoCliente(t *testing.T) {
 		seen = append(seen, q)
 		return fakeResult{}, nil
 	}
-	dueno(t)
 	// el cliente nunca termina el pedido ni marca el pago: ni explícito ni por defecto (403 antes de tocar la BD)
-	serve(append(montoRoutes(0, 50000, 2), count("pedido", 0), count("pago", 1), pedidoSinPago())...)
+	dueno(t)
+	serve(append(montoRoutes(4, 50000, 2), count("pedido", 0), count("pago", 1), pedidoOK())...)
 	call(t, http.MethodPost, base, "", a, http.StatusForbidden)
 	call(t, http.MethodPost, base+"&cambiar_estado=true", "", a, http.StatusForbidden)
-	if len(seen) != 0 || len(g.eventos) != 0 {
+	if len(seen) != 0 || len(g.eventos) != 0 || fakeCommits+fakeRollbacks != 0 {
 		t.Fatalf("no debe escribir ni notificar: %v %v", seen, g.eventos)
 	}
-	// vincula su pago a su pedido sin cambiar estados
-	b := call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusOK)
-	contains(t, b, `"estadoPedido":"INICIADO"`)
-	for _, q := range seen {
-		if strings.HasPrefix(q, `UPDATE "pago"`) {
-			t.Fatalf("no debe tocar el pago: %v", seen)
-		}
+	// idempotente: el pago ya está ligado a ESE pedido -> 200, monto recalculado, sin tocar el pedido ni notificar
+	for i := 0; i < 2; i++ {
+		b := call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusOK)
+		contains(t, b, `"estadoPedido":"INICIADO"`, `"pagoId":{`)
+	}
+	if len(seen) != 2 || !strings.HasPrefix(seen[0], "UPDATE pago SET monto") || fakeCommits != 2 || len(g.eventos) != 0 {
+		t.Fatalf("debía recalcular el monto del pago y nada más: %v commits=%d", seen, fakeCommits)
 	}
 	// pedido ajeno
 	ajeno(t)
 	call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusNotFound)
 	dueno(t)
-	// pago que ya es de otro pedido
-	serve(append(montoRoutes(0, 50000, 2), count("pedido", 1), count("pago", 1), pedidoSinPago())...)
-	if b := call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusNotFound); !strings.Contains(b, "Pago no encontrado") {
-		t.Fatalf("pago de otro pedido: %s", b)
+	// pago inexistente
+	serve(append(montoRoutes(4, 50000, 2), count("pago", 0), pedidoOK())...)
+	call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusNotFound)
+	if len(seen) != 2 {
+		t.Fatalf("no debe escribir: %v", seen)
 	}
-	// el pedido ya tiene pago: no se reemplaza
-	serve(append(montoRoutes(4, 50000, 2), count("pedido", 0), count("pago", 1), pedidoOK())...)
-	if b := call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusConflict); !strings.Contains(b, "ya tiene un pago") {
-		t.Fatalf("reemplazo de pago: %s", b)
-	}
-	// error al comprobar la pertenencia del pago
-	fakeQuery = func(q string, _ []driver.NamedValue) (driver.Rows, error) {
-		switch {
-		case strings.Contains(q, `COUNT(*) FROM "pedido"`):
-			return nil, errBoom
-		case strings.Contains(q, `COUNT(*) FROM "pago"`):
-			return rowsOf(countCols, []driver.Value{int64(1)}), nil
-		}
-		return rowsOf(pedidoCols, pedidoSinPagoRow()), nil
-	}
-	call(t, http.MethodPost, base+"&cambiar_estado=false", "", a, http.StatusInternalServerError)
+}
+
+func TestAssignPagoPersonal(t *testing.T) {
+	defer resetFake()
+	g := grabar(t)
+	a := func(c *PedidoController) { c.AssignPago() }
+	const base = "/pedidos/asignar-pago?pedido_id=10&pago_id=4"
+	sinToken(t)
+	call(t, http.MethodPost, base, "", a, http.StatusUnauthorized)
 
 	// el personal conserva el comportamiento por defecto (TERMINADO + PAGADO) y puede reemplazar el pago
 	como(t, rolDomi, 9)
 	serve(count("pago", 1), pedidoOK())
-	g.eventos = nil
 	call(t, http.MethodPost, base, "", a, http.StatusOK)
 	if ev := unico(t, g); ev.Estado != "TERMINADO" {
 		t.Fatalf("evento inesperado: %+v", ev)

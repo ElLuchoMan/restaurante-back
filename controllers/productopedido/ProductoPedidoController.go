@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
 	"restaurante/controllers/login"
 	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
+	"restaurante/internal/inventario"
 	"restaurante/internal/montopedido"
 	"restaurante/logging"
 	"restaurante/models"
@@ -144,60 +144,27 @@ func (c *ProductoPedidoController) recalcularPago(tx orm.TxOrmer, op string, ped
 	return true
 }
 
-func sortedIDs[V any](m map[int64]V) []int64 {
-	ids := make([]int64, 0, len(m))
-	for id := range m {
-		ids = append(ids, id)
-	}
-	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
-	return ids
-}
-
 // checkStock bloquea los productos de need (id -> unidades que faltan por
 // descontar) y verifica que existan (404) y que alcance el inventario (409,
 // con el detalle en `data`). Devuelve false si ya respondió.
 func (c *ProductoPedidoController) checkStock(tx orm.TxOrmer, op string, need map[int64]int) bool {
-	if len(need) == 0 {
-		return true
-	}
-	ids := sortedIDs(need)
-	ph := make([]string, len(ids))
-	args := make([]interface{}, len(ids))
-	for i, id := range ids {
-		ph[i], args[i] = "?", id
-	}
-	query := fmt.Sprintf("SELECT pk_id_producto, cantidad FROM producto WHERE pk_id_producto IN (%s) ORDER BY pk_id_producto FOR UPDATE", strings.Join(ph, ","))
-	var rows []struct {
-		PK       int64 `orm:"column(pk_id_producto)"`
-		Cantidad int   `orm:"column(cantidad)"`
-	}
-	if _, err := tx.Raw(query, args...).QueryRows(&rows); err != nil {
+	res, err := inventario.Bloquear(tx, need)
+	if err != nil {
 		c.failTx(tx, op+".validar_inventario_error", "Error al validar inventario", err, nil)
 		return false
 	}
-	avail := make(map[int64]int, len(rows))
-	for _, r := range rows {
-		avail[r.PK] = r.Cantidad
-	}
-	var missing []string
-	insuf := []models.InventarioInsuficienteDoc{}
-	for _, id := range ids {
-		disp, ok := avail[id]
-		switch {
-		case !ok:
-			missing = append(missing, fmt.Sprint(id))
-		case disp < need[id]:
-			insuf = append(insuf, models.InventarioInsuficienteDoc{ProductoId: id, Requerido: need[id], Disponible: disp})
+	if len(res.NoExisten) > 0 {
+		missing := make([]string, len(res.NoExisten))
+		for i, id := range res.NoExisten {
+			missing[i] = fmt.Sprint(id)
 		}
-	}
-	if len(missing) > 0 {
 		_ = tx.Rollback()
 		c.fail(http.StatusNotFound, "Producto no encontrado: "+strings.Join(missing, ", "), nil)
 		return false
 	}
-	if len(insuf) > 0 {
+	if len(res.Insuficientes) > 0 {
 		_ = tx.Rollback()
-		httpx.Send(&c.Controller, http.StatusConflict, msgInventario, insuf)
+		httpx.Send(&c.Controller, http.StatusConflict, msgInventario, res.Insuficientes)
 		return false
 	}
 	return true
@@ -206,14 +173,9 @@ func (c *ProductoPedidoController) checkStock(tx orm.TxOrmer, op string, need ma
 // applyDeltas ajusta el inventario: delta > 0 descuenta unidades y delta < 0
 // las devuelve. Devuelve false si ya respondió.
 func (c *ProductoPedidoController) applyDeltas(tx orm.TxOrmer, op string, deltas map[int64]int) bool {
-	for _, pid := range sortedIDs(deltas) {
-		if deltas[pid] == 0 {
-			continue
-		}
-		if _, err := tx.Raw("UPDATE producto SET cantidad = cantidad - ? WHERE pk_id_producto = ?", deltas[pid], pid).Exec(); err != nil {
-			c.failTx(tx, op+".stock_update_error", "Error al ajustar inventario", err, map[string]interface{}{"productoId": pid, "delta": deltas[pid]})
-			return false
-		}
+	if pid, err := inventario.Descontar(tx, deltas); err != nil {
+		c.failTx(tx, op+".stock_update_error", "Error al ajustar inventario", err, map[string]interface{}{"productoId": pid, "delta": deltas[pid]})
+		return false
 	}
 	return true
 }
@@ -222,7 +184,7 @@ func (c *ProductoPedidoController) applyDeltas(tx orm.TxOrmer, op string, deltas
 // precio unitario que fija la base de datos. Devuelve false si ya respondió.
 func (c *ProductoPedidoController) insertDetalles(tx orm.TxOrmer, op string, pedidoID int64, items map[int64]int) ([]models.DetallePedido, bool) {
 	detalles := []models.DetallePedido{}
-	for _, pid := range sortedIDs(items) {
+	for _, pid := range inventario.SortedIDs(items) {
 		ctx := map[string]interface{}{"pedido_id": pedidoID, "productoId": pid, "cantidad": items[pid]}
 		detalle := models.DetallePedido{PKIDPedido: &models.Pedido{PK_ID_PEDIDO: pedidoID}, PKIDProducto: &models.Producto{PK_ID_PRODUCTO: pid}, Cantidad: items[pid]}
 		if _, err := tx.Insert(&detalle); err != nil {

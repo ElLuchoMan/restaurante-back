@@ -52,6 +52,13 @@ func TestNamespaceBeforeValidateTokenRejectsWithoutToken(t *testing.T) {
 	}
 }
 
+func TestCheckoutRouteRequiresToken(t *testing.T) {
+	w := serve(http.MethodPost, "/restaurante/v1/pedidos/checkout")
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("esperado 401, obtenido %d", w.Code)
+	}
+}
+
 func TestRegisterSwaggerAssets(t *testing.T) {
 	registerSwaggerAssets(filepath.Join(t.TempDir(), "no-existe"))
 

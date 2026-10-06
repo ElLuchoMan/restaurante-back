@@ -28,7 +28,28 @@ var (
 	fakeAffected  int64 = 1
 	fakeAffErr    error
 	fakeLastID    int64 = 7
+
+	// Registro de lo ocurrido en el driver (para comprobar atomicidad): cuántos COMMIT/ROLLBACK
+	// y cada sentencia con sus argumentos, en orden.
+	fakeCommits, fakeRollbacks int
+	fakeLog                    []fakeStmtLog
 )
+
+type fakeStmtLog struct {
+	query string
+	args  []driver.NamedValue
+}
+
+// escritos devuelve las sentencias registradas que modifican datos.
+func escritos() []fakeStmtLog {
+	var out []fakeStmtLog
+	for _, l := range fakeLog {
+		if strings.HasPrefix(l.query, "INSERT") || strings.HasPrefix(l.query, "UPDATE") || strings.HasPrefix(l.query, "DELETE") {
+			out = append(out, l)
+		}
+	}
+	return out
+}
 
 type fakeDriver struct{}
 type fakeConn struct{}
@@ -66,6 +87,7 @@ func fakeNamed(args []driver.Value) []driver.NamedValue {
 }
 
 func (s *fakeStmt) Exec(args []driver.Value) (driver.Result, error) {
+	fakeLog = append(fakeLog, fakeStmtLog{s.query, fakeNamed(args)})
 	if fakeExec != nil {
 		return fakeExec(s.query, fakeNamed(args))
 	}
@@ -73,6 +95,7 @@ func (s *fakeStmt) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 func (s *fakeStmt) Query(args []driver.Value) (driver.Rows, error) {
+	fakeLog = append(fakeLog, fakeStmtLog{s.query, fakeNamed(args)})
 	// En PostgreSQL el ORM inserta con INSERT ... RETURNING (pasa por Query):
 	// se trata como un Exec que devuelve el id generado.
 	if strings.HasPrefix(s.query, "INSERT") && strings.Contains(s.query, "RETURNING") {
@@ -89,8 +112,14 @@ func (s *fakeStmt) Query(args []driver.Value) (driver.Rows, error) {
 	return &fakeRows{}, nil
 }
 
-func (fakeTx) Commit() error   { return fakeCommitErr }
-func (fakeTx) Rollback() error { return nil }
+func (fakeTx) Commit() error {
+	fakeCommits++
+	return fakeCommitErr
+}
+func (fakeTx) Rollback() error {
+	fakeRollbacks++
+	return nil
+}
 
 func (fakeResult) LastInsertId() (int64, error) { return fakeLastID, nil }
 func (fakeResult) RowsAffected() (int64, error) { return fakeAffected, fakeAffErr }
@@ -115,6 +144,7 @@ func resetFake() {
 	fakeExec, fakeQuery = nil, nil
 	fakeBeginErr, fakeCommitErr, fakeAffErr = nil, nil, nil
 	fakeAffected, fakeLastID = 1, 7
+	fakeCommits, fakeRollbacks, fakeLog = 0, 0, nil
 }
 
 func TestMain(m *testing.M) {

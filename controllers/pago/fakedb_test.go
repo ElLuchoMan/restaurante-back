@@ -28,6 +28,10 @@ var (
 	fakeAffected  int64 = 1
 	fakeAffErr    error
 	fakeLastID    int64 = 7
+
+	// Registro de lo ocurrido en el driver (atomicidad): COMMIT/ROLLBACK y cada sentencia, en orden.
+	fakeCommits, fakeRollbacks int
+	fakeLog                    []string
 )
 
 type fakeDriver struct{}
@@ -66,6 +70,7 @@ func fakeNamed(args []driver.Value) []driver.NamedValue {
 }
 
 func (s *fakeStmt) Exec(args []driver.Value) (driver.Result, error) {
+	fakeLog = append(fakeLog, s.query)
 	if fakeExec != nil {
 		return fakeExec(s.query, fakeNamed(args))
 	}
@@ -73,6 +78,7 @@ func (s *fakeStmt) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 func (s *fakeStmt) Query(args []driver.Value) (driver.Rows, error) {
+	fakeLog = append(fakeLog, s.query)
 	// En PostgreSQL el ORM inserta con INSERT ... RETURNING (pasa por Query):
 	// se trata como un Exec que devuelve el id generado.
 	if strings.HasPrefix(s.query, "INSERT") && strings.Contains(s.query, "RETURNING") {
@@ -89,8 +95,14 @@ func (s *fakeStmt) Query(args []driver.Value) (driver.Rows, error) {
 	return &fakeRows{}, nil
 }
 
-func (fakeTx) Commit() error   { return fakeCommitErr }
-func (fakeTx) Rollback() error { return nil }
+func (fakeTx) Commit() error {
+	fakeCommits++
+	return fakeCommitErr
+}
+func (fakeTx) Rollback() error {
+	fakeRollbacks++
+	return nil
+}
 
 func (fakeResult) LastInsertId() (int64, error) { return fakeLastID, nil }
 func (fakeResult) RowsAffected() (int64, error) { return fakeAffected, fakeAffErr }
@@ -115,6 +127,18 @@ func resetFake() {
 	fakeExec, fakeQuery = nil, nil
 	fakeBeginErr, fakeCommitErr, fakeAffErr = nil, nil, nil
 	fakeAffected, fakeLastID = 1, 7
+	fakeCommits, fakeRollbacks, fakeLog = 0, 0, nil
+}
+
+// escritos devuelve las sentencias registradas que modifican datos.
+func escritos() []string {
+	var out []string
+	for _, q := range fakeLog {
+		if strings.HasPrefix(q, "INSERT") || strings.HasPrefix(q, "UPDATE") || strings.HasPrefix(q, "DELETE") {
+			out = append(out, q)
+		}
+	}
+	return out
 }
 
 func TestMain(m *testing.M) {

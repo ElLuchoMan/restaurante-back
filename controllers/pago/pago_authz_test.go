@@ -101,21 +101,15 @@ func TestClienteGetByIdSoloSiEsSuyo(t *testing.T) {
 	call(t, http.MethodGet, "/pagos/search?id=4", "", g, http.StatusNotFound)
 }
 
-func TestClienteSoloCreaPagosPendientes(t *testing.T) {
+func TestPostPorRol(t *testing.T) {
 	defer resetFake()
 	p := func(c *PagoController) { c.Post() }
-	ped := nuevoPedidoFake()
-	ped.dueno = 77
-	como(t, rolClienteT, 77)
-	conPedido := func(estado string) string {
-		return strings.Replace(pagoBody(estado), `"metodoPagoId":2`, `"metodoPagoId":2,"pedidoId":10`, 1)
-	}
-	call(t, http.MethodPost, "/pagos", conPedido("PENDIENTE"), p, http.StatusCreated)
-	call(t, http.MethodPost, "/pagos", conPedido("PAGADO"), p, http.StatusForbidden)
-	call(t, http.MethodPost, "/pagos", conPedido("NO_PAGO"), p, http.StatusForbidden)
-	// sin pedidoId el cliente no puede crear pagos (el monto sale del pedido)
-	call(t, http.MethodPost, "/pagos", pagoBody("PENDIENTE"), p, http.StatusBadRequest)
+	nuevoPedidoFake()
+	sinToken(t)
+	call(t, http.MethodPost, "/pagos", pagoBody("PENDIENTE"), p, http.StatusUnauthorized)
 	como(t, rolMesero, 5)
+	call(t, http.MethodPost, "/pagos", pagoBody("PAGADO"), p, http.StatusCreated)
+	como(t, "Domiciliario", 6) // ruta-domicilio: el domiciliario registra el cobro
 	call(t, http.MethodPost, "/pagos", pagoBody("PAGADO"), p, http.StatusCreated)
 }
 

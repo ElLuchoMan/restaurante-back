@@ -260,7 +260,7 @@ func (c *PagoController) readError(op string, id int64, err error) {
 
 // @Title Create
 // @Summary Crear un nuevo pago
-// @Description Lo puede hacer el personal y también un Cliente (el carrito crea el pago de su pedido), pero un Cliente solo puede crearlo en estado PENDIENTE (403 con otro estado); el pago solo queda ligado a un pedido al asignarlo con `POST /pedidos/asignar-pago`. Campos obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe); `updatedBy` es opcional. EL SERVIDOR MANDA EL MONTO. Fórmula: `monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos ya aplicados al pedido)`; no existen cargos de domicilio ni propina. Un Cliente debe enviar `pedidoId` (de su propio pedido; ajeno o inexistente responde 404): el `monto` del cuerpo se IGNORA (puede omitirse) y el pago se crea con el monto calculado, que se devuelve en la respuesta; responde 409 si el pedido no tiene productos o ya tiene un pago asignado. El personal puede indicar `pedidoId` y dejar `monto` en 0/omitido para usar el calculado, o fijar un `monto` manual > 0 (ajustes de mostrador; negativo responde 400); sin `pedidoId` el `monto` manual es obligatorio y debe ser > 0. La respuesta devuelve `fechaPago` como DD-MM-YYYY.
+// @Description Lo pueden hacer el personal y un Cliente, con reglas distintas. CLIENTE: debe enviar `pedidoId` (de su propio pedido; ajeno o inexistente responde 404) y solo puede crear pagos PENDIENTE (403 con otro estado); el pago se crea y se LIGA al pedido en la MISMA transacción (con el pedido bloqueado), así nunca queda un pago huérfano que otro cliente pueda adivinar y asignar. El `monto` del cuerpo se IGNORA (puede omitirse): el pago nace con el monto calculado por el servidor, que se devuelve en la respuesta; responde 409 si el pedido no tiene productos o ya tiene un pago (no se crea nada). Para comprar de una sola vez use `POST /pedidos/checkout`. PERSONAL: el pago NO se liga al pedido (eso se hace con `POST /pedidos/asignar-pago`); puede indicar `pedidoId` y dejar `monto` en 0/omitido para usar el calculado, o fijar un `monto` manual > 0 (ajustes de mostrador; negativo responde 400); sin `pedidoId` el `monto` manual es obligatorio y debe ser > 0. Campos obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe); `updatedBy` es opcional. EL SERVIDOR MANDA EL MONTO. Fórmula: `monto = MAX(0, SUM(detalle_pedido.precio x cantidad) - descuentos ya aplicados al pedido)`; no existen cargos de domicilio ni propina. La respuesta devuelve `fechaPago` como DD-MM-YYYY.
 // @Tags pagos
 // @Accept json
 // @Produce json
@@ -279,6 +279,7 @@ func (c *PagoController) Post() {
 	if !ok {
 		return
 	}
+	staff := claims.IsStaff()
 	var in models.PagoCreateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
@@ -303,7 +304,6 @@ func (c *PagoController) Post() {
 		c.fail(http.StatusBadRequest, "Formato de hora inválido, debe ser HH:mm:ss", err)
 		return
 	}
-	staff := claims.IsStaff()
 	switch {
 	case !staff && in.PedidoId <= 0:
 		c.fail(http.StatusBadRequest, "El campo pedidoId es obligatorio para un cliente: el monto lo calcula el servidor desde el pedido", nil)
@@ -328,7 +328,8 @@ func (c *PagoController) Post() {
 		c.fail(http.StatusBadRequest, "El campo metodoPagoId es obligatorio y debe ser un número válido", nil)
 		return
 	}
-	if !claims.IsStaff() && estado != models.EstadoPagoPendiente {
+
+	if !staff && estado != models.EstadoPagoPendiente {
 		c.fail(http.StatusForbidden, "Un cliente solo puede crear pagos en estado PENDIENTE", nil)
 		return
 	}
@@ -343,22 +344,9 @@ func (c *PagoController) Post() {
 		return
 	}
 
-	monto := in.Monto
-	if in.PedidoId > 0 {
-		calculado, ok := c.montoDelPedido(o, claims, in.PedidoId)
-		if !ok {
-			return
-		}
-		// Un Cliente nunca fija el monto; el personal solo si envió uno manual.
-		if !staff || in.Monto == 0 {
-			monto = calculado
-		}
-	}
-
 	pago := models.Pago{
 		FECHA:             fecha,
 		HORA:              hora,
-		MONTO:             monto,
 		ESTADO_PAGO:       estado,
 		PK_ID_METODO_PAGO: &models.MetodoPago{PK_ID_METODO_PAGO: in.MetodoPagoId},
 		UPDATED_AT:        time.Now().UTC(),
@@ -366,6 +354,25 @@ func (c *PagoController) Post() {
 	if in.UpdatedBy != "" {
 		pago.UPDATED_BY = &in.UpdatedBy
 	}
+	if !staff {
+		if c.crearPagoLigado(o, claims, in.PedidoId, &pago) {
+			httpx.Send(&c.Controller, http.StatusCreated, "Pago creado correctamente", pago)
+		}
+		return
+	}
+
+	monto := in.Monto
+	if in.PedidoId > 0 {
+		calculado, ok := c.montoDelPedido(o, in.PedidoId)
+		if !ok {
+			return
+		}
+		// El personal puede fijar un monto manual (ajuste de mostrador); sin él rige el calculado.
+		if in.Monto == 0 {
+			monto = calculado
+		}
+	}
+	pago.MONTO = monto
 	if _, err := o.Insert(&pago); err != nil {
 		c.writeError("post.insert_error", "Error al crear el pago", err)
 		return
@@ -373,25 +380,73 @@ func (c *PagoController) Post() {
 	httpx.Send(&c.Controller, http.StatusCreated, "Pago creado correctamente", pago)
 }
 
-// montoDelPedido calcula en el servidor el monto del pedido (ver montopedido).
-// Responde 404 si el pedido no existe o, para un Cliente, no es suyo; 409 si no
-// tiene productos o (Cliente) ya tiene un pago; 500 si falla la base de datos.
-// Devuelve false si ya respondió.
-func (c *PagoController) montoDelPedido(o orm.QueryExecutor, claims *login.Claims, pedidoID int64) (int64, bool) {
+// crearPagoLigado crea el pago de un Cliente y lo liga a su pedido en UNA
+// transacción, con el pedido bloqueado (FOR UPDATE): 404 si el pedido no existe
+// o es ajeno, 409 si ya tiene pago o no tiene productos, 500 si falla la base
+// de datos. El monto sale siempre del servidor. Si responde un error no queda
+// nada escrito y devuelve false.
+func (c *PagoController) crearPagoLigado(o orm.Ormer, claims *login.Claims, pedidoID int64, pago *models.Pago) bool {
 	ctx := map[string]interface{}{"pedidoId": pedidoID}
-	var cliente, pagoID int64
-	err := o.Raw("SELECT COALESCE(pk_documento_cliente, 0), COALESCE(pk_id_pago, 0) FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRow(&cliente, &pagoID)
-	if errors.Is(err, orm.ErrNoRows) || (err == nil && !authz.EsDuenio(claims, cliente)) {
+	tx, err := o.Begin()
+	if err != nil {
+		c.writeError("post.tx_begin_error", "Error al crear el pago", err)
+		return false
+	}
+	abortar := func(status int, msg string, err error) bool {
+		_ = tx.Rollback()
+		if status == http.StatusInternalServerError {
+			logging.LogControllerError(c.Ctx, "pagos.post.ligar_error", err, ctx)
+		}
+		c.fail(status, msg, err)
+		return false
+	}
+	var cliente, pagoActual int64
+	err = tx.Raw("SELECT COALESCE(pk_documento_cliente, 0), COALESCE(pk_id_pago, 0) FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", pedidoID).QueryRow(&cliente, &pagoActual)
+	switch {
+	case errors.Is(err, orm.ErrNoRows) || (err == nil && !authz.EsDuenio(claims, cliente)):
+		return abortar(http.StatusNotFound, msgPedidoNoExiste, nil)
+	case err != nil:
+		return abortar(http.StatusInternalServerError, "Error al consultar el pedido", err)
+	case pagoActual > 0:
+		return abortar(http.StatusConflict, msgPedidoConPago, nil)
+	}
+	m, err := montopedido.Calcular(tx, pedidoID)
+	if err != nil {
+		return abortar(http.StatusInternalServerError, "Error al calcular el monto del pedido", err)
+	}
+	if m.Lineas == 0 {
+		return abortar(http.StatusConflict, msgSinProductos, nil)
+	}
+	pago.MONTO = m.Total
+	if _, err := tx.Insert(pago); err != nil {
+		_ = tx.Rollback()
+		c.writeError("post.insert_error", "Error al crear el pago", err)
+		return false
+	}
+	if _, err := tx.Raw("UPDATE pedido SET pk_id_pago = ?, updated_at = ? WHERE pk_id_pedido = ?", pago.PK_ID_PAGO, pago.UPDATED_AT, pedidoID).Exec(); err != nil {
+		return abortar(http.StatusInternalServerError, "Error al ligar el pago al pedido", err)
+	}
+	if err := tx.Commit(); err != nil {
+		c.writeError("post.tx_commit_error", "Error al crear el pago", err)
+		return false
+	}
+	return true
+}
+
+// montoDelPedido calcula en el servidor el monto del pedido (ver montopedido).
+// Responde 404 si el pedido no existe, 409 si no tiene productos y 500 si falla
+// la base de datos. Devuelve false si ya respondió.
+func (c *PagoController) montoDelPedido(o orm.QueryExecutor, pedidoID int64) (int64, bool) {
+	ctx := map[string]interface{}{"pedidoId": pedidoID}
+	var id int64
+	err := o.Raw("SELECT pk_id_pedido FROM pedido WHERE pk_id_pedido = ?", pedidoID).QueryRow(&id)
+	if errors.Is(err, orm.ErrNoRows) {
 		c.fail(http.StatusNotFound, msgPedidoNoExiste, nil)
 		return 0, false
 	}
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.post.pedido_error", err, ctx)
 		c.fail(http.StatusInternalServerError, "Error al consultar el pedido", err)
-		return 0, false
-	}
-	if pagoID > 0 && !claims.IsStaff() {
-		c.fail(http.StatusConflict, msgPedidoConPago, nil)
 		return 0, false
 	}
 	m, err := montopedido.Calcular(o, pedidoID)

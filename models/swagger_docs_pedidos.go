@@ -66,6 +66,14 @@ type PedidoDoc struct {
 	UpdatedBy        *string            `json:"updatedBy,omitempty"`
 }
 
+// CheckoutRespuestaDoc es el `data` de POST /pedidos/checkout: el pedido
+// completo (ver PedidoDoc, con `pagoId` y `domicilioId` ya enlazados) más el
+// `monto` calculado por el servidor.
+type CheckoutRespuestaDoc struct {
+	PedidoDoc
+	Monto int64 `json:"monto" example:"50000"`
+}
+
 // DetallePedidoDoc es una línea de pedido (ver DetallePedido). `pedidoId` y
 // `productoId` son objetos de la relación en los que solo el id es fiable;
 // `precio` es el precio unitario fijado por la base de datos al insertar.
@@ -84,7 +92,7 @@ type ProductoPedidoDoc struct {
 }
 
 // InventarioInsuficienteDoc es cada elemento del `data` de la respuesta 409 de
-// POST/PUT /producto_pedido.
+// POST/PUT /producto_pedido y de POST /pedidos/checkout.
 type InventarioInsuficienteDoc struct {
 	ProductoId int64 `json:"productoId" example:"1"`
 	Requerido  int   `json:"requerido" example:"5"`
