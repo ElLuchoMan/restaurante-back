@@ -109,3 +109,42 @@ func TestResolveCliente(t *testing.T) {
 		}
 	}
 }
+
+func TestRequireStaff(t *testing.T) {
+	cases := []struct {
+		name, auth string
+		ok         bool
+		status     int
+	}{
+		{"sin token", "", false, http.StatusUnauthorized},
+		{"cliente", "Bearer " + token(t, 7, login.RolCliente), false, http.StatusForbidden},
+		{"mesero", "Bearer " + token(t, 3, "Mesero"), true, http.StatusOK},
+		{"administrador", "Bearer " + token(t, 1, string(models.RolAdministrador)), true, http.StatusOK},
+	}
+	for _, tc := range cases {
+		c, w := controller(tc.auth)
+		cl, ok := RequireStaff(c)
+		if ok != tc.ok || (!ok && (cl != nil || w.Code != tc.status)) || (ok && cl == nil) {
+			t.Fatalf("%s: ok=%v código=%d", tc.name, ok, w.Code)
+		}
+	}
+}
+
+func TestEsDuenio(t *testing.T) {
+	cases := []struct {
+		name   string
+		claims *login.Claims
+		doc    int64
+		want   bool
+	}{
+		{"personal", &login.Claims{Documento: 3, Rol: "Mesero"}, 99, true},
+		{"cliente dueño", &login.Claims{Documento: 7, Rol: login.RolCliente}, 7, true},
+		{"cliente ajeno", &login.Claims{Documento: 7, Rol: login.RolCliente}, 8, false},
+		{"cliente sin documento", &login.Claims{Documento: 0, Rol: login.RolCliente}, 0, false},
+	}
+	for _, tc := range cases {
+		if got := EsDuenio(tc.claims, tc.doc); got != tc.want {
+			t.Fatalf("%s: %v", tc.name, got)
+		}
+	}
+}

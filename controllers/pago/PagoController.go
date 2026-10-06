@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
@@ -22,6 +24,10 @@ type PagoController struct {
 const (
 	msgIDInvalido    = "El parámetro 'id' es inválido o está ausente"
 	msgMetodoNoExist = "Método de pago no encontrado"
+	msgPagoNoExiste  = "Pago no encontrado"
+
+	msgMontoPagado    = "No se puede modificar el monto de un pago ya PAGADO"
+	msgMontoDescuento = "No se puede modificar el monto: el pedido del pago tiene un descuento aplicado y el monto ya lo refleja"
 )
 
 // normalizeEstado devuelve el estado en mayúsculas y si pertenece al enum.
@@ -66,7 +72,7 @@ func (c *PagoController) writeError(op, msg string, err error) {
 }
 
 // metodoExists comprueba que el método de pago exista: (existe, errorDeBD).
-func metodoExists(o orm.Ormer, id int64) (bool, error) {
+func metodoExists(o orm.QueryExecutor, id int64) (bool, error) {
 	err := o.Read(&models.MetodoPago{PK_ID_METODO_PAGO: id})
 	if errors.Is(err, orm.ErrNoRows) {
 		return false, nil
@@ -94,7 +100,7 @@ func parseHora(s string) (time.Time, error) {
 
 // @Title GetAll
 // @Summary Obtener todos los pagos con filtros
-// @Description Devuelve los pagos, con filtros opcionales por fecha exacta, día, mes, año, estado y método de pago. Cada pago incluye `metodoPagoId` como objeto (las relaciones embebidas solo garantizan su id). En la respuesta `fechaPago` va como DD-MM-YYYY, `horaPago` como HH:MM:SS y `updatedAt` como DD-MM-YYYY HH:MM:SS (Bogotá). Sin resultados, `data` es `[]` (HTTP 200).
+// @Description Devuelve los pagos, con filtros opcionales por fecha exacta, día, mes, año, estado y método de pago. El personal ve todos los pagos; un Cliente solo los de sus propios pedidos (los demás nunca aparecen). Cada pago incluye `metodoPagoId` como objeto (las relaciones embebidas solo garantizan su id). En la respuesta `fechaPago` va como DD-MM-YYYY, `horaPago` como HH:MM:SS y `updatedAt` como DD-MM-YYYY HH:MM:SS (Bogotá). Sin resultados, `data` es `[]` (HTTP 200).
 // @Tags pagos
 // @Accept json
 // @Produce json
@@ -107,11 +113,24 @@ func parseHora(s string) (time.Time, error) {
 // @Success 200 {object} models.ApiResponse{data=[]models.PagoDoc} "Lista de pagos (puede ser vacía)"
 // @Failure 400 {object} models.ApiResponse "Algún filtro tiene formato inválido"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "El token de un Cliente no identifica a un cliente"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /pagos [get]
 func (c *PagoController) GetAll() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	qs := orm.NewOrm().QueryTable(new(models.Pago))
+	if !claims.IsStaff() {
+		// Un Cliente solo ve los pagos de sus propios pedidos. El documento viene del token (entero), no del usuario.
+		doc, ok := authz.ResolveCliente(&c.Controller, claims, 0)
+		if !ok {
+			return
+		}
+		qs = qs.FilterRaw("PK_ID_PAGO", "IN (SELECT pk_id_pago FROM pedido WHERE pk_documento_cliente = "+strconv.FormatInt(doc, 10)+")")
+	}
 
 	var fecha time.Time
 	hasFecha := false
@@ -179,7 +198,7 @@ func (c *PagoController) GetAll() {
 
 // @Title GetById
 // @Summary Obtener pago por ID
-// @Description Devuelve un pago por ID. `fechaPago` va como DD-MM-YYYY y `horaPago` como HH:MM:SS.
+// @Description Devuelve un pago por ID. Un Cliente solo puede ver pagos de sus propios pedidos (otro pago responde 404, igual que si no existiera); el personal ve cualquiera. `fechaPago` va como DD-MM-YYYY y `horaPago` como HH:MM:SS.
 // @Tags pagos
 // @Accept json
 // @Produce json
@@ -187,21 +206,38 @@ func (c *PagoController) GetAll() {
 // @Success 200 {object} models.ApiResponse{data=models.PagoDoc} "Pago encontrado"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Pago no encontrado"
+// @Failure 404 {object} models.ApiResponse "Pago no encontrado (para un Cliente, también si no es de uno de sus pedidos)"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /pagos/search [get]
 func (c *PagoController) GetById() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.fail(http.StatusBadRequest, msgIDInvalido, err)
 		return
 	}
+	o := orm.NewOrm()
 	pago := models.Pago{PK_ID_PAGO: id}
-	if err := orm.NewOrm().Read(&pago); err != nil {
+	if err := o.Read(&pago); err != nil {
 		c.readError("getbyid", id, err)
 		return
+	}
+	if !claims.IsStaff() {
+		// Un pago ajeno (o sin pedido del cliente) responde igual que uno inexistente.
+		n, err := o.QueryTable(new(models.Pedido)).Filter("PK_ID_PAGO", id).Filter("PK_DOCUMENTO_CLIENTE", claims.Documento).Count()
+		if err != nil {
+			c.readError("getbyid.owner", id, err)
+			return
+		}
+		if claims.Documento <= 0 || n == 0 {
+			c.fail(http.StatusNotFound, msgPagoNoExiste, nil)
+			return
+		}
 	}
 	httpx.Send(&c.Controller, http.StatusOK, "Pago encontrado", pago)
 }
@@ -209,7 +245,7 @@ func (c *PagoController) GetById() {
 // readError traduce un fallo de Read: ErrNoRows -> 404, cualquier otro -> 500.
 func (c *PagoController) readError(op string, id int64, err error) {
 	if errors.Is(err, orm.ErrNoRows) {
-		c.fail(http.StatusNotFound, "Pago no encontrado", nil)
+		c.fail(http.StatusNotFound, msgPagoNoExiste, nil)
 		return
 	}
 	logging.LogControllerError(c.Ctx, "pagos."+op+".db_error", err, map[string]interface{}{"id": id})
@@ -218,7 +254,7 @@ func (c *PagoController) readError(op string, id int64, err error) {
 
 // @Title Create
 // @Summary Crear un nuevo pago
-// @Description Crea un pago. Todos los campos salvo `updatedBy` son obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `monto` entero > 0, `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe). La respuesta devuelve `fechaPago` como DD-MM-YYYY.
+// @Description Lo puede hacer el personal y también un Cliente (el carrito crea el pago de su pedido), pero un Cliente solo puede crearlo en estado PENDIENTE (403 con otro estado); el pago solo queda ligado a un pedido al asignarlo con `POST /pedidos/asignar-pago`. Todos los campos salvo `updatedBy` son obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `monto` entero > 0, `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe). La respuesta devuelve `fechaPago` como DD-MM-YYYY.
 // @Tags pagos
 // @Accept json
 // @Produce json
@@ -226,12 +262,17 @@ func (c *PagoController) readError(op string, id int64, err error) {
 // @Success 201 {object} models.ApiResponse{data=models.PagoDoc} "Pago creado"
 // @Failure 400 {object} models.ApiResponse "JSON inválido o campos ausentes/inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Un Cliente intentó crear un pago que no es PENDIENTE"
 // @Failure 404 {object} models.ApiResponse "El método de pago indicado no existe"
 // @Failure 409 {object} models.ApiResponse "Conflicto de unicidad en base de datos"
 // @Failure 500 {object} models.ApiResponse "Error al crear el pago"
 // @Security BearerAuth
 // @Router /pagos [post]
 func (c *PagoController) Post() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	var in models.PagoCreateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
@@ -273,6 +314,10 @@ func (c *PagoController) Post() {
 		c.fail(http.StatusBadRequest, "El campo metodoPagoId es obligatorio y debe ser un número válido", nil)
 		return
 	}
+	if !claims.IsStaff() && estado != models.EstadoPagoPendiente {
+		c.fail(http.StatusForbidden, "Un cliente solo puede crear pagos en estado PENDIENTE", nil)
+		return
+	}
 
 	o := orm.NewOrm()
 	if ok, err := metodoExists(o, in.MetodoPagoId); err != nil {
@@ -302,9 +347,32 @@ func (c *PagoController) Post() {
 	httpx.Send(&c.Controller, http.StatusCreated, "Pago creado correctamente", pago)
 }
 
+// montoModificable comprueba que el monto del pago pueda cambiar: un pago ya
+// PAGADO no admite cambios y tampoco el de un pedido con descuentos aplicados
+// (AplicarDescuento ya restó el descuento de `monto`, sobrescribirlo lo borraría).
+// Responde 409 (o 500 si falla la consulta) y devuelve false si no se puede.
+func (c *PagoController) montoModificable(tx orm.QueryExecutor, pago *models.Pago) bool {
+	if pago.ESTADO_PAGO == models.EstadoPagoPagado {
+		c.fail(http.StatusConflict, msgMontoPagado, nil)
+		return false
+	}
+	var n int64
+	err := tx.Raw(`SELECT COUNT(*) FROM pedido_descuento_aplicado d JOIN pedido p ON p.pk_id_pedido = d.pk_id_pedido WHERE p.pk_id_pago = ?`, pago.PK_ID_PAGO).QueryRow(&n)
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "pagos.put.descuento_error", err, map[string]interface{}{"id": pago.PK_ID_PAGO})
+		c.fail(http.StatusInternalServerError, "Error al validar los descuentos del pedido", err)
+		return false
+	}
+	if n > 0 {
+		c.fail(http.StatusConflict, msgMontoDescuento, nil)
+		return false
+	}
+	return true
+}
+
 // @Title Update
 // @Summary Actualizar un pago
-// @Description Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`). Claves: `fechaPago` (YYYY-MM-DD), `horaPago` (HH:MM[:SS]), `monto` (entero > 0), `estadoPago`, `metodoPagoId` (debe existir, 404 si no) y `updatedBy`. Por compatibilidad se aceptan también `fecha` y `hora` como alias. Solo `updatedBy` es anulable (null lo limpia); null en cualquier otro campo responde 400.
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403. Regla del `monto`: no se puede cambiar el monto de un pago ya PAGADO (409) ni el de un pago cuyo pedido tiene descuentos aplicados (409, porque el monto ya refleja el descuento y se perdería); enviar el mismo monto que ya tiene no es un cambio. Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`). Claves: `fechaPago` (YYYY-MM-DD), `horaPago` (HH:MM[:SS]), `monto` (entero > 0), `estadoPago`, `metodoPagoId` (debe existir, 404 si no) y `updatedBy`. Por compatibilidad se aceptan también `fecha` y `hora` como alias. Solo `updatedBy` es anulable (null lo limpia); null en cualquier otro campo responde 400.
 // @Tags pagos
 // @Accept json
 // @Produce json
@@ -313,21 +381,37 @@ func (c *PagoController) Post() {
 // @Success 200 {object} models.ApiResponse{data=models.PagoDoc} "Pago actualizado"
 // @Failure 400 {object} models.ApiResponse "id inválido, JSON inválido, null en campo no anulable o valores inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador"
 // @Failure 404 {object} models.ApiResponse "Pago o método de pago no encontrado"
-// @Failure 409 {object} models.ApiResponse "Conflicto de unicidad en base de datos"
+// @Failure 409 {object} models.ApiResponse "El pago ya está PAGADO o su pedido tiene descuentos aplicados (no se puede cambiar `monto`), o conflicto de unicidad en base de datos"
 // @Failure 500 {object} models.ApiResponse "Error al actualizar el pago"
 // @Security BearerAuth
 // @Router /pagos [put]
 func (c *PagoController) Put() {
+	if _, ok := authz.RequireStaff(&c.Controller); !ok {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
 		c.fail(http.StatusBadRequest, msgIDInvalido, err)
 		return
 	}
-	o := orm.NewOrm()
-	pago := models.Pago{PK_ID_PAGO: id}
-	if err := o.Read(&pago); err != nil {
+	// El pago se lee y se actualiza en una transacción con el pago bloqueado, igual que
+	// AplicarDescuento: así no se puede pisar el monto que un descuento acaba de rebajar.
+	tx, err := orm.NewOrm().Begin()
+	if err != nil {
+		c.writeError("put.tx_begin_error", "Error al actualizar el pago", err)
+		return
+	}
+	confirmada := false
+	defer func() {
+		if !confirmada {
+			_ = tx.Rollback()
+		}
+	}()
+	var pago models.Pago
+	if err := tx.QueryTable(new(models.Pago)).Filter("PK_ID_PAGO", id).ForUpdate().One(&pago); err != nil {
 		c.readError("put", id, err)
 		return
 	}
@@ -364,8 +448,13 @@ func (c *PagoController) Put() {
 			c.fail(http.StatusBadRequest, "El campo monto debe ser un entero mayor que 0", nil)
 			return
 		}
-		pago.MONTO = *in.Monto
-		cols = append(cols, "MONTO")
+		if *in.Monto != pago.MONTO {
+			if !c.montoModificable(tx, &pago) {
+				return
+			}
+			pago.MONTO = *in.Monto
+			cols = append(cols, "MONTO")
+		}
 	}
 	if in.EstadoPago != nil {
 		estado, ok := normalizeEstado(*in.EstadoPago)
@@ -381,7 +470,7 @@ func (c *PagoController) Put() {
 			c.fail(http.StatusBadRequest, "El campo metodoPagoId debe ser un número válido", nil)
 			return
 		}
-		ok, err := metodoExists(o, *in.MetodoPagoId)
+		ok, err := metodoExists(tx, *in.MetodoPagoId)
 		if err != nil {
 			logging.LogControllerError(c.Ctx, "pagos.put.metodo_error", err, map[string]interface{}{"id": id})
 			c.fail(http.StatusInternalServerError, "Error al validar el método de pago", err)
@@ -403,16 +492,21 @@ func (c *PagoController) Put() {
 	}
 	pago.UPDATED_AT = time.Now().UTC()
 
-	if _, err := o.Update(&pago, cols...); err != nil {
+	if _, err := tx.Update(&pago, cols...); err != nil {
 		c.writeError("put.update_error", "Error al actualizar el pago", err)
 		return
 	}
+	if err := tx.Commit(); err != nil {
+		c.writeError("put.tx_commit_error", "Error al actualizar el pago", err)
+		return
+	}
+	confirmada = true
 	httpx.Send(&c.Controller, http.StatusOK, "Pago actualizado correctamente", pago)
 }
 
 // @Title Delete
 // @Summary Eliminar un pago
-// @Description Elimina un pago. Si está asociado a un pedido responde 409.
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403. Elimina un pago. Si está asociado a un pedido responde 409.
 // @Tags pagos
 // @Accept json
 // @Produce json
@@ -420,12 +514,16 @@ func (c *PagoController) Put() {
 // @Success 200 {object} models.ApiResponse "Pago eliminado"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador"
 // @Failure 404 {object} models.ApiResponse "Pago no encontrado"
 // @Failure 409 {object} models.ApiResponse "El pago está asociado a un pedido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /pagos [delete]
 func (c *PagoController) Delete() {
+	if _, ok := authz.RequireStaff(&c.Controller); !ok {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pagos.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
@@ -438,7 +536,7 @@ func (c *PagoController) Delete() {
 		return
 	}
 	if n == 0 {
-		c.fail(http.StatusNotFound, "Pago no encontrado", nil)
+		c.fail(http.StatusNotFound, msgPagoNoExiste, nil)
 		return
 	}
 	httpx.Send(&c.Controller, http.StatusOK, "Pago eliminado", nil)

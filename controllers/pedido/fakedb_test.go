@@ -127,6 +127,9 @@ func TestMain(m *testing.M) {
 // newCtx crea un contexto Beego con la petición dada.
 func newCtx(method, target, body string) (*beecontext.Context, *httptest.ResponseRecorder) {
 	r := httptest.NewRequest(method, target, strings.NewReader(body))
+	if authHeader != "" {
+		r.Header.Set("Authorization", authHeader)
+	}
 	w := httptest.NewRecorder()
 	ctx := beecontext.NewContext()
 	ctx.Reset(w, r)

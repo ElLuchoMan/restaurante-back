@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"restaurante/controllers/login"
 	"restaurante/database"
+	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
 	"restaurante/internal/notify"
 	"restaurante/logging"
@@ -72,9 +74,28 @@ func (c *PedidoController) existsOrFail(o orm.Ormer, op string, model interface{
 	return true
 }
 
+// enOtroPedido indica (y responde 404 con notFoundMsg, o 500 si falla la
+// consulta) si el recurso column = id ya pertenece a un pedido distinto de
+// pedidoID. Se usa para que un Cliente no se apropie de pagos o domicilios
+// ajenos; devuelve true si ya respondió.
+func (c *PedidoController) enOtroPedido(o orm.Ormer, op, column string, id, pedidoID int64, notFoundMsg string) bool {
+	n, err := o.QueryTable(new(models.Pedido)).Filter(column, id).Exclude("PK_ID_PEDIDO", pedidoID).Count()
+	if err != nil {
+		logging.LogControllerError(c.Ctx, "pedidos."+op+".owner_error", err, map[string]interface{}{"id": id})
+		c.fail(http.StatusInternalServerError, "Error al validar los datos referenciados", err)
+		return true
+	}
+	if n > 0 {
+		c.fail(http.StatusNotFound, notFoundMsg, nil)
+		return true
+	}
+	return false
+}
+
 // readPedido lee el pedido pedido_id (query param) y responde 400/404/500 si
-// no se puede. Devuelve nil si ya respondió.
-func (c *PedidoController) readPedido(op string, o orm.Ormer) *models.Pedido {
+// no se puede. Un Cliente solo accede a sus pedidos: uno ajeno responde igual
+// que si no existiera (404). Devuelve nil si ya respondió.
+func (c *PedidoController) readPedido(op string, o orm.Ormer, claims *login.Claims) *models.Pedido {
 	id, err := httpx.PositiveInt64Param(&c.Controller, "pedido_id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pedidos."+op+".bad_request", err, map[string]interface{}{"pedido_id": c.GetString("pedido_id")})
@@ -89,6 +110,10 @@ func (c *PedidoController) readPedido(op string, o orm.Ormer) *models.Pedido {
 		}
 		logging.LogControllerError(c.Ctx, "pedidos."+op+".read_error", err, map[string]interface{}{"pedido_id": id})
 		c.fail(http.StatusInternalServerError, "Error al consultar el pedido", err)
+		return nil
+	}
+	if !authz.EsDuenio(claims, clienteDe(&pedido)) {
+		c.fail(http.StatusNotFound, msgPedidoNoEncontrado, nil)
 		return nil
 	}
 	return &pedido
@@ -141,7 +166,7 @@ func (c *PedidoController) intParam(key string, min, max int) (v int, present bo
 
 // @Title GetAll
 // @Summary Obtener pedidos con múltiples filtros
-// @Description Devuelve pedidos filtrados por fecha, rango de fechas (`desde` y `hasta` solo se aplican juntos), mes/año, cliente, tipo de método de pago y si tienen domicilio. Todos los filtros son opcionales; un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. En cada pedido `fechaPedido` va como DD-MM-YYYY, `horaPedido` como HH:MM:SS y las relaciones (`pagoId`, `domicilioId`, `restauranteId`, `documentoCliente`) como objetos en los que solo el id es fiable.
+// @Description Devuelve pedidos filtrados por fecha, rango de fechas (`desde` y `hasta` solo se aplican juntos), mes/año, cliente, tipo de método de pago y si tienen domicilio. Todos los filtros son opcionales; un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. Un Cliente solo recibe sus propios pedidos (el filtro `cliente` se fuerza al documento de su token); el personal ve todos. En cada pedido `fechaPedido` va como DD-MM-YYYY, `horaPedido` como HH:MM:SS y las relaciones (`pagoId`, `domicilioId`, `restauranteId`, `documentoCliente`) como objetos en los que solo el id es fiable.
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -150,16 +175,21 @@ func (c *PedidoController) intParam(key string, min, max int) (v int, present bo
 // @Param hasta query string false "Fecha final del rango (YYYY-MM-DD); requiere `desde`"
 // @Param mes query int false "Mes del año (1-12)"
 // @Param anio query int false "Año (YYYY); se combina con `mes` si ambos se envían"
-// @Param cliente query int false "Documento del cliente (entero positivo)"
+// @Param cliente query int false "Documento del cliente (entero positivo). Un Cliente solo puede consultar el suyo (se aplica por defecto); otro documento responde 403"
 // @Param metodo_pago query string false "Tipo de método de pago (p. ej. NEQUI, DAVIPLATA, EFECTIVO); sin distinguir mayúsculas"
 // @Param domicilio query bool false "true: solo pedidos con domicilio; false: solo pedidos sin domicilio"
 // @Success 200 {object} models.ApiResponse{data=[]models.PedidoDoc} "Pedidos obtenidos (puede ser lista vacía)"
 // @Failure 400 {object} models.ApiResponse "Algún filtro tiene formato inválido"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Un Cliente pidió los pedidos de otro cliente"
 // @Failure 500 {object} models.ApiResponse "Error al obtener los pedidos"
 // @Security BearerAuth
 // @Router /pedidos [get]
 func (c *PedidoController) GetAll() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	query := `
        SELECT p.*
        FROM pedido p
@@ -203,6 +233,13 @@ func (c *PedidoController) GetAll() {
 			c.fail(http.StatusBadRequest, "Parámetro 'cliente' inválido", err)
 			return
 		}
+	}
+	if !claims.IsStaff() {
+		// Un Cliente solo lista sus pedidos: el documento del token manda y otro distinto es 403.
+		if cliente, ok = authz.ResolveCliente(&c.Controller, claims, cliente); !ok {
+			return
+		}
+		hasCliente = true
 	}
 	var domicilio bool
 	hasDomicilio := strings.TrimSpace(c.GetString("domicilio")) != ""
@@ -260,7 +297,7 @@ func (c *PedidoController) GetAll() {
 
 // @Title PostPedido
 // @Summary Crear un nuevo pedido
-// @Description Crea un pedido. El servidor fija `fechaPedido`/`horaPedido` (Bogotá) y `estadoPedido`=INICIADO. Todos los campos del cuerpo son opcionales: `delivery` (por defecto false; si es true exige `pk_id_domicilio`), `pk_id_domicilio`, `restauranteId` y `documentoCliente` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Responde 201 con el pedido creado. Envía en segundo plano (best-effort, sin afectar la respuesta) un push de confirmación al cliente (si tiene `documentoCliente`) y un aviso a los trabajadores.
+// @Description Crea un pedido. El servidor fija `fechaPedido`/`horaPedido` (Bogotá) y `estadoPedido`=INICIADO. Todos los campos del cuerpo son opcionales: `delivery` (por defecto false; si es true exige `pk_id_domicilio`), `pk_id_domicilio`, `restauranteId` y `documentoCliente` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Quién crea: un Cliente siempre crea a su nombre (el documento sale del token; `documentoCliente` en el body se ignora si coincide y responde 403 si es otro); el personal (trabajador o administrador) puede crear a nombre de un cliente enviando `documentoCliente` (404 si el cliente no existe) o sin cliente (pedido de mostrador, la columna admite NULL). Responde 201 con el pedido creado. Envía en segundo plano (best-effort, sin afectar la respuesta) un push de confirmación al cliente (si tiene `documentoCliente`) y un aviso a los trabajadores.
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -268,12 +305,17 @@ func (c *PedidoController) GetAll() {
 // @Success 201 {object} models.ApiResponse{data=models.PedidoDoc} "Pedido creado"
 // @Failure 400 {object} models.ApiResponse "JSON inválido, ids no positivos o `delivery` sin domicilio"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Un Cliente envió un `documentoCliente` distinto al de su token"
 // @Failure 404 {object} models.ApiResponse "El domicilio, el restaurante o el cliente indicado no existe"
 // @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes (p. ej. el domicilio ya pertenece a otro pedido)"
 // @Failure 500 {object} models.ApiResponse "Error al crear el pedido"
 // @Security BearerAuth
 // @Router /pedidos [post]
 func (c *PedidoController) Post() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	var in models.PedidoCreateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		logging.LogControllerError(c.Ctx, "pedidos.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
@@ -284,6 +326,18 @@ func (c *PedidoController) Post() {
 		(in.DocumentoCliente != nil && *in.DocumentoCliente <= 0) || in.RestauranteId < 0 {
 		c.fail(http.StatusBadRequest, "pk_id_domicilio, restauranteId y documentoCliente deben ser enteros positivos", nil)
 		return
+	}
+	if !claims.IsStaff() {
+		// Un Cliente siempre crea a su nombre: el documento sale del token y otro distinto en el body es 403.
+		var body int64
+		if in.DocumentoCliente != nil {
+			body = *in.DocumentoCliente
+		}
+		doc, ok := authz.ResolveCliente(&c.Controller, claims, body)
+		if !ok {
+			return
+		}
+		in.DocumentoCliente = &doc
 	}
 	delivery := in.Delivery != nil && *in.Delivery
 	if delivery && in.PKIDDomicilio == nil {
@@ -338,7 +392,7 @@ func (c *PedidoController) Post() {
 
 // @Title AssignDomicilio
 // @Summary Asignar un domicilio a un pedido
-// @Description Asigna un domicilio existente a un pedido y marca `delivery`=true. Responde con el pedido completo actualizado. Avisa por push a los trabajadores (best-effort, en segundo plano).
+// @Description Asigna un domicilio existente a un pedido y marca `delivery`=true. Responde con el pedido completo actualizado. Un Cliente solo puede hacerlo sobre su propio pedido (uno ajeno responde 404, como si no existiera) y con un domicilio que no pertenezca a otro pedido (404); el personal puede con cualquiera. Avisa por push a los trabajadores (best-effort, en segundo plano).
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -347,12 +401,16 @@ func (c *PedidoController) Post() {
 // @Success 200 {object} models.ApiResponse{data=models.PedidoDoc} "Domicilio asignado al pedido"
 // @Failure 400 {object} models.ApiResponse "pedido_id o domicilio_id inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Pedido o domicilio no encontrado"
+// @Failure 404 {object} models.ApiResponse "Pedido o domicilio no encontrado (para un Cliente, también si son de otro cliente)"
 // @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes"
 // @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
 // @Security BearerAuth
 // @Router /pedidos/asignar-domicilio [post]
 func (c *PedidoController) AssignDomicilio() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	domicilioID, err := httpx.PositiveInt64Param(&c.Controller, "domicilio_id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pedidos.assign_domicilio.bad_request", err, map[string]interface{}{"domicilio_id": c.GetString("domicilio_id")})
@@ -360,11 +418,14 @@ func (c *PedidoController) AssignDomicilio() {
 		return
 	}
 	o := orm.NewOrm()
-	pedido := c.readPedido("assign_domicilio", o)
+	pedido := c.readPedido("assign_domicilio", o, claims)
 	if pedido == nil {
 		return
 	}
 	if !c.existsOrFail(o, "assign_domicilio", new(models.Domicilio), "ID", domicilioID, msgDomicilioNoEncontrado) {
+		return
+	}
+	if !claims.IsStaff() && c.enOtroPedido(o, "assign_domicilio", "PK_ID_DOMICILIO", domicilioID, pedido.PK_ID_PEDIDO, msgDomicilioNoEncontrado) {
 		return
 	}
 	pedido.PK_ID_DOMICILIO = &models.Domicilio{ID: domicilioID}
@@ -380,7 +441,7 @@ func (c *PedidoController) AssignDomicilio() {
 
 // @Title AssignPago
 // @Summary Asignar un pago a un pedido
-// @Description Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano).
+// @Description Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano). Un Cliente solo puede vincular un pago a su propio pedido (uno ajeno responde 404) y siempre con `cambiar_estado=false` (403 si es true o se omite, porque terminar el pedido y marcar el pago PAGADO es cosa del personal); además el pago no puede pertenecer a otro pedido (404) y el pedido no puede tener ya un pago (409, para no cambiar el monto tras aplicar descuentos).
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -390,12 +451,17 @@ func (c *PedidoController) AssignDomicilio() {
 // @Success 200 {object} models.ApiResponse{data=models.PedidoDoc} "Pago asignado al pedido"
 // @Failure 400 {object} models.ApiResponse "pedido_id, pago_id o cambiar_estado inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Pedido o pago no encontrado"
-// @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes"
+// @Failure 403 {object} models.ApiResponse "Un Cliente pidió cambiar_estado=true (explícito o por defecto)"
+// @Failure 404 {object} models.ApiResponse "Pedido o pago no encontrado (para un Cliente, también si son de otro cliente)"
+// @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes, o un Cliente intenta reemplazar el pago ya asignado"
 // @Failure 500 {object} models.ApiResponse "Error al asignar pago"
 // @Security BearerAuth
 // @Router /pedidos/asignar-pago [post]
 func (c *PedidoController) AssignPago() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	pagoID, err := httpx.PositiveInt64Param(&c.Controller, "pago_id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pedidos.assign_pago.bad_request", err, map[string]interface{}{"pago_id": c.GetString("pago_id")})
@@ -409,13 +475,26 @@ func (c *PedidoController) AssignPago() {
 			return
 		}
 	}
+	if !claims.IsStaff() && cambiarEstado {
+		c.fail(http.StatusForbidden, "Un cliente no puede terminar el pedido ni marcar el pago como PAGADO: use cambiar_estado=false", nil)
+		return
+	}
 	o := orm.NewOrm()
-	pedido := c.readPedido("assign_pago", o)
+	pedido := c.readPedido("assign_pago", o, claims)
 	if pedido == nil {
 		return
 	}
 	if !c.existsOrFail(o, "assign_pago", new(models.Pago), "PK_ID_PAGO", pagoID, msgPagoNoEncontrado) {
 		return
+	}
+	if !claims.IsStaff() {
+		if c.enOtroPedido(o, "assign_pago", "PK_ID_PAGO", pagoID, pedido.PK_ID_PEDIDO, msgPagoNoEncontrado) {
+			return
+		}
+		if pedido.PK_ID_PAGO != nil {
+			c.fail(http.StatusConflict, "El pedido ya tiene un pago asignado", nil)
+			return
+		}
 	}
 
 	ctxLog := map[string]interface{}{"pedido_id": pedido.PK_ID_PEDIDO, "pago_id": pagoID, "cambiar_estado": cambiarEstado}
@@ -454,7 +533,7 @@ func (c *PedidoController) AssignPago() {
 
 // @Title UpdateEstadoPedido
 // @Summary Actualizar el estado de un pedido
-// @Description Actualiza el estado de un pedido existente (sin cuerpo: `pedido_id` y `estado` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado. Si el estado cambia (salvo a INICIADO), el servidor avisa por push al cliente del pedido (best-effort, en segundo plano).
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403. Actualiza el estado de un pedido existente (sin cuerpo: `pedido_id` y `estado` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado. Si el estado cambia (salvo a INICIADO), el servidor avisa por push al cliente del pedido (best-effort, en segundo plano).
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -463,11 +542,16 @@ func (c *PedidoController) AssignPago() {
 // @Success 200 {object} models.ApiResponse{data=models.PedidoDoc} "Estado actualizado"
 // @Failure 400 {object} models.ApiResponse "pedido_id inválido o estado inválido"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador (un Cliente no puede cambiar estados)"
 // @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
 // @Failure 500 {object} models.ApiResponse "Error al actualizar estado del pedido"
 // @Security BearerAuth
 // @Router /pedidos/actualizar-estado [put]
 func (c *PedidoController) UpdateEstadoPedido() {
+	claims, ok := authz.RequireStaff(&c.Controller)
+	if !ok {
+		return
+	}
 	estado := strings.ToUpper(strings.TrimSpace(c.GetString("estado")))
 	switch estado {
 	case models.EstadoPedidoIniciado, models.EstadoPedidoEnPreparacion, models.EstadoPedidoListo,
@@ -478,7 +562,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 		return
 	}
 	o := orm.NewOrm()
-	pedido := c.readPedido("update_estado", o)
+	pedido := c.readPedido("update_estado", o, claims)
 	if pedido == nil {
 		return
 	}
@@ -496,7 +580,7 @@ func (c *PedidoController) UpdateEstadoPedido() {
 
 // @Title GetPedidoDetails
 // @Summary Obtener detalles completos de un pedido
-// @Description Devuelve el pedido con su método de pago y sus productos. A diferencia de `GET /pedidos`, las relaciones van como número (0 cuando no existen), `fechaPedido` como DD-MM-YYYY, `horaPedido` como HH:MM:SS y `productos` es un string con un JSON (`[]` si no hay productos) cuyos elementos son {pk_id_producto, nombre, cantidad, precio, subtotal}.
+// @Description Devuelve el pedido con su método de pago y sus productos. Un Cliente solo ve sus propios pedidos (uno ajeno responde 404, igual que si no existiera); el personal ve cualquiera. A diferencia de `GET /pedidos`, las relaciones van como número (0 cuando no existen), `fechaPedido` como DD-MM-YYYY, `horaPedido` como HH:MM:SS y `productos` es un string con un JSON (`[]` si no hay productos) cuyos elementos son {pk_id_producto, nombre, cantidad, precio, subtotal}.
 // @Tags pedido
 // @Accept json
 // @Produce json
@@ -509,6 +593,10 @@ func (c *PedidoController) UpdateEstadoPedido() {
 // @Security BearerAuth
 // @Router /pedidos/detalles [get]
 func (c *PedidoController) GetPedidoDetails() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	pedidoID, err := httpx.PositiveInt64Param(&c.Controller, "pedido_id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "pedidos.details.bad_request", err, map[string]interface{}{"pedido_id": c.GetString("pedido_id")})
@@ -554,6 +642,10 @@ WHERE p.pk_id_pedido = ?;
 		}
 		logging.LogControllerError(c.Ctx, "pedidos.details.db_error", err, map[string]interface{}{"pedido_id": pedidoID})
 		c.fail(http.StatusInternalServerError, "Error al obtener los detalles del pedido", err)
+		return
+	}
+	if !authz.EsDuenio(claims, details.DocumentoCliente) {
+		c.fail(http.StatusNotFound, msgPedidoNoEncontrado, nil)
 		return
 	}
 	httpx.Send(&c.Controller, http.StatusOK, "Detalles del pedido obtenidos exitosamente", details)

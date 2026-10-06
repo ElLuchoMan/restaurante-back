@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
 	"restaurante/internal/notify"
 	"restaurante/logging"
@@ -88,7 +89,7 @@ func (c *DomicilioController) trabajadorExists(op string, o orm.Ormer, documento
 
 // @Title GetAll
 // @Summary Obtener todos los domicilios con posibilidad de filtrar
-// @Description Devuelve los domicilios, con filtros opcionales combinables. Un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. `fechaDomicilio` va como DD-MM-YYYY; `trabajadorAsignado` es el trabajador como objeto (solo `documentoTrabajador` es fiable) y se omite si no hay domiciliario. Con `trabajador` se devuelven solo los NO entregados que no tienen domiciliario o que tiene ese trabajador.
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403 porque el listado incluye direcciones y teléfonos de todos. Devuelve los domicilios, con filtros opcionales combinables. Un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. `fechaDomicilio` va como DD-MM-YYYY; `trabajadorAsignado` es el trabajador como objeto (solo `documentoTrabajador` es fiable) y se omite si no hay domiciliario. Con `trabajador` se devuelven solo los NO entregados que no tienen domiciliario o que tiene ese trabajador.
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -101,10 +102,14 @@ func (c *DomicilioController) trabajadorExists(op string, o orm.Ormer, documento
 // @Success 200 {object} models.ApiResponse{data=[]models.DomicilioDoc} "Lista de domicilios (puede ser vacía)"
 // @Failure 400 {object} models.ApiResponse "Algún filtro tiene formato inválido"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /domicilios [get]
 func (c *DomicilioController) GetAll() {
+	if _, ok := authz.RequireStaff(&c.Controller); !ok {
+		return
+	}
 	cond := orm.NewCondition()
 	if v := c.GetString("direccion"); v != "" {
 		cond = cond.And("Direccion__icontains", v)
@@ -176,7 +181,7 @@ type pedidoRow struct {
 
 // @Title GetById
 // @Summary Obtener domicilio por ID (incluye cliente y pedido asociado si existen)
-// @Description Devuelve un domicilio por ID y, si está asociado a un pedido, el cliente (`cliente`) y el resumen del último pedido (`pedido`: pago, subtotal, total y productos). `cliente` y `pedido` se omiten si no hay pedido asociado. `fechaDomicilio` va como DD-MM-YYYY.
+// @Description Un Cliente solo puede ver el domicilio de su propio pedido (cualquier otro responde 404, igual que si no existiera); el personal ve cualquiera. Devuelve un domicilio por ID y, si está asociado a un pedido, el cliente (`cliente`) y el resumen del último pedido (`pedido`: pago, subtotal, total y productos). `cliente` y `pedido` se omiten si no hay pedido asociado. `fechaDomicilio` va como DD-MM-YYYY.
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -184,11 +189,15 @@ type pedidoRow struct {
 // @Success 200 {object} models.ApiResponse{data=models.DomicilioDetalleDoc} "Domicilio encontrado (con cliente/pedido si aplica)"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
+// @Failure 404 {object} models.ApiResponse "Domicilio no encontrado (para un Cliente, también si no es de su pedido)"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /domicilios/search [get]
 func (c *DomicilioController) GetById() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.getbyid.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
@@ -215,6 +224,11 @@ ORDER BY p.pk_id_pedido DESC LIMIT 1;`
 	} else if !errors.Is(err, orm.ErrNoRows) {
 		logging.LogControllerError(c.Ctx, "domicilios.getbyid.cliente_query_error", err, map[string]interface{}{"id": id})
 		c.fail(http.StatusInternalServerError, "Error al consultar el cliente del domicilio", err)
+		return
+	}
+	// Un Cliente solo ve el domicilio de su propio pedido; cualquier otro (o uno sin pedido) responde como si no existiera.
+	if !authz.EsDuenio(claims, cli.Documento) {
+		c.fail(http.StatusNotFound, msgNoEncontrado, nil)
 		return
 	}
 
@@ -284,7 +298,7 @@ func resumenPedido(ped pedidoRow) (*models.DomicilioPedidoDoc, error) {
 
 // @Title Create
 // @Summary Crear un nuevo domicilio
-// @Description Crea un domicilio. `direccion`, `telefono` (no vacíos) y `fechaDomicilio` (YYYY-MM-DD) son obligatorios; `estadoDomicilio` (alias `estado`) es opcional y, si se omite, aplica el valor por defecto de la base de datos. `trabajadorAsignado` es el documento del trabajador (null o 0 = sin asignar; si se envía debe existir, 404 si no). `entregado` lo calcula la base de datos y no debe enviarse. Responde 201 con el domicilio creado (`fechaDomicilio` como DD-MM-YYYY).
+// @Description Lo puede hacer el personal y también un Cliente (el carrito crea el domicilio antes del pedido), pero un Cliente no puede asignar `trabajadorAsignado` ni crearlo en un estado distinto de PENDIENTE (403). Crea un domicilio. `direccion`, `telefono` (no vacíos) y `fechaDomicilio` (YYYY-MM-DD) son obligatorios; `estadoDomicilio` (alias `estado`) es opcional y, si se omite, aplica el valor por defecto de la base de datos. `trabajadorAsignado` es el documento del trabajador (null o 0 = sin asignar; si se envía debe existir, 404 si no). `entregado` lo calcula la base de datos y no debe enviarse. Responde 201 con el domicilio creado (`fechaDomicilio` como DD-MM-YYYY).
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -292,12 +306,17 @@ func resumenPedido(ped pedidoRow) (*models.DomicilioPedidoDoc, error) {
 // @Success 201 {object} models.ApiResponse{data=models.DomicilioDoc} "Domicilio creado"
 // @Failure 400 {object} models.ApiResponse "JSON inválido, campos obligatorios vacíos, fecha o estado inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Un Cliente intentó asignar un trabajador o un estado distinto de PENDIENTE"
 // @Failure 404 {object} models.ApiResponse "El trabajador indicado no existe"
 // @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes"
 // @Failure 500 {object} models.ApiResponse "Error al crear el domicilio"
 // @Security BearerAuth
 // @Router /domicilios [post]
 func (c *DomicilioController) Post() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	var in struct {
 		models.DomicilioCreate
 		EstadoAlias string `json:"estado"`
@@ -315,6 +334,9 @@ func (c *DomicilioController) Post() {
 	fecha, err := models.ParseDateToNoonUTC(in.FechaDomicilio)
 	if err != nil {
 		c.fail(http.StatusBadRequest, msgFechaInvalida, err)
+		return
+	}
+	if !claims.IsStaff() && !c.clientePuedeCrear(in.TrabajadorID, firstNonEmpty(in.Estado, in.EstadoAlias)) {
 		return
 	}
 	cols := []string{"direccion", "fecha", "telefono"}
@@ -364,6 +386,23 @@ func (c *DomicilioController) Post() {
 	httpx.Send(&c.Controller, http.StatusCreated, "Domicilio creado correctamente", domicilio)
 }
 
+// clientePuedeCrear aplica a un Cliente que crea un domicilio (lo hace el
+// carrito antes de crear el pedido): no puede asignar domiciliario ni crearlo
+// en un estado distinto de PENDIENTE. Responde 403 y devuelve false si no.
+func (c *DomicilioController) clientePuedeCrear(trabajador *int64, estado string) bool {
+	if trabajador != nil && *trabajador != 0 {
+		c.fail(http.StatusForbidden, "Un cliente no puede asignar un domiciliario", nil)
+		return false
+	}
+	if estado != "" {
+		if e, _ := normalizeEstado(estado); e != models.EstadoDomicilioPendiente {
+			c.fail(http.StatusForbidden, "Un cliente solo puede crear domicilios en estado PENDIENTE", nil)
+			return false
+		}
+	}
+	return true
+}
+
 func firstNonEmpty(vals ...string) string {
 	for _, v := range vals {
 		if v != "" {
@@ -385,7 +424,7 @@ func firstNonNil(vals ...*string) *string {
 
 // @Title Update
 // @Summary Actualizar un domicilio
-// @Description Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`, que solo refresca `updatedAt`). Campos: `direccion` y `telefono` (no vacíos), `estado` (alias `estadoDomicilio`: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), `observaciones`, `fechaDomicilio` (YYYY-MM-DD) y `updatedBy`. Anulables (null los limpia): `observaciones` y `updatedBy`; null en cualquier otro campo responde 400. `entregado` lo calcula la base de datos; la respuesta lo trae actualizado. Cuando el domicilio pasa a ENTREGADO, avisa por push al cliente del pedido (best-effort, en segundo plano).
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403. Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`, que solo refresca `updatedAt`). Campos: `direccion` y `telefono` (no vacíos), `estado` (alias `estadoDomicilio`: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), `observaciones`, `fechaDomicilio` (YYYY-MM-DD) y `updatedBy`. Anulables (null los limpia): `observaciones` y `updatedBy`; null en cualquier otro campo responde 400. `entregado` lo calcula la base de datos; la respuesta lo trae actualizado. Cuando el domicilio pasa a ENTREGADO, avisa por push al cliente del pedido (best-effort, en segundo plano).
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -394,12 +433,16 @@ func firstNonNil(vals ...*string) *string {
 // @Success 200 {object} models.ApiResponse{data=models.DomicilioDoc} "Domicilio actualizado"
 // @Failure 400 {object} models.ApiResponse "id inválido, JSON inválido, null en campo no anulable o valores inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Failure 409 {object} models.ApiResponse "Conflicto con datos existentes"
 // @Failure 500 {object} models.ApiResponse "Error al actualizar el domicilio"
 // @Security BearerAuth
 // @Router /domicilios [put]
 func (c *DomicilioController) Put() {
+	if _, ok := authz.RequireStaff(&c.Controller); !ok {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
@@ -479,7 +522,7 @@ func (c *DomicilioController) Put() {
 
 // @Title Delete
 // @Summary Eliminar un domicilio
-// @Description Elimina un domicilio. Si está asociado a un pedido responde 409. Responde 200 con el mensaje de confirmación (sin `data`).
+// @Description Solo personal (trabajador o administrador): un Cliente recibe 403. Elimina un domicilio. Si está asociado a un pedido responde 409. Responde 200 con el mensaje de confirmación (sin `data`).
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -487,12 +530,16 @@ func (c *DomicilioController) Put() {
 // @Success 200 {object} models.ApiResponse "Domicilio eliminado"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere un usuario trabajador"
 // @Failure 404 {object} models.ApiResponse "Domicilio no encontrado"
 // @Failure 409 {object} models.ApiResponse "El domicilio está asociado a un pedido"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /domicilios [delete]
 func (c *DomicilioController) Delete() {
+	if _, ok := authz.RequireStaff(&c.Controller); !ok {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
@@ -513,7 +560,7 @@ func (c *DomicilioController) Delete() {
 
 // @Title AsignarDomiciliario
 // @Summary Asignar un domiciliario a un domicilio
-// @Description Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. `data` es el domicilio completo actualizado. Avisa por push al cliente del pedido (best-effort, en segundo plano).
+// @Description Solo personal: un Domiciliario únicamente puede asignarse a sí mismo (`trabajador_id` = su documento) y un Administrador puede asignar a cualquiera; cualquier otro caso responde 403 (también a un Cliente). Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. `data` es el domicilio completo actualizado. Avisa por push al cliente del pedido (best-effort, en segundo plano).
 // @Tags domicilios
 // @Accept json
 // @Produce json
@@ -522,12 +569,17 @@ func (c *DomicilioController) Delete() {
 // @Success 200 {object} models.ApiResponse{data=models.DomicilioDoc} "Domicilio asignado"
 // @Failure 400 {object} models.ApiResponse "domicilio_id o trabajador_id inválidos"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "No es Administrador ni el propio Domiciliario (un Cliente tampoco puede)"
 // @Failure 404 {object} models.ApiResponse "Domicilio o trabajador no encontrado"
 // @Failure 409 {object} models.ApiResponse "El domicilio ya ha sido asignado"
 // @Failure 500 {object} models.ApiResponse "Error al asignar domicilio"
 // @Security BearerAuth
 // @Router /domicilios/asignar [post]
 func (c *DomicilioController) AsignarDomiciliario() {
+	claims, ok := authz.RequireStaff(&c.Controller)
+	if !ok {
+		return
+	}
 	domicilioID, err := httpx.PositiveInt64Param(&c.Controller, "domicilio_id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.asignar.bad_request", err, map[string]interface{}{"domicilio_id": c.GetString("domicilio_id")})
@@ -538,6 +590,15 @@ func (c *DomicilioController) AsignarDomiciliario() {
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "domicilios.asignar.bad_request", err, map[string]interface{}{"trabajador_id": c.GetString("trabajador_id")})
 		c.fail(http.StatusBadRequest, "El parámetro 'trabajador_id' es obligatorio y debe ser un entero positivo", err)
+		return
+	}
+	// Un Domiciliario solo se asigna a sí mismo (tomar-domicilio); el Administrador asigna a cualquiera.
+	// Los demás roles de personal no reparten domicilios.
+	switch {
+	case claims.IsAdmin():
+	case claims.Rol == string(models.RolDomiciliario) && claims.Documento == trabajadorID:
+	default:
+		c.fail(http.StatusForbidden, "Solo un Administrador o el propio Domiciliario pueden asignar este domicilio", nil)
 		return
 	}
 	ctx := map[string]interface{}{"domicilio_id": domicilioID, "trabajador_id": trabajadorID}

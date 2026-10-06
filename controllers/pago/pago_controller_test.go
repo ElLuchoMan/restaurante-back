@@ -16,15 +16,23 @@ var (
 	errBoom    = errors.New("boom")
 )
 
+// pagoEstado y descuentos parametrizan el pago y el conteo de descuentos del pedido que sirve serve.
+var (
+	pagoEstado = "PAGADO"
+	descuentos = int64(0)
+)
+
 func pagoRow() []driver.Value {
 	return []driver.Value{int64(4), time.Date(2025, 1, 31, 12, 0, 0, 0, time.UTC), time.Date(0, 1, 1, 4, 37, 28, 0, time.UTC), // el ORM lo entrega con desfase LMT: se muestra 14:30:00
-		int64(50000), "PAGADO", int64(2), time.Date(2025, 1, 31, 20, 0, 0, 0, time.UTC), "cajero"}
+		int64(50000), pagoEstado, int64(2), time.Date(2025, 1, 31, 20, 0, 0, 0, time.UTC), "cajero"}
 }
 
 // serve programa el driver: pago existente y método existente (salvo que se anulen).
 func serve(pago, metodo bool) {
 	fakeQuery = func(q string, _ []driver.NamedValue) (driver.Rows, error) {
 		switch {
+		case strings.Contains(q, "pedido_descuento_aplicado"):
+			return rowsOf([]string{"count"}, []driver.Value{descuentos}), nil
 		case strings.Contains(q, `FROM "pago"`) && pago:
 			return rowsOf(pagoCols, pagoRow()), nil
 		case strings.Contains(q, `FROM "metodo_pago"`) && metodo:
@@ -167,7 +175,10 @@ func TestPut(t *testing.T) {
 	if d["monto"] != float64(50000) || d["horaPago"] != "14:30:00" || d["fechaPago"] != "31-01-2025" || d["updatedBy"] != "cajero" {
 		t.Fatalf("merge vacío debe conservar: %v", d)
 	}
-	// solo monto: hora y método se conservan (no se exigen)
+	// solo monto: hora y método se conservan (no se exigen); un pago PAGADO no admite cambiar el monto
+	call(t, http.MethodPut, "/pagos?id=4", `{"monto":70}`, u, http.StatusConflict)
+	pagoEstado = "PENDIENTE"
+	t.Cleanup(func() { pagoEstado = "PAGADO" })
 	d = decodeData(t, call(t, http.MethodPut, "/pagos?id=4", `{"monto":70}`, u, http.StatusOK))
 	if d["monto"] != float64(70) || d["horaPago"] != "14:30:00" {
 		t.Fatalf("merge parcial incorrecto: %v", d)

@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	"restaurante/controllers/login"
+	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
@@ -50,8 +52,9 @@ func (c *ProductoPedidoController) failTx(tx orm.TxOrmer, op, msg string, err er
 }
 
 // begin abre una transacción y bloquea la fila del pedido. Devuelve false si
-// ya respondió (404 si el pedido no existe, 500 en otro error).
-func (c *ProductoPedidoController) begin(op string, pedidoID int64) (orm.TxOrmer, bool) {
+// ya respondió (404 si el pedido no existe o, para un Cliente, no es suyo; 500
+// en otro error).
+func (c *ProductoPedidoController) begin(op string, pedidoID int64, claims *login.Claims) (orm.TxOrmer, bool) {
 	ctx := map[string]interface{}{"pedido_id": pedidoID}
 	tx, err := orm.NewOrm().Begin()
 	if err != nil {
@@ -59,14 +62,19 @@ func (c *ProductoPedidoController) begin(op string, pedidoID int64) (orm.TxOrmer
 		c.fail(http.StatusInternalServerError, "No fue posible iniciar transacción", err)
 		return nil, false
 	}
-	var lock int
-	if err := tx.Raw("SELECT 1 FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", pedidoID).QueryRow(&lock); err != nil {
+	var cliente int64
+	if err := tx.Raw("SELECT COALESCE(pk_documento_cliente, 0) FROM pedido WHERE pk_id_pedido = ? FOR UPDATE", pedidoID).QueryRow(&cliente); err != nil {
 		if errors.Is(err, orm.ErrNoRows) {
 			_ = tx.Rollback()
 			c.fail(http.StatusNotFound, msgPedidoNoEncontrado, nil)
 			return nil, false
 		}
 		c.failTx(tx, op+".lock_pedido_error", "No fue posible bloquear el pedido para actualización", err, ctx)
+		return nil, false
+	}
+	if !authz.EsDuenio(claims, cliente) {
+		_ = tx.Rollback()
+		c.fail(http.StatusNotFound, msgPedidoNoEncontrado, nil)
 		return nil, false
 	}
 	return tx, true
@@ -197,7 +205,7 @@ func parseItems(items []models.ProductoPedidoItemInput, keepZero bool) (map[int6
 
 // @Title GetAll
 // @Summary Obtener los productos de un pedido
-// @Description Devuelve las líneas (detalles) de un pedido. Un pedido existente sin productos responde 200 con `detalles` igual a `[]`; un pedido inexistente responde 404. En cada línea `pedidoId` y `productoId` son objetos de la relación (solo el id es fiable) y `precio` es el precio unitario.
+// @Description Devuelve las líneas (detalles) de un pedido. Un Cliente solo puede leer las de su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal lee cualquiera. Un pedido existente sin productos responde 200 con `detalles` igual a `[]`; un pedido inexistente responde 404. En cada línea `pedidoId` y `productoId` son objetos de la relación (solo el id es fiable) y `precio` es el precio unitario.
 // @Tags producto_pedido
 // @Accept json
 // @Produce json
@@ -205,11 +213,15 @@ func parseItems(items []models.ProductoPedidoItemInput, keepZero bool) (map[int6
 // @Success 200 {object} models.ApiResponse{data=models.ProductoPedidoDoc} "Productos del pedido (`detalles` puede ser vacío)"
 // @Failure 400 {object} models.ApiResponse "pedido_id ausente o inválido"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Pedido no encontrado"
+// @Failure 404 {object} models.ApiResponse "Pedido no encontrado (para un Cliente, también si es de otro cliente)"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /producto_pedido [get]
 func (c *ProductoPedidoController) GetAll() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	pedidoID, err := httpx.PositiveInt64Param(&c.Controller, "pedido_id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "producto_pedido.getall.bad_request", err, map[string]interface{}{"pedido_id": c.GetString("pedido_id")})
@@ -217,6 +229,19 @@ func (c *ProductoPedidoController) GetAll() {
 		return
 	}
 	o := orm.NewOrm()
+	if !claims.IsStaff() {
+		// Un Cliente solo lee los productos de su propio pedido; uno ajeno responde igual que uno inexistente.
+		n, err := o.QueryTable(new(models.Pedido)).Filter("PK_ID_PEDIDO", pedidoID).Filter("PK_DOCUMENTO_CLIENTE", claims.Documento).Count()
+		if err != nil {
+			logging.LogControllerError(c.Ctx, "producto_pedido.getall.pedido_error", err, map[string]interface{}{"pedido_id": pedidoID})
+			c.fail(http.StatusInternalServerError, "Error al consultar el pedido", err)
+			return
+		}
+		if claims.Documento <= 0 || n == 0 {
+			c.fail(http.StatusNotFound, msgPedidoNoEncontrado, nil)
+			return
+		}
+	}
 	var detalles []models.DetallePedido
 	if _, err := o.QueryTable(new(models.DetallePedido)).Filter("PKIDPedido", pedidoID).OrderBy("PK_ID_DETALLE").All(&detalles); err != nil {
 		logging.LogControllerError(c.Ctx, "producto_pedido.getall.db_error", err, map[string]interface{}{"pedido_id": pedidoID})
@@ -240,7 +265,7 @@ func (c *ProductoPedidoController) GetAll() {
 
 // @Title Post
 // @Summary Agregar productos a un pedido
-// @Description Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de `cantidad` 0 se ignoran (debe quedar al menos una con `cantidad` > 0); `productoId` <= 0 o `cantidad` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).
+// @Description Un Cliente solo puede agregar productos a su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal, a cualquiera. Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de `cantidad` 0 se ignoran (debe quedar al menos una con `cantidad` > 0); `productoId` <= 0 o `cantidad` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).
 // @Tags producto_pedido
 // @Accept json
 // @Produce json
@@ -248,12 +273,16 @@ func (c *ProductoPedidoController) GetAll() {
 // @Success 201 {object} models.ApiResponse{data=models.ProductoPedidoDoc} "Productos agregados exitosamente"
 // @Failure 400 {object} models.ApiResponse "JSON inválido, pedidoId inválido, sin líneas válidas, productoId <= 0 o cantidad negativa"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Pedido o producto no encontrado"
+// @Failure 404 {object} models.ApiResponse "Pedido o producto no encontrado (para un Cliente, el pedido ajeno también)"
 // @Failure 409 {object} models.ApiResponse{data=[]models.InventarioInsuficienteDoc} "Inventario insuficiente (con detalle en `data`) o producto ya presente en el pedido"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [post]
 func (c *ProductoPedidoController) Post() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	var input models.ProductoPedidoCreateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &input); err != nil {
 		logging.LogControllerError(c.Ctx, "producto_pedido.post.bad_json", err, map[string]interface{}{"body": string(c.Ctx.Input.RequestBody)})
@@ -274,7 +303,7 @@ func (c *ProductoPedidoController) Post() {
 		return
 	}
 
-	tx, ok := c.begin("post", input.PedidoId)
+	tx, ok := c.begin("post", input.PedidoId, claims)
 	if !ok || !c.checkStock(tx, "post", nuevos) || !c.applyDeltas(tx, "post", nuevos) {
 		return
 	}
@@ -287,7 +316,7 @@ func (c *ProductoPedidoController) Post() {
 
 // @Title Update
 // @Summary Reemplazar los productos de un pedido
-// @Description Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con `cantidad` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; `productoId` <= 0 o `cantidad` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}).
+// @Description Un Cliente solo puede modificar los productos de su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal, los de cualquiera. Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con `cantidad` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; `productoId` <= 0 o `cantidad` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}).
 // @Tags producto_pedido
 // @Accept json
 // @Produce json
@@ -296,12 +325,16 @@ func (c *ProductoPedidoController) Post() {
 // @Success 200 {object} models.ApiResponse{data=models.ProductoPedidoDoc} "Productos actualizados exitosamente"
 // @Failure 400 {object} models.ApiResponse "pedido_id inválido, cuerpo que no es un arreglo, lista vacía, productoId <= 0 o cantidad negativa"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
-// @Failure 404 {object} models.ApiResponse "Pedido o producto no encontrado"
+// @Failure 404 {object} models.ApiResponse "Pedido o producto no encontrado (para un Cliente, el pedido ajeno también)"
 // @Failure 409 {object} models.ApiResponse{data=[]models.InventarioInsuficienteDoc} "Inventario insuficiente (con detalle en `data`)"
 // @Failure 500 {object} models.ApiResponse "Error interno del servidor"
 // @Security BearerAuth
 // @Router /producto_pedido [put]
 func (c *ProductoPedidoController) Update() {
+	claims, ok := authz.RequireAuth(&c.Controller)
+	if !ok {
+		return
+	}
 	pedidoID, err := httpx.PositiveInt64Param(&c.Controller, "pedido_id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "producto_pedido.update.bad_request", err, map[string]interface{}{"pedido_id": c.GetString("pedido_id")})
@@ -330,7 +363,7 @@ func (c *ProductoPedidoController) Update() {
 		}
 	}
 
-	tx, ok := c.begin("update", pedidoID)
+	tx, ok := c.begin("update", pedidoID, claims)
 	if !ok {
 		return
 	}

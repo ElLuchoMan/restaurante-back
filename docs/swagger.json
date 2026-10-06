@@ -2160,7 +2160,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve los domicilios, con filtros opcionales combinables. Un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. `fechaDomicilio` va como DD-MM-YYYY; `trabajadorAsignado` es el trabajador como objeto (solo `documentoTrabajador` es fiable) y se omite si no hay domiciliario. Con `trabajador` se devuelven solo los NO entregados que no tienen domiciliario o que tiene ese trabajador.",
+                "description": "Solo personal (trabajador o administrador): un Cliente recibe 403 porque el listado incluye direcciones y teléfonos de todos. Devuelve los domicilios, con filtros opcionales combinables. Un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. `fechaDomicilio` va como DD-MM-YYYY; `trabajadorAsignado` es el trabajador como objeto (solo `documentoTrabajador` es fiable) y se omite si no hay domiciliario. Con `trabajador` se devuelven solo los NO entregados que no tienen domiciliario o que tiene ese trabajador.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2248,6 +2248,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere un usuario trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -2262,7 +2268,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`, que solo refresca `updatedAt`). Campos: `direccion` y `telefono` (no vacíos), `estado` (alias `estadoDomicilio`: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), `observaciones`, `fechaDomicilio` (YYYY-MM-DD) y `updatedBy`. Anulables (null los limpia): `observaciones` y `updatedBy`; null en cualquier otro campo responde 400. `entregado` lo calcula la base de datos; la respuesta lo trae actualizado. Cuando el domicilio pasa a ENTREGADO, avisa por push al cliente del pedido (best-effort, en segundo plano).",
+                "description": "Solo personal (trabajador o administrador): un Cliente recibe 403. Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`, que solo refresca `updatedAt`). Campos: `direccion` y `telefono` (no vacíos), `estado` (alias `estadoDomicilio`: PENDIENTE, EN_CAMINO o ENTREGADO; permite marcar un domicilio como entregado), `observaciones`, `fechaDomicilio` (YYYY-MM-DD) y `updatedBy`. Anulables (null los limpia): `observaciones` y `updatedBy`; null en cualquier otro campo responde 400. `entregado` lo calcula la base de datos; la respuesta lo trae actualizado. Cuando el domicilio pasa a ENTREGADO, avisa por push al cliente del pedido (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2322,6 +2328,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere un usuario trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Domicilio no encontrado",
                         "schema": {
@@ -2348,7 +2360,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un domicilio. `direccion`, `telefono` (no vacíos) y `fechaDomicilio` (YYYY-MM-DD) son obligatorios; `estadoDomicilio` (alias `estado`) es opcional y, si se omite, aplica el valor por defecto de la base de datos. `trabajadorAsignado` es el documento del trabajador (null o 0 = sin asignar; si se envía debe existir, 404 si no). `entregado` lo calcula la base de datos y no debe enviarse. Responde 201 con el domicilio creado (`fechaDomicilio` como DD-MM-YYYY).",
+                "description": "Lo puede hacer el personal y también un Cliente (el carrito crea el domicilio antes del pedido), pero un Cliente no puede asignar `trabajadorAsignado` ni crearlo en un estado distinto de PENDIENTE (403). Crea un domicilio. `direccion`, `telefono` (no vacíos) y `fechaDomicilio` (YYYY-MM-DD) son obligatorios; `estadoDomicilio` (alias `estado`) es opcional y, si se omite, aplica el valor por defecto de la base de datos. `trabajadorAsignado` es el documento del trabajador (null o 0 = sin asignar; si se envía debe existir, 404 si no). `entregado` lo calcula la base de datos y no debe enviarse. Responde 201 con el domicilio creado (`fechaDomicilio` como DD-MM-YYYY).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2401,6 +2413,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Un Cliente intentó asignar un trabajador o un estado distinto de PENDIENTE",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "El trabajador indicado no existe",
                         "schema": {
@@ -2427,7 +2445,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un domicilio. Si está asociado a un pedido responde 409. Responde 200 con el mensaje de confirmación (sin `data`).",
+                "description": "Solo personal (trabajador o administrador): un Cliente recibe 403. Elimina un domicilio. Si está asociado a un pedido responde 409. Responde 200 con el mensaje de confirmación (sin `data`).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2466,6 +2484,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere un usuario trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Domicilio no encontrado",
                         "schema": {
@@ -2494,7 +2518,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. `data` es el domicilio completo actualizado. Avisa por push al cliente del pedido (best-effort, en segundo plano).",
+                "description": "Solo personal: un Domiciliario únicamente puede asignarse a sí mismo (`trabajador_id` = su documento) y un Administrador puede asignar a cualquiera; cualquier otro caso responde 403 (también a un Cliente). Un domiciliario toma un domicilio que aún no tiene asignado: queda EN_CAMINO y con ese trabajador. Responde 404 si el domicilio o el trabajador no existen y 409 si el domicilio ya estaba asignado. `data` es el domicilio completo actualizado. Avisa por push al cliente del pedido (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2552,6 +2576,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "No es Administrador ni el propio Domiciliario (un Cliente tampoco puede)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Domicilio o trabajador no encontrado",
                         "schema": {
@@ -2580,7 +2610,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un domicilio por ID y, si está asociado a un pedido, el cliente (`cliente`) y el resumen del último pedido (`pedido`: pago, subtotal, total y productos). `cliente` y `pedido` se omiten si no hay pedido asociado. `fechaDomicilio` va como DD-MM-YYYY.",
+                "description": "Un Cliente solo puede ver el domicilio de su propio pedido (cualquier otro responde 404, igual que si no existiera); el personal ve cualquiera. Devuelve un domicilio por ID y, si está asociado a un pedido, el cliente (`cliente`) y el resumen del último pedido (`pedido`: pago, subtotal, total y productos). `cliente` y `pedido` se omiten si no hay pedido asociado. `fechaDomicilio` va como DD-MM-YYYY.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2632,7 +2662,7 @@
                         }
                     },
                     "404": {
-                        "description": "Domicilio no encontrado",
+                        "description": "Domicilio no encontrado (para un Cliente, también si no es de su pedido)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -3522,7 +3552,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualización parcial (merge): los campos ausentes del cuerpo se conservan. `tipo` y `detalle` no son anulables: enviar `null` en cualquiera responde 400. `tipo` no puede quedar vacío.",
+                "description": "Solo Administrador (403 para cualquier otro rol, incluidos clientes). Actualización parcial (merge): los campos ausentes del cuerpo se conservan. `tipo` y `detalle` no son anulables: enviar `null` en cualquiera responde 400. `tipo` no puede quedar vacío.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3582,6 +3612,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Método de pago no encontrado",
                         "schema": {
@@ -3608,7 +3644,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un método de pago. `tipo` es obligatorio y no puede estar vacío; `detalle` es opcional (por defecto cadena vacía).",
+                "description": "Solo Administrador (403 para cualquier otro rol, incluidos clientes). Crea un método de pago. `tipo` es obligatorio y no puede estar vacío; `detalle` es opcional (por defecto cadena vacía).",
                 "consumes": [
                     "application/json"
                 ],
@@ -3661,6 +3697,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "409": {
                         "description": "Conflicto de unicidad en base de datos",
                         "schema": {
@@ -3681,7 +3723,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un método de pago. Si está referenciado por pagos responde 409.",
+                "description": "Solo Administrador (403 para cualquier otro rol, incluidos clientes). Elimina un método de pago. Si está referenciado por pagos responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3716,6 +3758,12 @@
                     },
                     "401": {
                         "description": "Token ausente o inválido",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Se requiere rol Administrador",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5140,7 +5188,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve los pagos, con filtros opcionales por fecha exacta, día, mes, año, estado y método de pago. Cada pago incluye `metodoPagoId` como objeto (las relaciones embebidas solo garantizan su id). En la respuesta `fechaPago` va como DD-MM-YYYY, `horaPago` como HH:MM:SS y `updatedAt` como DD-MM-YYYY HH:MM:SS (Bogotá). Sin resultados, `data` es `[]` (HTTP 200).",
+                "description": "Devuelve los pagos, con filtros opcionales por fecha exacta, día, mes, año, estado y método de pago. El personal ve todos los pagos; un Cliente solo los de sus propios pedidos (los demás nunca aparecen). Cada pago incluye `metodoPagoId` como objeto (las relaciones embebidas solo garantizan su id). En la respuesta `fechaPago` va como DD-MM-YYYY, `horaPago` como HH:MM:SS y `updatedAt` como DD-MM-YYYY HH:MM:SS (Bogotá). Sin resultados, `data` es `[]` (HTTP 200).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5228,6 +5276,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "El token de un Cliente no identifica a un cliente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error en la base de datos",
                         "schema": {
@@ -5242,7 +5296,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`). Claves: `fechaPago` (YYYY-MM-DD), `horaPago` (HH:MM[:SS]), `monto` (entero \u003e 0), `estadoPago`, `metodoPagoId` (debe existir, 404 si no) y `updatedBy`. Por compatibilidad se aceptan también `fecha` y `hora` como alias. Solo `updatedBy` es anulable (null lo limpia); null en cualquier otro campo responde 400.",
+                "description": "Solo personal (trabajador o administrador): un Cliente recibe 403. Regla del `monto`: no se puede cambiar el monto de un pago ya PAGADO (409) ni el de un pago cuyo pedido tiene descuentos aplicados (409, porque el monto ya refleja el descuento y se perdería); enviar el mismo monto que ya tiene no es un cambio. Actualización parcial (merge): los campos ausentes del cuerpo se conservan; el cuerpo puede ser parcial (incluso `{}`). Claves: `fechaPago` (YYYY-MM-DD), `horaPago` (HH:MM[:SS]), `monto` (entero \u003e 0), `estadoPago`, `metodoPagoId` (debe existir, 404 si no) y `updatedBy`. Por compatibilidad se aceptan también `fecha` y `hora` como alias. Solo `updatedBy` es anulable (null lo limpia); null en cualquier otro campo responde 400.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5302,6 +5356,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere un usuario trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Pago o método de pago no encontrado",
                         "schema": {
@@ -5309,7 +5369,7 @@
                         }
                     },
                     "409": {
-                        "description": "Conflicto de unicidad en base de datos",
+                        "description": "El pago ya está PAGADO o su pedido tiene descuentos aplicados (no se puede cambiar `monto`), o conflicto de unicidad en base de datos",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5328,7 +5388,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un pago. Todos los campos salvo `updatedBy` son obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `monto` entero \u003e 0, `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe). La respuesta devuelve `fechaPago` como DD-MM-YYYY.",
+                "description": "Lo puede hacer el personal y también un Cliente (el carrito crea el pago de su pedido), pero un Cliente solo puede crearlo en estado PENDIENTE (403 con otro estado); el pago solo queda ligado a un pedido al asignarlo con `POST /pedidos/asignar-pago`. Todos los campos salvo `updatedBy` son obligatorios: `fechaPago` YYYY-MM-DD, `horaPago` HH:MM[:SS], `monto` entero \u003e 0, `estadoPago` PAGADO|PENDIENTE|NO_PAGO y `metodoPagoId` de un método existente (404 si no existe). La respuesta devuelve `fechaPago` como DD-MM-YYYY.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5381,6 +5441,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Un Cliente intentó crear un pago que no es PENDIENTE",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "El método de pago indicado no existe",
                         "schema": {
@@ -5407,7 +5473,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Elimina un pago. Si está asociado a un pedido responde 409.",
+                "description": "Solo personal (trabajador o administrador): un Cliente recibe 403. Elimina un pago. Si está asociado a un pedido responde 409.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5446,6 +5512,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere un usuario trabajador",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Pago no encontrado",
                         "schema": {
@@ -5474,7 +5546,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve un pago por ID. `fechaPago` va como DD-MM-YYYY y `horaPago` como HH:MM:SS.",
+                "description": "Devuelve un pago por ID. Un Cliente solo puede ver pagos de sus propios pedidos (otro pago responde 404, igual que si no existiera); el personal ve cualquiera. `fechaPago` va como DD-MM-YYYY y `horaPago` como HH:MM:SS.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5526,7 +5598,7 @@
                         }
                     },
                     "404": {
-                        "description": "Pago no encontrado",
+                        "description": "Pago no encontrado (para un Cliente, también si no es de uno de sus pedidos)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5547,7 +5619,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve pedidos filtrados por fecha, rango de fechas (`desde` y `hasta` solo se aplican juntos), mes/año, cliente, tipo de método de pago y si tienen domicilio. Todos los filtros son opcionales; un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. En cada pedido `fechaPedido` va como DD-MM-YYYY, `horaPedido` como HH:MM:SS y las relaciones (`pagoId`, `domicilioId`, `restauranteId`, `documentoCliente`) como objetos en los que solo el id es fiable.",
+                "description": "Devuelve pedidos filtrados por fecha, rango de fechas (`desde` y `hasta` solo se aplican juntos), mes/año, cliente, tipo de método de pago y si tienen domicilio. Todos los filtros son opcionales; un filtro con formato inválido responde 400. Sin resultados responde 200 con `data` igual a `[]`. Un Cliente solo recibe sus propios pedidos (el filtro `cliente` se fuerza al documento de su token); el personal ve todos. En cada pedido `fechaPedido` va como DD-MM-YYYY, `horaPedido` como HH:MM:SS y las relaciones (`pagoId`, `domicilioId`, `restauranteId`, `documentoCliente`) como objetos en los que solo el id es fiable.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5591,7 +5663,7 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Documento del cliente (entero positivo)",
+                        "description": "Documento del cliente (entero positivo). Un Cliente solo puede consultar el suyo (se aplica por defecto); otro documento responde 403",
                         "name": "cliente",
                         "in": "query"
                     },
@@ -5642,6 +5714,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Un Cliente pidió los pedidos de otro cliente",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "500": {
                         "description": "Error al obtener los pedidos",
                         "schema": {
@@ -5656,7 +5734,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un pedido. El servidor fija `fechaPedido`/`horaPedido` (Bogotá) y `estadoPedido`=INICIADO. Todos los campos del cuerpo son opcionales: `delivery` (por defecto false; si es true exige `pk_id_domicilio`), `pk_id_domicilio`, `restauranteId` y `documentoCliente` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Responde 201 con el pedido creado. Envía en segundo plano (best-effort, sin afectar la respuesta) un push de confirmación al cliente (si tiene `documentoCliente`) y un aviso a los trabajadores.",
+                "description": "Crea un pedido. El servidor fija `fechaPedido`/`horaPedido` (Bogotá) y `estadoPedido`=INICIADO. Todos los campos del cuerpo son opcionales: `delivery` (por defecto false; si es true exige `pk_id_domicilio`), `pk_id_domicilio`, `restauranteId` y `documentoCliente` (si se envían deben ser enteros positivos de filas existentes: 404 si no existen). Quién crea: un Cliente siempre crea a su nombre (el documento sale del token; `documentoCliente` en el body se ignora si coincide y responde 403 si es otro); el personal (trabajador o administrador) puede crear a nombre de un cliente enviando `documentoCliente` (404 si el cliente no existe) o sin cliente (pedido de mostrador, la columna admite NULL). Responde 201 con el pedido creado. Envía en segundo plano (best-effort, sin afectar la respuesta) un push de confirmación al cliente (si tiene `documentoCliente`) y un aviso a los trabajadores.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5709,6 +5787,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Un Cliente envió un `documentoCliente` distinto al de su token",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "El domicilio, el restaurante o el cliente indicado no existe",
                         "schema": {
@@ -5737,7 +5821,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza el estado de un pedido existente (sin cuerpo: `pedido_id` y `estado` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado. Si el estado cambia (salvo a INICIADO), el servidor avisa por push al cliente del pedido (best-effort, en segundo plano).",
+                "description": "Solo personal (trabajador o administrador): un Cliente recibe 403. Actualiza el estado de un pedido existente (sin cuerpo: `pedido_id` y `estado` van como query params). Estados válidos: INICIADO, EN_PREPARACION, LISTO, TERMINADO, CANCELADO (no distingue mayúsculas). Responde con el pedido completo actualizado. Si el estado cambia (salvo a INICIADO), el servidor avisa por push al cliente del pedido (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5802,6 +5886,12 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Se requiere un usuario trabajador (un Cliente no puede cambiar estados)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
                         "description": "Pedido no encontrado",
                         "schema": {
@@ -5824,7 +5914,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un domicilio existente a un pedido y marca `delivery`=true. Responde con el pedido completo actualizado. Avisa por push a los trabajadores (best-effort, en segundo plano).",
+                "description": "Asigna un domicilio existente a un pedido y marca `delivery`=true. Responde con el pedido completo actualizado. Un Cliente solo puede hacerlo sobre su propio pedido (uno ajeno responde 404, como si no existiera) y con un domicilio que no pertenezca a otro pedido (404); el personal puede con cualquiera. Avisa por push a los trabajadores (best-effort, en segundo plano).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5883,7 +5973,7 @@
                         }
                     },
                     "404": {
-                        "description": "Pedido o domicilio no encontrado",
+                        "description": "Pedido o domicilio no encontrado (para un Cliente, también si son de otro cliente)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -5910,7 +6000,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano).",
+                "description": "Asigna un pago existente a un pedido. Por defecto (`cambiar_estado=true`) marca además el pedido como TERMINADO y el pago como PAGADO (ambos cambios en una sola transacción); con `cambiar_estado=false` solo vincula el pago. Responde con el pedido completo actualizado. Si el pedido pasa a TERMINADO, avisa por push al cliente (best-effort, en segundo plano). Un Cliente solo puede vincular un pago a su propio pedido (uno ajeno responde 404) y siempre con `cambiar_estado=false` (403 si es true o se omite, porque terminar el pedido y marcar el pago PAGADO es cosa del personal); además el pago no puede pertenecer a otro pedido (404) y el pedido no puede tener ya un pago (409, para no cambiar el monto tras aplicar descuentos).",
                 "consumes": [
                     "application/json"
                 ],
@@ -5975,14 +6065,20 @@
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
+                    "403": {
+                        "description": "Un Cliente pidió cambiar_estado=true (explícito o por defecto)",
+                        "schema": {
+                            "$ref": "#/definitions/models.ApiResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Pedido o pago no encontrado",
+                        "description": "Pedido o pago no encontrado (para un Cliente, también si son de otro cliente)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflicto con datos existentes",
+                        "description": "Conflicto con datos existentes, o un Cliente intenta reemplazar el pago ya asignado",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6003,7 +6099,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve el pedido con su método de pago y sus productos. A diferencia de `GET /pedidos`, las relaciones van como número (0 cuando no existen), `fechaPedido` como DD-MM-YYYY, `horaPedido` como HH:MM:SS y `productos` es un string con un JSON (`[]` si no hay productos) cuyos elementos son {pk_id_producto, nombre, cantidad, precio, subtotal}.",
+                "description": "Devuelve el pedido con su método de pago y sus productos. Un Cliente solo ve sus propios pedidos (uno ajeno responde 404, igual que si no existiera); el personal ve cualquiera. A diferencia de `GET /pedidos`, las relaciones van como número (0 cuando no existen), `fechaPedido` como DD-MM-YYYY, `horaPedido` como HH:MM:SS y `productos` es un string con un JSON (`[]` si no hay productos) cuyos elementos son {pk_id_producto, nombre, cantidad, precio, subtotal}.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6224,7 +6320,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve las líneas (detalles) de un pedido. Un pedido existente sin productos responde 200 con `detalles` igual a `[]`; un pedido inexistente responde 404. En cada línea `pedidoId` y `productoId` son objetos de la relación (solo el id es fiable) y `precio` es el precio unitario.",
+                "description": "Devuelve las líneas (detalles) de un pedido. Un Cliente solo puede leer las de su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal lee cualquiera. Un pedido existente sin productos responde 200 con `detalles` igual a `[]`; un pedido inexistente responde 404. En cada línea `pedidoId` y `productoId` son objetos de la relación (solo el id es fiable) y `precio` es el precio unitario.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6276,7 +6372,7 @@
                         }
                     },
                     "404": {
-                        "description": "Pedido no encontrado",
+                        "description": "Pedido no encontrado (para un Cliente, también si es de otro cliente)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6295,7 +6391,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con `cantidad` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; `productoId` \u003c= 0 o `cantidad` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}).",
+                "description": "Un Cliente solo puede modificar los productos de su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal, los de cualquiera. Reemplaza las líneas del pedido por la lista enviada (el cuerpo es un arreglo, no un objeto, así que no aplica el merge por campos): los productos que no aparezcan se quitan y una línea con `cantidad` 0 también quita el producto. El inventario se ajusta con la diferencia (descuenta o devuelve) en una transacción. Las líneas repetidas se suman; `productoId` \u003c= 0 o `cantidad` negativa responden 400; la lista no puede estar vacía. Responde 404 si el pedido o algún producto a descontar no existe y 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6359,7 +6455,7 @@
                         }
                     },
                     "404": {
-                        "description": "Pedido o producto no encontrado",
+                        "description": "Pedido o producto no encontrado (para un Cliente, el pedido ajeno también)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }
@@ -6399,7 +6495,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de `cantidad` 0 se ignoran (debe quedar al menos una con `cantidad` \u003e 0); `productoId` \u003c= 0 o `cantidad` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).",
+                "description": "Un Cliente solo puede agregar productos a su propio pedido (uno ajeno responde 404, igual que si no existiera); el personal, a cualquiera. Agrega las líneas indicadas a un pedido existente y descuenta el inventario, todo en una transacción. Las líneas repetidas se suman y las de `cantidad` 0 se ignoran (debe quedar al menos una con `cantidad` \u003e 0); `productoId` \u003c= 0 o `cantidad` negativa responden 400. Responde 404 si el pedido o algún producto no existe, 409 si el inventario no alcanza (`data` lista {productoId, requerido, disponible}) o si el producto ya está en el pedido (use PUT para modificarlo).",
                 "consumes": [
                     "application/json"
                 ],
@@ -6453,7 +6549,7 @@
                         }
                     },
                     "404": {
-                        "description": "Pedido o producto no encontrado",
+                        "description": "Pedido o producto no encontrado (para un Cliente, el pedido ajeno también)",
                         "schema": {
                             "$ref": "#/definitions/models.ApiResponse"
                         }

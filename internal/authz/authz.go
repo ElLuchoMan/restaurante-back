@@ -38,6 +38,30 @@ func RequireAdmin(c *web.Controller) (*login.Claims, bool) {
 	return claims, true
 }
 
+// RequireStaff exige un token de trabajador (cualquier rol salvo Cliente): 401
+// sin token válido y 403 si el rol es Cliente.
+func RequireStaff(c *web.Controller) (*login.Claims, bool) {
+	claims, ok := RequireAuth(c)
+	if !ok {
+		return nil, false
+	}
+	if !claims.IsStaff() {
+		httpx.Fail(c, http.StatusForbidden, "Se requiere un usuario trabajador", nil)
+		return nil, false
+	}
+	return claims, true
+}
+
+// EsDuenio indica si quien llama puede acceder a los datos del cliente con
+// el documento dado: el personal siempre; un Cliente solo si el documento de su
+// token coincide (un token sin documento positivo nunca es dueño de nada).
+func EsDuenio(claims *login.Claims, documentoCliente int64) bool {
+	if claims.IsStaff() {
+		return true
+	}
+	return claims.Documento > 0 && claims.Documento == documentoCliente
+}
+
 // ResolveCliente determina el documento del cliente que actúa.
 //
 //   - Cliente: el documento del token manda; un clienteId distinto en el body

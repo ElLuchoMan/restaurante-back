@@ -20,6 +20,7 @@ var (
 // el pedido (producto -> cantidad); pedido, si existe.
 type world struct {
 	pedido   bool
+	dueno    int64 // documento del cliente del pedido (0 = sin cliente)
 	stock    map[int64]int64
 	actuales map[int64]int64
 	lockErr  error
@@ -36,7 +37,7 @@ func (w *world) serve() {
 			if !w.pedido {
 				return rowsOf(lockCols), nil
 			}
-			return rowsOf(lockCols, []driver.Value{int64(1)}), nil
+			return rowsOf(lockCols, []driver.Value{w.dueno}), nil
 		case strings.Contains(q, "FROM producto"):
 			var vals [][]driver.Value
 			for _, a := range args {
@@ -46,7 +47,8 @@ func (w *world) serve() {
 			}
 			return rowsOf(prodCols, vals...), nil
 		case strings.Contains(q, "COUNT(*)"):
-			if w.pedido {
+			// la comprobación de pertenencia de un Cliente trae el documento como segundo argumento
+			if w.pedido && (len(args) < 2 || args[1].Value == w.dueno) {
 				return rowsOf(countCols, []driver.Value{int64(1)}), nil
 			}
 			return rowsOf(countCols, []driver.Value{int64(0)}), nil
@@ -68,7 +70,7 @@ func (w *world) serve() {
 }
 
 func newWorld() *world {
-	w := &world{pedido: true, stock: map[int64]int64{1: 10, 2: 10, 3: 1}, actuales: map[int64]int64{}}
+	w := &world{pedido: true, dueno: 1001, stock: map[int64]int64{1: 10, 2: 10, 3: 1}, actuales: map[int64]int64{}}
 	w.serve()
 	return w
 }

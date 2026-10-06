@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"restaurante/internal/authz"
 	"restaurante/internal/httpx"
 	"restaurante/logging"
 	"restaurante/models"
@@ -82,7 +83,7 @@ func (c *MetodoPagoController) readError(op string, id int64, err error) {
 
 // @Title Create
 // @Summary Crear un nuevo método de pago
-// @Description Crea un método de pago. `tipo` es obligatorio y no puede estar vacío; `detalle` es opcional (por defecto cadena vacía).
+// @Description Solo Administrador (403 para cualquier otro rol, incluidos clientes). Crea un método de pago. `tipo` es obligatorio y no puede estar vacío; `detalle` es opcional (por defecto cadena vacía).
 // @Tags metodos_pago
 // @Accept json
 // @Produce json
@@ -90,11 +91,15 @@ func (c *MetodoPagoController) readError(op string, id int64, err error) {
 // @Success 201 {object} models.ApiResponse{data=models.MetodoPago} "Método de pago creado"
 // @Failure 400 {object} models.ApiResponse "JSON inválido o `tipo` vacío"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 409 {object} models.ApiResponse "Conflicto de unicidad en base de datos"
 // @Failure 500 {object} models.ApiResponse "Error al crear el método de pago"
 // @Security BearerAuth
 // @Router /metodos_pago [post]
 func (c *MetodoPagoController) Post() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	var in models.MetodoPagoCreateRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &in); err != nil {
 		logging.LogControllerError(c.Ctx, "metodos_pago.post.bad_json", err, nil)
@@ -129,7 +134,7 @@ func (c *MetodoPagoController) writeError(op, msg string, err error) {
 
 // @Title Update
 // @Summary Actualizar un método de pago
-// @Description Actualización parcial (merge): los campos ausentes del cuerpo se conservan. `tipo` y `detalle` no son anulables: enviar `null` en cualquiera responde 400. `tipo` no puede quedar vacío.
+// @Description Solo Administrador (403 para cualquier otro rol, incluidos clientes). Actualización parcial (merge): los campos ausentes del cuerpo se conservan. `tipo` y `detalle` no son anulables: enviar `null` en cualquiera responde 400. `tipo` no puede quedar vacío.
 // @Tags metodos_pago
 // @Accept json
 // @Produce json
@@ -138,12 +143,16 @@ func (c *MetodoPagoController) writeError(op, msg string, err error) {
 // @Success 200 {object} models.ApiResponse{data=models.MetodoPago} "Método de pago actualizado"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido, JSON inválido, null en campo no anulable o `tipo` vacío"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
 // @Failure 409 {object} models.ApiResponse "Conflicto de unicidad en base de datos"
 // @Failure 500 {object} models.ApiResponse "Error al actualizar el método de pago"
 // @Security BearerAuth
 // @Router /metodos_pago [put]
 func (c *MetodoPagoController) Put() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "metodos_pago.put.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
@@ -182,7 +191,7 @@ func (c *MetodoPagoController) Put() {
 
 // @Title Delete
 // @Summary Eliminar un método de pago
-// @Description Elimina un método de pago. Si está referenciado por pagos responde 409.
+// @Description Solo Administrador (403 para cualquier otro rol, incluidos clientes). Elimina un método de pago. Si está referenciado por pagos responde 409.
 // @Tags metodos_pago
 // @Accept json
 // @Produce json
@@ -190,12 +199,16 @@ func (c *MetodoPagoController) Put() {
 // @Success 200 {object} models.ApiResponse "Método de pago eliminado"
 // @Failure 400 {object} models.ApiResponse "Parámetro 'id' inválido o ausente"
 // @Failure 401 {object} models.ApiResponse "Token ausente o inválido"
+// @Failure 403 {object} models.ApiResponse "Se requiere rol Administrador"
 // @Failure 404 {object} models.ApiResponse "Método de pago no encontrado"
 // @Failure 409 {object} models.ApiResponse "El método de pago está en uso por pagos"
 // @Failure 500 {object} models.ApiResponse "Error en la base de datos"
 // @Security BearerAuth
 // @Router /metodos_pago [delete]
 func (c *MetodoPagoController) Delete() {
+	if _, ok := authz.RequireAdmin(&c.Controller); !ok {
+		return
+	}
 	id, err := httpx.PositiveInt64Param(&c.Controller, "id")
 	if err != nil {
 		logging.LogControllerError(c.Ctx, "metodos_pago.delete.bad_request", err, map[string]interface{}{"id": c.GetString("id")})
